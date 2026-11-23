@@ -63,3 +63,19 @@ Before building or changing a screen, answer: what must the user understand at a
 - Bottom-bar tab roots (Personal and Company) use the one tab header (company: `DashHeader` with `tab`, i.e. the Team header: SpacePill, round gear / ⋯ / action buttons, no subtitle); never a back button. Sub-screens use the back header (`ScenicHeader`).
 - Customizable layouts: a screen of cards (the company Overview) may let people reorder and hide cards, never restyle them. Entry is the ⋮ OverflowMenu › "Edit layout", or a long press on the cards. Edit mode is one list: a − to hide, a ≡ handle to drag, a Hidden cards list with + to bring back, Reset to default and Done; the first card is locked (shown with a lock). Haptics only on pick-up and drop; every row has move up / move down / hide accessibility actions. The layout is a pure model (`lib/overviewLayout.ts`: per-role default merged with the saved one), saved per account and company on the phone and mirrored to `profiles.ui_prefs`.
 - Spaces: Personal and each company are separate spaces, switched from the pill at the top left ("Personal" / the company name, with a chevron) which opens one "Switch space" sheet (`SpacePill` in `components/SpaceSwitcher.tsx`). Personal Home lists every group type except company; a company never shows groups. The last explicit switch (sheet, create, accept invite) is remembered per account and the app opens there; a company that is gone or left falls back to Personal. The Company tab opens the last company. Users with no company see a plain "Personal" label, no chevron.
+
+## Never say
+
+Words that read as advice, a promise or a legal claim. They are banned in copy, notifications, store text and the Ask prompt, for every feature including Ask.
+
+- Never: "You should invest / buy / sell / switch", "best fund", "recommended", "safe", "guaranteed", "risk-free", "expected return", projected growth, "you will save tax", "tax-free", "your deposit is protected", "legally compliant", "advice" or "adviser", "bank-grade", "official receipt".
+- Say instead: "You put in", "Value you entered", "Estimate only", "Check local rules".
+
+## Global-first
+
+- Stored enums are neutral (`instant_transfer`, not `upi`); local words are display hints chosen by region. Old values are read as aliases and never migrated.
+- Language, region and currency are independent settings. An unknown country gets a neutral default, never India.
+- Currency lives on each record, as an ISO 4217 code with minor-unit amounts.
+- Format money, dates and numbers through Intl / CLDR, never by hand.
+- Week start and fiscal year follow the region (`weekStartForRegion`).
+- Never infer religion or family shape.

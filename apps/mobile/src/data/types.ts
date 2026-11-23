@@ -96,6 +96,9 @@ export interface GroupRow {
   /** The families inside the group (`@waves/core` `GroupUnits`), or null for
    *  none. Admin-set, group-visible. Optional like `custom_tag`. */
   units?: GroupUnits | null;
+  /** 'split' (who paid, who owes) or 'pool' (Share it: one household pot). Absent
+   *  on a row from before the column existed, which reads as 'split'. */
+  ledger_mode?: 'split' | 'pool';
   /** Whether a foreign bill with a stored rate counts in `default_currency`
    *  (ADR-003 amendment). Set only through `waves_set_group_convert`; new groups
    *  start true. Absent on a row mirrored before the column existed — which is

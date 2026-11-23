@@ -34,13 +34,16 @@ import type { ActivityText } from '@/lib/companyActivity';
 import { getLocales } from 'expo-localization';
 
 import {
-  currencyForCountry,
   dialingCodeForCountry,
   railsFor,
   RailId,
+  resolveCurrency,
+  setDefaultLocale,
+  setFallbackCurrency,
   type CategoryId,
   type CurrencyCode,
   type EventTemplateId,
+  type FestivalId,
 } from '@waves/core';
 
 import { setDemoGroupName } from '@/demo/label';
@@ -341,6 +344,44 @@ export interface UiStrings {
   allSettled: string;
   yourGroups: string;
   allGroups: string;
+  homeToday: {
+    needsYou: string;
+    nothingNeeds: string;
+    pay: string;
+    remind: string;
+    review: string;
+    markPaid: string;
+    reminded: string;
+    overdueSub: string;
+    dueSub: string;
+    owesYou: string;
+    youOweName: string;
+    reviewTitle: string;
+    comingUp: string;
+    addReminder: string;
+    spaces: string;
+    addSpace: string;
+    personal: string;
+    justMe: string;
+    leftMonth: string;
+    spentMonth: string;
+    leftPool: string;
+    spentPool: string;
+    billDue: string;
+    newSpace: string;
+    newSpaceHint: string;
+    seeAll: string;
+    startMine: string;
+    startMineSub: string;
+    startSplit: string;
+    startSplitSub: string;
+    startHome: string;
+    startHomeSub: string;
+    people: string;
+    friendsLink: string;
+    all: string;
+    privateDate: string;
+  };
   /** Friends screen section header, over the friends list. */
   yourFriends: string;
   /** Friends screen's link across to the groups list. */
@@ -522,6 +563,33 @@ export interface UiStrings {
    * UPI apps. The first screen is the worst place to be somewhere else.
    */
   onboarding: readonly { title: string; body: string }[];
+  /** The first-run flow (`app/start.tsx`). */
+  firstRun: {
+    stepOf: string;
+    skip: string;
+    nameTitle: string;
+    nameHint: string;
+    namePlaceholder: string;
+    addPhoto: string;
+    continue: string;
+    hi: string;
+    intentTitle: string;
+    intentHint: string;
+    intents: { trip: string; flat: string; family: string; couple: string; own: string };
+    suggested: { trip: string; flat: string; family: string; couple: string };
+    voiceTitle: string;
+    voiceHint: string;
+    sample: string;
+    holdToSpeak: string;
+    listening: string;
+    notHeard: string;
+    micOff: string;
+    heardTitle: string;
+    people: string;
+    notSaved: string;
+    done: string;
+    typeInstead: string;
+  };
   plan: string;
   /** Trip places: a list of located expenses that hands off to the OS maps app. */
   tripMap: {
@@ -1073,6 +1141,56 @@ export interface UiStrings {
     status: string;
     stuckShort: string;
     copyHint: string;
+  };
+  dates: {
+    title: string;
+    upcoming: string;
+    addDate: string;
+    empty: string;
+    inDays: PluralForms;
+    today: string;
+    yearsAtWork: PluralForms;
+    kinds: Record<
+      'my_birthday' | 'anniversary' | 'work_anniversary' | 'family_birthday' | 'other',
+      string
+    >;
+    titles: {
+      myBirthday: string;
+      anniversary: string;
+      workAnniversary: string;
+      birthdayOf: string;
+      other: string;
+    };
+    actions: { giftCollection: string; setBudget: string; updatePay: string; planBudget: string };
+    giftGroupName: string;
+    festivals: Record<FestivalId, string>;
+    editNew: string;
+    editExisting: string;
+    name: string;
+    namePlaceholder: string;
+    day: string;
+    month: string;
+    sinceYear: string;
+    privacyMine: string;
+    privacyFamily: string;
+    shareLabel: string;
+    shareComing: string;
+    save: string;
+    notNow: string;
+    remove: string;
+    festivalsTitle: string;
+    festivalsHint: string;
+    notifTitle: string;
+    reminder: {
+      from: string;
+      notThisTime: string;
+      birthday: PluralForms;
+      anniversary: PluralForms;
+      work: PluralForms;
+      named: PluralForms;
+      today: { birthday: string; anniversary: string; work: string; named: string };
+      ask: { birthday: string; anniversary: string; work: string; named: string };
+    };
   };
   recent: {
     title: string;
@@ -3299,6 +3417,150 @@ export interface UiStrings {
     preferences: string;
     preferencesSub: string;
   };
+  hhome: {
+    sharedNote: string;
+    tabOverview: string;
+    tabBills: string;
+    tabUpcoming: string;
+    tabIncome: string;
+    thisMonth: string;
+    spent: string;
+    income: string;
+    left: string;
+    vsLast: string;
+    addExpense: string;
+    addBill: string;
+    addIncome: string;
+    upcomingTitle: string;
+    upcomingEmpty: string;
+    markPaid: string;
+    recentTitle: string;
+    noExpenses: string;
+    allExpenses: string;
+    billsTotal: string;
+    billsEmpty: string;
+    billsEmptyHint: string;
+    addBillRow: string;
+    dayEvery: string;
+    billOptions: string;
+    incomeTotal: string;
+    incomeEmpty: string;
+    incomeEmptyHint: string;
+    addIncomeRow: string;
+    incomeNote: string;
+    kindSalary: string;
+    kindPension: string;
+    kindBusiness: string;
+    kindRent: string;
+    kindOther: string;
+    incomeNewTitle: string;
+    incomeEditTitle: string;
+    whoQ: string;
+    labelQ: string;
+    labelPlaceholder: string;
+    amountQ: string;
+    dayQ: string;
+    removeIncome: string;
+    addMember: string;
+    memberName: string;
+    memberHint: string;
+    memberAdd: string;
+    relPartner: string;
+    relFather: string;
+    relMother: string;
+    relSon: string;
+    relDaughter: string;
+    relOther: string;
+    pickTitle: string;
+    pickSub: string;
+    pickNext: string;
+    pickDetails: string;
+    pickWho: string;
+    pickDay: string;
+    estimateNote: string;
+    perQuarter: string;
+    perYear: string;
+    pickSave: PluralForms;
+    pickNeed: string;
+    presets: {
+      rent: string;
+      home_loan: string;
+      electricity: string;
+      water: string;
+      gas: string;
+      internet: string;
+      mobile: string;
+      streaming: string;
+      building_fees: string;
+      household_help: string;
+      childcare_school: string;
+      groceries: string;
+      fuel: string;
+      insurance: string;
+      investment_contribution: string;
+      milk: string;
+      emi: string;
+      maid_cook_driver: string;
+      ott: string;
+      petrol: string;
+      society_maintenance: string;
+      hoa: string;
+      fuel_gas: string;
+      council_tax: string;
+      service_charge: string;
+      strata: string;
+      rates: string;
+      dewa: string;
+      chiller: string;
+    };
+  };
+  household: {
+    askTitle: string;
+    askTitleNoName: string;
+    askSub: string;
+    splitTitle: string;
+    splitBody: string;
+    shareTitle: string;
+    shareBody: string;
+    continue: string;
+    settingsTitle: string;
+    openBalancesNote: string;
+    adminOnly: string;
+    ourMonth: string;
+    ofBudget: string;
+    noBudget: string;
+    leftOnTrack: string;
+    overBy: string;
+    whoPaid: string;
+    whoPaidA11y: string;
+    billPays: string;
+    everyWeek: string;
+    everyTwoWeeks: string;
+    twiceMonth: string;
+    everyMonths: string;
+    everyYear: string;
+    billsTitle: string;
+    budgetTitle: string;
+    budgetMonthly: string;
+    budgetHint: string;
+    budgetSave: string;
+    budgetClear: string;
+    budgetMenu: string;
+    splitThisOne: string;
+    splitThisOneHint: string;
+    reminderAhead: string;
+    reminderToday: string;
+    reminderBody: string;
+    moveKeep: string;
+    moveTo: string;
+    movePrivacy: string;
+    moved: string;
+    moveFailed: string;
+    moveReceiptFailed: string;
+    moveReceiptRetry: string;
+    moveWithoutReceipt: string;
+    switched: string;
+  };
   groupRecurring: {
     title: string;
     sub: string;
@@ -3553,6 +3815,12 @@ export interface UiStrings {
     holdReading: string;
     /** Hold-to-talk toast after an add: {amount} to {where}. */
     holdAdded: string;
+    /** Hold-to-talk toast while several held sentences wait: {count}. */
+    holdReadingMany: string;
+    /** Hold-to-talk summary after a queued run: {n} added. */
+    holdAddedMany: PluralForms;
+    /** Hold-to-talk summary: {n} left as drafts in Review. */
+    holdInReview: PluralForms;
     /** Name span in the heard line: {word} as said, {name} as matched. */
     heardSpan: string;
     /** Sheet title for fixing a heard name: {word} as said. */
@@ -4103,6 +4371,27 @@ export interface UiStrings {
     localSection: string;
     savedForLater: string;
     savedForLaterBody: string;
+    planBills: string;
+    planBillsBody: string;
+    planRecap: string;
+    planRecapBody: string;
+    planDaily: string;
+    planDailyBody: string;
+    plan: {
+      title: string;
+      bill: string;
+      billCovered: string;
+      billHidden: string;
+      weekLess: string;
+      weekMore: string;
+      weekPlain: string;
+      weekHidden: string;
+      monthLeft: string;
+      monthOver: string;
+      monthHidden: string;
+      daily: string;
+      dailyHidden: string;
+    };
   };
   /** Attaching an email or phone to the account you already have (ADR-006). */
   /** The ask to add a phone number, shown after sign-in until one is linked. */
@@ -8058,6 +8347,105 @@ export interface UiStrings {
   };
   /** The private personal-finance ledger (A48): the "Me" tab and its screens —
    *  solo expenses/income, recurring rules, loans and monthly budgets. */
+  /** Personal home: the daily ring, save tip and weekly / monthly recaps. */
+  personalHome: {
+    hi: string;
+    space: string;
+    sharedSpace: string;
+    switchSpace: string;
+    search: string;
+    reminders: string;
+    settings: string;
+    loan: string;
+    reminder: string;
+    spentAmount: string;
+    budgetLine: string;
+    leftChip: string;
+    overChip: string;
+    aDay: string;
+    upcomingTitle: string;
+    dueOn: string;
+    today: string;
+    overdue: string;
+    todo: string;
+    upcomingEmpty: string;
+    recentTitle: string;
+    toolLoans: string;
+    toolTodo: string;
+    toolReminders: string;
+    toolMore: string;
+    moreVoice: string;
+    navHome: string;
+    navPlanning: string;
+    navReports: string;
+    navMe: string;
+    addDateRow: string;
+    inDays: PluralForms;
+    itemsLeft: PluralForms;
+    filterAll: string;
+    filterBills: string;
+    filterTodo: string;
+    filterRecurring: string;
+    filterLabel: string;
+    dueThisMonth: string;
+    billsCount: PluralForms;
+    itemsCount: PluralForms;
+    thisMonth: string;
+    nextSection: string;
+    dueOverdue: string;
+    addReminder: string;
+    markPaid: string;
+    editBill: string;
+    pickMonth: string;
+    reminderTitle: string;
+    reminderAmount: string;
+    reminderDate: string;
+    repeat: string;
+    repeatNone: string;
+    repeatMonthly: string;
+    repeatYearly: string;
+    nothingHere: string;
+  };
+  personalPlan: {
+    leftToday: string;
+    leftTodayShort: string;
+    overToday: string;
+    leftWeek: string;
+    saveTitle: string;
+    setLimit: string;
+    review: string;
+    notNow: string;
+    tip: {
+      overMedian: string;
+      subscriptions: PluralForms;
+      overBudget: string;
+    };
+    recap: {
+      weekReady: string;
+      monthReady: string;
+      seeIt: string;
+      weekTitle: string;
+      monthTitle: string;
+      youSpent: string;
+      vsLess: string;
+      vsMore: string;
+      vsSame: string;
+      vsNone: string;
+      biggest: string;
+      noSpend: string;
+      nextBill: string;
+      noBill: string;
+      leftOver: string;
+      overIncome: string;
+      best: PluralForms;
+      worst: PluralForms;
+      trend: string;
+      next: string;
+      done: string;
+      close: string;
+      page: string;
+    };
+  };
   personalReceipt: {
     title: string;
     add: string;
@@ -8076,6 +8464,95 @@ export interface UiStrings {
     storageFull: string;
     waitingWifi: string;
     couldNotAdd: string;
+  };
+  personalSetup: {
+    title: string;
+    privateLine: string;
+    skip: string;
+    cont: string;
+    stepOf: string;
+    nameIncome: string;
+    nameHome: string;
+    nameBills: string;
+    nameEmi: string;
+    nameEat: string;
+    nameSavings: string;
+    nameCap: string;
+    incomeQ: string;
+    incomeSalary: string;
+    incomeBusiness: string;
+    incomeFreelance: string;
+    incomePension: string;
+    incomeNone: string;
+    incomeDetailsQ: string;
+    homeQ: string;
+    homeRent: string;
+    homeEmi: string;
+    hintEmi: string;
+    homeNone: string;
+    homeDetailsQ: string;
+    billsQ: string;
+    billElectricity: string;
+    billMobile: string;
+    billWifi: string;
+    billGas: string;
+    billHelp: string;
+    billSchool: string;
+    billSociety: string;
+    hintSociety: string;
+    hintHoa: string;
+    hintServiceCharge: string;
+    hintCouncilTax: string;
+    hintStrata: string;
+    hintRates: string;
+    hintDewa: string;
+    hintChiller: string;
+    billInsurance: string;
+    billSip: string;
+    hintMaidCookDriver: string;
+    hintSipChitFund: string;
+    billsDetailsQ: string;
+    loanQ: string;
+    yes: string;
+    no: string;
+    loanTypeQ: string;
+    loanCar: string;
+    loanPersonal: string;
+    loanGold: string;
+    hintGoldLoan: string;
+    loanEducation: string;
+    loanCard: string;
+    loanDetailsQ: string;
+    emiLabel: string;
+    monthsLeft: string;
+    eatQ: string;
+    eatRarely: string;
+    eat12: string;
+    eat34: string;
+    eatMost: string;
+    eatEachQ: string;
+    eatMonthly: string;
+    savingsQ: string;
+    saveNone: string;
+    saveUnder1: string;
+    save1to3: string;
+    save3to6: string;
+    save6plus: string;
+    capQ: string;
+    capHint: string;
+    amountLabel: string;
+    dayLabel: string;
+    revealTitle: string;
+    comingIn: string;
+    fixedBills: string;
+    freeToSpend: string;
+    perDay: string;
+    nextBillToday: string;
+    doneBtn: string;
+    finishCard: string;
+    finishRow: string;
+    fixedBillsCount: PluralForms;
+    nextBillIn: PluralForms;
   };
   personal: {
     /** The Personal tab's first-visit intro cards, and their skip. */
@@ -8125,7 +8602,10 @@ export interface UiStrings {
       saveIncome: string;
       calculator: string;
       notSet: string;
-      methods: Record<'cash' | 'upi' | 'card' | 'bank' | 'wallet' | 'other', string>;
+      methods: Record<
+        'cash' | 'upi' | 'instant_transfer' | 'card' | 'bank' | 'wallet' | 'other',
+        string
+      >;
     };
     /** The Personal tab's dashboard. */
     dash: {
@@ -8231,6 +8711,16 @@ export interface UiStrings {
     noRecurring: string;
     loans: string;
     loansSub: string;
+    loansTotal: string;
+    youOwe: string;
+    youAreOwed: string;
+    repaidOf: string;
+    addReminderShort: string;
+    editDetails: string;
+    loanShareOwe: string;
+    loanShareLent: string;
+    loanReminderOwe: string;
+    loanReminderLent: string;
     addLoan: string;
     editLoan: string;
     borrowed: string;
@@ -8603,6 +9093,44 @@ const en: UiStrings = {
   allSettled: 'All settled',
   yourGroups: 'Your groups',
   allGroups: 'All groups',
+  homeToday: {
+    needsYou: 'Needs you',
+    nothingNeeds: 'Nothing needs you today',
+    pay: 'Pay',
+    remind: 'Remind',
+    review: 'Review',
+    markPaid: 'Mark paid',
+    reminded: 'Reminded',
+    overdueSub: 'Overdue · {amount}',
+    dueSub: 'Due {date} · {amount}',
+    owesYou: '{name} owes you {amount}',
+    youOweName: 'You owe {name} {amount}',
+    reviewTitle: 'Items to review: {n}',
+    comingUp: 'Coming up',
+    addReminder: 'Add a reminder',
+    spaces: 'Groups',
+    addSpace: 'Add a space',
+    personal: 'Personal',
+    justMe: 'Just me',
+    leftMonth: 'left this month',
+    spentMonth: 'spent this month',
+    leftPool: 'left in pool',
+    spentPool: 'spent this month',
+    billDue: 'bill due {date}',
+    newSpace: 'New space',
+    newSpaceHint: 'Trip · Home · Couple · Family',
+    seeAll: 'See all',
+    startMine: 'My money',
+    startMineSub: 'Track your own spending',
+    startSplit: 'Split with friends',
+    startSplitSub: 'Trips, flats and dinners',
+    startHome: 'Run the home',
+    startHomeSub: 'Shared bills and budget',
+    people: 'People',
+    friendsLink: 'Friends',
+    all: 'All',
+    privateDate: 'Private date',
+  },
   yourFriends: 'Your friends',
   viewGroups: 'View groups',
   groupsTitle: 'Groups',
@@ -9021,6 +9549,38 @@ const en: UiStrings = {
     tooFastMoment: 'That was a lot at once. Wait a moment and try again.',
     tooFastLater: 'That was a lot at once. Try again in a little while.',
   },
+  firstRun: {
+    stepOf: 'Step {n} of 3',
+    skip: 'Skip',
+    nameTitle: 'What should friends call you?',
+    nameHint: 'Shown on every bill you share.',
+    namePlaceholder: 'Your name',
+    addPhoto: 'Add a photo',
+    continue: 'Continue',
+    hi: 'Hi {name}',
+    intentTitle: 'What brings you to Waves?',
+    intentHint: 'Pick all that fit.',
+    intents: {
+      trip: 'A trip',
+      flat: 'Flat or home',
+      family: 'Family',
+      couple: 'Couple',
+      own: 'Just my own money',
+    },
+    suggested: { trip: 'Our trip', flat: 'Our flat', family: 'Family', couple: 'Us two' },
+    voiceTitle: 'Say it.\nWe\u2019ll write it.',
+    voiceHint: 'Hold the button and read this:',
+    sample: '\u201cDinner 1,200 with Ravi and Asha\u201d',
+    holdToSpeak: 'Hold to speak',
+    listening: 'Listening\u2026',
+    notHeard: 'Did not catch that. Hold and try again.',
+    micOff: 'The microphone is off. You can type instead.',
+    heardTitle: 'We heard',
+    people: '{n} people',
+    notSaved: 'Nothing was saved. This was just a try.',
+    done: 'Done',
+    typeInstead: 'I\u2019ll type',
+  },
   onboarding: [
     {
       title: 'Split any expense',
@@ -9197,6 +9757,102 @@ const en: UiStrings = {
     status: 'Status',
     stuckShort: 'Older than a day, not shown on screen',
     copyHint: 'Copy details to share or troubleshoot',
+  },
+  dates: {
+    title: 'Your dates',
+    upcoming: 'Upcoming',
+    addDate: 'Add a date',
+    empty: "Add a birthday or anniversary and we'll remind you in time to plan.",
+    inDays: { one: 'tomorrow', other: 'in {n} days' },
+    today: 'today',
+    yearsAtWork: { one: '{n} year at work', other: '{n} years at work' },
+    kinds: {
+      my_birthday: 'My birthday',
+      anniversary: 'Anniversary',
+      work_anniversary: 'Work anniversary',
+      family_birthday: 'Family or friend',
+      other: 'Other',
+    },
+    titles: {
+      myBirthday: 'Your birthday',
+      anniversary: 'Your anniversary',
+      workAnniversary: 'Work anniversary',
+      birthdayOf: "{name}'s birthday",
+      other: '{name}',
+    },
+    actions: {
+      giftCollection: 'Gift collection',
+      setBudget: 'Set budget',
+      updatePay: 'Update pay',
+      planBudget: 'Plan a budget',
+    },
+    giftGroupName: "{name}'s birthday gift",
+    festivals: {
+      diwali: 'Diwali',
+      holi: 'Holi',
+      eid_al_fitr: 'Eid al-Fitr',
+      eid_al_adha: 'Eid al-Adha',
+      christmas: 'Christmas',
+      pongal: 'Pongal',
+      onam: 'Onam',
+      raksha_bandhan: 'Raksha Bandhan',
+      navratri: 'Navratri',
+      thanksgiving: 'Thanksgiving',
+      easter: 'Easter',
+      lunar_new_year: 'Lunar New Year',
+      hanukkah: 'Hanukkah',
+      vesak: 'Vesak',
+      mothers_day: "Mother's Day",
+      fathers_day: "Father's Day",
+      national_day: 'National Day',
+      ramadan_start: 'Ramadan start',
+    },
+    editNew: 'Add a date',
+    editExisting: 'Edit date',
+    name: 'Name',
+    namePlaceholder: 'Asha',
+    day: 'Day',
+    month: 'Month',
+    sinceYear: 'Started in (optional)',
+    privacyMine: 'Only you see this. We use it to remind you.',
+    privacyFamily: 'These are your private notes. We never contact the people you add.',
+    shareLabel: 'Show to people in my groups',
+    shareComing: 'Coming soon',
+    save: 'Save',
+    notNow: 'Not now',
+    remove: 'Delete this date',
+    festivalsTitle: 'Festivals',
+    festivalsHint: 'We remind you a few weeks ahead. Switch off any you do not want.',
+    notifTitle: 'A reminder from Waves',
+    reminder: {
+      from: 'From Waves',
+      notThisTime: 'Not this time',
+      birthday: {
+        one: "{name}'s birthday is tomorrow.",
+        other: "{name}'s birthday is in {n} days.",
+      },
+      anniversary: {
+        one: 'Your anniversary is tomorrow.',
+        other: 'Your anniversary is in {n} days.',
+      },
+      work: {
+        one: 'Your work anniversary is tomorrow.',
+        other: 'Your work anniversary is in {n} days.',
+      },
+      named: { one: '{name} is tomorrow.', other: '{name} is in {n} days.' },
+      today: {
+        birthday: "{name}'s birthday is today.",
+        anniversary: 'Your anniversary is today.',
+        work: 'Your work anniversary is today.',
+        named: '{name} is today.',
+      },
+      ask: {
+        birthday: 'Start a gift collection?',
+        anniversary: 'Set aside a budget for dinner or a gift?',
+        work: 'Time to update your pay?',
+        named: 'Set aside a budget?',
+      },
+    },
   },
   recent: {
     title: 'Recent on your watch',
@@ -11460,6 +12116,152 @@ const en: UiStrings = {
     preferences: 'Preferences',
     preferencesSub: 'Notifications, currency and more',
   },
+  hhome: {
+    sharedNote: 'Only people in this group can see this',
+    tabOverview: 'Overview',
+    tabBills: 'Bills',
+    tabUpcoming: 'Upcoming',
+    tabIncome: 'Income',
+    thisMonth: 'This month',
+    spent: 'Spent',
+    income: 'Income',
+    left: 'Left',
+    vsLast: 'vs last month',
+    addExpense: 'Add expense',
+    addBill: 'Add bill',
+    addIncome: 'Add income',
+    upcomingTitle: 'Upcoming',
+    upcomingEmpty: 'Nothing due in the next 30 days.',
+    markPaid: 'Mark paid',
+    recentTitle: 'Recent expenses',
+    noExpenses: 'No expenses yet this month.',
+    allExpenses: 'All expenses',
+    billsTotal: '{amount} a month in fixed bills',
+    billsEmpty: 'No bills yet',
+    billsEmptyHint:
+      'Rent, electricity, Wi-Fi, school fees. Add them once and see what each month needs.',
+    addBillRow: 'Add a bill',
+    dayEvery: 'day {day} every month',
+    billOptions: 'Options for {name}',
+    incomeTotal: '{amount} a month planned',
+    incomeEmpty: 'No income planned yet',
+    incomeEmptyHint:
+      'Add each person’s salary, pension or pocket money to see what is left each month.',
+    addIncomeRow: 'Add income',
+    incomeNote: 'A plan only. It never changes who owes whom.',
+    kindSalary: 'Salary',
+    kindPension: 'Pension',
+    kindBusiness: 'Business',
+    kindRent: 'Rent',
+    kindOther: 'Other',
+    incomeNewTitle: 'Add income',
+    incomeEditTitle: 'Edit income',
+    whoQ: 'Whose income is it?',
+    labelQ: 'What is it?',
+    labelPlaceholder: 'Salary',
+    amountQ: 'How much a month?',
+    dayQ: 'Which day of the month?',
+    removeIncome: 'Remove this income',
+    addMember: 'Add family member',
+    memberName: 'Name',
+    memberHint: 'They can join later and take over their profile.',
+    memberAdd: 'Add',
+    relPartner: 'Partner',
+    relFather: 'Father',
+    relMother: 'Mother',
+    relSon: 'Son',
+    relDaughter: 'Daughter',
+    relOther: 'Other',
+    pickTitle: 'Add bills',
+    pickSub: 'Tap everything your home pays for.',
+    pickNext: 'Next',
+    pickDetails: 'Amounts and dates',
+    pickWho: 'Who pays',
+    pickDay: 'Day of the month',
+    estimateNote: 'A monthly estimate. Saved as a budget, not a bill.',
+    perQuarter: 'every 3 months',
+    perYear: 'every year',
+    pickSave: { one: 'Add {n} bill', other: 'Add {n} bills' },
+    pickNeed: 'Add an amount for each one.',
+    presets: {
+      rent: 'Rent',
+      home_loan: 'Home loan payment',
+      electricity: 'Electricity',
+      water: 'Water',
+      gas: 'Gas',
+      internet: 'Internet',
+      mobile: 'Mobile',
+      streaming: 'Streaming',
+      building_fees: 'Building fees',
+      household_help: 'Household help',
+      childcare_school: 'Childcare / school',
+      groceries: 'Groceries',
+      fuel: 'Fuel',
+      insurance: 'Insurance',
+      investment_contribution: 'Investment contribution',
+      milk: 'Milk',
+      emi: 'EMI',
+      maid_cook_driver: 'Maid / cook / driver',
+      ott: 'OTT',
+      petrol: 'Petrol',
+      society_maintenance: 'Society maintenance',
+      hoa: 'HOA',
+      fuel_gas: 'Gas',
+      council_tax: 'Council tax',
+      service_charge: 'Service charge',
+      strata: 'Strata',
+      rates: 'Rates',
+      dewa: 'DEWA',
+      chiller: 'Chiller',
+    },
+  },
+  household: {
+    askTitle: 'How do you handle money in “{name}”?',
+    askTitleNoName: 'How do you handle money here?',
+    askSub: 'You can change this later in settings.',
+    splitTitle: 'Split it',
+    splitBody: 'Track who paid and who owes. Best for flatmates and trips.',
+    shareTitle: 'Share it',
+    shareBody: 'One pot for the home. Nobody owes anybody. Add bills and a budget together.',
+    continue: 'Continue',
+    settingsTitle: 'How you handle money',
+    openBalancesNote: 'Open balances stay until settled.',
+    adminOnly: 'Only an admin can change this.',
+    ourMonth: 'Our {month}',
+    ofBudget: 'of {amount} budget',
+    noBudget: 'Set a monthly budget',
+    leftOnTrack: '{amount} left · on track',
+    overBy: '{amount} over',
+    whoPaid: 'Who paid',
+    whoPaidA11y: 'See who paid',
+    billPays: '{name} pays · {when}',
+    everyWeek: 'every week',
+    everyTwoWeeks: 'every 2 weeks',
+    twiceMonth: 'twice a month',
+    everyMonths: 'every {n} months',
+    everyYear: 'every year',
+    billsTitle: 'Shared bills',
+    budgetTitle: 'Household budget',
+    budgetMonthly: 'Monthly budget',
+    budgetHint: 'What the household plans to spend each month.',
+    budgetSave: 'Save',
+    budgetClear: 'Remove budget',
+    budgetMenu: 'Budget',
+    splitThisOne: 'Split this one',
+    splitThisOneHint: 'Paid from the shared pot. Nobody owes anybody.',
+    reminderAhead: '{bill} is due in 3 days',
+    reminderToday: '{bill} is due today',
+    reminderBody: '{amount} · {group}',
+    moveKeep: 'Keep private',
+    moveTo: 'Move to {group}',
+    movePrivacy: 'Your Personal stays private. Your partner can’t see it.',
+    moved: 'Moved to {group}',
+    moveFailed: 'Could not move this. Nothing was changed.',
+    moveReceiptFailed: 'Couldn’t move the receipt. Your entry is still here.',
+    moveReceiptRetry: 'Try again',
+    moveWithoutReceipt: 'Move without receipt',
+    switched: 'Now sharing one pot',
+  },
   groupRecurring: {
     title: 'Repeating',
     sub: 'Rent, bills and anything else that comes round on a schedule. Each one is added on its date, for everyone.',
@@ -11707,6 +12509,9 @@ const en: UiStrings = {
     slideToCancel: 'Slide to cancel',
     holdReading: 'Reading…',
     holdAdded: 'Added {amount} to {where}',
+    holdReadingMany: 'Reading {count}…',
+    holdAddedMany: { one: 'Added {n} expense', other: 'Added {n} expenses' },
+    holdInReview: { one: '{n} in Review', other: '{n} in Review' },
     heardSpan: 'Heard {word}, matched {name}. Tap to change',
     heardPick: 'Who is “{word}”?',
     title: 'Speak an expense',
@@ -12174,6 +12979,27 @@ const en: UiStrings = {
     savedForLater: 'Expenses saved for later',
     savedForLaterBody:
       'If one is still waiting for a group a day later, this phone reminds you in the evening. On a day you have not opened Waves at all, it asks instead whether anything needs splitting. Once a day at most, and only ever one of the two.',
+    planBills: 'Bill reminders',
+    planBillsBody: 'The evening before a bill of yours goes out.',
+    planRecap: 'Weekly and monthly recap',
+    planRecapBody: 'Sunday evening, and on the 1st of each month.',
+    planDaily: 'Daily amount left',
+    planDailyBody: 'A morning note with what is left for today.',
+    plan: {
+      title: 'Your plan',
+      bill: '{name} of {amount} goes out tomorrow.',
+      billCovered: "You're covered.",
+      billHidden: 'A bill goes out tomorrow.',
+      weekLess: 'Your week: {spent} spent, {delta} less than usual. Tap to see.',
+      weekMore: 'Your week: {spent} spent, {delta} more than usual. Tap to see.',
+      weekPlain: 'Your week: {spent} spent. Tap to see.',
+      weekHidden: 'Your week is ready. Tap to see.',
+      monthLeft: '{month} closed with {amount} left over.',
+      monthOver: '{month} closed {amount} over your income.',
+      monthHidden: 'Your month is ready. Tap to see.',
+      daily: "{amount} left for today. You're on plan.",
+      dailyHidden: 'Your plan for today is ready.',
+    },
   },
   phonePrompt: {
     title: 'Add your phone number',
@@ -15651,6 +16477,107 @@ const en: UiStrings = {
     appliesNote: 'Changing a rate never moves a bill already saved.',
   },
 
+  personalHome: {
+    hi: 'Hi, {name} 👋',
+    space: 'Personal Finance',
+    sharedSpace: 'Shared',
+    switchSpace: 'Switch space',
+    search: 'Search',
+    reminders: 'Upcoming and reminders',
+    settings: 'Settings',
+    loan: 'Loan',
+    reminder: 'Reminder',
+    spentAmount: '{amount} spent',
+    budgetLine: 'Budget: {amount}',
+    leftChip: '{amount} left for this month',
+    overChip: '{amount} over for this month',
+    aDay: 'about {amount} a day',
+    upcomingTitle: 'Upcoming & Reminders',
+    dueOn: 'Due on {date}',
+    today: 'Today',
+    overdue: 'Overdue',
+    todo: 'To-Do: Finish setting up',
+    upcomingEmpty: 'Nothing coming up. Add a bill or a date.',
+    recentTitle: 'Recent Transactions',
+    toolLoans: 'Loans & EMIs',
+    toolTodo: 'To-Do & Tasks',
+    toolReminders: 'Reminders',
+    toolMore: 'More',
+    moreVoice: 'Add by voice',
+    navHome: 'Home',
+    navPlanning: 'Planning',
+    navReports: 'Reports',
+    navMe: 'Me',
+    addDateRow: 'Add a date',
+    inDays: { one: 'In {n} day', other: 'In {n} days' },
+    itemsLeft: { one: '{n} item left', other: '{n} items left' },
+    filterAll: 'All',
+    filterBills: 'Bills',
+    filterTodo: 'To-Do',
+    filterRecurring: 'Recurring',
+    filterLabel: 'Show',
+    dueThisMonth: 'Due this month',
+    billsCount: { one: '{n} bill', other: '{n} bills' },
+    itemsCount: { one: '{n} item', other: '{n} items' },
+    thisMonth: 'This Month',
+    nextSection: 'Next',
+    dueOverdue: 'Due on {date} (Overdue)',
+    addReminder: 'Add Reminder',
+    markPaid: 'Mark as paid',
+    editBill: 'Edit',
+    pickMonth: 'Choose a month',
+    reminderTitle: 'What is it for?',
+    reminderAmount: 'Amount (optional)',
+    reminderDate: 'Date',
+    repeat: 'Repeat',
+    repeatNone: 'Does not repeat',
+    repeatMonthly: 'Every month',
+    repeatYearly: 'Every year',
+    nothingHere: 'Nothing here yet.',
+  },
+  personalPlan: {
+    leftToday: '{amount} left today',
+    leftTodayShort: 'left today',
+    overToday: 'Over for today',
+    leftWeek: '{amount} left this week',
+    saveTitle: 'Where you can save',
+    setLimit: 'Set a limit',
+    review: 'Review',
+    notNow: 'Not now',
+    tip: {
+      overMedian: '{category} is {amount} above your usual this month.',
+      subscriptions: {
+        one: 'Your subscription costs {amount} a year.',
+        other: 'Your {n} subscriptions cost {amount} a year.',
+      },
+      overBudget: '{category} is {amount} over its limit.',
+    },
+    recap: {
+      weekReady: 'Your week is ready',
+      monthReady: 'Your {month} is ready',
+      seeIt: 'See it',
+      weekTitle: 'Your week',
+      monthTitle: 'Your month',
+      youSpent: 'You spent',
+      vsLess: '{amount} less than a usual week',
+      vsMore: '{amount} more than a usual week',
+      vsSame: 'About a usual week',
+      vsNone: 'Not enough earlier weeks to compare yet',
+      biggest: 'Biggest category',
+      noSpend: 'Nothing spent',
+      nextBill: 'Next bill',
+      noBill: 'No bills coming up',
+      leftOver: '{month}: {amount} left over',
+      overIncome: '{month}: {amount} over your income',
+      best: { one: 'Your best month so far', other: 'Your best month in {n} months' },
+      worst: { one: 'A tough month', other: 'Your toughest month in {n} months' },
+      trend: 'Last 6 months',
+      next: 'Next',
+      done: 'Done',
+      close: 'Close',
+      page: 'Page {n} of {total}',
+    },
+  },
   personalReceipt: {
     title: 'Receipt',
     add: 'Add',
@@ -15669,6 +16596,96 @@ const en: UiStrings = {
     storageFull: 'You have reached your storage limit.',
     waitingWifi: 'Waiting for Wi‑Fi. Add the photo when you are on Wi‑Fi.',
     couldNotAdd: 'Could not add the receipt. Try again.',
+  },
+  personalSetup: {
+    title: 'Set up Personal',
+    privateLine: 'Private to you — only you see this',
+    skip: 'Skip',
+    cont: 'Continue',
+    stepOf: 'Step {n} of {total}',
+    nameIncome: 'Income',
+    nameHome: 'Rent or home loan',
+    nameBills: 'Bills',
+    nameEmi: 'Loan EMIs',
+    nameEat: 'Eating out',
+    nameSavings: 'Savings',
+    nameCap: 'Spending cap',
+    incomeQ: 'Do you get paid regularly?',
+    incomeSalary: 'Salary',
+    incomeBusiness: 'Business',
+    incomeFreelance: 'Freelance',
+    incomePension: 'Pension',
+    incomeNone: 'Not regular',
+    incomeDetailsQ: 'How much, and on which day?',
+    homeQ: 'Rent or home loan?',
+    homeRent: 'Rent',
+    homeEmi: 'Home loan payment',
+    homeNone: 'Neither',
+    homeDetailsQ: 'How much, and on which day?',
+    billsQ: 'Which bills do you pay?',
+    billElectricity: 'Electricity',
+    billMobile: 'Mobile',
+    billWifi: 'Wi-Fi',
+    billGas: 'Gas',
+    billHelp: 'Household help',
+    billSchool: 'School fees (quarterly)',
+    billSociety: 'Building fees',
+    billInsurance: 'Insurance (yearly)',
+    billSip: 'Investment contribution',
+    billsDetailsQ: 'How much, and on which day?',
+    loanQ: 'Paying off any loans?',
+    yes: 'Yes',
+    no: 'No',
+    loanTypeQ: 'Which loan?',
+    loanCar: 'Car',
+    loanPersonal: 'Personal',
+    loanGold: 'Other secured loan',
+    loanEducation: 'Education',
+    loanCard: 'Credit card',
+    loanDetailsQ: 'EMI, day and months left',
+    emiLabel: 'EMI',
+    monthsLeft: 'Months left',
+    eatQ: 'How often do you eat out or order in?',
+    eatRarely: 'Rarely',
+    eat12: '1–2 a week',
+    eat34: '3–4 a week',
+    eatMost: 'Most days',
+    eatEachQ: 'About how much each time?',
+    eatMonthly: 'About {amount} a month',
+    savingsQ: 'Any savings set aside?',
+    saveNone: 'None',
+    saveUnder1: 'Under 1 month of pay',
+    save1to3: '1–3 months',
+    save3to6: '3–6 months',
+    save6plus: '6+ months',
+    capQ: 'Cap everyday spending?',
+    capHint: 'Your income minus fixed bills',
+    amountLabel: 'Amount',
+    dayLabel: 'Day of the month',
+    revealTitle: 'Your {month}',
+    comingIn: 'Coming in',
+    fixedBills: 'Fixed bills',
+    freeToSpend: 'Free to spend',
+    perDay: 'about {amount} a day',
+    nextBillToday: '{name} is due today',
+    doneBtn: 'Done',
+    finishCard: 'Finish setting up · {n} left',
+    finishRow: '{name}',
+    fixedBillsCount: { one: '{n} bill', other: '{n} bills' },
+    nextBillIn: { one: '{name} tomorrow', other: '{name} in {n} days' },
+
+    hintEmi: 'EMI',
+    hintSociety: 'Society maintenance',
+    hintHoa: 'HOA',
+    hintServiceCharge: 'Service charge',
+    hintCouncilTax: 'Council tax',
+    hintStrata: 'Strata',
+    hintRates: 'Rates',
+    hintDewa: 'DEWA',
+    hintChiller: 'Chiller',
+    hintMaidCookDriver: 'Maid / cook / driver',
+    hintSipChitFund: 'SIP / chit fund',
+    hintGoldLoan: 'Gold loan',
   },
   personal: {
     introCards: [
@@ -15708,7 +16725,7 @@ const en: UiStrings = {
     filterCategory: 'Filter by category',
     clearFilter: 'Clear filter',
     txnCount: { one: '{n} transaction', other: '{n} transactions' },
-    noBudgetsBody: 'Set a budget to keep your spending on track and reach your goals.',
+    noBudgetsBody: 'Set a budget to keep your spending on track.',
     addBudgetSub: 'Set a monthly limit for your spending.',
     budgetAboutMonth: 'About {average} a month.',
     tab: 'Personal',
@@ -15739,6 +16756,7 @@ const en: UiStrings = {
       methods: {
         cash: 'Cash',
         upi: 'UPI',
+        instant_transfer: 'Instant transfer',
         card: 'Card',
         bank: 'Bank transfer',
         wallet: 'Wallet',
@@ -15843,6 +16861,16 @@ const en: UiStrings = {
     noRecurring: 'No recurring items yet.',
     loans: 'Loans',
     loansSub: 'Money you owe or are owed.',
+    loansTotal: 'Total Outstanding',
+    youOwe: 'You owe',
+    youAreOwed: 'You are owed',
+    repaidOf: 'Repaid: {paid} of {total}',
+    addReminderShort: 'Add Reminder',
+    editDetails: 'Edit Details',
+    loanShareOwe: '{name} — I owe {amount}, repaid {repaid}',
+    loanShareLent: '{name} owes me {amount}, repaid {repaid}',
+    loanReminderOwe: 'Repay {name}',
+    loanReminderLent: 'Collect from {name}',
     addLoan: 'Add loan',
     editLoan: 'Edit loan',
     borrowed: 'I borrowed',
@@ -16130,14 +17158,12 @@ const ta: UiStrings = {
     birthMonth: 'மாதம்',
     joinedOn: 'பணியில் சேர்ந்த நாள், விருப்பமானது',
     showBirthday: 'என் பிறந்தநாளை சக ஊழியர்களுக்குக் காட்டு',
-    showBirthdayHint:
-      'இயல்பாக முடக்கப்பட்டுள்ளது. நாள், மாதம் மட்டுமே சேமிக்கப்படும்; ஆண்டு சேமிக்கப்படாது.',
+    showBirthdayHint: 'இயல்பாக முடக்கப்பட்டுள்ளது. நாள், மாதம் மட்டுமே சேமிக்கப்படும்; ஆண்டு சேமிக்கப்படாது.',
     clear: 'அழி',
     paidHolidays: 'ஊதியத்துடன் விடுமுறைகள்',
     paidHolidaysHint: 'ஊதியக் கணக்கில் விடுமுறை நாட்களும் ஊதிய நாட்களாகக் கணக்கிடப்படும்.',
     paidLeave: 'ஊதியத்துடன் நோய்/சாதாரண விடுப்பு',
-    paidLeaveHint:
-      'ஒப்புதல் பெற்ற நோய் மற்றும் சாதாரண விடுப்புக்கு ஊதியம் உண்டு. மற்ற விடுப்பு ஊதியமற்றது.',
+    paidLeaveHint: 'ஒப்புதல் பெற்ற நோய் மற்றும் சாதாரண விடுப்புக்கு ஊதியம் உண்டு. மற்ற விடுப்பு ஊதியமற்றது.',
     leavePolicy: 'விடுப்புக் கொள்கை',
     leavePolicyHint: 'சாதாரண, நோய் மற்றும் பிற விடுப்பு: ஒவ்வொருவரும் மாதம் எவ்வளவு பெறுகிறார்கள்.',
     leavePolicyRow: 'ஒவ்வொருவரும் பெறும் சாதாரண, நோய் மற்றும் பிற விடுப்பு',
@@ -16146,8 +17172,7 @@ const ta: UiStrings = {
     leaveTypeName: 'பெயர்',
     leaveAccrual: 'மாதம் பெறும் நாட்கள் (0 முதல் 5, அரை நாள் சரி)',
     leaveCarry: 'அடுத்த ஆண்டுக்கு எடுத்துச் செல்',
-    leaveCarryHint:
-      'பயன்படுத்தாத நாட்கள் அடுத்த ஆண்டுக்குச் செல்லும். அணைத்தால் ஜனவரி 1 அன்று மீட்டமையும்.',
+    leaveCarryHint: 'பயன்படுத்தாத நாட்கள் அடுத்த ஆண்டுக்குச் செல்லும். அணைத்தால் ஜனவரி 1 அன்று மீட்டமையும்.',
     leaveCarryCap: 'அதிகபட்சம் எடுத்துச் செல்லும் நாட்கள்',
     leaveAnnualCap: 'ஆண்டுக்கு அதிகபட்சம் பெறும் நாட்கள்',
     leaveNoLimit: 'வரம்பு இல்லை',
@@ -16162,8 +17187,7 @@ const ta: UiStrings = {
     leaveResets: 'ஆண்டுதோறும் மீட்டமையும்',
     leaveErrName: 'பெயர் கொடுங்கள்.',
     leaveErrAccrual: 'மாதத்துக்கு 0 முதல் 5 வரை, 0.5 படிகளில் இருக்க வேண்டும்.',
-    leaveErrCap:
-      'வரம்பு நாட்களின் எண்ணாக இருக்க வேண்டும், அல்லது வரம்பு இல்லையெனில் காலியாக விடுங்கள்.',
+    leaveErrCap: 'வரம்பு நாட்களின் எண்ணாக இருக்க வேண்டும், அல்லது வரம்பு இல்லையெனில் காலியாக விடுங்கள்.',
     leaveTypeNone: 'பிற (கணக்கில் இல்லை)',
     leaveLeft: '{n} மீதம்',
     leaveAfter: 'இதற்குப் பின் {n} மீதம்',
@@ -16181,8 +17205,7 @@ const ta: UiStrings = {
     holidayOnDay: 'விடுமுறை: {name}',
     leaveOnDay: 'விடுப்பில்',
     pendingLeaveTitle: 'முடிவெடுக்க {n} விடுப்புக் கோரிக்கைகள்',
-    suspendedNote:
-      'இந்த நிறுவனம் தற்காலிகமாக நிறுத்தப்பட்டுள்ளது. நாட்காட்டியை மட்டும் பார்க்கலாம்.',
+    suspendedNote: 'இந்த நிறுவனம் தற்காலிகமாக நிறுத்தப்பட்டுள்ளது. நாட்காட்டியை மட்டும் பார்க்கலாம்.',
   },
   greeting: 'வணக்கம்',
   yourWaves: 'உங்கள் பாக்கி',
@@ -16194,6 +17217,44 @@ const ta: UiStrings = {
   yourFriends: 'உங்கள் நண்பர்கள்',
   viewGroups: 'குழுக்களைப் பார்க்க',
   allGroups: 'அனைத்து குழுக்கள்',
+  homeToday: {
+    needsYou: 'உங்கள் கவனம் தேவை',
+    nothingNeeds: 'இன்று எதுவும் தேவையில்லை',
+    pay: 'செலுத்து',
+    remind: 'நினைவூட்டு',
+    review: 'பார்',
+    markPaid: 'செலுத்தியது',
+    reminded: 'நினைவூட்டப்பட்டது',
+    overdueSub: 'தாமதம் · {amount}',
+    dueSub: '{date} அன்று · {amount}',
+    owesYou: '{name} உங்களுக்கு {amount} தர வேண்டும்',
+    youOweName: 'நீங்கள் {name}க்கு {amount} தர வேண்டும்',
+    reviewTitle: 'பார்க்க வேண்டியவை: {n}',
+    comingUp: 'விரைவில்',
+    addReminder: 'நினைவூட்டல் சேர்',
+    spaces: 'குழுக்கள்',
+    addSpace: 'இடம் சேர்',
+    personal: 'தனிப்பட்டது',
+    justMe: 'நான் மட்டும்',
+    leftMonth: 'இந்த மாதம் மீதம்',
+    spentMonth: 'இந்த மாதம் செலவு',
+    leftPool: 'பொது நிதியில் மீதம்',
+    spentPool: 'இந்த மாதம் செலவு',
+    billDue: '{date} அன்று கட்டணம்',
+    newSpace: 'புதிய இடம்',
+    newSpaceHint: 'பயணம் · வீடு · ஜோடி · குடும்பம்',
+    seeAll: 'அனைத்தும்',
+    startMine: 'என் பணம்',
+    startMineSub: 'உங்கள் செலவை கண்காணிக்கவும்',
+    startSplit: 'நண்பர்களுடன் பிரி',
+    startSplitSub: 'பயணம், வீடு, விருந்து',
+    startHome: 'வீட்டை நடத்து',
+    startHomeSub: 'பகிர்ந்த கட்டணங்கள், பட்ஜெட்',
+    people: 'நபர்கள்',
+    friendsLink: 'நண்பர்கள்',
+    all: 'அனைத்தும்',
+    privateDate: 'தனிப்பட்ட தேதி',
+  },
   groupsTitle: 'குழுக்கள்',
   searchGroups: 'குழுக்களைத் தேடு',
   noGroupsMatch: 'உங்கள் தேடலுக்கு எந்தக் குழுவும் இல்லை',
@@ -16210,8 +17271,7 @@ const ta: UiStrings = {
   sort: { by: 'வரிசைப்படுத்து', amount: 'தொகை', date: 'சமீபத்திய செயல்பாடு', name: 'பெயர்' },
   addPerson: {
     title: 'ஒருவரைச் சேர்',
-    subtitle:
-      'யார் உங்களுக்குத் தர வேண்டும் என்பதைக் கண்காணி — அவருக்கு ஆப் தேவையில்லை, குழுவும் தேவையில்லை.',
+    subtitle: 'யார் உங்களுக்குத் தர வேண்டும் என்பதைக் கண்காணி — அவருக்கு ஆப் தேவையில்லை, குழுவும் தேவையில்லை.',
     nameLabel: 'அவரது பெயர்',
     namePlaceholder: 'எ.கா. அலெக்ஸ்',
     amountLabel: 'தொகை',
@@ -16255,8 +17315,7 @@ const ta: UiStrings = {
   youPayName: 'நீங்கள் {name}க்குச் செலுத்துகிறீர்கள்',
   namePaysYou: '{name} உங்களுக்குச் செலுத்துகிறார்',
   settleConfirmYouPay: '{name} உறுதிப்படுத்தக் கேட்கப்படுவார். Waves வழியாக பணம் மாறுவதில்லை.',
-  settleConfirmTheyPay:
-    'அவர் செலுத்தியதாகக் குறித்ததும் நீங்கள் உறுதிப்படுத்தக் கேட்கப்படுவீர்கள்.',
+  settleConfirmTheyPay: 'அவர் செலுத்தியதாகக் குறித்ததும் நீங்கள் உறுதிப்படுத்தக் கேட்கப்படுவீர்கள்.',
   members: 'உறுப்பினர்கள்',
   memberCount: { one: '{n} உறுப்பினர்', other: '{n} உறுப்பினர்கள்' },
   memberLeftCount: '{n} வெளியேறினர்',
@@ -16265,8 +17324,7 @@ const ta: UiStrings = {
   ghostRemind: {
     message:
       'வணக்கம் {name}, ஒரு நினைவூட்டல்: Waves-ல் {group} குழுவில் நீங்கள் {amount} தர வேண்டும். விவரங்களைப் பார்த்துச் செலுத்த சேரவும்: {link}',
-    messageNoLink:
-      'வணக்கம் {name}, ஒரு நினைவூட்டல்: Waves-ல் {group} குழுவில் நீங்கள் {amount} தர வேண்டும்.',
+    messageNoLink: 'வணக்கம் {name}, ஒரு நினைவூட்டல்: Waves-ல் {group} குழுவில் நீங்கள் {amount} தர வேண்டும்.',
     and: 'மற்றும்',
     comma: ', ',
   },
@@ -16428,8 +17486,7 @@ const ta: UiStrings = {
     addEventBudget: 'நிகழ்வு பட்ஜெட்டை சேர்',
     vendorNameLabel: 'விற்பனையாளர் பெயர்',
     vendorNamePlaceholder: 'யாருக்கு செலுத்தினீர்கள்? எ.கா. ராயல் கேட்டரர்ஸ்',
-    vendorNamePrompt:
-      'சரியான விற்பனையாளரின் கீழ் காட்ட, யாருக்கு செலுத்தினீர்கள் என்பதை சேர்க்கவும்.',
+    vendorNamePrompt: 'சரியான விற்பனையாளரின் கீழ் காட்ட, யாருக்கு செலுத்தினீர்கள் என்பதை சேர்க்கவும்.',
     saveWithoutName: 'பெயர் இல்லாமல் சேமி',
     addVendor: 'விற்பனையாளரை சேர்',
     searchVendors: 'விற்பனையாளர்களை தேடு',
@@ -16534,8 +17591,7 @@ const ta: UiStrings = {
     remove: 'அகற்று',
     removeConfirm: 'இந்த ரசீதை அகற்றவா? இந்த மாற்றம் பதிவு செய்யப்படும்.',
     couldNotAdd: 'சேர்க்க முடியவில்லை — மீண்டும் முயற்சிக்கவும்.',
-    couldNotKeep:
-      'அந்தப் படத்தை உங்கள் தொலைபேசியில் வைத்திருக்க முடியவில்லை — மீண்டும் முயற்சிக்கவும்.',
+    couldNotKeep: 'அந்தப் படத்தை உங்கள் தொலைபேசியில் வைத்திருக்க முடியவில்லை — மீண்டும் முயற்சிக்கவும்.',
     sending: 'அனுப்பப்படுகிறது…',
     waitingToSend: 'அனுப்பக் காத்திருக்கிறது',
     notSent: 'அனுப்பப்படவில்லை',
@@ -16575,8 +17631,7 @@ const ta: UiStrings = {
   clearBudget: 'அழி',
   budgetLeft: 'மீதம்',
   nothingPlannedYet: 'இன்னும் திட்டம் ஏதுமில்லை',
-  planEmptyBody:
-    'நாட்களையும் செய்யப் போவதையும் சேருங்கள். உண்மையில் ஆன செலவு தானே நிரம்பிக்கொள்ளும்.',
+  planEmptyBody: 'நாட்களையும் செய்யப் போவதையும் சேருங்கள். உண்மையில் ஆன செலவு தானே நிரம்பிக்கொள்ளும்.',
   whatIsPlanned: 'என்ன செய்யப் போகிறீர்கள்?',
   addPlanHint: 'இந்த நாளுக்குத் திட்டம் சேர்க்கும் புலத்தைத் திறக்கும்',
   add: 'சேர்',
@@ -16616,6 +17671,43 @@ const ta: UiStrings = {
     ok: 'சரி',
     tooFastMoment: 'ஒரே நேரத்தில் அதிகம். சிறிது நேரம் கழித்து மீண்டும் முயற்சிக்கவும்.',
     tooFastLater: 'ஒரே நேரத்தில் அதிகம். சிறிது நேரம் கழித்து மீண்டும் முயலவும்.',
+  },
+  firstRun: {
+    stepOf: 'படி {n} / 3',
+    skip: 'தவிர்',
+    nameTitle: 'நண்பர்கள் உங்களை எப்படி அழைக்க வேண்டும்?',
+    nameHint: 'நீங்கள் பகிரும் ஒவ்வொரு பில்லிலும் காட்டப்படும்.',
+    namePlaceholder: 'உங்கள் பெயர்',
+    addPhoto: 'புகைப்படம் சேர்',
+    continue: 'தொடர்',
+    hi: 'வணக்கம் {name}',
+    intentTitle: 'Waves-ஐ ஏன் பயன்படுத்துகிறீர்கள்?',
+    intentHint: 'பொருந்துவதை எல்லாம் தேர்ந்தெடுங்கள்.',
+    intents: {
+      trip: 'ஒரு பயணம்',
+      flat: 'வீடு',
+      family: 'குடும்பம்',
+      couple: 'தம்பதி',
+      own: 'என் சொந்தப் பணம் மட்டும்',
+    },
+    suggested: {
+      trip: 'நம் பயணம்',
+      flat: 'நம் வீடு',
+      family: 'குடும்பம்',
+      couple: 'நாங்கள் இருவர்',
+    },
+    voiceTitle: 'சொல்லுங்கள்.\nநாங்கள் எழுதுகிறோம்.',
+    voiceHint: 'பொத்தானை அழுத்திப் பிடித்து இதைச் சொல்லுங்கள்:',
+    sample: '\u201cரவி, ஆஷாவுடன் இரவு உணவு 1,200\u201d',
+    holdToSpeak: 'அழுத்திப் பிடித்துப் பேசுங்கள்',
+    listening: 'கேட்கிறது\u2026',
+    notHeard: 'புரியவில்லை. அழுத்திப் பிடித்து மீண்டும் முயலுங்கள்.',
+    micOff: 'மைக் அணைந்துள்ளது. தட்டச்சு செய்யலாம்.',
+    heardTitle: 'நாங்கள் கேட்டது',
+    people: '{n} பேர்',
+    notSaved: 'எதுவும் சேமிக்கப்படவில்லை. இது ஒரு சோதனை மட்டுமே.',
+    done: 'முடிந்தது',
+    typeInstead: 'நான் தட்டச்சு செய்கிறேன்',
   },
   onboarding: [
     {
@@ -16674,8 +17766,7 @@ const ta: UiStrings = {
     preparing: 'தயாராகிறது…',
     ready: 'ஏற்றுமதி தயார்',
     shareTitle: 'குழு ஏற்றுமதி',
-    webNote:
-      'இணையத்தில் கோப்பு பயன்பாட்டு தற்காலிக சேமிப்பில் எழுதப்படும்; பகிர சாதனத்தைப் பயன்படுத்தவும்.',
+    webNote: 'இணையத்தில் கோப்பு பயன்பாட்டு தற்காலிக சேமிப்பில் எழுதப்படும்; பகிர சாதனத்தைப் பயன்படுத்தவும்.',
     updateNeeded: 'PDF ஆக ஏற்றுமதி செய்ய பயன்பாட்டைப் புதுப்பிக்கவும்.',
     exportFailed: 'ஏற்றுமதியை உருவாக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
     documentTitle: 'குழு அறிக்கை',
@@ -16751,8 +17842,7 @@ const ta: UiStrings = {
   },
   otaUpdates: {
     row: 'செயலி புதுப்பிப்புகள்',
-    intro:
-      'ஸ்டோர் புதுப்பிப்புக்கு காத்திருக்காமல் சிறிய திருத்தங்கள் உங்கள் தொலைபேசியை வந்தடையும்.',
+    intro: 'ஸ்டோர் புதுப்பிப்புக்கு காத்திருக்காமல் சிறிய திருத்தங்கள் உங்கள் தொலைபேசியை வந்தடையும்.',
     running: 'இயங்குவது',
     builtIn: 'உள்ளமைந்தது',
     overTheAir: 'இணையவழி',
@@ -16796,6 +17886,93 @@ const ta: UiStrings = {
     status: 'நிலை',
     stuckShort: 'ஒரு நாளுக்கு மேல் பழையது, திரையில் காட்டப்படவில்லை',
     copyHint: 'பகிர அல்லது சரிசெய்ய விவரங்களை நகலெடு',
+  },
+  dates: {
+    title: 'உங்கள் தேதிகள்',
+    upcoming: 'வரவிருப்பவை',
+    addDate: 'தேதியைச் சேர்',
+    empty: 'பிறந்தநாள் அல்லது திருமண நாளைச் சேருங்கள்; திட்டமிட நேரத்தில் நினைவூட்டுவோம்.',
+    inDays: { one: 'நாளை', other: '{n} நாட்களில்' },
+    today: 'இன்று',
+    yearsAtWork: { one: 'வேலையில் {n} ஆண்டு', other: 'வேலையில் {n} ஆண்டுகள்' },
+    kinds: {
+      my_birthday: 'என் பிறந்தநாள்',
+      anniversary: 'திருமண நாள்',
+      work_anniversary: 'பணி ஆண்டுவிழா',
+      family_birthday: 'குடும்பம் அல்லது நண்பர்',
+      other: 'மற்றவை',
+    },
+    titles: {
+      myBirthday: 'உங்கள் பிறந்தநாள்',
+      anniversary: 'உங்கள் திருமண நாள்',
+      workAnniversary: 'பணி ஆண்டுவிழா',
+      birthdayOf: '{name} பிறந்தநாள்',
+      other: '{name}',
+    },
+    actions: {
+      giftCollection: 'பரிசு வசூல்',
+      setBudget: 'பட்ஜெட் அமை',
+      updatePay: 'சம்பளத்தைப் புதுப்பி',
+      planBudget: 'பட்ஜெட் திட்டமிடு',
+    },
+    giftGroupName: '{name} பிறந்தநாள் பரிசு',
+    festivals: {
+      diwali: 'தீபாவளி',
+      holi: 'ஹோலி',
+      eid_al_fitr: 'ஈதுல் பித்ர்',
+      eid_al_adha: 'ஈதுல் அள்ஹா',
+      christmas: 'கிறிஸ்துமஸ்',
+      pongal: 'பொங்கல்',
+      onam: 'ஓணம்',
+      raksha_bandhan: 'ரக்ஷா பந்தன்',
+      navratri: 'நவராத்திரி',
+      thanksgiving: 'நன்றி தெரிவிக்கும் நாள்',
+      easter: 'ஈஸ்டர்',
+      lunar_new_year: 'சந்திர புத்தாண்டு',
+      hanukkah: 'ஹனுக்கா',
+      vesak: 'விசாகம்',
+      mothers_day: 'அன்னையர் தினம்',
+      fathers_day: 'தந்தையர் தினம்',
+      national_day: 'தேசிய தினம்',
+      ramadan_start: 'ரமலான் தொடக்கம்',
+    },
+    editNew: 'தேதியைச் சேர்',
+    editExisting: 'தேதியை மாற்று',
+    name: 'பெயர்',
+    namePlaceholder: 'ஆஷா',
+    day: 'நாள்',
+    month: 'மாதம்',
+    sinceYear: 'தொடங்கிய ஆண்டு (விருப்பம்)',
+    privacyMine: 'இதை நீங்கள் மட்டுமே பார்ப்பீர்கள். நினைவூட்ட மட்டும் பயன்படுத்துவோம்.',
+    privacyFamily: 'இவை உங்கள் தனிப்பட்ட குறிப்புகள். நீங்கள் சேர்ப்பவர்களை நாங்கள் ஒருபோதும் தொடர்புகொள்ள மாட்டோம்.',
+    shareLabel: 'என் குழுக்களில் உள்ளவர்களுக்குக் காட்டு',
+    shareComing: 'விரைவில்',
+    save: 'சேமி',
+    notNow: 'இப்போது வேண்டாம்',
+    remove: 'இந்தத் தேதியை நீக்கு',
+    festivalsTitle: 'பண்டிகைகள்',
+    festivalsHint: 'சில வாரங்களுக்கு முன்பே நினைவூட்டுவோம். வேண்டாதவற்றை அணைத்துவிடுங்கள்.',
+    notifTitle: 'Waves நினைவூட்டல்',
+    reminder: {
+      from: 'Waves-இடமிருந்து',
+      notThisTime: 'இந்த முறை வேண்டாம்',
+      birthday: { one: '{name} பிறந்தநாள் நாளை.', other: '{name} பிறந்தநாள் {n} நாட்களில்.' },
+      anniversary: { one: 'உங்கள் திருமண நாள் நாளை.', other: 'உங்கள் திருமண நாள் {n} நாட்களில்.' },
+      work: { one: 'உங்கள் பணி ஆண்டுவிழா நாளை.', other: 'உங்கள் பணி ஆண்டுவிழா {n} நாட்களில்.' },
+      named: { one: '{name} நாளை.', other: '{name} {n} நாட்களில்.' },
+      today: {
+        birthday: '{name} பிறந்தநாள் இன்று.',
+        anniversary: 'உங்கள் திருமண நாள் இன்று.',
+        work: 'உங்கள் பணி ஆண்டுவிழா இன்று.',
+        named: '{name} இன்று.',
+      },
+      ask: {
+        birthday: 'பரிசு வசூலைத் தொடங்கவா?',
+        anniversary: 'இரவு உணவு அல்லது பரிசுக்கு பட்ஜெட் ஒதுக்கவா?',
+        work: 'சம்பளத்தைப் புதுப்பிக்க நேரமா?',
+        named: 'பட்ஜெட் ஒதுக்கவா?',
+      },
+    },
   },
   recent: {
     title: 'கடிகாரத்தில் சமீபத்தியவை',
@@ -16868,8 +18045,7 @@ const ta: UiStrings = {
     codeHint: 'புதிய ஃபோனில் உள்நுழையும்போது உங்கள் நிறுவனம் இந்தக் குறியீட்டைக் கேட்கலாம்.',
     authenticatorTitle: 'அங்கீகார செயலியைச் சேர்க்கவும்',
     authenticatorOn: 'அங்கீகார செயலி அமைக்கப்பட்டுள்ளது.',
-    authenticatorSteps:
-      'விசையை உங்கள் அங்கீகார செயலியில் ஒட்டி, அது காட்டும் 6 இலக்கக் குறியீட்டை உள்ளிடவும்.',
+    authenticatorSteps: 'விசையை உங்கள் அங்கீகார செயலியில் ஒட்டி, அது காட்டும் 6 இலக்கக் குறியீட்டை உள்ளிடவும்.',
     copyKey: 'விசையை நகலெடு',
     copied: 'நகலெடுக்கப்பட்டது',
     openAuthenticator: 'அங்கீகார செயலியில் திற',
@@ -16904,12 +18080,10 @@ const ta: UiStrings = {
         'இது நிறுவனக் குழு என்பதால், பகிர்ந்த செலவாகச் சேர்க்க முடியாது. நிறுவனப் பதிவாகச் சேர்க்கவும்.',
       adminOnly: 'குழு நிர்வாகி மட்டுமே இந்த மாற்றத்தைச் செய்ய முடியும்.',
       notMember: 'நீங்கள் இப்போது இந்தக் குழுவில் இல்லை. எனவே இந்த மாற்றத்தைச் சேமிக்க முடியாது.',
-      archived:
-        'இந்தக் குழு மூடப்பட்டது அல்லது நீக்கப்பட்டது. எனவே இந்த மாற்றத்தைச் சேமிக்க முடியாது.',
+      archived: 'இந்தக் குழு மூடப்பட்டது அல்லது நீக்கப்பட்டது. எனவே இந்த மாற்றத்தைச் சேமிக்க முடியாது.',
       notFound: 'இந்த மாற்றத்துடன் தொடர்புடைய ஒன்று நீக்கப்பட்டது. எனவே இதைச் சேமிக்க முடியாது.',
       conflict: 'அதே நேரத்தில் வேறொருவர் இதை மாற்றிவிட்டார். சரிபார்த்து மீண்டும் முயலவும்.',
-      guestExpired:
-        'உங்கள் விருந்தினர் சோதனைக் காலம் முடிந்தது. தொடர்ந்து சேமிக்கப் பதிவு செய்யவும்.',
+      guestExpired: 'உங்கள் விருந்தினர் சோதனைக் காலம் முடிந்தது. தொடர்ந்து சேமிக்கப் பதிவு செய்யவும்.',
       companySlot:
         'கூடுதல் நிறுவனத்துக்குத் தனி சந்தா தேவை. இதை நீக்கிவிட்டு, நிறுவனத்தைச் சேர் என்பதில் சந்தாதாரராகுங்கள்.',
       generic: 'இந்த மாற்றத்தைச் சேமிக்க முடியவில்லை. சரிபார்க்கவும் அல்லது கைவிடவும்.',
@@ -16943,8 +18117,7 @@ const ta: UiStrings = {
     requireHint: 'செயலியைத் திறக்க Face ID, கைரேகை அல்லது சாதன PIN பயன்படுத்துங்கள்.',
     askAgainShort: 'செயலியை விட்டு இவ்வளவு நேரம் விலகியிருந்தால் மீண்டும் கேட்கும்.',
     reopenShort: 'Waves-ஐ முழுவதுமாக மூடித் திறந்தால் எப்போதும் சரிபார்ப்பு கேட்கும்.',
-    footnoteShort:
-      'உங்கள் தரவு எங்கள் சேவையகங்களில் அனுப்பும்போதும் சேமிக்கும்போதும் குறியாக்கம் செய்யப்படுகிறது.',
+    footnoteShort: 'உங்கள் தரவு எங்கள் சேவையகங்களில் அனுப்பும்போதும் சேமிக்கும்போதும் குறியாக்கம் செய்யப்படுகிறது.',
     title: 'பாதுகாப்பு',
     requireBiometrics: 'கைரேகை அல்லது கடவுக்குறியீடு கேட்கவும்',
     appLock: 'ஆப் பூட்டு',
@@ -16976,8 +18149,7 @@ const ta: UiStrings = {
     learnLimits:
       'இது முழுமையான (end-to-end) குறியாக்கம் அல்ல: செயலியை இயக்க, ஒத்திசைந்த தரவை எங்கள் சேவையகங்கள் செயலாக்கலாம். செயலி பூட்டு இந்தத் தொலைபேசியை மட்டுமே பாதுகாக்கும்.',
     accountTitle: 'கணக்குப் பாதுகாப்பு',
-    accountSub:
-      'நீங்கள் எப்படி உள்நுழைகிறீர்கள் என்பதை நிர்வகித்து கணக்கைப் பாதுகாப்பாக வைத்திருங்கள்.',
+    accountSub: 'நீங்கள் எப்படி உள்நுழைகிறீர்கள் என்பதை நிர்வகித்து கணக்கைப் பாதுகாப்பாக வைத்திருங்கள்.',
     email: 'மின்னஞ்சல்',
     phone: 'தொலைபேசி எண்',
     verified: 'சரிபார்க்கப்பட்டது',
@@ -17045,8 +18217,7 @@ const ta: UiStrings = {
     offlineHint: 'இப்போது எதையும் அனுப்ப முடியாது. வெளியேறும் முன் ஒரு நகலைச் சேமியுங்கள்.',
     syncNow: 'இப்போது ஒத்திசை',
     syncing: 'அனுப்பப்படுகிறது…',
-    syncFailed:
-      'எல்லாவற்றையும் அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும், அல்லது ஒரு நகலைச் சேமிக்கவும்.',
+    syncFailed: 'எல்லாவற்றையும் அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும், அல்லது ஒரு நகலைச் சேமிக்கவும்.',
     copyNow: 'ஒரு நகலைச் சேமி',
     copying: 'தயாராகிறது…',
     copyFailed: 'கோப்பை உருவாக்க முடியவில்லை.',
@@ -17075,8 +18246,7 @@ const ta: UiStrings = {
   },
   devices: {
     couldNotSignOut: 'மற்ற சாதனங்களை வெளியேற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
-    signedOutElsewhere:
-      'மற்றொரு சாதனத்திலிருந்து இந்தச் சாதனத்தை வெளியேற்றியதால் நீங்கள் வெளியேற்றப்பட்டீர்கள்.',
+    signedOutElsewhere: 'மற்றொரு சாதனத்திலிருந்து இந்தச் சாதனத்தை வெளியேற்றியதால் நீங்கள் வெளியேற்றப்பட்டீர்கள்.',
     title: 'சாதனங்கள்',
     subtitle: 'உங்கள் கணக்கில் உள்நுழைந்த சாதனங்களை நிர்வகிக்கவும்',
     infoFree: 'இலவசத் திட்டத்தில் ஒரே நேரத்தில் {n} செயலில் உள்ள சாதனங்கள் அனுமதிக்கப்படும்.',
@@ -17093,8 +18263,7 @@ const ta: UiStrings = {
     sortName: 'பெயர்',
     addDevice: 'சாதனத்தைச் சேர்',
     addTitle: 'மற்றொரு சாதனத்தைச் சேர்',
-    addBody:
-      'மற்ற சாதனத்தில் Waves-ஐ நிறுவி, அதே மின்னஞ்சலுடன் உள்நுழையுங்கள். உள்நுழைந்ததும் இங்கே தோன்றும்.',
+    addBody: 'மற்ற சாதனத்தில் Waves-ஐ நிறுவி, அதே மின்னஞ்சலுடன் உள்நுழையுங்கள். உள்நுழைந்ததும் இங்கே தோன்றும்.',
     signOutAllTitle: 'மற்ற எல்லாச் சாதனங்களையும் வெளியேற்றவா?',
     thisDevice: 'இந்தச் சாதனம்',
     signedOut: 'வெளியேற்றப்பட்டது',
@@ -17103,8 +18272,7 @@ const ta: UiStrings = {
     eraseOthers: 'வெளியேறி மற்ற சாதனங்களை அழி',
     eraseOthersHint:
       'தொலைந்த போனுக்கு: மற்ற சாதனங்களில் உள்ள தரவையும் அழிக்கும். அவற்றில் ஒத்திசைக்கப்படாத மாற்றங்கள் நிரந்தரமாக இழக்கப்படும்.',
-    signOutOthersHint:
-      'இந்தச் சாதனம் தவிர மற்ற அனைத்திலும் வெளியேற்றும். அடுத்த முறை உள்நுழைவு கேட்கப்படும்.',
+    signOutOthersHint: 'இந்தச் சாதனம் தவிர மற்ற அனைத்திலும் வெளியேற்றும். அடுத்த முறை உள்நுழைவு கேட்கப்படும்.',
     signedOutOthers: {
       one: '{n} சாதனத்தில் வெளியேற்றப்பட்டது.',
       other: '{n} சாதனங்களில் வெளியேற்றப்பட்டது.',
@@ -17145,8 +18313,7 @@ const ta: UiStrings = {
     currencyLabel: 'நாணயம்',
     currencyFromCountry: 'உங்கள் நாட்டிலிருந்து அமைக்கப்படுகிறது',
     currencyChosen: 'நீங்கள் தேர்ந்தெடுத்தது',
-    countryRequired:
-      'நாணயத்தையும் பணச் செலுத்தல் விருப்பங்களையும் அமைக்க உங்கள் நாட்டைத் தேர்ந்தெடுக்கவும்.',
+    countryRequired: 'நாணயத்தையும் பணச் செலுத்தல் விருப்பங்களையும் அமைக்க உங்கள் நாட்டைத் தேர்ந்தெடுக்கவும்.',
     addressTitle: 'முகவரி',
     addressOptional: 'விருப்பம்',
     addressPlaceholder: 'தெரு, நகரம், அஞ்சல் குறியீடு',
@@ -17163,8 +18330,7 @@ const ta: UiStrings = {
     howPeoplePayYou: 'உங்களுக்கு எப்படிப் பணம் தருவது',
     yourRailDetails: 'உங்கள் {rail} விவரங்கள்',
     handleWrong: 'இது {hint} போல் தெரியவில்லை.',
-    railLinkNote:
-      'உங்களுடன் தீர்ப்பவர்களுக்கு ஒரே தட்டில் பணம் அனுப்ப முடியும். Waves பணத்தைக் கையாள்வதே இல்லை.',
+    railLinkNote: 'உங்களுடன் தீர்ப்பவர்களுக்கு ஒரே தட்டில் பணம் அனுப்ப முடியும். Waves பணத்தைக் கையாள்வதே இல்லை.',
     railManualNote:
       'உங்களுடன் தீர்ப்பவர்கள் இதைப் பார்த்து தங்கள் வங்கி ஆப்பிலிருந்து பணம் அனுப்புவார்கள். Waves பணத்தைக் கையாள்வதே இல்லை.',
     nothingToAdd: 'சேர்க்க ஒன்றுமில்லை — கொடுத்ததை மற்றவர்கள் கையால் பதிவு செய்வார்கள்.',
@@ -17206,8 +18372,7 @@ const ta: UiStrings = {
     title: 'உங்கள் சொந்த விசையைச் சேர்',
     intro:
       'இப்போதே ஒரு மாடல் விசையைச் சேர் — வரவிருக்கும் AI அம்சங்களுக்குத் தயாராக: ரசீதைப் படித்தல், நீங்கள் சொல்வதை யார், எப்படிப் பிரிப்பது என்பதுடன் செலவாக மாற்றுதல் — அவை உங்கள் கணக்கில் இயங்கும், எங்களுடையதில் அல்ல.',
-    onDevice:
-      'இந்த ஃபோனில் மறையாக்கம். Waves-க்கு அனுப்பப்படாது — நீங்கள் தேர்ந்த வழங்குநருக்கு மட்டுமே.',
+    onDevice: 'இந்த ஃபோனில் மறையாக்கம். Waves-க்கு அனுப்பப்படாது — நீங்கள் தேர்ந்த வழங்குநருக்கு மட்டுமே.',
     keyLabel: 'API விசை',
     getKey: 'ஒரு விசையைப் பெறு',
     test: 'சோதி',
@@ -17223,15 +18388,13 @@ const ta: UiStrings = {
     oneKey: 'ஒரு நேரத்தில் ஒரே விசை — புதியதைச் சேமித்தால் பழையது நீங்கும்.',
     replaceNote: 'சேமித்தால் உங்கள் {provider} விசை மாற்றப்படும்.',
     removeConfirmTitle: 'இந்த விசையை நீக்கவா?',
-    removeConfirmBody:
-      'இது இந்த ஃபோனிலிருந்து நீக்கப்படும். எப்போது வேண்டுமானாலும் மீண்டும் ஒட்டலாம்.',
+    removeConfirmBody: 'இது இந்த ஃபோனிலிருந்து நீக்கப்படும். எப்போது வேண்டுமானாலும் மீண்டும் ஒட்டலாம்.',
     accessPaid: 'கட்டண திட்டம் — AI அம்சங்கள் உள்ளடக்கப்படும்.',
     accessByok: 'விசை அமைக்கப்பட்டது — AI அம்சங்கள் உங்கள் கணக்கைப் பயன்படுத்தும்.',
     accessPaused: 'விசை அணைக்கப்பட்டது — AI அம்சங்களைப் பயன்படுத்த அதை இயக்கு.',
     accessOverlimit: 'டோக்கன் வரம்பு எட்டப்பட்டது — தொடர பயன்படுத்த அதை உயர்த்து.',
     accessLocked: 'ஒரு விசையைச் சேர், அல்லது மேம்படுத்து, AI அம்சங்களுக்கு.',
-    footnote:
-      'நீங்கள் தேர்ந்தெடுத்த வழங்குநருக்கான கோரிக்கையைத் தவிர இங்கிருந்து எதுவும் வெளியேறாது.',
+    footnote: 'நீங்கள் தேர்ந்தெடுத்த வழங்குநருக்கான கோரிக்கையைத் தவிர இங்கிருந்து எதுவும் வெளியேறாது.',
     useKey: 'இந்த விசையைப் பயன்படுத்து',
     modelLabel: 'மாடல்',
     limitLabel: 'டோக்கன் வரம்பு',
@@ -17422,8 +18585,7 @@ const ta: UiStrings = {
     docsCount: '{n} ஆவணங்கள்',
     billsCount: '{n} பில்கள்',
     noDocsTitle: 'இன்னும் மதிப்பீடுகள் அல்லது பில்கள் இல்லை',
-    noDocsBody:
-      'மதிப்பீடுகளை உருவாக்கி, பில்களைச் சேர்த்து, கட்டணங்களை ஒரே இடத்தில் கண்காணிக்கவும்.',
+    noDocsBody: 'மதிப்பீடுகளை உருவாக்கி, பில்களைச் சேர்த்து, கட்டணங்களை ஒரே இடத்தில் கண்காணிக்கவும்.',
     createBill: 'பில் உருவாக்கு',
     createEstimate: 'மதிப்பீடு உருவாக்கு',
     noMatch: 'எதுவும் பொருந்தவில்லை',
@@ -17728,8 +18890,7 @@ const ta: UiStrings = {
     agentsApproval: 'முகவர் மாற்றங்களுக்கு ஒப்புதல் தேவை',
     agentsApprovalHint: 'முகவர் சேர்க்கும் செலவுகள் உங்கள் ஒப்புதலுக்காகக் காத்திருக்கும்.',
     agentsConnected: 'இணைந்தவை',
-    agentsEmpty:
-      'முகவர்கள் இணைக்கப்படவில்லை. மக்கள் Claude/ChatGPT-இல் Connect → Waves வழியாக இணைக்கலாம்.',
+    agentsEmpty: 'முகவர்கள் இணைக்கப்படவில்லை. மக்கள் Claude/ChatGPT-இல் Connect → Waves வழியாக இணைக்கலாம்.',
     agentsActivity: 'முகவர் செயல்பாடு',
     agentsActivityEmpty: 'இன்னும் எதுவுமில்லை.',
     agentsRevoke: 'நீக்கு',
@@ -17904,8 +19065,7 @@ const ta: UiStrings = {
     qaAdvance: 'முன்பணம் கொடு',
     qaAsk: 'பட்ஜெட் கேள்',
     promoTitle: 'உங்கள் குழுவை அழையுங்கள்',
-    promoBody:
-      'ஊழியர்களைச் சேர்த்து, சம்பளம், முன்பணம், கொடுப்பனவுகளை ஒரே இடத்தில் பதிவு செய்யுங்கள்.',
+    promoBody: 'ஊழியர்களைச் சேர்த்து, சம்பளம், முன்பணம், கொடுப்பனவுகளை ஒரே இடத்தில் பதிவு செய்யுங்கள்.',
     hierTitle: 'குழு படிநிலை',
     viewAll: 'அனைத்தும்',
     ownersControl: '{n} உரிமையாளர்கள் · முழு கட்டுப்பாடு',
@@ -17944,8 +19104,7 @@ const ta: UiStrings = {
     paymentsNoneBody: 'தொடங்க சம்பளம் அல்லது கொடுத்த பணத்தைப் பதிவு செய்யுங்கள்.',
     addSiteBody: 'இடம் அல்லது துறை வாரியாக பட்ஜெட்டுகளை ஒழுங்கமைக்க தளங்களைச் சேர்க்கவும்.',
     budgetsNone: 'இன்னும் பட்ஜெட் இல்லை',
-    budgetsNoneBody:
-      'செலவைக் கண்காணிக்க உங்கள் தளங்கள் மற்றும் மேலாளர்களுக்கு பட்ஜெட் உருவாக்குங்கள்.',
+    budgetsNoneBody: 'செலவைக் கண்காணிக்க உங்கள் தளங்கள் மற்றும் மேலாளர்களுக்கு பட்ஜெட் உருவாக்குங்கள்.',
     setBudget: 'பட்ஜெட் அமை',
     setBudgetBody: 'ஒவ்வொரு தளத்துக்கும் தொகையை அமைக்கவும்',
     assignManager: 'மேலாளருக்கு ஒதுக்கு',
@@ -18304,8 +19463,7 @@ const ta: UiStrings = {
     removePhotoTitle: 'இந்தப் புகைப்படத்தை நீக்கவா?',
     photoFailed: 'புகைப்படத்தைச் சேர்க்க முடியவில்லை. பதிவு சேமிக்கப்பட்டது.',
     photoPrivacy: 'ஊழியரும் நிறுவன நிர்வாகிகளும் மட்டுமே இந்தப் புகைப்படங்களைப் பார்க்கலாம்.',
-    introPrivacy:
-      'நீங்களும் நிறுவன நிர்வாகியும் மட்டுமே உங்கள் பதிவுகளையும் புகைப்படங்களையும் பார்க்கலாம்.',
+    introPrivacy: 'நீங்களும் நிறுவன நிர்வாகியும் மட்டுமே உங்கள் பதிவுகளையும் புகைப்படங்களையும் பார்க்கலாம்.',
     defaultRateRow: 'தினசரி படி விகிதம்',
     defaultRateHint: 'விருப்பம். நீங்கள் தனியாக அமைக்கும் வரை எல்லா ஊழியர்களுக்கும் பயன்படும்.',
     logoRow: 'நிறுவன லோகோ',
@@ -18659,8 +19817,7 @@ const ta: UiStrings = {
   companyImport: {
     title: 'இறக்குமதி',
     menuRow: 'இறக்குமதி',
-    menuRowSub:
-      'கோப்பு, தொடர்புகள் அல்லது Google Sheets-இலிருந்து ஊழியர்கள், வாடிக்கையாளர்கள், விற்பனையாளர்கள்',
+    menuRowSub: 'கோப்பு, தொடர்புகள் அல்லது Google Sheets-இலிருந்து ஊழியர்கள், வாடிக்கையாளர்கள், விற்பனையாளர்கள்',
     whatTitle: 'எதை இறக்குமதி செய்ய வேண்டும்?',
     employees: 'ஊழியர்கள்',
     employeesSub: 'பெயர், தொலைபேசி, ஐடி, சேர்ந்த தேதி',
@@ -18749,8 +19906,7 @@ const ta: UiStrings = {
     periodAll: 'எல்லா நேரமும்',
     allVendors: 'அனைத்து விற்பனையாளர்கள்',
     pendingReview: 'மதிப்பாய்வு நிலுவை',
-    photoPrivacy:
-      'இந்தக் கணக்குப் பதிவைப் பார்க்க அனுமதி உள்ளவர்கள் மட்டுமே இந்தப் புகைப்படங்களைப் பார்க்கலாம்.',
+    photoPrivacy: 'இந்தக் கணக்குப் பதிவைப் பார்க்க அனுமதி உள்ளவர்கள் மட்டுமே இந்தப் புகைப்படங்களைப் பார்க்கலாம்.',
     historyEmpty: 'இன்னும் பதிவுகள் இல்லை',
     title: 'விற்பனையாளர்கள்',
     addVendor: '+ விற்பனையாளரைச் சேர்',
@@ -18963,11 +20119,9 @@ const ta: UiStrings = {
     noneFound: 'செயலில் உள்ள நிறுவன சந்தா எதுவும் இல்லை.',
     unavailable:
       'இந்தப் பதிப்பில் கூடுதல் நிறுவனங்களை வாங்க முடியாது. ஸ்டோரிலிருந்து புதுப்பித்து மீண்டும் முயலுங்கள்.',
-    pending:
-      'உங்கள் வாங்குதல் ஒப்புதலுக்காகக் காத்திருக்கிறது. அது முடிந்ததும் நிறுவனத்தைச் சேர்க்கவும்.',
+    pending: 'உங்கள் வாங்குதல் ஒப்புதலுக்காகக் காத்திருக்கிறது. அது முடிந்ததும் நிறுவனத்தைச் சேர்க்கவும்.',
     buyFailed: 'வாங்குதலை முடிக்க முடியவில்லை. உங்களிடம் கட்டணம் வசூலிக்கப்படவில்லை.',
-    setupSlow:
-      'உங்கள் சந்தா இன்னும் உறுதிசெய்யப்படுகிறது. ஒரு நிமிடம் கழித்து மீண்டும் முயலுங்கள்.',
+    setupSlow: 'உங்கள் சந்தா இன்னும் உறுதிசெய்யப்படுகிறது. ஒரு நிமிடம் கழித்து மீண்டும் முயலுங்கள்.',
     lapsedBanner:
       'இந்த நிறுவனத்தின் சந்தா முடிந்துவிட்டது, அதனால் இது பார்க்க மட்டுமே. எதுவும் நீக்கப்படவில்லை. மீண்டும் திருத்த சந்தாவைப் புதுப்பியுங்கள்.',
     lapsedReadOnly:
@@ -19085,6 +20239,152 @@ const ta: UiStrings = {
     preferences: 'விருப்பங்கள்',
     preferencesSub: 'அறிவிப்புகள், நாணயம் மற்றும் பல',
   },
+  hhome: {
+    sharedNote: 'இந்தக் குழுவில் உள்ளவர்கள் மட்டுமே இதைப் பார்க்க முடியும்',
+    tabOverview: 'மேலோட்டம்',
+    tabBills: 'பில்கள்',
+    tabUpcoming: 'வரவிருப்பவை',
+    tabIncome: 'வருமானம்',
+    thisMonth: 'இந்த மாதம்',
+    spent: 'செலவு',
+    income: 'வருமானம்',
+    left: 'மீதம்',
+    vsLast: 'கடந்த மாதத்தை விட',
+    addExpense: 'செலவு சேர்',
+    addBill: 'பில் சேர்',
+    addIncome: 'வருமானம் சேர்',
+    upcomingTitle: 'வரவிருப்பவை',
+    upcomingEmpty: 'அடுத்த 30 நாட்களில் செலுத்த எதுவும் இல்லை.',
+    markPaid: 'செலுத்தியது',
+    recentTitle: 'சமீபத்திய செலவுகள்',
+    noExpenses: 'இந்த மாதம் இன்னும் செலவுகள் இல்லை.',
+    allExpenses: 'அனைத்து செலவுகள்',
+    billsTotal: 'நிலையான பில்களுக்கு மாதம் {amount}',
+    billsEmpty: 'இன்னும் பில்கள் இல்லை',
+    billsEmptyHint:
+      'வாடகை, மின்சாரம், வைஃபை, பள்ளிக் கட்டணம். ஒருமுறை சேர்த்தால் ஒவ்வொரு மாதமும் தேவையானது தெரியும்.',
+    addBillRow: 'பில் சேர்',
+    dayEvery: 'மாதந்தோறும் {day}-ஆம் தேதி',
+    billOptions: '{name} விருப்பங்கள்',
+    incomeTotal: 'மாதம் {amount} திட்டமிடப்பட்டது',
+    incomeEmpty: 'இன்னும் வருமானம் திட்டமிடப்படவில்லை',
+    incomeEmptyHint: 'ஒவ்வொருவரின் சம்பளம், ஓய்வூதியம் அல்லது கைச்செலவுப் பணத்தைச் சேர்த்தால் மாதம் மீதம் தெரியும்.',
+    addIncomeRow: 'வருமானம் சேர்',
+    incomeNote: 'இது ஒரு திட்டம் மட்டுமே. யார் யாருக்குக் கொடுக்க வேண்டும் என்பதை மாற்றாது.',
+    kindSalary: 'சம்பளம்',
+    kindPension: 'ஓய்வூதியம்',
+    kindBusiness: 'தொழில்',
+    kindRent: 'வாடகை',
+    kindOther: 'மற்றவை',
+    incomeNewTitle: 'வருமானம் சேர்',
+    incomeEditTitle: 'வருமானத்தைத் திருத்து',
+    whoQ: 'யாருடைய வருமானம்?',
+    labelQ: 'இது என்ன?',
+    labelPlaceholder: 'சம்பளம்',
+    amountQ: 'மாதம் எவ்வளவு?',
+    dayQ: 'மாதத்தின் எந்த நாள்?',
+    removeIncome: 'இந்த வருமானத்தை நீக்கு',
+    addMember: 'குடும்ப உறுப்பினரைச் சேர்',
+    memberName: 'பெயர்',
+    memberHint: 'அவர்கள் பிறகு சேர்ந்து தங்கள் சுயவிவரத்தை ஏற்கலாம்.',
+    memberAdd: 'சேர்',
+    relPartner: 'துணை',
+    relFather: 'அப்பா',
+    relMother: 'அம்மா',
+    relSon: 'மகன்',
+    relDaughter: 'மகள்',
+    relOther: 'மற்றவர்',
+    pickTitle: 'பில்களைச் சேர்',
+    pickSub: 'உங்கள் வீடு செலுத்துவதை எல்லாம் தொடுங்கள்.',
+    pickNext: 'அடுத்து',
+    pickDetails: 'தொகைகளும் தேதிகளும்',
+    pickWho: 'யார் செலுத்துவார்',
+    pickDay: 'மாதத்தின் நாள்',
+    estimateNote: 'மாதாந்திர மதிப்பீடு. பில்லாக அல்ல, பட்ஜெட்டாகச் சேமிக்கப்படும்.',
+    perQuarter: '3 மாதங்களுக்கு ஒருமுறை',
+    perYear: 'ஆண்டுக்கு ஒருமுறை',
+    pickSave: { one: '{n} பில்லைச் சேர்', other: '{n} பில்களைச் சேர்' },
+    pickNeed: 'ஒவ்வொன்றுக்கும் தொகையைச் சேர்க்கவும்.',
+    presets: {
+      rent: 'வாடகை',
+      home_loan: 'வீட்டுக் கடன் கட்டணம்',
+      electricity: 'மின்சாரம்',
+      water: 'தண்ணீர்',
+      gas: 'எரிவாயு',
+      internet: 'இணையம்',
+      mobile: 'மொபைல்',
+      streaming: 'ஸ்ட்ரீமிங்',
+      building_fees: 'கட்டிடக் கட்டணம்',
+      household_help: 'வீட்டு உதவி',
+      childcare_school: 'குழந்தை பராமரிப்பு / பள்ளி',
+      groceries: 'மளிகை',
+      fuel: 'எரிபொருள்',
+      insurance: 'காப்பீடு',
+      investment_contribution: 'முதலீட்டு பங்களிப்பு',
+      milk: 'பால்',
+      emi: 'EMI',
+      maid_cook_driver: 'வீட்டு வேலை / சமையல் / ஓட்டுநர்',
+      ott: 'OTT',
+      petrol: 'பெட்ரோல்',
+      society_maintenance: 'சொசைட்டி பராமரிப்பு',
+      hoa: 'HOA',
+      fuel_gas: 'காஸ்',
+      council_tax: 'கவுன்சில் வரி',
+      service_charge: 'சேவை கட்டணம்',
+      strata: 'ஸ்ட்ராட்டா',
+      rates: 'விகிதக் கட்டணம்',
+      dewa: 'DEWA',
+      chiller: 'சில்லர்',
+    },
+  },
+  household: {
+    askTitle: '“{name}” குழுவில் பணத்தை எப்படி கையாள்கிறீர்கள்?',
+    askTitleNoName: 'இங்கே பணத்தை எப்படி கையாள்கிறீர்கள்?',
+    askSub: 'இதை பின்னர் அமைப்புகளில் மாற்றலாம்.',
+    splitTitle: 'பிரித்துக்கொள்ளுங்கள்',
+    splitBody: 'யார் கொடுத்தார், யார் தர வேண்டும் எனக் கண்காணிக்கவும். அறைத்தோழர்கள், பயணங்களுக்கு ஏற்றது.',
+    shareTitle: 'பகிர்ந்துகொள்ளுங்கள்',
+    shareBody:
+      'வீட்டுக்கு ஒரே பணப்பை. யாரும் யாருக்கும் கடன் இல்லை. பில்கள், பட்ஜெட், சேர்ந்து சேமிக்கும் இலக்குகளைச் சேர்க்கலாம்.',
+    continue: 'தொடரவும்',
+    settingsTitle: 'பணத்தை எப்படி கையாள்வது',
+    openBalancesNote: 'நிலுவைத் தொகைகள் தீர்க்கப்படும் வரை அப்படியே இருக்கும்.',
+    adminOnly: 'நிர்வாகி மட்டுமே இதை மாற்ற முடியும்.',
+    ourMonth: 'நமது {month}',
+    ofBudget: '{amount} பட்ஜெட்டில்',
+    noBudget: 'மாதாந்திர பட்ஜெட்டை அமைக்கவும்',
+    leftOnTrack: '{amount} மீதம் · சரியான பாதையில்',
+    overBy: '{amount} அதிகம்',
+    whoPaid: 'யார் கொடுத்தார்',
+    whoPaidA11y: 'யார் கொடுத்தார் என்பதைப் பார்க்கவும்',
+    billPays: '{name} செலுத்துவார் · {when}',
+    everyWeek: 'ஒவ்வொரு வாரமும்',
+    everyTwoWeeks: '2 வாரங்களுக்கு ஒருமுறை',
+    twiceMonth: 'மாதம் இருமுறை',
+    everyMonths: '{n} மாதங்களுக்கு ஒருமுறை',
+    everyYear: 'ஆண்டுக்கு ஒருமுறை',
+    billsTitle: 'பகிரப்பட்ட பில்கள்',
+    budgetTitle: 'குடும்ப பட்ஜெட்',
+    budgetMonthly: 'மாதாந்திர பட்ஜெட்',
+    budgetHint: 'குடும்பம் ஒவ்வொரு மாதமும் செலவிடத் திட்டமிடும் தொகை.',
+    budgetSave: 'சேமி',
+    budgetClear: 'பட்ஜெட்டை நீக்கு',
+    budgetMenu: 'பட்ஜெட்',
+    splitThisOne: 'இதை பிரிக்கவும்',
+    splitThisOneHint: 'பகிரப்பட்ட பணப்பையிலிருந்து செலுத்தப்பட்டது. யாரும் யாருக்கும் கடன் இல்லை.',
+    reminderAhead: '{bill} 3 நாட்களில் செலுத்த வேண்டும்',
+    reminderToday: '{bill} இன்று செலுத்த வேண்டும்',
+    reminderBody: '{amount} · {group}',
+    moveKeep: 'தனிப்பட்டதாக வைத்திருங்கள்',
+    moveTo: '{group} குழுவுக்கு மாற்று',
+    movePrivacy: 'உங்கள் தனிப்பட்ட பகுதி தனிப்பட்டதாகவே இருக்கும். உங்கள் துணையால் இதைப் பார்க்க முடியாது.',
+    moved: '{group} குழுவுக்கு மாற்றப்பட்டது',
+    moveFailed: 'இதை மாற்ற முடியவில்லை. எதுவும் மாறவில்லை.',
+    moveReceiptFailed: 'ரசீதை மாற்ற முடியவில்லை. உங்கள் பதிவு இங்கேயே உள்ளது.',
+    moveReceiptRetry: 'மீண்டும் முயற்சிக்கவும்',
+    moveWithoutReceipt: 'ரசீது இல்லாமல் மாற்று',
+    switched: 'இப்போது ஒரே பணப்பை பகிரப்படுகிறது',
+  },
   groupRecurring: {
     title: 'மீண்டும் வரும் செலவுகள்',
     sub: 'வாடகை, கட்டணங்கள் மற்றும் அட்டவணைப்படி வரும் செலவுகள். ஒவ்வொன்றும் அதன் தேதியில் அனைவருக்கும் சேர்க்கப்படும்.',
@@ -19105,8 +20405,7 @@ const ta: UiStrings = {
     resume: 'மீண்டும் தொடங்கு',
     stop: 'மீண்டும் வருவதை நிறுத்து',
     stopTitle: '"{name}" நிறுத்தவா?',
-    stopBody:
-      'இனி எதுவும் சேர்க்கப்படாது. ஏற்கனவே சேர்ந்தவை இருக்கும். இதைத் திரும்பப் பெற முடியாது.',
+    stopBody: 'இனி எதுவும் சேர்க்கப்படாது. ஏற்கனவே சேர்ந்தவை இருக்கும். இதைத் திரும்பப் பெற முடியாது.',
     edit: 'திருத்து',
     editTitle: 'மீண்டும் வரும் செலவைத் திருத்து',
     editHint: 'மாற்றங்கள் இனி வரும் செலவுகளுக்கு மட்டும். சேர்ந்தவை அப்படியே இருக்கும்.',
@@ -19121,8 +20420,7 @@ const ta: UiStrings = {
     nextOn: 'அடுத்த தேதி',
     notesLabel: 'குறிப்புகள்',
     severalPayers: 'பலர் செலுத்தினர். அவர்களின் பங்குகள் தொகையைப் பின்தொடரும்.',
-    splitKept:
-      'இந்தப் பிரிப்பு சேமித்த தொகைகளையே வைத்திருக்கும். மாற்ற, இதை நிறுத்தி புதியதை உருவாக்குங்கள்.',
+    splitKept: 'இந்தப் பிரிப்பு சேமித்த தொகைகளையே வைத்திருக்கும். மாற்ற, இதை நிறுத்தி புதியதை உருவாக்குங்கள்.',
     problemName: 'ஒரு பெயர் கொடுங்கள்.',
     problemAmount: 'தொகையை உள்ளிடுங்கள்.',
     problemPeople: 'யாருடன் பிரிக்கப்படும் என்பதைத் தேர்வுசெய்க.',
@@ -19153,8 +20451,7 @@ const ta: UiStrings = {
     itemChipA11y: '{item} ஐ {name} எடுத்தார்',
     everyone: 'அனைவரும்',
     everyoneA11y: '{item} ஐ அனைவரும் பகிர்ந்தனர்',
-    itemizeCharges:
-      'வரி மற்றும் கூடுதல் கட்டணம் {amount}, ஒவ்வொருவரின் பொருள்களுக்கு ஏற்ப பகிரப்படும்.',
+    itemizeCharges: 'வரி மற்றும் கூடுதல் கட்டணம் {amount}, ஒவ்வொருவரின் பொருள்களுக்கு ஏற்ப பகிரப்படும்.',
     itemizeLeft: '{count} இன்னும் ஒதுக்க வேண்டும்',
     itemizeSave: 'பிரிவைச் சேமி',
     itemizeDone: 'பொருள் வாரியாகப் பிரிக்கப்பட்டது ✓',
@@ -19335,6 +20632,9 @@ const ta: UiStrings = {
     slideToCancel: 'ரத்து செய்ய நகர்த்து',
     holdReading: 'படிக்கிறேன்…',
     holdAdded: '{where} இல் {amount} சேர்க்கப்பட்டது',
+    holdReadingMany: '{count} படிக்கிறேன்…',
+    holdAddedMany: { one: '{n} செலவு சேர்க்கப்பட்டது', other: '{n} செலவுகள் சேர்க்கப்பட்டன' },
+    holdInReview: { one: 'மதிப்பாய்வில் {n}', other: 'மதிப்பாய்வில் {n}' },
     heardSpan: '{word} என்று கேட்டது, {name} என்று பொருத்தப்பட்டது. மாற்ற தட்டவும்',
     heardPick: '“{word}” யார்?',
     title: 'செலவைப் பேசு',
@@ -19368,8 +20668,7 @@ const ta: UiStrings = {
     save: { one: '{n} செலவைச் சேமி', other: '{n} செலவுகளைச் சேமி' },
     savedCount: { one: '{n} செலவு சேமிக்கப்பட்டது', other: '{n} செலவுகள் சேமிக்கப்பட்டன' },
     saveDraft: 'இன்பாக்ஸில் சேமி',
-    draftNeedsAmounts:
-      'இந்த வரைவைச் சேமிக்க ஒவ்வொரு செலவுக்கும் தொகையை உள்ளிடவும், அல்லது அதை நீக்கவும்.',
+    draftNeedsAmounts: 'இந்த வரைவைச் சேமிக்க ஒவ்வொரு செலவுக்கும் தொகையை உள்ளிடவும், அல்லது அதை நீக்கவும்.',
     people: 'நபர்கள்',
     addPerson: 'ஒரு நபரைச் சேர்',
     addPersonPlaceholder: 'அவர்களின் பெயர்',
@@ -19513,8 +20812,7 @@ const ta: UiStrings = {
     confirmNoteHint: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
     confirmToday: 'இன்று',
     confirmYesterday: 'நேற்று',
-    agentQuotaFallback:
-      'இந்த மாத மேம்பட்ட குரல் வரம்பு முடிந்தது. அடிப்படை குரலைப் பயன்படுத்துகிறது.',
+    agentQuotaFallback: 'இந்த மாத மேம்பட்ட குரல் வரம்பு முடிந்தது. அடிப்படை குரலைப் பயன்படுத்துகிறது.',
     agentAdd: '{amount} சேர்',
     agentPaid: '{name} செலுத்தினார்',
     agentYou: 'நீங்கள்',
@@ -19591,8 +20889,7 @@ const ta: UiStrings = {
   credits: {
     sheetTitle: 'குரல் கிரெடிட்கள்',
     sheetLeft: '{n} கிரெடிட்கள் மீதம்',
-    sheetHelp:
-      'செலவுகளைச் சேர்க்க, பிரிக்க அல்லது தீர்க்க AI குரல் கட்டளைகளுக்கு கிரெடிட்களைப் பயன்படுத்தவும்.',
+    sheetHelp: 'செலவுகளைச் சேர்க்க, பிரிக்க அல்லது தீர்க்க AI குரல் கட்டளைகளுக்கு கிரெடிட்களைப் பயன்படுத்தவும்.',
     sheetWatch: 'விளம்பரம் பார் · {n} கிரெடிட்களைப் பெறு',
     sheetAdded: '+{n} கிரெடிட்கள் சேர்க்கப்பட்டன!',
     sheetBalance: 'இப்போது உங்களிடம் {n} கிரெடிட்கள் உள்ளன.',
@@ -19634,8 +20931,7 @@ const ta: UiStrings = {
     group: 'கூடுதல் குழு',
     price: '{n} கிரெடிட்கள்',
     yourCredits: 'உங்கள் கிரெடிட்கள்',
-    yourCreditsHint:
-      'AI குரல், ரசீது ஸ்கேன், ஏற்றுமதி மற்றும் பலவற்றிற்கு கிரெடிட்களைப் பயன்படுத்துங்கள்.',
+    yourCreditsHint: 'AI குரல், ரசீது ஸ்கேன், ஏற்றுமதி மற்றும் பலவற்றிற்கு கிரெடிட்களைப் பயன்படுத்துங்கள்.',
     watchSub: '{n} கிரெடிட்கள் பெற ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
     proSub: 'விளம்பரம் இல்லை, அதிக கிரெடிட்கள்',
     getPro: 'Pro பெறுங்கள்',
@@ -19649,11 +20945,9 @@ const ta: UiStrings = {
     popular: 'பிரபலம்',
     buy: 'வாங்கு',
     neverExpire: 'கிரெடிட்கள் காலாவதியாகாது',
-    neverExpireSub:
-      'எப்போது வேண்டுமானாலும் பயன்படுத்துங்கள். மாத இலவசப் பயன்பாடுகள் முதலில் பயன்படுத்தப்படும்.',
+    neverExpireSub: 'எப்போது வேண்டுமானாலும் பயன்படுத்துங்கள். மாத இலவசப் பயன்பாடுகள் முதலில் பயன்படுத்தப்படும்.',
     nextAt: 'அடுத்த விளம்பரத்தை {time} க்குப் பிறகு பார்க்கலாம்.',
-    paidNote:
-      'நீங்கள் Pro-வில் உள்ளீர்கள், விளம்பரங்கள் இல்லை. உங்கள் கிரெடிட்கள் வாலெட்டில் இருக்கும்.',
+    paidNote: 'நீங்கள் Pro-வில் உள்ளீர்கள், விளம்பரங்கள் இல்லை. உங்கள் கிரெடிட்கள் வாலெட்டில் இருக்கும்.',
     help: 'உதவி',
   },
   adGates: {
@@ -19681,8 +20975,7 @@ const ta: UiStrings = {
     balance: 'உங்களிடம் {n} கிரெடிட்கள் உள்ளன',
     perAdVoice: 'ஒவ்வொரு விளம்பரமும் மேலும் {count} AI குரல் கட்டளைகளை வழங்கும்.',
     watchWithCount: 'விளம்பரம் பாருங்கள் (+{count} கட்டளைகள்)',
-    upgradeBody:
-      'வரம்பற்ற குரல் கட்டளைகள், விளம்பரங்கள் இல்லாத அனுபவம் மற்றும் பலவற்றைப் பெறுங்கள்.',
+    upgradeBody: 'வரம்பற்ற குரல் கட்டளைகள், விளம்பரங்கள் இல்லாத அனுபவம் மற்றும் பலவற்றைப் பெறுங்கள்.',
     dailyLimit: 'இன்றைய விளம்பர வரம்பை அடைந்துவிட்டீர்கள் — நாளை முயலுங்கள்',
     adLabel: 'விளம்பரம்',
     removeAds: 'விளம்பரங்களை நீக்கு',
@@ -19770,8 +21063,7 @@ const ta: UiStrings = {
       'இந்தச் சாதனம் பதிவு செய்யப்பட்டுள்ளது. அறிவிப்பு வந்தாலும் வராவிட்டாலும் கீழே உள்ள அனைத்தும் உங்கள் அஞ்சல் பெட்டியில் வந்து சேரும்.',
     permissionOff:
       'உங்கள் ஃபோன் அவற்றைத் தடுக்கிறது. Waves-க்கான சாதன அமைப்புகளில் மீண்டும் இயக்கவும் — எப்படியிருந்தாலும் அஞ்சல் பெட்டியில் எல்லாம் இருக்கும்.',
-    permissionUnset:
-      'Waves ஒரே ஒரு முறை மட்டுமே கேட்கும், அதுவும் நீங்கள் கீழே இயக்கியவற்றுக்கு மட்டும்.',
+    permissionUnset: 'Waves ஒரே ஒரு முறை மட்டுமே கேட்கும், அதுவும் நீங்கள் கீழே இயக்கியவற்றுக்கு மட்டும்.',
     granted: 'இயக்கத்தில்',
     denied: 'நிறுத்தத்தில்',
     undetermined: 'அமைக்கப்படவில்லை',
@@ -19782,16 +21074,14 @@ const ta: UiStrings = {
     involvesMeBody:
       'நீங்கள் தர வேண்டியபோதோ, வர வேண்டியபோதோ, குறிப்பிடப்படும்போதோ அறிவிப்பு — ஒவ்வொரு குழுவின் ஒவ்வொரு செலவுக்கும் அல்ல.',
     settlementRequests: 'தீர்வு உறுதிப்படுத்தல்கள்',
-    settlementRequestsBody:
-      'உங்களுக்குப் பணம் கொடுத்ததாக யாராவது சொல்லும்போது, உங்கள் பாக்கி சரியாக இருக்க.',
+    settlementRequestsBody: 'உங்களுக்குப் பணம் கொடுத்ததாக யாராவது சொல்லும்போது, உங்கள் பாக்கி சரியாக இருக்க.',
     nudges: 'நினைவூட்டல்கள்',
     nudgesBody:
       'தர வேண்டிய பணம் குறித்த மென்மையான நினைவூட்டல். ஒரு நாளைக்கு ஒருவருக்கு ஒன்று மட்டுமே, தரவுத்தளத்திலேயே வரையறுக்கப்பட்டது.',
     digest: 'நாள்தோறும் குழுச் சுருக்கம்',
     digestBody: 'மற்ற அனைத்தும், தொடர்ச்சியாக அல்லாமல் நாளுக்கு ஒரு அறிவிப்பாகத் தொகுத்து.',
     companyUpdates: 'நிறுவன அறிவிப்புகள்',
-    companyUpdatesBody:
-      'உங்கள் நிறுவனத்தின் விடுப்பு, செலவு, கட்டணம், பணிகள், நாட்காட்டி, புகார்கள்.',
+    companyUpdatesBody: 'உங்கள் நிறுவனத்தின் விடுப்பு, செலவு, கட்டணம், பணிகள், நாட்காட்டி, புகார்கள்.',
     emailSection: 'மின்னஞ்சல் வழியாக',
     emailAll: 'மின்னஞ்சல் அனுப்பவும்',
     emailAllBody:
@@ -19815,6 +21105,27 @@ const ta: UiStrings = {
     savedForLater: 'பிறகு சேமித்த செலவுகள்',
     savedForLaterBody:
       'ஒரு நாள் கழித்தும் ஒரு செலவு குழுவுக்காகக் காத்திருந்தால், இந்த ஃபோன் மாலையில் நினைவூட்டும். நீங்கள் Waves-ஐத் திறக்காத நாளில், பிரிக்க ஏதேனும் உள்ளதா என்று கேட்கும். நாளொன்றுக்கு ஒரு முறை மட்டுமே; இரண்டில் ஒன்று மட்டுமே.',
+    planBills: 'பில் நினைவூட்டல்கள்',
+    planBillsBody: 'உங்கள் பில் செலுத்தப்படுவதற்கு முந்தைய மாலை.',
+    planRecap: 'வாராந்திர மற்றும் மாதாந்திர சுருக்கம்',
+    planRecapBody: 'ஞாயிறு மாலை, மற்றும் ஒவ்வொரு மாதம் 1-ஆம் தேதி.',
+    planDaily: 'தினமும் மீதமுள்ள தொகை',
+    planDailyBody: 'இன்றைக்கு மீதமுள்ள தொகையுடன் காலை குறிப்பு.',
+    plan: {
+      title: 'உங்கள் திட்டம்',
+      bill: '{name} {amount} நாளை செலவாகும்.',
+      billCovered: 'உங்களிடம் போதுமான பணம் உள்ளது.',
+      billHidden: 'நாளை ஒரு பில் செலுத்தப்படும்.',
+      weekLess: 'உங்கள் வாரம்: {spent} செலவு, வழக்கத்தை விட {delta} குறைவு. பார்க்கத் தட்டவும்.',
+      weekMore: 'உங்கள் வாரம்: {spent} செலவு, வழக்கத்தை விட {delta} அதிகம். பார்க்கத் தட்டவும்.',
+      weekPlain: 'உங்கள் வாரம்: {spent} செலவு. பார்க்கத் தட்டவும்.',
+      weekHidden: 'உங்கள் வாரச் சுருக்கம் தயார். பார்க்கத் தட்டவும்.',
+      monthLeft: '{month} முடிவில் {amount} மீதம்.',
+      monthOver: '{month}: வருமானத்தை விட {amount} அதிகம்.',
+      monthHidden: 'உங்கள் மாதச் சுருக்கம் தயார். பார்க்கத் தட்டவும்.',
+      daily: 'இன்று {amount} மீதம். திட்டப்படி உள்ளீர்கள்.',
+      dailyHidden: 'இன்றைய திட்டம் தயார்.',
+    },
   },
   phonePrompt: {
     title: 'உங்கள் தொலைபேசி எண்ணைச் சேர்க்கவும்',
@@ -19877,8 +21188,7 @@ const ta: UiStrings = {
     sendCodeEmail: 'எனக்கு ஒரு குறியீடு அனுப்பு',
     sendCodePhone: 'குறுஞ்செய்தியில் குறியீடு அனுப்பு',
     phoneErrors: {
-      invalidNumber:
-        'இந்த ஃபோன் எண் சரியாகத் தெரியவில்லை. நாட்டுக் குறியீடு, எண்களைச் சரிபார்க்கவும்.',
+      invalidNumber: 'இந்த ஃபோன் எண் சரியாகத் தெரியவில்லை. நாட்டுக் குறியீடு, எண்களைச் சரிபார்க்கவும்.',
       tooMany: 'அதிக முயற்சிகள். புதிய குறியீடு கேட்பதற்கு முன் சிறிது நேரம் காத்திருக்கவும்.',
       unavailable:
         'குறுஞ்செய்திக் குறியீடுகள் இப்போது கிடைக்கவில்லை. பின்னர் முயலவும் அல்லது மின்னஞ்சலைப் பயன்படுத்தவும்.',
@@ -19916,15 +21226,13 @@ const ta: UiStrings = {
     checkInboxBodyNoEmail:
       'உறுதிப்படுத்தல் இணைப்பை அனுப்பியுள்ளோம். உங்கள் கணக்கை அமைக்க அதைத் திறந்து, பிறகு திரும்பி வாருங்கள்.',
     linkResent: 'புதிய இணைப்பு வந்து கொண்டிருக்கிறது.',
-    notConfirmedYet:
-      'இன்னும் உறுதிப்படுத்தப்படவில்லை. மின்னஞ்சலில் உள்ள இணைப்பைத் திறந்து, பிறகு தொடரவும்.',
+    notConfirmedYet: 'இன்னும் உறுதிப்படுத்தப்படவில்லை. மின்னஞ்சலில் உள்ள இணைப்பைத் திறந்து, பிறகு தொடரவும்.',
     confirmedContinue: 'உறுதிப்படுத்திவிட்டேன் — தொடரவும்',
     resendLink: 'இணைப்பை மீண்டும் அனுப்பு',
     emailCodeTitle: 'குறியீட்டை உள்ளிடுங்கள்',
     emailCodeBody: '{email}-க்கு அனுப்பிய 6-இலக்கக் குறியீட்டை உள்ளிடுங்கள்.',
     resendIn: '{seconds} வினாடிகளில் மீண்டும் அனுப்பலாம்',
-    resendLimit:
-      'அனுப்பக்கூடிய அதிகபட்சக் குறியீடுகள் இவைதான். ஸ்பேமைப் பார்க்கவும், அல்லது பின்னர் முயற்சிக்கவும்.',
+    resendLimit: 'அனுப்பக்கூடிய அதிகபட்சக் குறியீடுகள் இவைதான். ஸ்பேமைப் பார்க்கவும், அல்லது பின்னர் முயற்சிக்கவும்.',
     guestIntroTitle: '{app} உடன் பங்கிடத் தொடங்குங்கள்',
     guestIntroBody:
       'தொடங்க கணக்கு தேவையில்லை. பில்களைப் பகிருங்கள், யார் என்ன கடன்பட்டுள்ளனர் எனக் கண்காணியுங்கள், தீர்த்துக் கொள்ளுங்கள் — பிறகு உங்கள் கணக்கை அமையுங்கள், நீங்கள் சேர்த்தது எதுவும் இழக்கப்படாது.',
@@ -19935,8 +21243,7 @@ const ta: UiStrings = {
     notifyBody:
       'யாராவது செலவைச் சேர்க்கும்போது, தீர்த்துக்கொள்ளும்போது, அல்லது ஒரு குழுவிற்கு உங்களை அழைக்கும்போது தெரிவிப்போம். ஸ்பேம் இல்லை.',
     notifyEnable: 'இயக்கு',
-    notifyJoinBody:
-      '{group} குழுவில் யாராவது செலவைச் சேர்த்தால் அல்லது கணக்கு தீர்த்தால் அறிவிப்பு பெறுங்கள்.',
+    notifyJoinBody: '{group} குழுவில் யாராவது செலவைச் சேர்த்தால் அல்லது கணக்கு தீர்த்தால் அறிவிப்பு பெறுங்கள்.',
     notifyNotNow: 'இப்போது வேண்டாம்',
     clear: 'அழி',
     continueLabel: 'தொடரவும்',
@@ -19947,16 +21254,13 @@ const ta: UiStrings = {
     done: 'முடிந்தது',
     replay: 'சுற்றுப்பயணத்தை மீண்டும் காண்க',
     introTitle: 'Waves-க்கு வரவேற்கிறோம்',
-    introBody:
-      'எங்கே என்ன இருக்கிறது என்பதைச் சுருக்கமாகப் பாருங்கள் — உங்கள் இருப்புகள், சேர்க்க இரண்டு வழிகள்.',
+    introBody: 'எங்கே என்ன இருக்கிறது என்பதைச் சுருக்கமாகப் பாருங்கள் — உங்கள் இருப்புகள், சேர்க்க இரண்டு வழிகள்.',
     balanceTitle: 'உங்கள் இருப்புகள், மேலே',
-    balanceBody:
-      'நீங்கள் கொடுக்க வேண்டியதையும் பெற வேண்டியதையும் நாணயவாரியாகப் பார்க்க டெக்கை ஸ்வைப் செய்யுங்கள்.',
+    balanceBody: 'நீங்கள் கொடுக்க வேண்டியதையும் பெற வேண்டியதையும் நாணயவாரியாகப் பார்க்க டெக்கை ஸ்வைப் செய்யுங்கள்.',
     groupTitle: 'ஒரு குழுவைத் தொடங்குங்கள்',
     groupBody: 'பயணம், வீடு அல்லது வெளியீட்டிற்கு ஒரு குழுவை உருவாக்கி, அங்கிருந்து பிரியுங்கள்.',
     expenseTitle: 'ஒரு செலவைச் சேருங்கள்',
-    expenseBody:
-      'ஒரு செலவைக் கையால் தட்டச்சு செய்யுங்கள், அல்லது பட்டியில் உள்ள மைக்கைப் பயன்படுத்திச் சொல்லுங்கள்.',
+    expenseBody: 'ஒரு செலவைக் கையால் தட்டச்சு செய்யுங்கள், அல்லது பட்டியில் உள்ள மைக்கைப் பயன்படுத்திச் சொல்லுங்கள்.',
     doneTitle: 'எல்லாம் தயார்',
     doneBody: 'அதுதான் சுற்றுப்பயணம். மெனுவிலிருந்து எப்போது வேண்டுமானாலும் மீண்டும் காணலாம்.',
   },
@@ -19968,16 +21272,14 @@ const ta: UiStrings = {
     orContinueWithCap: 'அல்லது இதனுடன் தொடரவும்',
     tagline: 'Waves · மீதம் இருப்பது',
     splitAnything: 'எதையும் பிரி\nயாருடனும்',
-    welcomeBody:
-      'தொடங்க கணக்கு தேவையில்லை — பின்னர் ஒன்றைச் சேர்த்தால் நீங்கள் சேர்த்த அனைத்தும் உங்களுடன் வரும்.',
+    welcomeBody: 'தொடங்க கணக்கு தேவையில்லை — பின்னர் ஒன்றைச் சேர்த்தால் நீங்கள் சேர்த்த அனைத்தும் உங்களுடன் வரும்.',
     startNow: 'இப்போதே தொடங்கு',
     haveAccount: 'என்னிடம் ஏற்கனவே கணக்கு உள்ளது',
     haveAccountPrompt: 'கணக்கு உள்ளதா?',
     newHerePrompt: 'Waves-க்கு புதியவரா?',
     welcomeBack: 'மீண்டும் வரவேற்கிறோம்',
     keepOnNextPhone: 'அடுத்த ஃபோனிலும் இந்தக் கணக்கை வைத்திருங்கள்',
-    guestAddWay:
-      'உள்நுழைய ஒரு வழியைச் சேர்க்கவும், அடுத்த ஃபோனிலும் இந்தக் கணக்கு உங்களுடையதாக இருக்கும்.',
+    guestAddWay: 'உள்நுழைய ஒரு வழியைச் சேர்க்கவும், அடுத்த ஃபோனிலும் இந்தக் கணக்கு உங்களுடையதாக இருக்கும்.',
     signInHowever: 'நீங்கள் அமைத்த முறையில் உள்நுழையவும்.',
     sendMeACode: 'எனக்கு ஒரு குறியீடு அனுப்பு',
     useAPassword: 'மின்னஞ்சல் அல்லது கடவுச்சொல்',
@@ -20048,8 +21350,7 @@ const ta: UiStrings = {
     guestBannerBody:
       'எதுவும் விடுபடவில்லை — நீங்கள் சேர்ப்பவை அனைத்தும் சேமிக்கப்பட்டு உங்களுடையவை. வேறு ஃபோனிலிருந்து அணுக விரும்பும்போது மின்னஞ்சலையோ தொலைபேசி எண்ணையோ சேர்க்கவும்.',
     guestDaysLeft: 'விருந்தினராக இன்னும் {days} நாட்கள் — அதன் பிறகு தொடர உள்நுழையவும்.',
-    guestReadOnly:
-      'உங்கள் விருந்தினர் காலம் முடிந்தது — ஆப் படிக்க மட்டுமே. தொடர்ந்து சேர்க்க உள்நுழையவும்.',
+    guestReadOnly: 'உங்கள் விருந்தினர் காலம் முடிந்தது — ஆப் படிக்க மட்டுமே. தொடர்ந்து சேர்க்க உள்நுழையவும்.',
     addYourDetails: 'உங்கள் விவரங்களைச் சேர்',
     loadingGroups: 'உங்கள் குழுக்கள் ஏற்றப்படுகின்றன…',
     noGroups: 'இன்னும் குழுக்கள் இல்லை',
@@ -20064,8 +21365,7 @@ const ta: UiStrings = {
     addSomeone: 'ஒருவரைச் சேர்',
     friendShort: 'Add people',
     noFriends: 'உங்கள் வட்டம் இங்கே தொடங்குகிறது',
-    noFriendsBody:
-      'நீங்கள் செலவுகளைப் பகிர்பவர்களைச் சேருங்கள். அவர்களுக்கு ஆப் தேவையில்லை — ஒரு பெயர் போதும்.',
+    noFriendsBody: 'நீங்கள் செலவுகளைப் பகிர்பவர்களைச் சேருங்கள். அவர்களுக்கு ஆப் தேவையில்லை — ஒரு பெயர் போதும்.',
     allSquare: 'எல்லாம் சரி',
     allSquareBody:
       'உங்களுக்கு யாரும் தர வேண்டியதில்லை, நீங்களும் யாருக்கும் தர வேண்டியதில்லை. புதிய பாக்கிகள் இங்கே தோன்றும்.',
@@ -20385,8 +21685,7 @@ const ta: UiStrings = {
     warningWho: 'இணைக்கப்படுபவர்கள்: {people}',
     showAllGuests: { one: 'மேலும் 1 நபரைக் காட்டு', other: 'மேலும் {n} நபர்களைக் காட்டு' },
     warningTitle: 'இதை மீட்டெடுக்க முடியாது',
-    warningBody:
-      'அவர்களின் தனித்தனி இருப்புகள் நிரந்தரமாக ஒரே நபராக இணைக்கப்படும். மீண்டும் பிரிக்க வழி இல்லை.',
+    warningBody: 'அவர்களின் தனித்தனி இருப்புகள் நிரந்தரமாக ஒரே நபராக இணைக்கப்படும். மீண்டும் பிரிக்க வழி இல்லை.',
     cta: 'இணை',
     selected: {
       one: '{n} நபர் தேர்ந்தெடுக்கப்பட்டார்',
@@ -20614,8 +21913,7 @@ const ta: UiStrings = {
     groupSectionCurrentTrip: 'நடப்புப் பயணம்',
     groupSectionRecent: 'சமீபத்தில் பயன்படுத்தியவை',
     groupSectionAll: 'அனைத்துக் குழுக்களும்',
-    splitLaterHint:
-      'இதை ஒரு குழுவில் சேர்க்கும்போது யார், எப்படிப் பங்கிடுவது என்பதைத் தேர்வு செய்யலாம்.',
+    splitLaterHint: 'இதை ஒரு குழுவில் சேர்க்கும்போது யார், எப்படிப் பங்கிடுவது என்பதைத் தேர்வு செய்யலாம்.',
     currencyLabel: 'நாணயம்',
     amountUp: 'தொகையைக் கூட்டு',
     amountDown: 'தொகையைக் குறை',
@@ -20733,8 +22031,7 @@ const ta: UiStrings = {
     colourLabel: 'நிறம்',
     yourTags: 'உங்கள் குறிச்சொற்கள்',
     builtinSection: 'உள்ளமைந்தவை',
-    noCustomTags:
-      'இன்னும் சொந்தக் குறிச்சொற்கள் இல்லை. உங்கள் வழியில் செலவுகளை வகைப்படுத்த ஒன்றை உருவாக்குங்கள்.',
+    noCustomTags: 'இன்னும் சொந்தக் குறிச்சொற்கள் இல்லை. உங்கள் வழியில் செலவுகளை வகைப்படுத்த ஒன்றை உருவாக்குங்கள்.',
     reorderHint: 'கைப்பிடியை அழுத்திப் பிடித்து, இழுத்து வரிசைப்படுத்துங்கள்.',
     dragHandle: 'இழுத்து வரிசைப்படுத்து',
     hide: 'மறை',
@@ -20772,8 +22069,7 @@ const ta: UiStrings = {
   },
   backup: {
     title: 'காப்புப்பிரதி',
-    subtitle:
-      'உங்கள் தரவைப் பாதுகாப்பாகவும் எல்லாச் சாதனங்களிலும் கிடைக்கும்படியும் வைத்திருங்கள்.',
+    subtitle: 'உங்கள் தரவைப் பாதுகாப்பாகவும் எல்லாச் சாதனங்களிலும் கிடைக்கும்படியும் வைத்திருங்கள்.',
     benefitPrivate: 'உங்கள் தரவு தனிப்பட்டதாகவே இருக்கும்',
     benefitEncrypted: 'மறையாக்கப்பட்டது, பாதுகாப்பானது',
     benefitRestore: 'எப்போது வேண்டுமானாலும் எளிதாக மீட்டெடுக்கலாம்',
@@ -20815,8 +22111,7 @@ const ta: UiStrings = {
     stepKeyTitle: 'உங்கள் சாவியை உருவாக்குங்கள்',
     stepKeyBody: 'காப்பைப் பூட்டும் 64 எழுத்துகள். Waves அவற்றைப் பார்ப்பதே இல்லை.',
     stepSaveTitle: 'உங்கள் சாவியைச் சேமியுங்கள்',
-    stepSaveBody:
-      'இந்த ஃபோன் அல்லாத இடத்தில் எழுதி வையுங்கள். அதன் பிறகு காப்புப்பிரதிகள் தொடங்கும்.',
+    stepSaveBody: 'இந்த ஃபோன் அல்லாத இடத்தில் எழுதி வையுங்கள். அதன் பிறகு காப்புப்பிரதிகள் தொடங்கும்.',
 
     accountSection: 'Google கணக்கு',
     connect: 'Google Drive-ஐ இணை',
@@ -20864,8 +22159,7 @@ const ta: UiStrings = {
     freqWeekly: 'வாரம் ஒருமுறை',
     freqMonthly: 'மாதம் ஒருமுறை',
     frequencyNote: 'செயலியைத் திறக்கும்போது தானியங்கி காப்பு இயங்கும்; மூடியிருக்கும்போது அல்ல.',
-    frequencyBlocked:
-      'மேலே உள்ள படிகள் முடியும் வரை இந்த அட்டவணையில் எதுவும் காப்பு எடுக்கப்படாது.',
+    frequencyBlocked: 'மேலே உள்ள படிகள் முடியும் வரை இந்த அட்டவணையில் எதுவும் காப்பு எடுக்கப்படாது.',
 
     networkSection: 'எதன் வழியாகக் காப்பு எடுக்க',
     networkWifi: 'Wi‑Fi மட்டும்',
@@ -20875,10 +22169,8 @@ const ta: UiStrings = {
     keyIntro:
       'காப்புப்பிரதி 64 எழுத்துச் சாவியால் பூட்டப்படுகிறது. அதை எழுதி வையுங்கள்: புதிய ஃபோனில் அதைத் திறக்க அதுவே ஒரே வழி. Waves-ஆலும் Google-ஆலும் அதைத் திரும்பத் தர முடியாது.',
     keyPresent: 'இந்த ஃபோனில் உங்கள் சாவி உள்ளது',
-    keyUnreadable:
-      'இந்த ஃபோனால் உங்கள் சாவியைப் படிக்க முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
-    keySaveFailed:
-      'அந்தச் சாவியை இந்த ஃபோனில் சேமிக்க முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
+    keyUnreadable: 'இந்த ஃபோனால் உங்கள் சாவியைப் படிக்க முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
+    keySaveFailed: 'அந்தச் சாவியை இந்த ஃபோனில் சேமிக்க முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
     keyCreate: 'சாவியை உருவாக்கு',
     keyShow: 'என் சாவியைக் காட்டு',
     keyEnter: 'என்னிடம் ஏற்கனவே சாவி உள்ளது',
@@ -20929,8 +22221,7 @@ const ta: UiStrings = {
       'இந்த ஃபோனில் இன்னும் எதுவும் இல்லை. உங்கள் Google Drive-ஐ இணையுங்கள்; Waves உங்கள் தனிப்பட்ட பதிவுகளைத் திரும்பக் கொண்டுவரும்.',
     restorePromptRestoreLabel: 'Google Drive காப்பிலிருந்து என் பதிவுகளை மீட்டெடு',
     restorePromptLater: 'இப்போது வேண்டாம்',
-    restorePromptLaterLabel:
-      'இப்போது வேண்டாம். பின்னர் காப்புப்பிரதி திரையிலிருந்து மீட்டெடுக்கலாம்.',
+    restorePromptLaterLabel: 'இப்போது வேண்டாம். பின்னர் காப்புப்பிரதி திரையிலிருந்து மீட்டெடுக்கலாம்.',
     restorePromptWhere:
       'இதைப் பின்னரும் செய்யலாம்: முகப்பில் ••• மெனுவைத் தட்டி, காப்புப்பிரதி என்பதைத் தேர்ந்தெடுங்கள்.',
     reminderTitle: 'உங்கள் பதிவுகளைக் காப்புப்பிரதி எடுங்கள்',
@@ -20946,13 +22237,10 @@ const ta: UiStrings = {
 
     refusedNotConnected: 'முதலில் ஒரு Google கணக்கை இணையுங்கள்.',
     refusedNoKey: 'முதலில் உங்கள் காப்புச் சாவியை உருவாக்குங்கள்.',
-    refusedNeedsKey:
-      'அந்தக் காப்பு கூடுதல் பாதுகாப்பில் உள்ளது. அதன் சாவி மட்டுமே அதைத் திறக்கும்.',
-    refusedKeyLost:
-      'அந்தக் காப்பின் சாவி உங்கள் Google கணக்கில் இனி இல்லை, எனவே அதைத் திறக்க முடியாது.',
+    refusedNeedsKey: 'அந்தக் காப்பு கூடுதல் பாதுகாப்பில் உள்ளது. அதன் சாவி மட்டுமே அதைத் திறக்கும்.',
+    refusedKeyLost: 'அந்தக் காப்பின் சாவி உங்கள் Google கணக்கில் இனி இல்லை, எனவே அதைத் திறக்க முடியாது.',
     refusedOffline: 'இணைப்பு இல்லை. மீண்டும் ஆன்லைனுக்கு வரும்போது காப்பு எடுக்கப்படும்.',
-    refusedNetwork:
-      'Wi‑Fi-க்காகக் காத்திருக்கிறது. மொபைல் டேட்டாவைப் பயன்படுத்த அமைப்பை மாற்றுங்கள்.',
+    refusedNetwork: 'Wi‑Fi-க்காகக் காத்திருக்கிறது. மொபைல் டேட்டாவைப் பயன்படுத்த அமைப்பை மாற்றுங்கள்.',
     mobileDataTitle: 'நீங்கள் மொபைல் டேட்டாவில் உள்ளீர்கள்',
     mobileDataBody: 'எப்படியும் காப்பு எடுக்கவா?',
     mobileDataConfirm: 'எப்படியும் காப்பு எடு',
@@ -20968,12 +22256,10 @@ const ta: UiStrings = {
     extraFootnoteOn:
       'இந்தக் காப்பு உங்கள் சாவியால் பூட்டப்பட்டுள்ளது. அதைப் பத்திரமாக வையுங்கள் — யாராலும் அதைத் திரும்பத் தர முடியாது.',
     extraPitchTitle: 'உங்களிடம் மட்டுமே உள்ள சாவியால் காப்பைப் பூட்டுங்கள்',
-    extraPitchBenefit:
-      'உங்கள் Google கணக்குக்குள் யாரோ நுழைந்தாலும் உங்கள் காப்பு பாதுகாப்பாகவே இருக்கும்.',
+    extraPitchBenefit: 'உங்கள் Google கணக்குக்குள் யாரோ நுழைந்தாலும் உங்கள் காப்பு பாதுகாப்பாகவே இருக்கும்.',
     extraPitchMechanism:
       '64 எழுத்துச் சாவி ஒன்று உங்களுக்காக உருவாக்கப்பட்டு ஒரு முறை மட்டும் காட்டப்படும். அதை நீங்களும் இந்த ஃபோனும் வைத்திருப்பீர்கள்.',
-    extraPitchAdversary:
-      'வேறு யாராலும் காப்பைத் திறக்க முடியாது. Google-ஆலும் இல்லை, Waves-ஆலும் இல்லை.',
+    extraPitchAdversary: 'வேறு யாராலும் காப்பைத் திறக்க முடியாது. Google-ஆலும் இல்லை, Waves-ஆலும் இல்லை.',
     extraTurnOn: 'இயக்கு',
     extraOnTitle: 'கூடுதல் பாதுகாப்பு இயக்கத்தில் உள்ளது',
     extraOnBody:
@@ -21094,8 +22380,7 @@ const ta: UiStrings = {
     membersHint: 'ஆட்களைச் சேர், பெயர் மாற்று, UPI ID அமை',
     bringThingsIn: 'கொண்டுவருதல்',
     importMessages: 'செய்திகளிலிருந்து இறக்குமதி',
-    importMessagesHint:
-      'வங்கிச் செய்திகளை ஒட்டுங்கள் — இந்த ஃபோனிலேயே படிக்கப்படும், நீங்கள் உறுதிப்படுத்துவீர்கள்',
+    importMessagesHint: 'வங்கிச் செய்திகளை ஒட்டுங்கள் — இந்த ஃபோனிலேயே படிக்கப்படும், நீங்கள் உறுதிப்படுத்துவீர்கள்',
     importSplitwise: 'Splitwise ஏற்றுமதியை இறக்குமதி செய்',
     importSplitwiseHint: 'பழைய குழுவின் வரலாற்றைக் கொண்டுவா',
     archiveGroup: 'குழுவைக் காப்பகப்படுத்து',
@@ -21182,10 +22467,8 @@ const ta: UiStrings = {
       '{name} இந்தக் குழுவை அணுக முடியாது. அவர்களின் செலவுகளும் இருப்பும் குழுவின் வரலாற்றில் இருக்கும். புதிய அழைப்பு மூலம் மீண்டும் சேர்க்கலாம்.',
     removeStillOwes: '{name} இன்னும் {amount} தர வேண்டும்.',
     removeIsOwed: '{name} க்கு {amount} வர வேண்டும்.',
-    adminNote:
-      'நிர்வாகிகள் குழுவைத் திருத்தலாம், உறுப்பினர்களை நிர்வகிக்கலாம், மொத்த பட்ஜெட்டை அமைக்கலாம்.',
-    adminNeedsAccount:
-      'இவர் இன்னும் சேரவில்லை. கணக்கு உள்ள உறுப்பினர் மட்டுமே நிர்வாகியாக முடியும்.',
+    adminNote: 'நிர்வாகிகள் குழுவைத் திருத்தலாம், உறுப்பினர்களை நிர்வகிக்கலாம், மொத்த பட்ஜெட்டை அமைக்கலாம்.',
+    adminNeedsAccount: 'இவர் இன்னும் சேரவில்லை. கணக்கு உள்ள உறுப்பினர் மட்டுமே நிர்வாகியாக முடியும்.',
     you: 'நீங்கள்',
     memberName: 'உறுப்பினர் பெயர்',
     paidAcross: 'செலுத்திய தொகை',
@@ -21231,8 +22514,7 @@ const ta: UiStrings = {
     createLink: 'அழைப்பு இணைப்பை உருவாக்கு',
     expires: '{when} க்கு காலாவதி',
     usesBadge: '{count} பயன்பாடுகள்',
-    shareMessage:
-      'செலவுகளை ஒன்றாகப் பிரிக்க Waves-ல் {group} குழுவில் சேரவும். சேர தட்டவும்: {link}',
+    shareMessage: 'செலவுகளை ஒன்றாகப் பிரிக்க Waves-ல் {group} குழுவில் சேரவும். சேர தட்டவும்: {link}',
     emailSubject: 'Waves-ல் {group} குழுவில் சேரவும்',
     hideContacts: 'தொடர்புகளை மறை',
     browseContacts: 'என் தொடர்புகளைப் பார்',
@@ -21282,14 +22564,12 @@ const ta: UiStrings = {
     notFound: 'காட்ட ஒன்றுமில்லை',
     notFoundBody: 'இவருடன் இப்போது நீங்கள் எந்தக் குழுவையும் பகிரவில்லை.',
     findTitle: 'ஒருவரைத் தேடுங்கள்',
-    findHint:
-      'அவர் Waves-இல் பயன்படுத்தும் மின்னஞ்சல் முகவரியையோ தொலைபேசி எண்ணையோ அப்படியே தட்டச்சு செய்யுங்கள்.',
+    findHint: 'அவர் Waves-இல் பயன்படுத்தும் மின்னஞ்சல் முகவரியையோ தொலைபேசி எண்ணையோ அப்படியே தட்டச்சு செய்யுங்கள்.',
     findPlaceholder: 'மின்னஞ்சல் அல்லது தொலைபேசி',
     findExamples: 'எடுத்துக்காட்டு:',
     findAction: 'தேடு',
     findNoMatch: 'பொருத்தம் இல்லை',
-    findNoMatchBody:
-      'அதை யாரும் பயன்படுத்தவில்லை, அல்லது அதன் மூலம் கண்டறியப்படுவதை அவர் விரும்பவில்லை.',
+    findNoMatchBody: 'அதை யாரும் பயன்படுத்தவில்லை, அல்லது அதன் மூலம் கண்டறியப்படுவதை அவர் விரும்பவில்லை.',
     findRateLimited: 'இன்றைக்கு இவ்வளவு தேடல் போதும். நாளை மீண்டும் முயற்சியுங்கள்.',
     alreadyShared: 'ஏற்கனவே உங்களுடன் ஒரு குழுவில் இருக்கிறார்',
     discoveryRow: 'மற்றவர்கள் உங்களை எப்படிக் கண்டறிவார்கள்',
@@ -21304,11 +22584,9 @@ const ta: UiStrings = {
     discoveryEmailHint: 'சரியான பொருத்தம் மட்டுமே, இந்தக் கணக்கின் முகவரி மட்டுமே.',
     visibilityTitle: 'உங்கள் சுயவிவரத்தில்',
     visibilityGroups: 'நான் குழு பகிரும் நபர்கள்',
-    visibilityGroupsHint:
-      'உங்கள் சுயவிவரத்தில் உங்கள் தொலைபேசியையும் மின்னஞ்சலையும் அவர்கள் பார்க்கலாம்.',
+    visibilityGroupsHint: 'உங்கள் சுயவிவரத்தில் உங்கள் தொலைபேசியையும் மின்னஞ்சலையும் அவர்கள் பார்க்கலாம்.',
     visibilityNobody: 'யாரும் இல்லை',
-    visibilityNobodyHint:
-      'குழுவினரிடமிருந்து கூட உங்கள் தொலைபேசியும் மின்னஞ்சலும் மறைந்தே இருக்கும்.',
+    visibilityNobodyHint: 'குழுவினரிடமிருந்து கூட உங்கள் தொலைபேசியும் மின்னஞ்சலும் மறைந்தே இருக்கும்.',
     discoveryFootnote:
       'உங்கள் எண்ணைத் தட்டச்சு செய்து உங்களைக் கண்டறிந்தவர் அந்த எண்ணைப் பார்ப்பார் — அது ஏற்கனவே அவரிடம் இருந்தது. இவை எதுவும் யார் யாருக்குக் கடன் என்பதை மாற்றாது.',
     contactInfo: 'தொடர்புத் தகவல்',
@@ -21344,8 +22622,7 @@ const ta: UiStrings = {
       'மொத்தமும் இடத்தின் பெயரும் தானாக நிரப்பப்படும். சரிபாருங்கள் — கையால் உள்ளிடுவது எப்போதும் இலவசம்.',
     scan: 'ஸ்கேன்',
     reading: 'படிக்கிறது…',
-    scanReconciles:
-      'ரசீதிலிருந்து மொத்தம் படிக்கப்பட்டது. சரிபார்த்து, உங்களுக்கு ஏற்றபடி பிரியுங்கள்.',
+    scanReconciles: 'ரசீதிலிருந்து மொத்தம் படிக்கப்பட்டது. சரிபார்த்து, உங்களுக்கு ஏற்றபடி பிரியுங்கள்.',
     scanCheckTotal: 'சேமிப்பதற்கு முன் ரசீதுடன் மொத்தத்தைச் சரிபாருங்கள்.',
     capReachedTitle: 'ரசீது வரம்பை எட்டிவிட்டது',
     capReachedBody:
@@ -21360,21 +22637,18 @@ const ta: UiStrings = {
     receiptMissingTitle: 'இந்தச் சாதனத்தில் ரசீது இல்லை',
     receiptMissingOtherDevice:
       'இந்த பில் அது சேர்க்கப்பட்ட சாதனத்தில் சேமிக்கப்பட்டுள்ளது. அதைப் பார்க்க அங்கே ஆப்பைத் திறக்கவும்.',
-    receiptMissingCloud:
-      'இந்த பில் உங்கள் {provider}-இல் காப்பு எடுக்கப்பட்டுள்ளது, இந்தச் சாதனத்தில் இல்லை.',
+    receiptMissingCloud: 'இந்த பில் உங்கள் {provider}-இல் காப்பு எடுக்கப்பட்டுள்ளது, இந்தச் சாதனத்தில் இல்லை.',
     shareReceiptTitle: 'ரசீதைக் குழுவுடன் பகிர்',
     shareReceiptBody:
       'குழுவில் உள்ள அனைவரும் உங்கள் Drive-இல் இருந்து பில்லைத் திறக்கலாம். படம் Waves-ஐ ஒருபோதும் தொடாது. இயல்பாக அணைக்கப்பட்டுள்ளது.',
-    shareReceiptNeedsStorage:
-      'குழுவுடன் பகிர இந்த ரசீதை முதலில் Google Drive-இல் காப்பு எடுக்கவும்.',
+    shareReceiptNeedsStorage: 'குழுவுடன் பகிர இந்த ரசீதை முதலில் Google Drive-இல் காப்பு எடுக்கவும்.',
     aBill: 'ஒரு பில்',
     splitBillA11y: '{merchant} பொருள் வாரியாகப் பிரி',
     receiptClaimedNone: {
       one: '{n} வரி, இன்னும் யாரும் உரிமை கோரவில்லை. நீங்கள் சாப்பிட்டதைத் தட்டவும்.',
       other: '{n} வரிகள், இன்னும் யாரும் உரிமை கோரவில்லை. நீங்கள் சாப்பிட்டதைத் தட்டவும்.',
     },
-    receiptClaimedSome:
-      '{items} இல் {claimed} வரிகள் உரிமை கோரப்பட்டன. நீங்கள் சாப்பிட்டதைத் தட்டவும்.',
+    receiptClaimedSome: '{items} இல் {claimed} வரிகள் உரிமை கோரப்பட்டன. நீங்கள் சாப்பிட்டதைத் தட்டவும்.',
     scanReadItemsCta: {
       one: '{n} வரி படிக்கப்பட்டது — பதிலாக பொருள் வாரியாகப் பிரி',
       other: '{n} வரிகள் படிக்கப்பட்டன — பதிலாக பொருள் வாரியாகப் பிரி',
@@ -21451,8 +22725,7 @@ const ta: UiStrings = {
     notInSplit: 'இதில் இல்லை',
     notInvolvedTitle: 'இந்த பங்கீட்டில் நீங்கள் இல்லை',
     notInvolvedChip: 'Not in this split',
-    notInvolvedBody:
-      'நீங்கள் குழு உறுப்பினராக இதைப் பார்க்கிறீர்கள் — இதில் எதுவும் உங்கள் இருப்பைத் தொடாது.',
+    notInvolvedBody: 'நீங்கள் குழு உறுப்பினராக இதைப் பார்க்கிறீர்கள் — இதில் எதுவும் உங்கள் இருப்பைத் தொடாது.',
     editedTimes: { one: 'ஒருமுறை திருத்தப்பட்டது', other: '{n} முறை திருத்தப்பட்டது' },
     inCount: { one: '{n} செலவில்', other: '{n} செலவுகளில்' },
     whoOwesWhat: 'யார் என்ன தர வேண்டும்',
@@ -21554,8 +22827,7 @@ const ta: UiStrings = {
     settleYouOweHeading: 'நீங்கள் தர வேண்டியவர்கள்',
     settlePay: 'செலுத்து',
     settleReceivedTitle: '{name} இடமிருந்து {amount} கிடைத்ததா?',
-    settleReceivedBody:
-      'இது குழுவில் அவர்களின் கட்டணத்தைப் பதிவு செய்து, இருப்புகளைப் புதுப்பிக்கும்.',
+    settleReceivedBody: 'இது குழுவில் அவர்களின் கட்டணத்தைப் பதிவு செய்து, இருப்புகளைப் புதுப்பிக்கும்.',
     settleReceivedConfirm: 'ஆம், கிடைத்தது',
     settleMarkPaidTitle: '{name}க்கு {amount} செலுத்தியதாகக் குறிக்கவா?',
     settleMarkPaidBody:
@@ -21582,8 +22854,7 @@ const ta: UiStrings = {
     settleHistoryPaid: '{from} → {to} செலுத்தினார்',
     settleNoHistory: 'இன்னும் கட்டணங்கள் இல்லை',
     settlePaymentsCount: { one: '{n} கட்டணத்தில்', other: '{n} கட்டணங்களில்' },
-    settleBetweenOthersSub:
-      'குழு உறுப்பினர்களுக்கிடையேயான கட்டணங்கள் (உங்கள் இருப்பைப் பாதிக்காது)',
+    settleBetweenOthersSub: 'குழு உறுப்பினர்களுக்கிடையேயான கட்டணங்கள் (உங்கள் இருப்பைப் பாதிக்காது)',
     paymentsToMake: 'செலுத்த வேண்டியவை',
     balanceSortAmount: 'தொகைப்படி வரிசை',
     balanceSortName: 'பெயர்ப்படி வரிசை',
@@ -21603,8 +22874,7 @@ const ta: UiStrings = {
     settleLeftOwes: 'குழுவிலிருந்து வெளியேறினார் · இன்னும் தர வேண்டும்',
     settleTapPaid: 'தட்டி: செலுத்தியது',
     settlePendingTitle: 'கட்டணம் நிலுவையில்',
-    settlePendingBody:
-      'இந்தக் கட்டணம் ஏற்கெனவே குறிக்கப்பட்டு உறுதிப்படுத்தலுக்காகக் காத்திருக்கிறது.',
+    settlePendingBody: 'இந்தக் கட்டணம் ஏற்கெனவே குறிக்கப்பட்டு உறுதிப்படுத்தலுக்காகக் காத்திருக்கிறது.',
     settleFilterAll: 'அனைத்தும்',
     couldNotAddGeneric: 'எல்லாரையும் சேர்க்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
     tryAgainMoment: 'சிறிது நேரத்தில் மீண்டும் முயற்சிக்கவும்.',
@@ -21631,8 +22901,7 @@ const ta: UiStrings = {
     scanCameraFailed:
       'வேறு ஒரு ஆப் அதைப் பயன்படுத்தலாம். இதை மூடி மீண்டும் முயற்சிக்கவும், அல்லது அழைப்பு இணைப்பை ஒட்டவும்.',
     scanFound: 'அழைப்புக் குறியீடு கிடைத்தது',
-    scanViewfinder:
-      'கேமரா காட்சி. அழைப்பு QR குறியீட்டை நோக்கிக் காட்டவும் — அது தானாகவே படிக்கும்.',
+    scanViewfinder: 'கேமரா காட்சி. அழைப்பு QR குறியீட்டை நோக்கிக் காட்டவும் — அது தானாகவே படிக்கும்.',
     scanTorchOn: 'விளக்கை இயக்கு',
     scanTorchOff: 'விளக்கை அணை',
     scanPasteLink: 'இணைப்பை ஒட்டவும்',
@@ -21673,8 +22942,7 @@ const ta: UiStrings = {
       other: '{n} பேர் இங்கே செலவுகளைப் பகிர்கிறார்கள்',
     },
     peopleCount: { one: '{n} நபர்', other: '{n} பேர்' },
-    contactsAdded:
-      '{count} சேர்க்கப்பட்டனர். வேறு ஒருவரைத் தேர்ந்தெடுக்கவும், அல்லது பின் செல்லவும்.',
+    contactsAdded: '{count} சேர்க்கப்பட்டனர். வேறு ஒருவரைத் தேர்ந்தெடுக்கவும், அல்லது பின் செல்லவும்.',
     couldNotAdd: '{names} சேர்க்க முடியவில்லை.',
     couldNotAddSome: 'எல்லாரையும் சேர்க்க முடியவில்லை. {reason}',
     unnamed: 'பெயரிடப்படாதவர்',
@@ -21689,8 +22957,7 @@ const ta: UiStrings = {
       'நீங்கள் Waves-ஐ விருந்தினராகப் பயன்படுத்துகிறீர்கள். {group} குழுவில் சேர இலவசக் கணக்கை உருவாக்குங்கள். இதுவரை உள்ள அனைத்தும் உங்களுடன் வரும்.',
     joinAccountRequired:
       'இந்தக் குழுவில் சேர கணக்கு தேவை. பதிவு செய்யுங்கள் அல்லது உள்நுழையுங்கள், பிறகு இணைப்பை மீண்டும் திறக்கவும்.',
-    joinRemoved:
-      'நீங்கள் இந்தக் குழுவிலிருந்து நீக்கப்பட்டீர்கள். புதிய அழைப்பிற்கு நிர்வாகியிடம் கேளுங்கள்.',
+    joinRemoved: 'நீங்கள் இந்தக் குழுவிலிருந்து நீக்கப்பட்டீர்கள். புதிய அழைப்பிற்கு நிர்வாகியிடம் கேளுங்கள்.',
     fromYourContacts: 'உங்கள் தொடர்புகளிலிருந்து',
     continueWith: 'இவர்களுடன் தொடர்',
     noAddress: 'முகவரி இல்லை',
@@ -21773,11 +23040,9 @@ const ta: UiStrings = {
     dictationErrors: {
       notAllowed: 'மைக்ரோஃபோனைப் பயன்படுத்த Waves-க்கு அனுமதி தேவை. அமைப்புகளில் அதை இயக்கலாம்.',
       noSpeech: 'எதுவும் கேட்கவில்லை. மைக்கைத் தட்டி மீண்டும் பேசுங்கள்.',
-      audioBusy:
-        'மைக்ரோஃபோன் பயன்பாட்டில் உள்ளது. பதிவு செய்யும் மற்றதை மூடிவிட்டு மீண்டும் முயற்சிக்கவும்.',
+      audioBusy: 'மைக்ரோஃபோன் பயன்பாட்டில் உள்ளது. பதிவு செய்யும் மற்றதை மூடிவிட்டு மீண்டும் முயற்சிக்கவும்.',
       network: 'இந்தப் ஃபோனில் பேச்சு அறிதலுக்கு இணைப்பு தேவை. குறிப்பைத் தட்டச்சு செய்யுங்கள்.',
-      languageNotSupported:
-        'இந்த ஃபோன் அந்த மொழியை இன்னும் அறிய முடியாது. குறிப்பைத் தட்டச்சு செய்யுங்கள்.',
+      languageNotSupported: 'இந்த ஃபோன் அந்த மொழியை இன்னும் அறிய முடியாது. குறிப்பைத் தட்டச்சு செய்யுங்கள்.',
       stopped: 'சொல்வது நின்றது. குறிப்பைத் தட்டச்சு செய்யுங்கள்.',
     },
     stopDictating: 'சொல்வதை நிறுத்து',
@@ -21810,8 +23075,7 @@ const ta: UiStrings = {
     aboutTripDates: 'பயணத் தேதிகள் பற்றி',
     tripDatesBody:
       'பயணம் நடக்கும்போது, செலவழித்ததைச் சேர்க்க அனைவருக்கும் நினைவூட்டல் வரும் — காலை உணவின்போது நேற்றைக்கும், நாள் முடிவில் இன்றைக்கும். ஏற்கனவே சேர்த்த நாளைப் பற்றி யாரையும் கேட்கப்படாது.',
-    bankRateNote:
-      'உங்கள் வங்கியின் விகிதம், கூடுதல் கட்டணம் உட்பட — இதுதான் உங்கள் அறிக்கையில் இருக்கும்.',
+    bankRateNote: 'உங்கள் வங்கியின் விகிதம், கூடுதல் கட்டணம் உட்பட — இதுதான் உங்கள் அறிக்கையில் இருக்கும்.',
     listening: 'கேட்கிறது…',
     micStarting: 'தொடங்குகிறது…',
     whereSettle: 'இந்தக் குழு எங்கே தீர்த்துக்கொள்கிறது?',
@@ -21829,8 +23093,7 @@ const ta: UiStrings = {
       'இந்தக் கோப்பு {fileCur} இல் உள்ளது, இந்தக் குழு தன் பணத்தை {groupCur} இல் வைத்திருக்கிறது. இதை இறக்குமதி செய்ய ஒவ்வொரு வரிசைக்கும் ஒரு விகிதம் தேவை, கோப்பு அதைக் கொண்டிருக்கவில்லை — அதற்குப் பதிலாக ஒரு {fileCur} குழுவைத் தொடங்குங்கள்.',
     rateFetchFailedSuffix: ' — நீங்கள் விகிதத்தை நேரடியாகத் தட்டச்சு செய்யலாம்',
     settlesInHint: 'இந்தக் குழு {currency} இல் தீர்க்கிறது',
-    howDoYouKnowRate:
-      'இந்தக் குழு {currency} இல் தீர்க்கிறது. விகிதம் உங்களுக்கு எப்படித் தெரியும்?',
+    howDoYouKnowRate: 'இந்தக் குழு {currency} இல் தீர்க்கிறது. விகிதம் உங்களுக்கு எப்படித் தெரியும்?',
     todaysRate: 'இன்றைய விகிதம்',
     statementAmountLabel: 'உங்கள் அறிக்கையில் உள்ள தொகை, {currency} இல்',
     amountChargedIn: '{currency} இல் வசூலிக்கப்பட்ட தொகை',
@@ -21888,8 +23151,7 @@ const ta: UiStrings = {
       'வங்கிச் செய்தி உங்கள் கணக்கிலிருந்து என்ன போனது என்று சொல்கிறது, யார் இருந்தார்கள் என்று அல்ல. இவை குழுவில் உள்ள அனைவருக்கும் சமமாகப் பிரிக்கப்படும் — பிறகு எதையும் மாற்றலாம்.',
     addedCount: {
       one: '{n} செலவு சேர்க்கப்பட்டது. அது இந்த ஃபோனில் சேமிக்கப்பட்டுள்ளது, இணைப்பு கிடைத்ததும் ஒத்திசைக்கும்.',
-      other:
-        '{n} செலவுகள் சேர்க்கப்பட்டன. அவை இந்த ஃபோனில் சேமிக்கப்பட்டுள்ளன, இணைப்பு கிடைத்ததும் ஒத்திசைக்கும்.',
+      other: '{n} செலவுகள் சேர்க்கப்பட்டன. அவை இந்த ஃபோனில் சேமிக்கப்பட்டுள்ளன, இணைப்பு கிடைத்ததும் ஒத்திசைக்கும்.',
     },
     adding: 'சேர்க்கிறது…',
     nothingSelected: 'இன்னும் எதுவும் தேர்ந்தெடுக்கப்படவில்லை',
@@ -21903,12 +23165,10 @@ const ta: UiStrings = {
       other: 'உங்கள் இன்பாக்ஸிலிருந்து {n} செய்திகள் படிக்கப்பட்டன.',
     },
     readNothing: 'இந்தத் தேதிகளில் வங்கிச் செய்திகள் எதுவும் இல்லை.',
-    permissionDenied:
-      'செய்திகளைப் படிக்க Waves-க்கு உங்கள் அனுமதி தேவை. அதற்குப் பதிலாக கீழே ஒட்டலாம்.',
+    permissionDenied: 'செய்திகளைப் படிக்க Waves-க்கு உங்கள் அனுமதி தேவை. அதற்குப் பதிலாக கீழே ஒட்டலாம்.',
     permissionBlocked:
       'Waves-க்கு செய்தி அணுகல் அணைக்கப்பட்டுள்ளது. அமைப்புகள் › ஆப்ஸ் › Waves › அனுமதிகள் இல் இயக்கவும், அல்லது கீழே செய்திகளை ஒட்டவும்.',
-    readUnsupported:
-      'செய்திகளைப் படிப்பது Android-இல் மட்டுமே இயங்கும். அதற்குப் பதிலாக கீழே ஒட்டவும்.',
+    readUnsupported: 'செய்திகளைப் படிப்பது Android-இல் மட்டுமே இயங்கும். அதற்குப் பதிலாக கீழே ஒட்டவும்.',
     readUnavailable: 'இந்தப் பதிப்பால் செய்திகளைப் படிக்க முடியாது. கீழே ஒட்டவும்.',
     readFailed: 'உங்கள் செய்திகளைப் படிக்க முடியவில்லை. கீழே ஒட்டவும்.',
     dateNotInMessage: 'இது எந்த நாள் என்று செய்தி சொல்லவில்லை.',
@@ -21935,8 +23195,7 @@ const ta: UiStrings = {
     hardToRead: 'இந்தச் செய்தியின் சில பகுதிகளைப் படிப்பது கடினமாக இருந்தது.',
     showMessage: 'செய்தியைப் படி',
     hideMessage: 'செய்தியை மறை',
-    runTogether:
-      'இரண்டு செய்திகள் ஒன்றாகச் சேர்ந்துவிட்டால், அவற்றுக்கு இடையே ஒரு காலி வரி விடுங்கள்.',
+    runTogether: 'இரண்டு செய்திகள் ஒன்றாகச் சேர்ந்துவிட்டால், அவற்றுக்கு இடையே ஒரு காலி வரி விடுங்கள்.',
     openReview: 'மறுபார்வையைத் திற',
     someNotParsed: {
       one: 'அவற்றில் {n} கொடுப்பனவாகத் தெரியவில்லை, அது விடப்பட்டது.',
@@ -21963,8 +23222,7 @@ const ta: UiStrings = {
       staysHere: 'சேமிக்கப்படாது, Waves-க்கு அனுப்பப்படாது.',
       neverSentTitle: 'கட்டுப்பாடு உங்களிடமே',
       neverSent: 'நீங்கள் சொல்லும் வரை எந்தக் குழுவிலும் எதுவும் சேராது.',
-      nextScreen:
-        'இந்த நாட்களின் செய்திகள் மட்டுமே படிக்கப்படும். அடுத்து Android அனுமதி கேட்கும்.',
+      nextScreen: 'இந்த நாட்களின் செய்திகள் மட்டுமே படிக்கப்படும். அடுத்து Android அனுமதி கேட்கும்.',
       nextScreenScan:
         'அடுத்து Android அனுமதி கேட்கும், பிறகு Waves உங்கள் சமீபத்திய செய்திகளை ஸ்கேன் செய்யும்.',
       windowLabel: 'இந்தக் காலச் செய்திகளைப் பார்',
@@ -22039,8 +23297,7 @@ const ta: UiStrings = {
     notePossibleDup: 'ஏற்கனவே உள்ளதாக இருக்கலாம்',
     noteNoDate: 'தேதி இல்லை, இன்றைய தேதி பயன்படுகிறது',
     add: '{n}-ஐ Review-வில் சேர்',
-    added:
-      '{n} Review-வில் சேர்க்கப்பட்டன. நீங்கள் பயன்படுத்தும் வரை அவை இந்த தொலைபேசியில்லே இருக்கும்.',
+    added: '{n} Review-வில் சேர்க்கப்பட்டன. நீங்கள் பயன்படுத்தும் வரை அவை இந்த தொலைபேசியில்லே இருக்கும்.',
     enriched: '{n} வங்கி செய்தியுடன் பொருந்தி புதுப்பிக்கப்பட்டன.',
     openReview: 'Review-ஐ திற',
     another: 'மற்றொன்றை இறக்குமதி செய்',
@@ -22049,8 +23306,7 @@ const ta: UiStrings = {
     errUnreadable: 'அந்த கோப்பைப் படிக்க முடியவில்லை.',
     errEmpty: 'அந்த கோப்பில் எதுவும் இல்லை.',
     errTooLarge: 'அந்த கோப்பு மிகப் பெரியது. எல்லை 10 MB.',
-    errUnknown:
-      'இந்த வடிவம் Waves-க்கு இன்னும் தெரியவில்லை. Pro-வுடன் PDF அல்லது ஸ்கிரீன்ஷாட் முயற்சிக்கவும்.',
+    errUnknown: 'இந்த வடிவம் Waves-க்கு இன்னும் தெரியவில்லை. Pro-வுடன் PDF அல்லது ஸ்கிரீன்ஷாட் முயற்சிக்கவும்.',
     errTooManyRows:
       'அந்த கணக்கு விவரத்தில் 5,000-க்கும் அதிகமான பரிவர்த்தனைகள் உள்ளன. குறுகிய காலத்தை முயற்சிக்கவும்.',
     errQuota: 'இந்த மாதம் {limit} கணக்கு விவர இறக்குமதிகளையும் பயன்படுத்திவிட்டீர்கள்.',
@@ -22119,8 +23375,7 @@ const ta: UiStrings = {
       other: '{n} தெளிவாக இருந்ததால் நேராக Review-க்குச் சென்றன.',
     },
     backgroundTitle: 'தானாகவே தொடர்ந்து பார்க்கட்டும்',
-    backgroundNote:
-      'மணிக்கு ஒருமுறை புதிய செய்திகளைப் பார்க்கும். அணைத்தால், நீங்கள் திறக்கும்போது பார்க்கும்.',
+    backgroundNote: 'மணிக்கு ஒருமுறை புதிய செய்திகளைப் பார்க்கும். அணைத்தால், நீங்கள் திறக்கும்போது பார்க்கும்.',
     backgroundHelp: 'இதற்கு என்ன தேவை',
     backgroundHelpTitle: 'தானாகப் பார்ப்பது நின்றுவிட்டால்',
     backgroundHelpBody:
@@ -22164,11 +23419,9 @@ const ta: UiStrings = {
     cardEnding: '{tail} இல் முடியும் கார்டு',
     readOn: '{when} படிக்கப்பட்டது',
     forget: 'Waves இலிருந்து நீக்கு',
-    forgetConfirm:
-      'இது Waves இலிருந்து மட்டும் நீக்கும். செய்தி உங்கள் Messages ஆப்பில் அப்படியே இருக்கும்.',
+    forgetConfirm: 'இது Waves இலிருந்து மட்டும் நீக்கும். செய்தி உங்கள் Messages ஆப்பில் அப்படியே இருக்கும்.',
     emptyNothingYet: 'இதுவரை எதுவும் படிக்கப்படவில்லை',
-    emptyNothingYetBody:
-      'செய்திகளைப் படியுங்கள் — அவற்றில் உள்ள பணப்பரிமாற்றங்களை Waves கண்டுபிடிக்கும்.',
+    emptyNothingYetBody: 'செய்திகளைப் படியுங்கள் — அவற்றில் உள்ள பணப்பரிமாற்றங்களை Waves கண்டுபிடிக்கும்.',
     emptyAllDone: 'எல்லாம் முடிந்தது',
     emptyAllDoneBody: 'இங்குள்ள ஒவ்வொரு செய்தியும் கவனிக்கப்பட்டுவிட்டது.',
     emptyNoMatch: 'எதுவும் பொருந்தவில்லை',
@@ -22202,8 +23455,7 @@ const ta: UiStrings = {
     notAMember: 'நீங்கள் இந்தக் குழுவின் உறுப்பினர் அல்ல',
     invalidTaxOrTip: 'வரி மற்றும் டிப்பிற்கு சரியான தொகையை உள்ளிடவும்.',
     defaultDescription: 'பொருள் வாரியான ரசீது',
-    sharedNow:
-      'இப்போது குழுவில் உள்ள அனைவரும் இந்த ரசீதைப் பார்க்கலாம். நீங்கள் சாப்பிட்ட வரிகளைத் தட்டுங்கள்.',
+    sharedNow: 'இப்போது குழுவில் உள்ள அனைவரும் இந்த ரசீதைப் பார்க்கலாம். நீங்கள் சாப்பிட்ட வரிகளைத் தட்டுங்கள்.',
     splittingTogether: 'சேர்ந்து பிரிக்கிறோம்',
     splittingTogetherNote:
       'குழுவில் உள்ள அனைவரும் இந்த வரிகளைப் பார்க்கிறார்கள். நீங்கள் சாப்பிட்டதைத் தட்டுங்கள் — நீங்கள் செய்யும்போதே அவர்கள் பார்ப்பார்கள். ஒவ்வொரு உரிமைக்கோரலும் அதன் வரியுடன் இணைந்திருப்பதால், வரிகளை இனி மாற்ற முடியாது.',
@@ -22232,19 +23484,16 @@ const ta: UiStrings = {
     addTheLines: 'ரசீதிலிருந்து வரிகளைச் சேர்த்து, யார் என்ன சாப்பிட்டார்கள் என்று தட்டுங்கள்.',
     stillUnclaimed: {
       one: '{n} வரி இன்னும் கோரப்படவில்லை — யாரும் ஆர்டர் செய்யாத உணவுக்கு யாரும் பணம் தர வேண்டியதில்லை.',
-      other:
-        '{n} வரிகள் இன்னும் கோரப்படவில்லை — யாரும் ஆர்டர் செய்யாத உணவுக்கு யாரும் பணம் தர வேண்டியதில்லை.',
+      other: '{n} வரிகள் இன்னும் கோரப்படவில்லை — யாரும் ஆர்டர் செய்யாத உணவுக்கு யாரும் பணம் தர வேண்டியதில்லை.',
     },
     tapWhoHadEach: 'பிரிவைப் பார்க்க ஒவ்வொரு வரியையும் யார் சாப்பிட்டார்கள் என்று தட்டுங்கள்.',
-    taxAndTipShared:
-      '{amount} வரியும் டிப்பும் ஒவ்வொருவரின் பொருட்களுக்கு ஏற்ற விகிதத்தில் பங்கிடப்படுகிறது.',
+    taxAndTipShared: '{amount} வரியும் டிப்பும் ஒவ்வொருவரின் பொருட்களுக்கு ஏற்ற விகிதத்தில் பங்கிடப்படுகிறது.',
     scanTitle: 'ரசீதை ஸ்கேன் செய்',
     scanBody:
       'பில்லை ஸ்கேன் செய்தால் வரிகள் தானாக நிரப்பப்படும். சேமிக்கும் முன் அவற்றைச் சரிபாருங்கள் — கையால் உள்ளிடுவது எப்போதும் இலவசம்.',
     scanReadItems: {
       one: '{n} வரி படிக்கப்பட்டது. அதைச் சரிபார்த்து, யார் என்ன சாப்பிட்டார் எனத் தட்டவும்.',
-      other:
-        '{n} வரிகள் படிக்கப்பட்டன. அவற்றைச் சரிபார்த்து, யார் என்ன சாப்பிட்டார் எனத் தட்டவும்.',
+      other: '{n} வரிகள் படிக்கப்பட்டன. அவற்றைச் சரிபார்த்து, யார் என்ன சாப்பிட்டார் எனத் தட்டவும்.',
     },
     scanCheckLines: 'சேமிப்பதற்கு முன் சில வரிகளைச் சரிபார்க்க வேண்டும்.',
     problemNoItems: 'No line items were found on this receipt.',
@@ -22252,8 +23501,7 @@ const ta: UiStrings = {
     problemLowConfidence: '“{label}” was hard to read — check the name and amount.',
     problemDoesNotReconcile:
       "The lines don't add up to the total on the receipt. Something was misread — check the amounts before saving.",
-    carriedOver:
-      'ஸ்கேனிலிருந்து கொண்டுவரப்பட்டது. வரிகளைச் சரிபார்த்து, யார் என்ன சாப்பிட்டார் எனத் தட்டவும்.',
+    carriedOver: 'ஸ்கேனிலிருந்து கொண்டுவரப்பட்டது. வரிகளைச் சரிபார்த்து, யார் என்ன சாப்பிட்டார் எனத் தட்டவும்.',
     notYours: 'அவர்கள் Waves-யில் உள்ளனர் — அவர்கள் தங்கள் வரிகளைத் தாங்களே தட்டுவார்கள்.',
     itemFallback: 'பொருள் {n}',
     removeItem: '{label} அகற்று',
@@ -22264,8 +23512,7 @@ const ta: UiStrings = {
     emptyLink: 'Excel, CSV அல்லது Splitwise-இலிருந்து இறக்குமதி',
     titleNamed: '{group} குழுவில் இறக்குமதி',
     titleLead: 'இதில் இறக்குமதி',
-    sourceIntro:
-      'இந்தச் செலவுகள் இப்போது எங்கே உள்ளன? ஒன்றைத் தேர்ந்து, பிறகு கோப்பைத் தேர்ந்தெடுங்கள்.',
+    sourceIntro: 'இந்தச் செலவுகள் இப்போது எங்கே உள்ளன? ஒன்றைத் தேர்ந்து, பிறகு கோப்பைத் தேர்ந்தெடுங்கள்.',
     sourceFileTitle: 'Excel அல்லது CSV-இலிருந்து',
     sourceFileHint: 'உங்கள் போனில் உள்ள கோப்பைத் தேர்ந்தெடுங்கள் (Google Sheets, Excel…)',
     sourceSplitwiseTitle: 'Splitwise-இலிருந்து',
@@ -22283,10 +23530,8 @@ const ta: UiStrings = {
     errTooMany:
       'அந்தக் கோப்பில் {n}-க்கும் மேற்பட்ட வரிசைகள் உள்ளன. {n} வரிசைகள் வரையிலான பகுதிகளாகப் பிரியுங்கள்.',
     errEmpty: 'இந்தக் கோப்பில் செலவுகள் எதுவும் கிடைக்கவில்லை.',
-    errEncoding:
-      'சில எழுத்துகள் சரியாக வரவில்லை. கோப்பை “CSV UTF-8” ஆகச் சேமித்து மீண்டும் முயற்சிக்கவும்.',
-    errUnreadable:
-      'அந்தக் கோப்பைத் திறக்க முடியவில்லை. CSV அல்லது Excel (.xlsx) ஆகச் சேமித்துப் பாருங்கள்.',
+    errEncoding: 'சில எழுத்துகள் சரியாக வரவில்லை. கோப்பை “CSV UTF-8” ஆகச் சேமித்து மீண்டும் முயற்சிக்கவும்.',
+    errUnreadable: 'அந்தக் கோப்பைத் திறக்க முடியவில்லை. CSV அல்லது Excel (.xlsx) ஆகச் சேமித்துப் பாருங்கள்.',
     errNoColumns: 'இந்தக் கோப்பில் தேதி, விவரம், தொகை ஆகியவற்றைக் கண்டறிய முடியவில்லை.',
     errNoRows: 'இந்தக் கோப்பில் செலவுகள் எதுவும் கிடைக்கவில்லை.',
     upsellTitle: 'பட்டியலைப் படம் எடுங்கள், நாங்கள் தட்டச்சு செய்கிறோம்',
@@ -22299,8 +23544,7 @@ const ta: UiStrings = {
     exTabSplit: 'பிரிப்பு',
     exTabSplitwise: 'Splitwise',
     exSimple: 'ஒவ்வொரு வரிசையும் குழுவில் உள்ள அனைவருக்கும் சமமாகப் பிரிக்கப்படும்.',
-    exSplit:
-      '“பெயர்:2” என்றால் இரண்டு பங்குகள். அனைவருக்கும் என்றால் “யாருக்கு” நெடுவரிசையை காலியாக விடுங்கள்.',
+    exSplit: '“பெயர்:2” என்றால் இரண்டு பங்குகள். அனைவருக்கும் என்றால் “யாருக்கு” நெடுவரிசையை காலியாக விடுங்கள்.',
     exSplitwise:
       'ஒவ்வொருவரின் நெடுவரிசையும் அந்த வரிசையில் அவர்கள் பெற வேண்டியது (+) அல்லது தர வேண்டியது (−).',
     headersNote: 'உங்கள் மொழியிலான தலைப்புகளும் வேலை செய்யும்.',
@@ -22385,8 +23629,7 @@ const ta: UiStrings = {
       other: '{who} செலுத்தினார் · {n} பேருக்குப் பிரிப்பு',
     },
     rowSettlement: '{from} → {to} செலுத்தினார்',
-    duplicateOf:
-      '{date} அன்று “{description}” ({amount}) போல் தெரிகிறது, ஏற்கனவே இந்தக் குழுவில் உள்ளது',
+    duplicateOf: '{date} அன்று “{description}” ({amount}) போல் தெரிகிறது, ஏற்கனவே இந்தக் குழுவில் உள்ளது',
     foreignNote: '{currency} நாணயத்தில்; இருப்பு குழுவின் மாற்று விகிதத்தைப் பயன்படுத்தும்',
     stateWont: 'இறக்குமதி ஆகாது',
     stateDuplicate: 'இரட்டிப்பாக இருக்கலாம்',
@@ -22437,8 +23680,7 @@ const ta: UiStrings = {
       other: 'திரும்பப்பெறப்பட்டது: {n} செலவுகள் நீக்கப்பட்டன',
     },
     undoHint: 'இதிலிருந்து எதுவும் திருத்தப்படாத வரை 24 மணி நேரம் திரும்பப்பெறலாம்.',
-    undoEdited:
-      'இந்த இறக்குமதியில் ஏதோ ஒன்று திருத்தப்பட்டுள்ளது, அதனால் ஒரே தடவையில் திரும்பப்பெற முடியாது.',
+    undoEdited: 'இந்த இறக்குமதியில் ஏதோ ஒன்று திருத்தப்பட்டுள்ளது, அதனால் ஒரே தடவையில் திரும்பப்பெற முடியாது.',
     undoExpired: 'இறக்குமதியை 24 மணி நேரத்துக்குள் மட்டுமே திரும்பப்பெற முடியும்.',
     undoNotAllowed: 'இதை இறக்குமதி செய்தவர் அல்லது குழு நிர்வாகி மட்டுமே திரும்பப்பெற முடியும்.',
     undoFailed: 'இறக்குமதியைத் திரும்பப்பெற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
@@ -22455,8 +23697,7 @@ const ta: UiStrings = {
     wavesHowTo: 'Waves-இல்: அமைப்புகள் → உங்கள் தரவு → தரவை ஏற்றுமதி செய்.',
     bringHistory: 'உங்கள் வரலாற்றைக் கொண்டு வாருங்கள்',
     free: 'இலவசம்',
-    ledgerHowTo:
-      'கோப்பில் பெயர் உள்ள அனைவரும் குழுவில் சேர்வார்கள். அவர்களுக்குச் செயலி தேவையில்லை.',
+    ledgerHowTo: 'கோப்பில் பெயர் உள்ள அனைவரும் குழுவில் சேர்வார்கள். அவர்களுக்குச் செயலி தேவையில்லை.',
     chooseFile: 'ஒரு கோப்பைத் தேர்வு செய்',
     fromSplitwise: 'Splitwise இலிருந்து இறக்குமதி',
     fromOther: 'வேறு கோப்பை இறக்குமதி',
@@ -22472,8 +23713,7 @@ const ta: UiStrings = {
     thisIsMeFor: '{name} என்பதை நான் என்று குறி',
     personIsYou: '{name} நீங்கள்.',
     notInFile: 'நான் இந்தக் கோப்பில் இல்லை',
-    pickYouFirst:
-      'முதலில் நீங்கள் யார் என்று தேர்ந்தெடுங்கள், அல்லது "நான் இந்தக் கோப்பில் இல்லை" என்பதைத் தட்டுங்கள்.',
+    pickYouFirst: 'முதலில் நீங்கள் யார் என்று தேர்ந்தெடுங்கள், அல்லது "நான் இந்தக் கோப்பில் இல்லை" என்பதைத் தட்டுங்கள்.',
     tapTagToLink: 'குழுவில் ஏற்கனவே உள்ளவரை இணைக்க ஒரு குறியைத் தட்டுங்கள்.',
     personIsMapped: '{name} இங்கே {who}. மாற்றத் தட்டுங்கள்.',
     addAsNew: 'புதியவராகச் சேர்',
@@ -22549,8 +23789,7 @@ const ta: UiStrings = {
       'இருப்புகள் அப்படியே வரும். யார் கொடுத்தார்கள் என்பது கணிக்கப்படுகிறது, பதிவாகவில்லை — ஒவ்வொரு வரிசையும் குறிக்கப்படும், நீங்கள் திருத்தலாம்.',
     otherCurrenciesNote: 'இங்குள்ள தொகைகள் {currency}. {others} உம் மாற்றப்படாமல் வரும்.',
     noGroupsInFile: 'அந்தக் கோப்பில் இறக்குமதி செய்ய குழுக்கள் இல்லை.',
-    couldNotFindYou:
-      'அந்தக் குழுவில் உங்களைக் கண்டறிய முடியவில்லை. அதைத் திறந்து மீண்டும் முயற்சிக்கவும்.',
+    couldNotFindYou: 'அந்தக் குழுவில் உங்களைக் கண்டறிய முடியவில்லை. அதைத் திறந்து மீண்டும் முயற்சிக்கவும்.',
     reading: 'கோப்பைப் படிக்கிறது…',
     parsing: 'வரிசைகளைச் செயலாக்குகிறது…',
     importingCount: {
@@ -22580,8 +23819,7 @@ const ta: UiStrings = {
     contactCount: { one: '{n} தொடர்பு', other: '{n} தொடர்புகள்' },
     clearSearch: 'தேடலை அழி',
     nobodyHere: 'இங்கே யாரும் இல்லை',
-    noContactMatches:
-      'அதற்குப் பொருந்தும் தொடர்பு இல்லை. பெயர், தொலைபேசி எண் அல்லது மின்னஞ்சலை முயலுங்கள்.',
+    noContactMatches: 'அதற்குப் பொருந்தும் தொடர்பு இல்லை. பெயர், தொலைபேசி எண் அல்லது மின்னஞ்சலை முயலுங்கள்.',
     noneHasEmailOrNumber: 'உங்கள் தொடர்புகளில் யாருக்கும் மின்னஞ்சலோ எண்ணோ இல்லை.',
     onlyPickedAreSent:
       'நீங்கள் தேர்ந்தெடுத்த நபர்கள் மட்டுமே Waves-க்கு அனுப்பப்படுவார்கள். உங்கள் தொடர்புகள் இந்த ஃபோனிலேயே இருக்கும்.',
@@ -22624,8 +23862,7 @@ const ta: UiStrings = {
     contactsLimited:
       'உங்கள் தொடர்புகளில் சிலவற்றை மட்டுமே Waves-க்குக் கொடுத்துள்ளீர்கள். மேலும் பார்க்க அமைப்புகளைத் திறக்கவும்.',
     removeName: '{name} ஐ நீக்கு',
-    remindZoneNote:
-      '{zone} இல் கேட்கப்படுகிறது — பயணம் இருக்கும் இடம், ஒவ்வொருவரும் இருக்கும் இடம் அல்ல.',
+    remindZoneNote: '{zone} இல் கேட்கப்படுகிறது — பயணம் இருக்கும் இடம், ஒவ்வொருவரும் இருக்கும் இடம் அல்ல.',
     useMyTimezone: 'என் நேர மண்டலத்தைப் பயன்படுத்து ({zone})',
     fromYourContactsSubtitle: 'Waves-இல் சேர்க்க நபர்களைத் தேர்ந்தெடுக்கவும்',
     filterAll: 'அனைத்தும்',
@@ -22751,8 +23988,7 @@ const ta: UiStrings = {
     terms: 'விதிமுறைகள்',
     privacy: 'தனியுரிமை',
     heroTitle: 'Waves Pro-விற்கு மேம்படுத்துங்கள்',
-    heroSubtitle:
-      'அதிக ஸ்கேன்கள், பெரிய பரிமாற்றங்கள், மேம்பட்ட AI குரல். அடிப்படை வசதிகள் என்றும் இலவசம்.',
+    heroSubtitle: 'அதிக ஸ்கேன்கள், பெரிய பரிமாற்றங்கள், மேம்பட்ட AI குரல். அடிப்படை வசதிகள் என்றும் இலவசம்.',
     continueWith: '{plan} உடன் தொடரவும்',
     noPlans: 'திட்டங்கள் இப்போது கிடைக்கவில்லை.',
     freeTitle: 'எவை இலவசமாகவே இருக்கும்?',
@@ -22771,8 +24007,7 @@ const ta: UiStrings = {
     freeFeatureBalances: 'இருப்புகள் மற்றும் தீர்வு',
     freeFeatureScans: 'மாதத்திற்கு {scans} ரசீது ஸ்கேன்கள்',
     freeFeatureVoice: 'மாதத்திற்கு {commands} AI குரல் கட்டளைகள்',
-    freeFeatureAds:
-      'AI குரல் மற்றும் ஸ்கேன்களுக்கு கிரெடிட்கள் தேவை — முகப்பில் அவற்றை இலவசமாகப் பெறுங்கள்',
+    freeFeatureAds: 'AI குரல் மற்றும் ஸ்கேன்களுக்கு கிரெடிட்கள் தேவை — முகப்பில் அவற்றை இலவசமாகப் பெறுங்கள்',
     proCardSubtitle: 'இலவசத்தில் உள்ள அனைத்தும், கூடுதலாக:',
     proFeatureNoAds: 'விளம்பரங்கள் இல்லை',
     proFeatureScans: 'மாதத்திற்கு {scans} ரசீது ஸ்கேன்கள்',
@@ -22794,13 +24029,11 @@ const ta: UiStrings = {
     row: 'குறியீட்டைப் பயன்படுத்து',
     rowHint: 'யாராவது உங்களுக்குக் கொடுத்திருந்தால்',
     title: 'குறியீட்டைப் பயன்படுத்து',
-    intro:
-      'குறியீடுகள் கையால் வழங்கப்படுகின்றன — உதவிக்காக, நன்றி சொல்ல, அல்லது ஒரு முறை சோதித்துப் பார்க்க.',
+    intro: 'குறியீடுகள் கையால் வழங்கப்படுகின்றன — உதவிக்காக, நன்றி சொல்ல, அல்லது ஒரு முறை சோதித்துப் பார்க்க.',
     placeholder: 'WAVES2026',
     redeem: 'பயன்படுத்து',
     granted: 'முடிந்தது',
-    grantedBody:
-      '{until} வரை Pro இயங்கும். எதுவும் வசூலிக்கப்படவில்லை, தானாகப் புதுப்பிக்கவும் ஆகாது.',
+    grantedBody: '{until} வரை Pro இயங்கும். எதுவும் வசூலிக்கப்படவில்லை, தானாகப் புதுப்பிக்கவும் ஆகாது.',
     unknownCode: 'அப்படி ஒரு குறியீடு இல்லை. எழுத்துகளையும் எண்களையும் சரிபாருங்கள்.',
     expired: 'அந்தக் குறியீட்டின் காலம் முடிந்துவிட்டது.',
     exhausted: 'அனுமதிக்கப்பட்ட அளவுக்கு அந்தக் குறியீடு ஏற்கனவே பயன்படுத்தப்பட்டுவிட்டது.',
@@ -22814,13 +24047,11 @@ const ta: UiStrings = {
     headline: 'ஒரு நண்பரை அழையுங்கள். இருவருக்கும் 50 கிரெடிட்கள்.',
     body: 'நண்பர்களுடன் ஒரு குழுவைப் பகிர்ந்து, Waves-இல் இன்னும் கொஞ்சம் கூடுதலாகப் பெறுங்கள்.',
     share: 'அழைப்புச் சுட்டியைப் பகிர்',
-    shareMessage:
-      'நண்பர்களுடன் செலவுகளைப் பிரிக்க நான் Waves பயன்படுத்துகிறேன். என்னுடன் சேருங்கள்:',
+    shareMessage: 'நண்பர்களுடன் செலவுகளைப் பிரிக்க நான் Waves பயன்படுத்துகிறேன். என்னுடன் சேருங்கள்:',
     friendsJoined: '{cap} நண்பர்களில் {n} பேர் சேர்ந்தனர் · {credits} கிரெடிட்கள் கிடைத்தன',
     pending: {
       one: '{n} நண்பர் சேர்ந்துள்ளார். அவரது முதல் பகிர்ந்த செலவுக்காகக் காத்திருக்கிறோம்.',
-      other:
-        '{n} நண்பர்கள் சேர்ந்துள்ளனர். அவர்களின் முதல் பகிர்ந்த செலவுக்காகக் காத்திருக்கிறோம்.',
+      other: '{n} நண்பர்கள் சேர்ந்துள்ளனர். அவர்களின் முதல் பகிர்ந்த செலவுக்காகக் காத்திருக்கிறோம்.',
     },
     loadError: 'உங்கள் அழைப்பை ஏற்ற முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயலுங்கள்.',
     haveCode: 'நண்பரிடமிருந்து குறியீடு கிடைத்ததா?',
@@ -22828,8 +24059,7 @@ const ta: UiStrings = {
     yourCode: 'உங்கள் குறியீடு',
     copyCode: 'குறியீட்டை நகலெடு',
     codeCopied: 'நகலெடுக்கப்பட்டது',
-    applied:
-      'முடிந்தது. உங்கள் முதல் பகிர்ந்த செலவைப் பதிவு செய்தவுடன், இருவருக்கும் 50 கிரெடிட்கள் கிடைக்கும்.',
+    applied: 'முடிந்தது. உங்கள் முதல் பகிர்ந்த செலவைப் பதிவு செய்தவுடன், இருவருக்கும் 50 கிரெடிட்கள் கிடைக்கும்.',
     unknownCode: 'இந்தக் குறியீடு யாருடையதுடனும் பொருந்தவில்லை.',
     ownCode: 'இது உங்கள் சொந்தக் குறியீடு.',
     alreadyUsed: 'நீங்கள் ஏற்கெனவே ஒரு அழைப்பைப் பயன்படுத்திவிட்டீர்கள்.',
@@ -22893,8 +24123,7 @@ const ta: UiStrings = {
     nameHint: 'ஒன்றாகச் செலுத்தும் ஒரு ஜோடி அல்லது குடும்பம்.',
     rename: 'பெயர் மாற்று',
     deleteFamily: 'குடும்பத்தை நீக்கு',
-    deleteBody:
-      'யாரும் குழுவை விட்டு வெளியேறவில்லை — அதில் உள்ள அனைவரும் மீண்டும் தனியாக இருப்பார்கள்.',
+    deleteBody: 'யாரும் குழுவை விட்டு வெளியேறவில்லை — அதில் உள்ள அனைவரும் மீண்டும் தனியாக இருப்பார்கள்.',
     addToFamily: 'ஒரு குடும்பத்தில் சேர்',
     moveTo: '{name}-க்கு மாற்று',
     removeFromFamily: 'குடும்பத்திலிருந்து நீக்கு',
@@ -22965,8 +24194,7 @@ const ta: UiStrings = {
     peopleYouKnow: 'உங்களுக்குத் தெரிந்தவர்கள்',
     searchPlaceholder: 'பெயர், தொலைபேசி எண் அல்லது மின்னஞ்சல்',
     noMatches: 'அந்தப் பெயரில் யாரும் இல்லை. தொலைபேசி எண் அல்லது மின்னஞ்சலை முயலுங்கள்.',
-    notFound:
-      'அந்த எண் அல்லது மின்னஞ்சலுடன் Waves இல் யாரும் இல்லை, அல்லது அவர் கண்டறியப்பட விரும்பவில்லை.',
+    notFound: 'அந்த எண் அல்லது மின்னஞ்சலுடன் Waves இல் யாரும் இல்லை, அல்லது அவர் கண்டறியப்பட விரும்பவில்லை.',
     searching: 'தேடுகிறது…',
     lookUp: 'தேடு',
     mergeConfirmTitle: '{name} ஐ {who} உடன் இணைக்கவா?',
@@ -23001,8 +24229,7 @@ const ta: UiStrings = {
     rowHint: 'நீங்கள் மறைத்த பெயர்களும் முகங்களும்',
     title: 'தடுக்கப்பட்டவர்கள்',
     emptyTitle: 'யாரும் தடுக்கப்படவில்லை',
-    emptyBody:
-      'ஒருவரைத் தடுத்தால் அவர் இங்கே பேயாகத் தோன்றுவார் — எப்போது வேண்டுமானாலும் தடையை நீக்கலாம்.',
+    emptyBody: 'ஒருவரைத் தடுத்தால் அவர் இங்கே பேயாகத் தோன்றுவார் — எப்போது வேண்டுமானாலும் தடையை நீக்கலாம்.',
     note: 'தடுப்பது ஒருவர் உங்களுக்குத் தோன்றும் விதத்தை மட்டுமே மறைக்கிறது. நீங்கள் தர வேண்டியதோ பெற வேண்டியதோ மாறாது.',
     action: 'தடு',
     unblock: 'தடையை நீக்கு',
@@ -23075,13 +24302,11 @@ const ta: UiStrings = {
     dataLabel: 'தரவு',
     svc: {
       supabase: {
-        purpose:
-          'உங்கள் கணக்கு, குழுக்கள், செலவுகள், மேலும் உங்களுக்காகப் பெறப்படும் நாணய மாற்று விகிதங்கள்.',
+        purpose: 'உங்கள் கணக்கு, குழுக்கள், செலவுகள், மேலும் உங்களுக்காகப் பெறப்படும் நாணய மாற்று விகிதங்கள்.',
         data: 'உங்கள் கணக்கு, நீங்கள் இருக்கும் குழுக்கள், அவற்றின் செலவுகள் மற்றும் தீர்வுகள், நீங்கள் அனுப்பும் செயலி நிகழ்வுகள்.',
       },
       files: {
-        purpose:
-          'நீங்கள் சேர்க்கும் ரசீதுகள் மற்றும் புகைப்படங்கள், தனிப்பட்ட சேமிப்பகத்தில் வைக்கப்படும்.',
+        purpose: 'நீங்கள் சேர்க்கும் ரசீதுகள் மற்றும் புகைப்படங்கள், தனிப்பட்ட சேமிப்பகத்தில் வைக்கப்படும்.',
         data: 'நீங்கள் சேர்க்கும் படக் கோப்பு, குறுகிய காலம் செல்லுபடியாகும் கையொப்பமிட்ட இணைப்பு வழியாகப் பதிவேற்றப்படும்.',
       },
       purchases: {
@@ -23154,8 +24379,7 @@ const ta: UiStrings = {
     lastUpdated: 'கடைசியாகப் புதுப்பிக்கப்பட்டது {date}.',
     expandLabel: 'மேலும் படிக்க',
     collapseLabel: 'சுருக்கு',
-    storeSummary:
-      'உங்கள் சுயவிவரம், குழுக்கள், செலவுகள், ரசீதுகள், கருத்துகள், அமைப்புகள், யார் யாருக்குக் கடன்.',
+    storeSummary: 'உங்கள் சுயவிவரம், குழுக்கள், செலவுகள், ரசீதுகள், கருத்துகள், அமைப்புகள், யார் யாருக்குக் கடன்.',
     protectSummary:
       'ஒவ்வொரு வாசிப்பிலும் தரவுத்தள விதிகள், தனிப்பட்ட ரசீது இணைப்புகள், சுத்தம் செய்யப்பட்ட பிழை அறிக்கைகள்.',
     servicesSummary:
@@ -23164,8 +24388,7 @@ const ta: UiStrings = {
       'இலவசக் கணக்கில் விளம்பரங்கள் (சிறிய விளம்பரங்கள், எப்போதாவது முழுத்திரை விளம்பரம், நீங்கள் பார்க்கத் தேர்வு செய்யும் வெகுமதி விளம்பரங்கள்), ஒருபோதும் தனிப்பயனாக்கப்படாதவை. சில செயலிப் படிகள் எப்போதும் Waves-ன் சொந்தத் தரவுத்தளத்தில் எண்ணப்படும். நீங்கள் இயக்கும் வரை திரைப் பதிவு இல்லை.',
     retentionSummary:
       'கணக்கு திறந்திருக்கும் வரை; 3 ஆண்டுகள் தொடாவிட்டால் நீக்கப்படும். பகிர்ந்த பதிவுகள் உங்கள் பெயர் இல்லாமல் தொடரும்.',
-    choicesSummary:
-      'எல்லாவற்றையும் ஏற்றுமதி செய்யுங்கள், அறிவிப்புகளை நிறுத்துங்கள், கணக்கை நீக்குங்கள்.',
+    choicesSummary: 'எல்லாவற்றையும் ஏற்றுமதி செய்யுங்கள், அறிவிப்புகளை நிறுத்துங்கள், கணக்கை நீக்குங்கள்.',
     deviceTitle: 'இந்தத் தொலைபேசியில்',
     deviceSummary:
       'கணக்கு சாதனச் சாவியால் மூடப்படுகிறது; அமைப்புகளும் காத்திருக்கும் பதிவேற்றங்களும் இல்லை. வெளியேறும்போது அனைத்தும் நீக்கப்படும்.',
@@ -23173,8 +24396,7 @@ const ta: UiStrings = {
       'சிக்னல் இல்லாமலும் வேலை செய்ய, Waves உங்கள் கணக்கின் ஒரு நகலைத் தொலைபேசியிலேயே வைத்திருக்கிறது. கணக்கு வரிசைகளும், அனுப்பப்படக் காத்திருக்கும் மாற்றங்களும் தொலைபேசியின் பாதுகாப்புச் சேமிப்பில் உள்ள சாவியால் மூடப்படுகின்றன — அந்தக் கோப்பை வெளியே எடுத்தாலும் சாவி இல்லாமல் படிக்க முடியாது. சிலவை அந்த மூடலுக்கு வெளியே இருக்கின்றன: உங்கள் செயலி அமைப்புகள், பதிவேற்றக் காத்திருக்கும் ரசீது படங்கள். நீங்கள் வெளியேறும்போது கணக்கு, வரிசை, சேமித்த படங்கள், சாவி எல்லாம் சேர்ந்து நீக்கப்படுகின்றன.',
     licensesRow: 'திறந்த மூல உரிமங்கள்',
     licensesTitle: 'திறந்த மூலம்',
-    licensesIntro:
-      'Waves திறந்த மூல மென்பொருளால் கட்டப்பட்டது. இவற்றை உருவாக்கிப் பராமரிப்பவர்களுக்கு நன்றி.',
+    licensesIntro: 'Waves திறந்த மூல மென்பொருளால் கட்டப்பட்டது. இவற்றை உருவாக்கிப் பராமரிப்பவர்களுக்கு நன்றி.',
     artworkTitle: 'Artwork',
     licenseNote: 'ஒவ்வொன்றும் அதன் சொந்த உரிமத்தின் கீழ், மாற்றமின்றிப் பயன்படுத்தப்படுகிறது.',
     previewGroups: {
@@ -23310,10 +24532,8 @@ const ta: UiStrings = {
       other: ['அலுவலகம்', 'குடும்பம்', 'வேலை'],
     },
     addPeopleByName: 'நண்பர்களைச் சேர்',
-    ghostNote:
-      'அவர்களுக்குச் செயலி தேவையில்லை. இப்போதே சேருங்கள், பிறகு அவர்கள் தங்கள் வரலாற்றைக் கோரலாம்.',
-    claimHistoryNote:
-      'உங்கள் பெயரைத் தேர்ந்தெடுத்தால், உங்களுக்காக ஏற்கெனவே பதிவானது எல்லாம் உங்களுடன் வரும்.',
+    ghostNote: 'அவர்களுக்குச் செயலி தேவையில்லை. இப்போதே சேருங்கள், பிறகு அவர்கள் தங்கள் வரலாற்றைக் கோரலாம்.',
+    claimHistoryNote: 'உங்கள் பெயரைத் தேர்ந்தெடுத்தால், உங்களுக்காக ஏற்கெனவே பதிவானது எல்லாம் உங்களுடன் வரும்.',
     theirPastBecomesYours: 'அவர்களின் பழைய செலவுகளும் இருப்புகளும் உங்களுடையவை ஆகும்.',
     lockedTitle: 'Waves பூட்டப்பட்டுள்ளது',
     lockedBody: 'இந்த ஃபோனைத் திறக்கும் அதே முகம் அல்லது கைரேகையால் திறக்கவும்.',
@@ -23341,8 +24561,7 @@ const ta: UiStrings = {
     onlyIfCompleted: 'உண்மையிலேயே முடிந்திருந்தால் மட்டும் பதிவு செய்யுங்கள்.',
     restAppliesOverall: 'மீதி மொத்த இருப்புக்குப் பயன்படும், பழைய செலவு முதலில்.',
     couldNotReadImage: 'அந்தப் படத்தைப் படிக்க முடியவில்லை.',
-    deliveryComesLater:
-      'புஷ் மற்றும் மின்னஞ்சல் வழங்கல் M4 உடன் வரும். அதுவரை எல்லாம் இங்கேயே வந்து சேரும்.',
+    deliveryComesLater: 'புஷ் மற்றும் மின்னஞ்சல் வழங்கல் M4 உடன் வரும். அதுவரை எல்லாம் இங்கேயே வந்து சேரும்.',
     perCurrencyNote:
       'தொகைகள் ஒவ்வொரு நாணயத்திற்கும் தனித்தனியாக வைக்கப்படும், ஒரே மொத்தமாக மாற்றப்படுவதில்லை. கணக்கு இல்லாதவர்கள் ஒவ்வொரு குழுவிலும் தனியாகக் கணக்கிடப்படுவார்கள், ஏனெனில் இரண்டு பேருக்கு ஒரே பெயர் இருக்கலாம்.',
     savedStraightAway:
@@ -23361,8 +24580,7 @@ const ta: UiStrings = {
     maintenanceFrom: 'Waves சேவையகங்கள் {from} முதல் {to} வரை இடைநிறுத்தப்படும்.',
     maintenanceUntil: '{to} வரை Waves சேவையகங்கள் இடைநிறுத்தப்பட்டுள்ளன.',
     maintenanceSoon: 'Waves சேவையகங்கள் விரைவில் {to} வரை இடைநிறுத்தப்படும்.',
-    incidentBody:
-      'ஒத்திசைவு மெதுவாக இருக்கலாம் அல்லது தோல்வியடையலாம். நாங்கள் சரிசெய்து வருகிறோம்.',
+    incidentBody: 'ஒத்திசைவு மெதுவாக இருக்கலாம் அல்லது தோல்வியடையலாம். நாங்கள் சரிசெய்து வருகிறோம்.',
     keepGoing:
       'வழக்கம்போல் செலவுகளைச் சேர்த்துக்கொண்டே இருங்கள் — அவை இந்த ஃபோனில் சேமிக்கப்படுகின்றன, சேவை திரும்பியதும் தாமாகவே ஒத்திசைக்கும்.',
     writtenIn: '{language} மொழியில் எழுதப்பட்டது.',
@@ -23382,8 +24600,7 @@ const ta: UiStrings = {
     convertForeignSettlements:
       'ஏற்கனவே ஒருவர் {currency}-இல் செலுத்தியுள்ளார், அதனால் இந்தக் குழு ஒவ்வொரு நாணயத்தையும் தனியாக வைக்கும்.',
     convertAdminOnly: 'நிர்வாகி மட்டுமே இதை மாற்ற முடியும்.',
-    convertLocked:
-      'இயக்கத்தில் இருக்கும் — செலுத்தல்கள் ஏற்கனவே {currency}-இல் கணக்கிடப்படுகின்றன.',
+    convertLocked: 'இயக்கத்தில் இருக்கும் — செலுத்தல்கள் ஏற்கனவே {currency}-இல் கணக்கிடப்படுகின்றன.',
     convertedCaption: '{currencies} பில்கள் அவற்றின் பதிவு செய்த விகிதத்தில் சேர்க்கப்பட்டுள்ளன',
     noRateYet: 'இன்னும் விகிதம் இல்லை',
     addRateAction: 'விகிதம் சேர்',
@@ -23459,13 +24676,113 @@ const ta: UiStrings = {
     missingRatesDone: '{n} பில்களுக்கு விகிதம் சேர்க்கப்பட்டது.',
     missingRatesPartial:
       '{n} பில்களுக்கு விகிதம் சேர்க்கப்பட்டது; {failed} பில்களுக்குப் பெற முடியவில்லை. இணைப்பைச் சரிபார்த்து மீண்டும் முயலவும்.',
-    missingRatesOthers:
-      'சில பில்கள் வேறொருவருடையவை; அவற்றுக்கு அவர்களால் மட்டுமே விகிதம் சேர்க்க முடியும்.',
+    missingRatesOthers: 'சில பில்கள் வேறொருவருடையவை; அவற்றுக்கு அவர்களால் மட்டுமே விகிதம் சேர்க்க முடியும்.',
     todaysRate: 'இன்றைய விகிதம்',
     removeConfirm: 'ஏற்கெனவே சேமித்த பில்கள் அவை சேமித்த விகிதத்தையே வைத்திருக்கும்.',
     appliesNote: 'விகிதத்தை மாற்றினாலும் ஏற்கெனவே சேமித்த பில் மாறாது.',
   },
 
+  personalHome: {
+    hi: 'வணக்கம், {name} 👋',
+    space: 'தனிநபர் நிதி',
+    sharedSpace: 'பகிரப்பட்டவை',
+    switchSpace: 'இடத்தை மாற்று',
+    search: 'தேடு',
+    reminders: 'வரவிருப்பவை மற்றும் நினைவூட்டல்கள்',
+    settings: 'அமைப்புகள்',
+    loan: 'கடன்',
+    reminder: 'நினைவூட்டல்',
+    spentAmount: '{amount} செலவு',
+    budgetLine: 'பட்ஜெட்: {amount}',
+    leftChip: 'இந்த மாதம் {amount} மீதம்',
+    overChip: 'இந்த மாதம் {amount} அதிகம்',
+    aDay: 'நாளுக்கு சுமார் {amount}',
+    upcomingTitle: 'வரவிருப்பவை & நினைவூட்டல்கள்',
+    dueOn: '{date} அன்று செலுத்த வேண்டும்',
+    today: 'இன்று',
+    overdue: 'தாமதம்',
+    todo: 'செய்ய வேண்டியது: அமைப்பை முடிக்கவும்',
+    upcomingEmpty: 'வரவிருப்பது எதுவும் இல்லை. ஒரு பில் அல்லது தேதியைச் சேர்க்கவும்.',
+    recentTitle: 'சமீபத்திய பரிவர்த்தனைகள்',
+    toolLoans: 'கடன்கள் & EMI',
+    toolTodo: 'செய்ய வேண்டியவை',
+    toolReminders: 'நினைவூட்டல்கள்',
+    toolMore: 'மேலும்',
+    moreVoice: 'குரலால் சேர்',
+    navHome: 'முகப்பு',
+    navPlanning: 'திட்டமிடல்',
+    navReports: 'அறிக்கைகள்',
+    navMe: 'நான்',
+    addDateRow: 'தேதியைச் சேர்',
+    inDays: { one: '{n} நாளில்', other: '{n} நாட்களில்' },
+    itemsLeft: { one: '{n} உருப்படி மீதம்', other: '{n} உருப்படிகள் மீதம்' },
+    filterAll: 'அனைத்தும்',
+    filterBills: 'பில்கள்',
+    filterTodo: 'செய்ய வேண்டியவை',
+    filterRecurring: 'தொடர்ச்சியானவை',
+    filterLabel: 'காட்டு',
+    dueThisMonth: 'இந்த மாதம் செலுத்த வேண்டியவை',
+    billsCount: { one: '{n} பில்', other: '{n} பில்கள்' },
+    itemsCount: { one: '{n} உருப்படி', other: '{n} உருப்படிகள்' },
+    thisMonth: 'இந்த மாதம்',
+    nextSection: 'அடுத்து',
+    dueOverdue: '{date} அன்று செலுத்த வேண்டும் (தாமதம்)',
+    addReminder: 'நினைவூட்டலைச் சேர்',
+    markPaid: 'செலுத்தியதாகக் குறி',
+    editBill: 'திருத்து',
+    pickMonth: 'மாதத்தைத் தேர்ந்தெடுக்கவும்',
+    reminderTitle: 'எதற்காக?',
+    reminderAmount: 'தொகை (விருப்பம்)',
+    reminderDate: 'தேதி',
+    repeat: 'மீண்டும்',
+    repeatNone: 'மீண்டும் வராது',
+    repeatMonthly: 'ஒவ்வொரு மாதமும்',
+    repeatYearly: 'ஒவ்வொரு ஆண்டும்',
+    nothingHere: 'இங்கே இன்னும் எதுவும் இல்லை.',
+  },
+  personalPlan: {
+    leftToday: 'இன்று {amount} மீதம்',
+    leftTodayShort: 'இன்று மீதம்',
+    overToday: 'இன்றைக்கு அதிகம்',
+    leftWeek: 'இந்த வாரம் {amount} மீதம்',
+    saveTitle: 'எங்கே சேமிக்கலாம்',
+    setLimit: 'வரம்பு வை',
+    review: 'பார்',
+    notNow: 'இப்போது வேண்டாம்',
+    tip: {
+      overMedian: 'இந்த மாதம் {category} வழக்கத்தை விட {amount} அதிகம்.',
+      subscriptions: {
+        one: 'உங்கள் சந்தா ஆண்டுக்கு {amount} ஆகிறது.',
+        other: 'உங்கள் {n} சந்தாக்கள் ஆண்டுக்கு {amount} ஆகின்றன.',
+      },
+      overBudget: '{category} வரம்பை {amount} மீறியுள்ளது.',
+    },
+    recap: {
+      weekReady: 'உங்கள் வாரம் தயார்',
+      monthReady: 'உங்கள் {month} தயார்',
+      seeIt: 'பார்',
+      weekTitle: 'உங்கள் வாரம்',
+      monthTitle: 'உங்கள் மாதம்',
+      youSpent: 'நீங்கள் செலவழித்தது',
+      vsLess: 'வழக்கமான வாரத்தை விட {amount} குறைவு',
+      vsMore: 'வழக்கமான வாரத்தை விட {amount} அதிகம்',
+      vsSame: 'வழக்கமான வாரம் போலவே',
+      vsNone: 'ஒப்பிட போதுமான முந்தைய வாரங்கள் இல்லை',
+      biggest: 'பெரிய வகை',
+      noSpend: 'செலவு இல்லை',
+      nextBill: 'அடுத்த பில்',
+      noBill: 'வரும் பில்கள் இல்லை',
+      leftOver: '{month}: {amount} மீதம்',
+      overIncome: '{month}: வருமானத்தை விட {amount} அதிகம்',
+      best: { one: 'இதுவரை உங்கள் சிறந்த மாதம்', other: '{n} மாதங்களில் உங்கள் சிறந்த மாதம்' },
+      worst: { one: 'கடினமான மாதம்', other: '{n} மாதங்களில் உங்கள் கடினமான மாதம்' },
+      trend: 'கடைசி 6 மாதங்கள்',
+      next: 'அடுத்து',
+      done: 'முடிந்தது',
+      close: 'மூடு',
+      page: 'பக்கம் {n} / {total}',
+    },
+  },
   personalReceipt: {
     title: 'ரசீது',
     add: 'சேர்',
@@ -23484,6 +24801,96 @@ const ta: UiStrings = {
     storageFull: 'உங்கள் சேமிப்பு வரம்பை அடைந்துவிட்டீர்கள்.',
     waitingWifi: 'Wi‑Fi-க்காகக் காத்திருக்கிறது. Wi‑Fi-இல் இருக்கும்போது படத்தைச் சேர்க்கவும்.',
     couldNotAdd: 'ரசீதைச் சேர்க்க முடியவில்லை. மீண்டும் முயலவும்.',
+  },
+  personalSetup: {
+    title: 'தனிப்பட்டதை அமைக்கவும்',
+    privateLine: 'உங்களுக்கு மட்டும் — நீங்கள் மட்டுமே பார்க்கலாம்',
+    skip: 'தவிர்',
+    cont: 'தொடரவும்',
+    stepOf: 'படி {n} / {total}',
+    nameIncome: 'வருமானம்',
+    nameHome: 'வாடகை அல்லது வீட்டுக் கடன்',
+    nameBills: 'கட்டணங்கள்',
+    nameEmi: 'கடன் EMI',
+    nameEat: 'வெளியே சாப்பிடுதல்',
+    nameSavings: 'சேமிப்பு',
+    nameCap: 'செலவு வரம்பு',
+    incomeQ: 'நிரந்தரமாக வருமானம் வருகிறதா?',
+    incomeSalary: 'சம்பளம்',
+    incomeBusiness: 'தொழில்',
+    incomeFreelance: 'ஃப்ரீலான்ஸ்',
+    incomePension: 'ஓய்வூதியம்',
+    incomeNone: 'நிரந்தரமில்லை',
+    incomeDetailsQ: 'எவ்வளவு, எந்த நாளில்?',
+    homeQ: 'வாடகை அல்லது வீட்டுக் கடன்?',
+    homeRent: 'வாடகை',
+    homeEmi: 'வீட்டுக் கடன் கட்டணம்',
+    homeNone: 'இரண்டும் இல்லை',
+    homeDetailsQ: 'எவ்வளவு, எந்த நாளில்?',
+    billsQ: 'எந்தக் கட்டணங்களைச் செலுத்துகிறீர்கள்?',
+    billElectricity: 'மின்சாரம்',
+    billMobile: 'மொபைல்',
+    billWifi: 'வைஃபை',
+    billGas: 'எரிவாயு',
+    billHelp: 'வீட்டு உதவி',
+    billSchool: 'பள்ளிக் கட்டணம் (காலாண்டு)',
+    billSociety: 'கட்டிடக் கட்டணங்கள்',
+    billInsurance: 'காப்பீடு (ஆண்டு)',
+    billSip: 'முதலீட்டுப் பங்களிப்பு',
+    billsDetailsQ: 'எவ்வளவு, எந்த நாளில்?',
+    loanQ: 'ஏதேனும் கடனைத் திருப்பிச் செலுத்துகிறீர்களா?',
+    yes: 'ஆம்',
+    no: 'இல்லை',
+    loanTypeQ: 'எந்தக் கடன்?',
+    loanCar: 'கார்',
+    loanPersonal: 'தனிநபர்',
+    loanGold: 'பிற அடமானக் கடன்',
+    loanEducation: 'கல்வி',
+    loanCard: 'கிரெடிட் கார்டு',
+    loanDetailsQ: 'EMI, நாள், மீதமுள்ள மாதங்கள்',
+    emiLabel: 'EMI',
+    monthsLeft: 'மீதமுள்ள மாதங்கள்',
+    eatQ: 'எவ்வளவு அடிக்கடி வெளியே சாப்பிடுவீர்கள் அல்லது ஆர்டர் செய்வீர்கள்?',
+    eatRarely: 'அரிதாக',
+    eat12: 'வாரம் 1–2',
+    eat34: 'வாரம் 3–4',
+    eatMost: 'பெரும்பாலான நாட்கள்',
+    eatEachQ: 'ஒரு முறைக்கு சுமார் எவ்வளவு?',
+    eatMonthly: 'மாதம் சுமார் {amount}',
+    savingsQ: 'ஒதுக்கி வைத்த சேமிப்பு உண்டா?',
+    saveNone: 'இல்லை',
+    saveUnder1: '1 மாத சம்பளத்துக்குக் குறைவு',
+    save1to3: '1–3 மாதங்கள்',
+    save3to6: '3–6 மாதங்கள்',
+    save6plus: '6+ மாதங்கள்',
+    capQ: 'அன்றாடச் செலவுக்கு வரம்பு?',
+    capHint: 'உங்கள் வருமானம் கழித்தல் நிலையான கட்டணங்கள்',
+    amountLabel: 'தொகை',
+    dayLabel: 'மாதத்தின் நாள்',
+    revealTitle: 'உங்கள் {month}',
+    comingIn: 'வரவு',
+    fixedBills: 'நிலையான கட்டணங்கள்',
+    freeToSpend: 'செலவழிக்கக் கிடைப்பது',
+    perDay: 'நாளுக்கு சுமார் {amount}',
+    nextBillToday: '{name} இன்று செலுத்த வேண்டும்',
+    doneBtn: 'முடிந்தது',
+    finishCard: 'அமைப்பை முடிக்கவும் · {n} மீதம்',
+    finishRow: '{name}',
+    fixedBillsCount: { one: '{n} கட்டணம்', other: '{n} கட்டணங்கள்' },
+    nextBillIn: { one: '{name} நாளை', other: '{name} {n} நாட்களில்' },
+
+    hintEmi: 'EMI',
+    hintSociety: 'சங்கப் பராமரிப்பு',
+    hintHoa: 'HOA',
+    hintServiceCharge: 'சேவை கட்டணம்',
+    hintCouncilTax: 'கவுன்சில் வரி',
+    hintStrata: 'ஸ்ட்ராட்டா',
+    hintRates: 'விகிதக் கட்டணங்கள்',
+    hintDewa: 'DEWA',
+    hintChiller: 'சில்லர்',
+    hintMaidCookDriver: 'வேலைக்காரர் / சமையல் / ஓட்டுநர்',
+    hintSipChitFund: 'SIP / சீட்டு',
+    hintGoldLoan: 'தங்கக் கடன்',
   },
   personal: {
     introCards: [
@@ -23510,15 +24917,13 @@ const ta: UiStrings = {
     ],
     introSkip: 'தவிர்',
     addLoanSub: 'நீங்கள் கடன் வாங்கியதையும் கொடுத்ததையும் கண்காணியுங்கள்.',
-    noLoansBody:
-      'நீங்கள் தர வேண்டிய அல்லது பெற வேண்டிய பணத்தைக் கண்காணிக்க ஒரு கடனைச் சேர்க்கவும்.',
+    noLoansBody: 'நீங்கள் தர வேண்டிய அல்லது பெற வேண்டிய பணத்தைக் கண்காணிக்க ஒரு கடனைச் சேர்க்கவும்.',
     loanAmount: 'தொகை',
     loanForPlaceholder: 'எ.கா. தனிநபர் கடன், வாடகை, பயணம்',
     pickName: 'முந்தைய கடன்களில் இருந்து ஒருவரைத் தேர்ந்தெடுக்கவும்',
     all: 'அனைத்தும்',
     transfers: 'பரிமாற்றங்கள்',
-    transactionsSubtitle:
-      'உங்கள் செலவுகள், வருமானம் மற்றும் பணப் பரிமாற்றங்கள் அனைத்தும் ஒரே இடத்தில்.',
+    transactionsSubtitle: 'உங்கள் செலவுகள், வருமானம் மற்றும் பணப் பரிமாற்றங்கள் அனைத்தும் ஒரே இடத்தில்.',
     collapseDay: 'நாளைச் சுருக்கு',
     expandDay: 'நாளை விரி',
     searchTransactions: 'பரிவர்த்தனைகளைத் தேடுங்கள்…',
@@ -23556,6 +24961,7 @@ const ta: UiStrings = {
       methods: {
         cash: 'பணம்',
         upi: 'UPI',
+        instant_transfer: 'உடனடி பரிமாற்றம்',
         card: 'அட்டை',
         bank: 'வங்கிப் பரிமாற்றம்',
         wallet: 'வாலெட்',
@@ -23660,6 +25066,16 @@ const ta: UiStrings = {
     noRecurring: 'மீண்டும் வரும் பதிவுகள் இல்லை.',
     loans: 'கடன்கள்',
     loansSub: 'நீங்கள் தர வேண்டியது அல்லது வர வேண்டியது.',
+    loansTotal: 'மொத்த நிலுவை',
+    youOwe: 'நீங்கள் தர வேண்டியது',
+    youAreOwed: 'உங்களுக்கு வர வேண்டியது',
+    repaidOf: 'திருப்பிச் செலுத்தியது: {paid} / {total}',
+    addReminderShort: 'நினைவூட்டலைச் சேர்',
+    editDetails: 'விவரங்களைத் திருத்து',
+    loanShareOwe: '{name} — நான் {amount} தர வேண்டும், செலுத்தியது {repaid}',
+    loanShareLent: '{name} எனக்கு {amount} தர வேண்டும், செலுத்தியது {repaid}',
+    loanReminderOwe: '{name}க்குத் திருப்பிச் செலுத்து',
+    loanReminderLent: '{name}இடம் வசூலி',
     addLoan: 'கடனைச் சேர்',
     editLoan: 'கடனைத் திருத்து',
     borrowed: 'நான் வாங்கினேன்',
@@ -23679,8 +25095,7 @@ const ta: UiStrings = {
     visibleTo: '{name}-க்குத் தெரியும்',
     settleUp: 'கணக்கைத் தீர்',
     stopSharing: 'பகிர்வை நிறுத்து',
-    stopSharingBody:
-      'அவர் பக்கத்திலிருந்து இந்தக் கடன் நீக்கப்படும். உங்கள் தனிப்பட்ட கடன் இருக்கும்.',
+    stopSharingBody: 'அவர் பக்கத்திலிருந்து இந்தக் கடன் நீக்கப்படும். உங்கள் தனிப்பட்ட கடன் இருக்கும்.',
     cannotStopSharing:
       'இதில் ஒரு பகுதி ஏற்கெனவே திருப்பிச் செலுத்தப்பட்டதால் பகிர்வை நிறுத்த முடியாது. மீதியைத் தீர்க்கவும்.',
     shareFailed: 'இந்தக் கடனைப் பகிர முடியவில்லை. மீண்டும் முயலவும்.',
@@ -23811,8 +25226,7 @@ const ta: UiStrings = {
     added: { one: '{n} வகை சேர்க்கப்பட்டது', other: '{n} வகைகள் சேர்க்கப்பட்டன' },
     alreadyHave: 'இவை அனைத்தும் ஏற்கெனவே உங்களிடம் உள்ளன.',
     empty: 'இன்னும் எதுவும் இல்லை',
-    emptyBody:
-      'தொகுப்புகள் விரைவில் வரும். உங்களுக்கு என்ன தேவை என்று சொல்லுங்கள், நாங்கள் உருவாக்குகிறோம்.',
+    emptyBody: 'தொகுப்புகள் விரைவில் வரும். உங்களுக்கு என்ன தேவை என்று சொல்லுங்கள், நாங்கள் உருவாக்குகிறோம்.',
     offline: 'தொகுப்புகளுக்கு இணைப்பு தேவை. ஏற்கெனவே சேர்த்தவை அப்படியே இருக்கும்.',
     notFound: 'இந்தத் தொகுப்பு இப்போது கிடைக்கவில்லை.',
     askTitle: 'ஒரு தொகுப்பு கேளுங்கள்',
@@ -23998,6 +25412,44 @@ const hi: UiStrings = {
   allSettled: 'सब बराबर',
   yourGroups: 'आपके समूह',
   allGroups: 'सभी समूह',
+  homeToday: {
+    needsYou: 'आपकी ज़रूरत',
+    nothingNeeds: 'आज कुछ ज़रूरी नहीं',
+    pay: 'चुकाएँ',
+    remind: 'याद दिलाएँ',
+    review: 'देखें',
+    markPaid: 'चुकाया',
+    reminded: 'याद दिलाया',
+    overdueSub: 'देर हो गई · {amount}',
+    dueSub: '{date} को · {amount}',
+    owesYou: '{name} को आपको {amount} देना है',
+    youOweName: 'आपको {name} को {amount} देना है',
+    reviewTitle: 'देखने वाली चीज़ें: {n}',
+    comingUp: 'आने वाला',
+    addReminder: 'रिमाइंडर जोड़ें',
+    spaces: 'ग्रुप',
+    addSpace: 'स्पेस जोड़ें',
+    personal: 'निजी',
+    justMe: 'सिर्फ़ मैं',
+    leftMonth: 'इस महीने बचा',
+    spentMonth: 'इस महीने खर्च',
+    leftPool: 'पूल में बचा',
+    spentPool: 'इस महीने खर्च',
+    billDue: '{date} को बिल',
+    newSpace: 'नया स्पेस',
+    newSpaceHint: 'ट्रिप · घर · कपल · परिवार',
+    seeAll: 'सभी देखें',
+    startMine: 'मेरा पैसा',
+    startMineSub: 'अपना खर्च ट्रैक करें',
+    startSplit: 'दोस्तों के साथ बाँटें',
+    startSplitSub: 'ट्रिप, फ़्लैट और डिनर',
+    startHome: 'घर चलाएँ',
+    startHomeSub: 'साझा बिल और बजट',
+    people: 'लोग',
+    friendsLink: 'दोस्त',
+    all: 'सभी',
+    privateDate: 'निजी तारीख़',
+  },
   yourFriends: 'आपके मित्र',
   viewGroups: 'समूह देखें',
   groupsTitle: 'समूह',
@@ -24341,8 +25793,7 @@ const hi: UiStrings = {
     notSent: 'नहीं भेजी गई',
     notSentBody:
       'यह रसीद आपके फ़ोन पर सहेजी है और अभी भेजी नहीं गई है। यह अपने आप फिर कोशिश करती रहेगी, या आप अभी फिर कोशिश कर सकते हैं।',
-    notSentBlockedBody:
-      'यह रसीद अस्वीकार कर दी गई, इसलिए भेजी नहीं गई। यह अब भी आपके फ़ोन पर सहेजी है।',
+    notSentBlockedBody: 'यह रसीद अस्वीकार कर दी गई, इसलिए भेजी नहीं गई। यह अब भी आपके फ़ोन पर सहेजी है।',
     tryAgain: 'फिर कोशिश करें',
     counter: '{total} में से {index}',
     download: 'डिवाइस पर सहेजें',
@@ -24416,6 +25867,38 @@ const hi: UiStrings = {
     tooFastMoment: 'एक साथ बहुत ज़्यादा। थोड़ा रुककर फिर कोशिश करें।',
     tooFastLater: 'एक साथ बहुत ज़्यादा। कुछ देर बाद फिर कोशिश करें।',
   },
+  firstRun: {
+    stepOf: 'चरण {n} / 3',
+    skip: 'छोड़ें',
+    nameTitle: 'दोस्त आपको क्या कहकर बुलाएँ?',
+    nameHint: 'आपके हर साझा बिल पर दिखेगा।',
+    namePlaceholder: 'आपका नाम',
+    addPhoto: 'फ़ोटो जोड़ें',
+    continue: 'आगे बढ़ें',
+    hi: 'नमस्ते {name}',
+    intentTitle: 'आप Waves क्यों आए हैं?',
+    intentHint: 'जो भी लागू हो, चुनें।',
+    intents: {
+      trip: 'एक यात्रा',
+      flat: 'फ़्लैट या घर',
+      family: 'परिवार',
+      couple: 'जोड़ा',
+      own: 'सिर्फ़ मेरा अपना पैसा',
+    },
+    suggested: { trip: 'हमारी यात्रा', flat: 'हमारा फ़्लैट', family: 'परिवार', couple: 'हम दोनों' },
+    voiceTitle: 'बोलिए।\nहम लिख देंगे।',
+    voiceHint: 'बटन दबाए रखें और यह पढ़ें:',
+    sample: '\u201cरवि और आशा के साथ डिनर 1,200\u201d',
+    holdToSpeak: 'दबाकर बोलें',
+    listening: 'सुन रहा है\u2026',
+    notHeard: 'सुनाई नहीं दिया। दबाए रखकर फिर कोशिश करें।',
+    micOff: 'माइक बंद है। आप टाइप कर सकते हैं।',
+    heardTitle: 'हमने सुना',
+    people: '{n} लोग',
+    notSaved: 'कुछ भी सेव नहीं हुआ। यह बस एक कोशिश थी।',
+    done: 'हो गया',
+    typeInstead: 'मैं टाइप करूँगा',
+  },
   onboarding: [
     {
       title: 'कोई भी खर्च बाँटें',
@@ -24446,8 +25929,7 @@ const hi: UiStrings = {
     preparing: 'तैयार हो रहा है…',
     action: 'निर्यात',
     ready: 'निर्यात तैयार है',
-    webNote:
-      'वेब पर फ़ाइल ऐप के कैश में लिखी जाती है; आगे साझा करने के लिए किसी डिवाइस का उपयोग करें।',
+    webNote: 'वेब पर फ़ाइल ऐप के कैश में लिखी जाती है; आगे साझा करने के लिए किसी डिवाइस का उपयोग करें।',
     shareTitle: 'आपका Waves निर्यात',
   },
   groupExport: {
@@ -24591,6 +26073,93 @@ const hi: UiStrings = {
     stuckShort: 'एक दिन से पुराना, स्क्रीन पर नहीं दिखता',
     copyHint: 'शेयर या समस्या जाँचने के लिए विवरण कॉपी करें',
   },
+  dates: {
+    title: 'आपकी तारीखें',
+    upcoming: 'आने वाली',
+    addDate: 'तारीख जोड़ें',
+    empty: 'जन्मदिन या सालगिरह जोड़ें, हम समय रहते याद दिला देंगे।',
+    inDays: { one: 'कल', other: '{n} दिन में' },
+    today: 'आज',
+    yearsAtWork: { one: 'काम में {n} साल', other: 'काम में {n} साल' },
+    kinds: {
+      my_birthday: 'मेरा जन्मदिन',
+      anniversary: 'सालगिरह',
+      work_anniversary: 'काम की सालगिरह',
+      family_birthday: 'परिवार या दोस्त',
+      other: 'अन्य',
+    },
+    titles: {
+      myBirthday: 'आपका जन्मदिन',
+      anniversary: 'आपकी सालगिरह',
+      workAnniversary: 'काम की सालगिरह',
+      birthdayOf: '{name} का जन्मदिन',
+      other: '{name}',
+    },
+    actions: {
+      giftCollection: 'गिफ़्ट कलेक्शन',
+      setBudget: 'बजट बनाएँ',
+      updatePay: 'वेतन अपडेट करें',
+      planBudget: 'बजट बनाएँ',
+    },
+    giftGroupName: '{name} के जन्मदिन का गिफ़्ट',
+    festivals: {
+      diwali: 'दिवाली',
+      holi: 'होली',
+      eid_al_fitr: 'ईद-उल-फ़ित्र',
+      eid_al_adha: 'ईद-उल-अज़हा',
+      christmas: 'क्रिसमस',
+      pongal: 'पोंगल',
+      onam: 'ओणम',
+      raksha_bandhan: 'रक्षा बंधन',
+      navratri: 'नवरात्रि',
+      thanksgiving: 'थैंक्सगिविंग',
+      easter: 'ईस्टर',
+      lunar_new_year: 'चंद्र नववर्ष',
+      hanukkah: 'हनुक्का',
+      vesak: 'वेसाक',
+      mothers_day: 'मदर्स डे',
+      fathers_day: 'फादर्स डे',
+      national_day: 'राष्ट्रीय दिवस',
+      ramadan_start: 'रमज़ान की शुरुआत',
+    },
+    editNew: 'तारीख जोड़ें',
+    editExisting: 'तारीख बदलें',
+    name: 'नाम',
+    namePlaceholder: 'आशा',
+    day: 'दिन',
+    month: 'महीना',
+    sinceYear: 'किस साल शुरू किया (वैकल्पिक)',
+    privacyMine: 'इसे सिर्फ़ आप देखते हैं। हम इसे आपको याद दिलाने के लिए इस्तेमाल करते हैं।',
+    privacyFamily: 'ये आपके निजी नोट हैं। आप जिन्हें जोड़ते हैं, हम उनसे कभी संपर्क नहीं करते।',
+    shareLabel: 'मेरे ग्रुप के लोगों को दिखाएँ',
+    shareComing: 'जल्द आ रहा है',
+    save: 'सेव करें',
+    notNow: 'अभी नहीं',
+    remove: 'यह तारीख़ हटाएँ',
+    festivalsTitle: 'त्योहार',
+    festivalsHint: 'हम कुछ हफ़्ते पहले याद दिलाते हैं। जो न चाहिए उसे बंद कर दें।',
+    notifTitle: 'Waves की ओर से याद दिलाना',
+    reminder: {
+      from: 'Waves की ओर से',
+      notThisTime: 'इस बार नहीं',
+      birthday: { one: '{name} का जन्मदिन कल है।', other: '{name} का जन्मदिन {n} दिन में है।' },
+      anniversary: { one: 'आपकी सालगिरह कल है।', other: 'आपकी सालगिरह {n} दिन में है।' },
+      work: { one: 'आपकी काम की सालगिरह कल है।', other: 'आपकी काम की सालगिरह {n} दिन में है।' },
+      named: { one: '{name} कल है।', other: '{name} {n} दिन में है।' },
+      today: {
+        birthday: '{name} का जन्मदिन आज है।',
+        anniversary: 'आपकी सालगिरह आज है।',
+        work: 'आपकी काम की सालगिरह आज है।',
+        named: '{name} आज है।',
+      },
+      ask: {
+        birthday: 'गिफ़्ट कलेक्शन शुरू करें?',
+        anniversary: 'डिनर या गिफ़्ट के लिए बजट रखें?',
+        work: 'वेतन अपडेट करने का समय?',
+        named: 'बजट रखें?',
+      },
+    },
+  },
   recent: {
     title: 'घड़ी पर हाल के खर्च',
     intro: 'आपकी जुड़ी हुई घड़ी एक नज़र में कितने हाल के खर्च दिखाए।',
@@ -24700,8 +26269,7 @@ const hi: UiStrings = {
       notFound: 'इस बदलाव से जुड़ी कोई चीज़ हटा दी गई है, इसलिए इसे सहेजा नहीं जा सकता।',
       conflict: 'उसी समय किसी और ने इसे बदल दिया। जाँचें और फिर कोशिश करें।',
       guestExpired: 'आपकी अतिथि ट्रायल अवधि खत्म हो गई है। सहेजते रहने के लिए साइन अप करें।',
-      companySlot:
-        'अतिरिक्त कंपनी के लिए अलग सब्सक्रिप्शन चाहिए। इसे हटाएँ, फिर कंपनी जोड़ें से सब्सक्राइब करें।',
+      companySlot: 'अतिरिक्त कंपनी के लिए अलग सब्सक्रिप्शन चाहिए। इसे हटाएँ, फिर कंपनी जोड़ें से सब्सक्राइब करें।',
       generic: 'यह बदलाव सहेजा नहीं जा सका। जाँचें या हटा दें।',
     },
     title: 'किस पर सिंक करें',
@@ -24711,8 +26279,7 @@ const hi: UiStrings = {
     cellularHint: 'केवल मोबाइल डेटा पर सिंक करें, वाई‑फ़ाई पर नहीं।',
     both: 'वाई‑फ़ाई और मोबाइल डेटा',
     bothHint: 'जो भी कनेक्शन उपलब्ध हो, उस पर सिंक करें।',
-    footnote:
-      'बदलाव हमेशा आपके फ़ोन पर सहेजे जाते हैं। यह केवल तय करता है कि वे कब फ़ोन से बाहर जाएँ।',
+    footnote: 'बदलाव हमेशा आपके फ़ोन पर सहेजे जाते हैं। यह केवल तय करता है कि वे कब फ़ोन से बाहर जाएँ।',
     selected: 'चुना गया',
     waitingWifi: 'सहेजा गया — सिंक के लिए वाई‑फ़ाई की प्रतीक्षा है।',
     waitingCellular: 'सहेजा गया — सिंक के लिए मोबाइल डेटा की प्रतीक्षा है।',
@@ -24723,8 +26290,7 @@ const hi: UiStrings = {
     stuckShort: 'इस फ़ोन पर सेव है, पर अभी भेजा नहीं गया।',
     discardTitle: 'यह बदलाव छोड़ दें?',
     discardBody: 'यह सिर्फ़ इस फ़ोन पर है। छोड़ने पर वापस नहीं आएगा।',
-    stuckExplain:
-      'इस फ़ोन पर अब भी सहेजा है — बस भेजा नहीं जा पा रहा। दोबारा कोशिश करें, या हटा दें।',
+    stuckExplain: 'इस फ़ोन पर अब भी सहेजा है — बस भेजा नहीं जा पा रहा। दोबारा कोशिश करें, या हटा दें।',
     openDetail: 'आपके निर्णय की ज़रूरत वाली चीज़ खोलता है',
   },
   lock: {
@@ -24759,8 +26325,7 @@ const hi: UiStrings = {
     learnMore: 'और जानें',
     learnTitle: 'आपका डेटा कैसे सुरक्षित रहता है',
     learnTransit: 'ऐप और हमारे सर्वर के बीच सब कुछ एन्क्रिप्टेड (TLS) कनेक्शन से जाता है।',
-    learnRest:
-      'हमारे सर्वर पर संग्रहित डेटा हमारे होस्टिंग प्रदाताओं द्वारा एन्क्रिप्ट किया जाता है।',
+    learnRest: 'हमारे सर्वर पर संग्रहित डेटा हमारे होस्टिंग प्रदाताओं द्वारा एन्क्रिप्ट किया जाता है।',
     learnLimits:
       'यह एंड-टू-एंड एन्क्रिप्शन नहीं है: ऐप चलाने के लिए सिंक हुआ डेटा हमारे सर्वर प्रोसेस कर सकते हैं। ऐप लॉक सिर्फ़ इस फ़ोन की रक्षा करता है।',
     accountTitle: 'खाता सुरक्षा',
@@ -24851,8 +26416,7 @@ const hi: UiStrings = {
     connectedOn: 'जोड़ा गया: {when}',
     disconnect: 'डिस्कनेक्ट करें',
     confirmTitle: '{name} को डिस्कनेक्ट करें?',
-    confirmBody:
-      'इसकी पहुँच आपके Waves तक तुरंत बंद हो जाएगी। आप इसे बाद में फिर से जोड़ सकते हैं।',
+    confirmBody: 'इसकी पहुँच आपके Waves तक तुरंत बंद हो जाएगी। आप इसे बाद में फिर से जोड़ सकते हैं।',
     disconnected: '{name} डिस्कनेक्ट हो गया।',
     couldNotDisconnect: 'डिस्कनेक्ट नहीं हो सका। कृपया फिर कोशिश करें।',
     emptyTitle: 'कोई ऐप जुड़ा हुआ नहीं है',
@@ -24880,8 +26444,7 @@ const hi: UiStrings = {
     sortName: 'नाम',
     addDevice: 'डिवाइस जोड़ें',
     addTitle: 'दूसरा डिवाइस जोड़ें',
-    addBody:
-      'दूसरे डिवाइस पर Waves इंस्टॉल करें और उसी ईमेल से साइन इन करें। साइन इन होते ही वह यहाँ दिखेगा।',
+    addBody: 'दूसरे डिवाइस पर Waves इंस्टॉल करें और उसी ईमेल से साइन इन करें। साइन इन होते ही वह यहाँ दिखेगा।',
     signOutAllTitle: 'सभी अन्य डिवाइस साइन आउट करें?',
     thisDevice: 'यह डिवाइस',
     signedOut: 'साइन आउट',
@@ -24904,8 +26467,7 @@ const hi: UiStrings = {
     gateCount: '{active} डिवाइस · {limit} की अनुमति',
     gateDevices: '{active} डिवाइस',
     gateAllowed: '{limit} की अनुमति',
-    gateDetail:
-      'आप {active} डिवाइस पर साइन इन हैं, लेकिन मुफ़्त प्लान में {limit} डिवाइस की ही अनुमति है।',
+    gateDetail: 'आप {active} डिवाइस पर साइन इन हैं, लेकिन मुफ़्त प्लान में {limit} डिवाइस की ही अनुमति है।',
     gateBody:
       'मुफ़्त प्लान में एक साथ दो डिवाइस चलते हैं, और यह अकाउंट उससे ऊपर है। इस डिवाइस पर Waves इस्तेमाल करते रहने के लिए बाकियों से साइन आउट करें।',
     gateAction: 'दूसरे डिवाइस से साइन आउट करें',
@@ -24950,8 +26512,7 @@ const hi: UiStrings = {
     yourRailDetails: 'आपकी {rail} जानकारी',
     handleWrong: 'यह {hint} जैसा नहीं लगता।',
     railLinkNote: 'आपसे हिसाब करने वालों को एक टैप में भुगतान मिलता है। Waves पैसा कभी नहीं छूता।',
-    railManualNote:
-      'आपसे हिसाब करने वाले इसे देखकर अपने बैंक ऐप से भुगतान करते हैं। Waves पैसा कभी नहीं छूता।',
+    railManualNote: 'आपसे हिसाब करने वाले इसे देखकर अपने बैंक ऐप से भुगतान करते हैं। Waves पैसा कभी नहीं छूता।',
     nothingToAdd: 'जोड़ने को कुछ नहीं — लोग जो चुकाया है उसे खुद दर्ज करेंगे।',
     sectionAccount: 'खाता',
     sectionHelp: 'सहायता',
@@ -24991,8 +26552,7 @@ const hi: UiStrings = {
     title: 'अपनी कुंजी लाएँ',
     intro:
       'अभी एक मॉडल कुंजी जोड़ें — आने वाली AI सुविधाओं के लिए तैयार: रसीद पढ़ना, आप जो कहें उसे लोगों और बँटवारे के साथ खर्च में बदलना — ताकि वे आपके खाते पर चलें, हमारे नहीं।',
-    onDevice:
-      'इसी फ़ोन में एन्क्रिप्टेड। Waves को कभी नहीं भेजी जाती — सिर्फ़ आपके चुने प्रदाता को।',
+    onDevice: 'इसी फ़ोन में एन्क्रिप्टेड। Waves को कभी नहीं भेजी जाती — सिर्फ़ आपके चुने प्रदाता को।',
     keyLabel: 'API कुंजी',
     getKey: 'कुंजी पाएँ',
     test: 'जाँचें',
@@ -25428,8 +26988,7 @@ const hi: UiStrings = {
     taskNeedTitle: 'लिखें कि क्या करना है।',
     taskNeedPeople: 'कम से कम एक व्यक्ति चुनें।',
     taskBadDay: 'आज से एक हफ़्ते के भीतर की अंतिम तारीख चुनें।',
-    taskPhotoFailed:
-      'काम सेव हो गए, पर एक फ़ोटो अपलोड नहीं हुई। फिर कोशिश के लिए काम सेव करें दबाएँ।',
+    taskPhotoFailed: 'काम सेव हो गए, पर एक फ़ोटो अपलोड नहीं हुई। फिर कोशिश के लिए काम सेव करें दबाएँ।',
 
     tab: 'कंपनी',
     listTitle: 'आपकी कंपनियाँ',
@@ -25690,8 +27249,7 @@ const hi: UiStrings = {
     nameYou: '{name} (आप)',
     needsOtherOwner: 'इसे किसी दूसरे मालिक को मंज़ूर करना होगा।',
     secondOwnerTitle: 'दूसरा मालिक मंज़ूर करे',
-    secondOwnerHint:
-      'बड़े दावे, और जो दावे किसी मालिक ने खुद डाले हों, उन्हें कोई दूसरा मालिक मंज़ूर करे।',
+    secondOwnerHint: 'बड़े दावे, और जो दावे किसी मालिक ने खुद डाले हों, उन्हें कोई दूसरा मालिक मंज़ूर करे।',
     secondOwnerFrom: 'बड़ा मानें, इस रकम से',
     secondOwnerFromHint:
       'इस रकम या इससे ज़्यादा के दावों के लिए दूसरा मालिक चाहिए। सिर्फ़ मालिक के डाले दावों के लिए खाली छोड़ें।',
@@ -25858,8 +27416,7 @@ const hi: UiStrings = {
     reportSent: 'धन्यवाद। Waves इसकी जाँच करेगा।',
     reportLimit: 'आज आपने कई शिकायतें भेज दी हैं। कल फिर कोशिश करें।',
     reportFailed: 'शिकायत नहीं भेजी जा सकी। कनेक्शन जाँचकर फिर कोशिश करें।',
-    suspendedReadOnly:
-      'यह कंपनी निलंबित है। आप देख और निर्यात कर सकते हैं, पर कुछ जोड़ या बदल नहीं सकते।',
+    suspendedReadOnly: 'यह कंपनी निलंबित है। आप देख और निर्यात कर सकते हैं, पर कुछ जोड़ या बदल नहीं सकते।',
     siteName: 'साइट का नाम',
     siteBudget: 'बजट (वैकल्पिक)',
     siteSpent: '{budget} में से {spent}',
@@ -26072,8 +27629,7 @@ const hi: UiStrings = {
     statusApproved: 'मंज़ूर',
     reviewNote: 'एडमिन का नोट',
     approvalsTitle: 'अनुमोदन ज़रूरी',
-    approvalsHint:
-      'नई एंट्री एडमिन के मंज़ूर करने तक रुकी रहेंगी। बकाया में सिर्फ़ मंज़ूर एंट्री गिनी जाएँगी।',
+    approvalsHint: 'नई एंट्री एडमिन के मंज़ूर करने तक रुकी रहेंगी। बकाया में सिर्फ़ मंज़ूर एंट्री गिनी जाएँगी।',
     photos: 'फ़ोटो',
     takePhoto: 'फ़ोटो लें',
     choosePhoto: 'फ़ोटो चुनें',
@@ -26734,8 +28290,7 @@ const hi: UiStrings = {
     restore: 'बहाल करें',
     restored: 'सब्सक्रिप्शन बहाल हो गया।',
     noneFound: 'कोई सक्रिय कंपनी सब्सक्रिप्शन नहीं मिला।',
-    unavailable:
-      'इस संस्करण में अतिरिक्त कंपनियाँ नहीं खरीदी जा सकतीं। स्टोर से अपडेट करके फिर कोशिश करें।',
+    unavailable: 'इस संस्करण में अतिरिक्त कंपनियाँ नहीं खरीदी जा सकतीं। स्टोर से अपडेट करके फिर कोशिश करें।',
     pending: 'आपकी खरीद की मंज़ूरी का इंतज़ार है। पूरी होने पर कंपनी जोड़ें।',
     buyFailed: 'खरीद पूरी नहीं हो सकी। आपसे कोई शुल्क नहीं लिया गया।',
     setupSlow: 'आपका सब्सक्रिप्शन अभी पुष्ट हो रहा है। एक मिनट बाद फिर कोशिश करें।',
@@ -26748,8 +28303,7 @@ const hi: UiStrings = {
   companyStorage: {
     addMore: 'और स्टोरेज जोड़ें',
     packLine: '{size} · {price}/माह',
-    packNote:
-      'हर कंपनी के लिए एक पैक; कभी भी बदलें। खत्म होने पर फ़ोटो रहेंगी, सिर्फ़ नई अपलोड रुकेंगी।',
+    packNote: 'हर कंपनी के लिए एक पैक; कभी भी बदलें। खत्म होने पर फ़ोटो रहेंगी, सिर्फ़ नई अपलोड रुकेंगी।',
     packElsewhere:
       'यह स्टोर खाता पहले से किसी दूसरी कंपनी के स्टोरेज के लिए भुगतान कर रहा है। पहले वहाँ रद्द करें, या किसी दूसरे खाते से खरीदें।',
     bought: 'धन्यवाद। आपकी जगह कुछ ही पल में अपडेट हो जाएगी।',
@@ -26777,8 +28331,7 @@ const hi: UiStrings = {
     newFolder: 'नया फ़ोल्डर',
     folderItems: '{n} आइटम',
     empty: 'अभी कोई फ़ाइल नहीं',
-    emptyBody:
-      'दस्तावेज़, फ़ोटो और शीट अपलोड करें या लिंक जोड़ें, और चुनें कि हर एक को कौन देख सकता है।',
+    emptyBody: 'दस्तावेज़, फ़ोटो और शीट अपलोड करें या लिंक जोड़ें, और चुनें कि हर एक को कौन देख सकता है।',
     emptyFolder: 'यह फ़ोल्डर खाली है',
     noMatches: 'कुछ नहीं मिला',
     open: 'खोलें',
@@ -26855,6 +28408,150 @@ const hi: UiStrings = {
     billingSub: 'भुगतान, बिल और स्टेटमेंट',
     preferences: 'प्राथमिकताएँ',
     preferencesSub: 'सूचनाएँ, मुद्रा और बहुत कुछ',
+  },
+  hhome: {
+    sharedNote: 'इसे सिर्फ़ इस समूह के लोग देख सकते हैं',
+    tabOverview: 'सारांश',
+    tabBills: 'बिल',
+    tabUpcoming: 'आने वाले',
+    tabIncome: 'आमदनी',
+    thisMonth: 'इस महीने',
+    spent: 'खर्च',
+    income: 'आमदनी',
+    left: 'बचा',
+    vsLast: 'पिछले महीने से',
+    addExpense: 'खर्च जोड़ें',
+    addBill: 'बिल जोड़ें',
+    addIncome: 'आमदनी जोड़ें',
+    upcomingTitle: 'आने वाले',
+    upcomingEmpty: 'अगले 30 दिनों में कुछ देय नहीं है।',
+    markPaid: 'चुका दिया',
+    recentTitle: 'हाल के खर्च',
+    noExpenses: 'इस महीने अभी कोई खर्च नहीं।',
+    allExpenses: 'सभी खर्च',
+    billsTotal: 'तय बिलों में महीने के {amount}',
+    billsEmpty: 'अभी कोई बिल नहीं',
+    billsEmptyHint: 'किराया, बिजली, वाई-फाई, स्कूल फीस। एक बार जोड़ें और देखें कि हर महीने क्या चाहिए।',
+    addBillRow: 'बिल जोड़ें',
+    dayEvery: 'हर महीने की {day} तारीख',
+    billOptions: '{name} के विकल्प',
+    incomeTotal: 'महीने के {amount} की योजना',
+    incomeEmpty: 'अभी कोई आमदनी तय नहीं',
+    incomeEmptyHint: 'हर किसी की सैलरी, पेंशन या जेब खर्च जोड़ें, ताकि दिखे कि हर महीने क्या बचता है।',
+    addIncomeRow: 'आमदनी जोड़ें',
+    incomeNote: 'यह सिर्फ़ एक योजना है। इससे किसी का हिसाब नहीं बदलता।',
+    kindSalary: 'सैलरी',
+    kindPension: 'पेंशन',
+    kindBusiness: 'कारोबार',
+    kindRent: 'किराया',
+    kindOther: 'अन्य',
+    incomeNewTitle: 'आमदनी जोड़ें',
+    incomeEditTitle: 'आमदनी बदलें',
+    whoQ: 'यह किसकी आमदनी है?',
+    labelQ: 'यह क्या है?',
+    labelPlaceholder: 'सैलरी',
+    amountQ: 'महीने में कितनी?',
+    dayQ: 'महीने की कौन-सी तारीख?',
+    removeIncome: 'यह आमदनी हटाएँ',
+    addMember: 'परिवार का सदस्य जोड़ें',
+    memberName: 'नाम',
+    memberHint: 'वे बाद में जुड़कर अपनी प्रोफ़ाइल संभाल सकते हैं।',
+    memberAdd: 'जोड़ें',
+    relPartner: 'साथी',
+    relFather: 'पिता',
+    relMother: 'माता',
+    relSon: 'बेटा',
+    relDaughter: 'बेटी',
+    relOther: 'अन्य',
+    pickTitle: 'बिल जोड़ें',
+    pickSub: 'घर में जो भी चुकाते हैं, उस पर टैप करें।',
+    pickNext: 'आगे',
+    pickDetails: 'रकम और तारीखें',
+    pickWho: 'कौन चुकाता है',
+    pickDay: 'महीने की तारीख',
+    estimateNote: 'महीने का अनुमान। बिल नहीं, बजट के रूप में सहेजा जाएगा।',
+    perQuarter: 'हर 3 महीने',
+    perYear: 'हर साल',
+    pickSave: { one: '{n} बिल जोड़ें', other: '{n} बिल जोड़ें' },
+    pickNeed: 'हर एक के लिए रकम डालें।',
+    presets: {
+      rent: 'किराया',
+      home_loan: 'होम लोन भुगतान',
+      electricity: 'बिजली',
+      water: 'पानी',
+      gas: 'गैस',
+      internet: 'इंटरनेट',
+      mobile: 'मोबाइल',
+      streaming: 'स्ट्रीमिंग',
+      building_fees: 'इमारत शुल्क',
+      household_help: 'घरेलू मदद',
+      childcare_school: 'बच्चों की देखभाल / स्कूल',
+      groceries: 'किराना',
+      fuel: 'ईंधन',
+      insurance: 'बीमा',
+      investment_contribution: 'निवेश योगदान',
+      milk: 'दूध',
+      emi: 'EMI',
+      maid_cook_driver: 'मेड / कुक / ड्राइवर',
+      ott: 'OTT',
+      petrol: 'पेट्रोल',
+      society_maintenance: 'सोसायटी रखरखाव',
+      hoa: 'HOA',
+      fuel_gas: 'गैस',
+      council_tax: 'काउंसिल टैक्स',
+      service_charge: 'सर्विस चार्ज',
+      strata: 'स्ट्राटा',
+      rates: 'रेट्स',
+      dewa: 'DEWA',
+      chiller: 'चिलर',
+    },
+  },
+  household: {
+    askTitle: '“{name}” में पैसे कैसे संभालते हैं?',
+    askTitleNoName: 'यहाँ पैसे कैसे संभालते हैं?',
+    askSub: 'इसे बाद में सेटिंग्स में बदल सकते हैं।',
+    splitTitle: 'बाँटें',
+    splitBody: 'देखें किसने दिया और किसे देना है। रूममेट्स और ट्रिप के लिए बढ़िया।',
+    shareTitle: 'साझा करें',
+    shareBody: 'घर के लिए एक साझा पॉट। किसी का किसी पर बकाया नहीं। बिल, बजट और साथ में बचत के लक्ष्य जोड़ें।',
+    continue: 'आगे बढ़ें',
+    settingsTitle: 'पैसे कैसे संभालें',
+    openBalancesNote: 'बकाया हिसाब चुकता होने तक बने रहते हैं।',
+    adminOnly: 'इसे सिर्फ़ एडमिन बदल सकता है।',
+    ourMonth: 'हमारा {month}',
+    ofBudget: '{amount} के बजट में से',
+    noBudget: 'मासिक बजट तय करें',
+    leftOnTrack: '{amount} बचे · सही रास्ते पर',
+    overBy: '{amount} ज़्यादा',
+    whoPaid: 'किसने दिया',
+    whoPaidA11y: 'देखें किसने दिया',
+    billPays: '{name} देंगे · {when}',
+    everyWeek: 'हर हफ़्ते',
+    everyTwoWeeks: 'हर 2 हफ़्ते',
+    twiceMonth: 'महीने में दो बार',
+    everyMonths: 'हर {n} महीने',
+    everyYear: 'हर साल',
+    billsTitle: 'साझा बिल',
+    budgetTitle: 'घर का बजट',
+    budgetMonthly: 'मासिक बजट',
+    budgetHint: 'घर हर महीने जितना खर्च करने की योजना बनाता है।',
+    budgetSave: 'सहेजें',
+    budgetClear: 'बजट हटाएँ',
+    budgetMenu: 'बजट',
+    splitThisOne: 'इसे बाँटें',
+    splitThisOneHint: 'साझा पॉट से चुकाया गया। किसी का किसी पर बकाया नहीं।',
+    reminderAhead: '{bill} 3 दिन में देय है',
+    reminderToday: '{bill} आज देय है',
+    reminderBody: '{amount} · {group}',
+    moveKeep: 'निजी रखें',
+    moveTo: '{group} में ले जाएँ',
+    movePrivacy: 'आपका पर्सनल निजी रहता है। आपका साथी इसे नहीं देख सकता।',
+    moved: '{group} में ले जाया गया',
+    moveFailed: 'इसे नहीं ले जा सके। कुछ नहीं बदला।',
+    moveReceiptFailed: 'रसीद नहीं ले जा सके। आपकी प्रविष्टि यहीं है।',
+    moveReceiptRetry: 'फिर कोशिश करें',
+    moveWithoutReceipt: 'रसीद के बिना ले जाएँ',
+    switched: 'अब एक साझा पॉट है',
   },
   groupRecurring: {
     title: 'दोहराए जाने वाले',
@@ -27102,6 +28799,9 @@ const hi: UiStrings = {
     slideToCancel: 'रद्द करने के लिए सरकाएँ',
     holdReading: 'पढ़ रहा हूँ…',
     holdAdded: '{where} में {amount} जोड़ दिया',
+    holdReadingMany: '{count} पढ़ रहा हूँ…',
+    holdAddedMany: { one: '{n} खर्च जोड़ा', other: '{n} खर्च जोड़े' },
+    holdInReview: { one: 'समीक्षा में {n}', other: 'समीक्षा में {n}' },
     heardSpan: '{word} सुना, {name} से मिलाया। बदलने के लिए टैप करें',
     heardPick: '“{word}” कौन है?',
     title: 'खर्च बोलें',
@@ -27466,8 +29166,7 @@ const hi: UiStrings = {
     consent: 'आपकी गोपनीयता पसंद के कारण विज्ञापन बंद हैं।',
     unavailable: 'Waves के इस संस्करण में विज्ञापन उपलब्ध नहीं हैं।',
     error: 'विज्ञापन लोड नहीं हो सका। फिर कोशिश करें।',
-    footnote:
-      'विज्ञापन कभी निजीकृत नहीं होते और सेटल-अप स्क्रीन पर कभी नहीं दिखते। Pro में कोई विज्ञापन नहीं।',
+    footnote: 'विज्ञापन कभी निजीकृत नहीं होते और सेटल-अप स्क्रीन पर कभी नहीं दिखते। Pro में कोई विज्ञापन नहीं।',
     adChoicesRow: 'विज्ञापन विकल्प',
     adChoicesHint: 'विज्ञापनों के लिए आपकी गोपनीयता पसंद',
     adChoicesNone: 'आप जहाँ हैं वहाँ बदलने लायक कोई विज्ञापन गोपनीयता विकल्प नहीं है।',
@@ -27524,12 +29223,10 @@ const hi: UiStrings = {
       'रोज़मर्रा की खर्च गतिविधि के लिए Waves कभी ईमेल नहीं करता। सिर्फ़ वे छह चीज़ें जो आप वाकई इनबॉक्स में चाहेंगे, और हर एक अलग से बंद की जा सकती है।',
     onThisPhone: 'इस फ़ोन पर सूचनाएँ',
     offOnPhone: 'इस फ़ोन पर सूचनाएँ बंद हैं',
-    permissionOn:
-      'यह डिवाइस पंजीकृत है। सूचना पहुँचे या न पहुँचे, नीचे का सब कुछ आपके इनबॉक्स में आता ही है।',
+    permissionOn: 'यह डिवाइस पंजीकृत है। सूचना पहुँचे या न पहुँचे, नीचे का सब कुछ आपके इनबॉक्स में आता ही है।',
     permissionOff:
       'आपका फ़ोन इन्हें रोक रहा है। Waves के लिए सिस्टम सेटिंग्स में इन्हें दोबारा चालू करें — इनबॉक्स में सब कुछ वैसे भी रहेगा।',
-    permissionUnset:
-      'Waves सिर्फ़ एक बार पूछेगा, और सिर्फ़ उन्हीं चीज़ों के लिए जो आप नीचे चालू करें।',
+    permissionUnset: 'Waves सिर्फ़ एक बार पूछेगा, और सिर्फ़ उन्हीं चीज़ों के लिए जो आप नीचे चालू करें।',
     granted: 'चालू',
     denied: 'बंद',
     undetermined: 'तय नहीं',
@@ -27568,6 +29265,27 @@ const hi: UiStrings = {
     savedForLater: 'बाद के लिए सहेजे गए खर्च',
     savedForLaterBody:
       'अगर कोई खर्च एक दिन बाद भी किसी समूह का इंतज़ार कर रहा हो, तो यह फ़ोन शाम को याद दिलाता है। जिस दिन आपने Waves खोला ही न हो, उस दिन यह पूछता है कि बाँटने के लिए कुछ है क्या। दिन में ज़्यादा से ज़्यादा एक बार, और दोनों में से सिर्फ़ एक।',
+    planBills: 'बिल रिमाइंडर',
+    planBillsBody: 'आपका बिल जाने से एक शाम पहले।',
+    planRecap: 'साप्ताहिक और मासिक सार',
+    planRecapBody: 'रविवार शाम, और हर महीने की 1 तारीख़ को।',
+    planDaily: 'रोज़ बची रकम',
+    planDailyBody: 'आज के लिए कितना बचा है, इसका सुबह का नोट।',
+    plan: {
+      title: 'आपका प्लान',
+      bill: '{name} के {amount} कल जाएँगे।',
+      billCovered: 'आपके पास पूरे हैं।',
+      billHidden: 'कल एक बिल जाएगा।',
+      weekLess: 'आपका हफ़्ता: {spent} खर्च, आम तौर से {delta} कम। देखने के लिए टैप करें।',
+      weekMore: 'आपका हफ़्ता: {spent} खर्च, आम तौर से {delta} ज़्यादा। देखने के लिए टैप करें।',
+      weekPlain: 'आपका हफ़्ता: {spent} खर्च। देखने के लिए टैप करें।',
+      weekHidden: 'आपका हफ़्ता तैयार है। देखने के लिए टैप करें।',
+      monthLeft: '{month} में {amount} बचे।',
+      monthOver: '{month}: आमदनी से {amount} ज़्यादा खर्च।',
+      monthHidden: 'आपका महीना तैयार है। देखने के लिए टैप करें।',
+      daily: 'आज के लिए {amount} बचे हैं। आप प्लान पर हैं।',
+      dailyHidden: 'आज का प्लान तैयार है।',
+    },
   },
   phonePrompt: {
     title: 'अपना फ़ोन नंबर जोड़ें',
@@ -27601,8 +29319,7 @@ const hi: UiStrings = {
     unlinkPhoneBody:
       'आप इससे साइन इन नहीं कर पाएँगे, और लोग आपको इससे नहीं ढूँढ पाएँगे। अनलिंक करने के 7 दिन बाद नया नंबर जोड़ सकते हैं।',
     unlinkEmailTitle: 'यह ईमेल अनलिंक करें?',
-    unlinkEmailBody:
-      'आप इससे साइन इन नहीं कर पाएँगे। अनलिंक करने के 7 दिन बाद नया ईमेल जोड़ सकते हैं।',
+    unlinkEmailBody: 'आप इससे साइन इन नहीं कर पाएँगे। अनलिंक करने के 7 दिन बाद नया ईमेल जोड़ सकते हैं।',
     unlinkFrom: 'आप इसे {date} से अनलिंक कर सकते हैं',
     relinkFrom: 'आप {date} से नया जोड़ सकते हैं',
     onlyWayIn: 'साइन इन का यही एक तरीका है, इसलिए यह जुड़ा रहेगा',
@@ -27697,8 +29414,7 @@ const hi: UiStrings = {
     introTitle: 'Waves में आपका स्वागत है',
     introBody: 'एक झलक कि चीज़ें कहाँ हैं — आपके बैलेंस, और जोड़ने के दो तरीके।',
     balanceTitle: 'आपके बैलेंस, सबसे ऊपर',
-    balanceBody:
-      'हर मुद्रा के हिसाब से आप कितना देते हैं और कितना पाते हैं, देखने के लिए डेक स्वाइप करें।',
+    balanceBody: 'हर मुद्रा के हिसाब से आप कितना देते हैं और कितना पाते हैं, देखने के लिए डेक स्वाइप करें।',
     groupTitle: 'एक ग्रुप शुरू करें',
     groupBody: 'यात्रा, फ्लैट या किसी शाम के लिए ग्रुप बनाएँ — फिर वहीं से बाँटें।',
     expenseTitle: 'एक खर्च जोड़ें',
@@ -27714,8 +29430,7 @@ const hi: UiStrings = {
     orContinueWithCap: 'या इससे जारी रखें',
     tagline: 'Waves · जो बच रहता है',
     splitAnything: 'कुछ भी बाँटें\nकिसी के साथ भी',
-    welcomeBody:
-      'शुरू करने के लिए खाता ज़रूरी नहीं — बाद में जोड़ लें, आपका जोड़ा हुआ सब कुछ साथ आ जाएगा।',
+    welcomeBody: 'शुरू करने के लिए खाता ज़रूरी नहीं — बाद में जोड़ लें, आपका जोड़ा हुआ सब कुछ साथ आ जाएगा।',
     startNow: 'अभी शुरू करें',
     haveAccount: 'मेरा खाता पहले से है',
     haveAccountPrompt: 'खाता पहले से है?',
@@ -27752,8 +29467,7 @@ const hi: UiStrings = {
     showPassword: 'पासवर्ड दिखाएँ',
     hidePassword: 'पासवर्ड छिपाएँ',
     continueGuest: 'मेहमान के तौर पर जारी रखें',
-    guestFootnote:
-      'आपने जो जोड़ा है वह जहाँ है वहीं रहेगा। इससे सिर्फ़ दोबारा साइन इन करने का रास्ता जुड़ता है।',
+    guestFootnote: 'आपने जो जोड़ा है वह जहाँ है वहीं रहेगा। इससे सिर्फ़ दोबारा साइन इन करने का रास्ता जुड़ता है।',
     forgotPassword: 'पासवर्ड भूल गए',
     emailMeACode: 'मुझे एक कोड ईमेल करें',
     textMeACode: 'मुझे एक कोड SMS करें',
@@ -27792,13 +29506,11 @@ const hi: UiStrings = {
     guestBannerBody:
       'कुछ छूट नहीं रहा — आप जो भी डालते हैं वह सेव है और आपका है। जब भी किसी दूसरे फ़ोन से पहुँचना हो, ईमेल या फ़ोन नंबर जोड़ लें।',
     guestDaysLeft: 'मेहमान के तौर पर {days} दिन बाकी — उसके बाद जारी रखने के लिए साइन अप करें।',
-    guestReadOnly:
-      'आपकी मेहमान अवधि खत्म हो गई — ऐप सिर्फ़ पढ़ने के लिए है। जोड़ते रहने के लिए साइन अप करें।',
+    guestReadOnly: 'आपकी मेहमान अवधि खत्म हो गई — ऐप सिर्फ़ पढ़ने के लिए है। जोड़ते रहने के लिए साइन अप करें।',
     addYourDetails: 'अपनी जानकारी जोड़ें',
     loadingGroups: 'आपके समूह आ रहे हैं…',
     noGroups: 'अभी कोई समूह नहीं',
-    noGroupsBody:
-      'किसी सफ़र, फ़्लैट, या बस आप दोनों के लिए एक शुरू करें। खर्च जोड़ना हमेशा मुफ़्त और असीमित है।',
+    noGroupsBody: 'किसी सफ़र, फ़्लैट, या बस आप दोनों के लिए एक शुरू करें। खर्च जोड़ना हमेशा मुफ़्त और असीमित है।',
     activityEmptyBody: 'हर खर्च, बदलाव, हटाना और निपटान यहीं आता है — समूह के हर व्यक्ति के लिए।',
     quickActions: 'त्वरित क्रियाएँ',
     viewMore: 'और देखें',
@@ -27807,8 +29519,7 @@ const hi: UiStrings = {
     addSomeone: 'किसी को जोड़ें',
     friendShort: 'Add people',
     noFriends: 'आपका सर्कल यहाँ से शुरू होता है',
-    noFriendsBody:
-      'जिनके साथ आप खर्च बाँटते हैं उन्हें जोड़ें। उन्हें ऐप की ज़रूरत नहीं — बस एक नाम काफ़ी है।',
+    noFriendsBody: 'जिनके साथ आप खर्च बाँटते हैं उन्हें जोड़ें। उन्हें ऐप की ज़रूरत नहीं — बस एक नाम काफ़ी है।',
     allSquare: 'सब बराबर',
     allSquareBody: 'न किसी पर आपका बाकी है, न आप पर किसी का। नए हिसाब यहाँ दिखेंगे।',
     owesYou: 'आपको देने हैं',
@@ -27892,8 +29603,7 @@ const hi: UiStrings = {
     oneGroup: 'एक समूह',
     oneGroupSub: 'केवल चुना हुआ समूह',
     includedTitle: 'क्या शामिल है?',
-    includedBody:
-      'सभी खर्च, किसने दिए, किसे देने थे, हर खर्च के बँटवारे के साथ हिसाब, और पूरी गतिविधि।',
+    includedBody: 'सभी खर्च, किसने दिए, किसे देने थे, हर खर्च के बँटवारे के साथ हिसाब, और पूरी गतिविधि।',
     exportAction: 'डेटा निर्यात करें',
     pickGroup: 'कौन सा समूह?',
   },
@@ -28108,8 +29818,7 @@ const hi: UiStrings = {
     entry: 'लोगों को मर्ज करें',
     title: 'लोगों को मर्ज करें',
     subtitle: 'एक ही व्यक्ति दो बार जुड़ गया? उन्हें मिला दें.',
-    empty:
-      'मर्ज करने के लिए कोई मेहमान नहीं — केवल बिना Waves खाते वाले लोग ही मर्ज किए जा सकते हैं.',
+    empty: 'मर्ज करने के लिए कोई मेहमान नहीं — केवल बिना Waves खाते वाले लोग ही मर्ज किए जा सकते हैं.',
     nameLabel: 'मर्ज किए गए व्यक्ति का नाम',
     namePlaceholder: 'जैसे एलेक्स',
     nameSuggested: 'जिस व्यक्ति के विवरण आपके पास हैं, उससे सुझाया गया. बदलने के लिए टैप करें.',
@@ -28127,16 +29836,14 @@ const hi: UiStrings = {
     selected: { one: '{n} व्यक्ति चुना गया', other: '{n} लोग चुने गए' },
     merged: '{name} में मर्ज किया गया',
     errorTooFew: 'मर्ज करने के लिए कम से कम दो लोग चुनें.',
-    errorNotMergeable:
-      'आप केवल उन मेहमानों को मर्ज कर सकते हैं जिनके साथ आप कोई समूह साझा करते हैं.',
+    errorNotMergeable: 'आप केवल उन मेहमानों को मर्ज कर सकते हैं जिनके साथ आप कोई समूह साझा करते हैं.',
     errorNameRequired: 'मर्ज किए गए व्यक्ति को एक नाम दें.',
     errorNotSignedIn: 'आप साइन आउट हैं. साइन इन करके फिर से मर्ज करें.',
     errorPhoneInvalid: 'उस नंबर में देश का कोड जोड़ें, जैसे +91.',
     errorEmailInvalid: 'यह ईमेल पता नहीं लगता.',
     errorGeneric: 'मर्ज नहीं हो सका. कृपया फिर से प्रयास करें.',
     invitePromptTitle: '{name} को आमंत्रित करें?',
-    invitePromptBody:
-      'एक जॉइन लिंक शेयर करें ताकि वे उन समूहों को देख सकें जिनमें आपने उन्हें मर्ज किया है.',
+    invitePromptBody: 'एक जॉइन लिंक शेयर करें ताकि वे उन समूहों को देख सकें जिनमें आपने उन्हें मर्ज किया है.',
     invitePromptSkip: 'अभी नहीं',
     inviteSheetTitle: 'समूहों में आमंत्रित करें',
     inviteSheetBody:
@@ -28146,8 +29853,7 @@ const hi: UiStrings = {
     peopleHeader: { one: 'मर्ज करने के लिए {n} व्यक्ति', other: 'मर्ज करने के लिए {n} लोग' },
     addPerson: 'संपर्क से लिंक करें',
     assignedTo: '{name} से लिंक किया गया',
-    noMoreGuests:
-      'जिन्हें आप मर्ज कर सकते हैं वे सभी पहले से जुड़े हैं. इसके बजाय अपने संपर्कों से किसी को जोड़ें.',
+    noMoreGuests: 'जिन्हें आप मर्ज कर सकते हैं वे सभी पहले से जुड़े हैं. इसके बजाय अपने संपर्कों से किसी को जोड़ें.',
     hint: 'एक ही मेहमान कई समूहों में दिख रहा है? डुप्लिकेट को एक व्यक्ति में मर्ज करें.',
     duplicates: { one: '{n} संभावित डुप्लिकेट', other: '{n} संभावित डुप्लिकेट' },
     mergeCount: { one: '{n} व्यक्ति मर्ज करें', other: '{n} लोग मर्ज करें' },
@@ -28618,8 +30324,7 @@ const hi: UiStrings = {
       'यह वही 64 अक्षर हैं जो उस फ़ोन पर अतिरिक्त सुरक्षा चालू करते समय दिखाए गए थे जिसने बैकअप बनाया था। उसके बिना वह बैकअप नहीं खुल सकता — न हमसे, न Google से।',
 
     restoreSection: 'वापस लाएँ',
-    restoreIntro:
-      'Drive बैकअप से रिकॉर्ड वापस लाएँ। इस फ़ोन पर जो पहले से है, वह न बदलेगा न हटेगा।',
+    restoreIntro: 'Drive बैकअप से रिकॉर्ड वापस लाएँ। इस फ़ोन पर जो पहले से है, वह न बदलेगा न हटेगा।',
     restoreCheck: 'बैकअप ढूँढें',
     restoreFound: {
       one: '{n} रिकॉर्ड वापस आ सकता है',
@@ -28650,8 +30355,7 @@ const hi: UiStrings = {
     restorePromptLaterLabel: 'अभी नहीं। बाद में बैकअप स्क्रीन से वापस ला सकते हैं।',
     restorePromptWhere: 'यह बाद में भी कर सकते हैं: होम पर ••• मेन्यू दबाएँ, फिर बैकअप चुनें।',
     reminderTitle: 'अपने रिकॉर्ड का बैकअप लें',
-    reminderBodyNever:
-      'आपके रिकॉर्ड सिर्फ़ इस फ़ोन पर हैं। सुरक्षित रखने के लिए Google Drive पर बैकअप करें।',
+    reminderBodyNever: 'आपके रिकॉर्ड सिर्फ़ इस फ़ोन पर हैं। सुरक्षित रखने के लिए Google Drive पर बैकअप करें।',
     reminderBodyStale: 'आपका पिछला बैकअप एक दिन से पुराना है। अभी Google Drive पर बैकअप लें।',
     reminderAction: 'अभी बैकअप लें',
     reminderLater: 'अभी नहीं',
@@ -28662,8 +30366,7 @@ const hi: UiStrings = {
     refusedNotConnected: 'पहले एक Google खाता जोड़ें।',
     refusedNoKey: 'पहले अपनी बैकअप चाबी बनाएँ।',
     refusedNeedsKey: 'वह बैकअप अतिरिक्त सुरक्षा में है। उसे सिर्फ़ उसकी चाबी ही खोलती है।',
-    refusedKeyLost:
-      'उस बैकअप की चाबी अब आपके Google खाते में नहीं है, इसलिए उसे खोला नहीं जा सकता।',
+    refusedKeyLost: 'उस बैकअप की चाबी अब आपके Google खाते में नहीं है, इसलिए उसे खोला नहीं जा सकता।',
     refusedOffline: 'कोई कनेक्शन नहीं। ऑनलाइन आते ही बैकअप चल जाएगा।',
     refusedNetwork: 'Wi‑Fi का इंतज़ार है। मोबाइल डेटा इस्तेमाल करने के लिए सेटिंग बदलें।',
     mobileDataTitle: 'आप मोबाइल डेटा पर हैं',
@@ -28676,10 +30379,8 @@ const hi: UiStrings = {
     extraSection: 'अतिरिक्त सुरक्षा',
     extraOn: 'चालू',
     extraOff: 'बंद',
-    extraFootnoteOff:
-      'बैकअप को ऐसी चाबी से बंद करें जो सिर्फ़ आपके पास हो — तब Google भी उसे नहीं खोल सकेगा।',
-    extraFootnoteOn:
-      'यह बैकअप आपकी चाबी से बंद है। उसे सँभालकर रखें — कोई भी उसे आपको वापस नहीं दे सकता।',
+    extraFootnoteOff: 'बैकअप को ऐसी चाबी से बंद करें जो सिर्फ़ आपके पास हो — तब Google भी उसे नहीं खोल सकेगा।',
+    extraFootnoteOn: 'यह बैकअप आपकी चाबी से बंद है। उसे सँभालकर रखें — कोई भी उसे आपको वापस नहीं दे सकता।',
     extraPitchTitle: 'बैकअप को ऐसी चाबी से बंद करें जो सिर्फ़ आपके पास हो',
     extraPitchBenefit: 'कोई आपके Google खाते तक पहुँच भी जाए, तब भी आपका बैकअप सुरक्षित रहता है।',
     extraPitchMechanism:
@@ -28701,8 +30402,7 @@ const hi: UiStrings = {
     extraConsent:
       'मैंने अपनी चाबी सुरक्षित रख ली है, और मैं समझता हूँ कि खो जाने पर Waves इस बैकअप को मेरे लिए नहीं खोल सकता।',
     extraTurningOn: 'आपका बैकअप दोबारा बंद किया जा रहा है…',
-    extraFailed:
-      'अतिरिक्त सुरक्षा चालू नहीं हो सकी। आपका बैकअप जैसा था वैसा ही है। थोड़ी देर में फिर कोशिश करें।',
+    extraFailed: 'अतिरिक्त सुरक्षा चालू नहीं हो सकी। आपका बैकअप जैसा था वैसा ही है। थोड़ी देर में फिर कोशिश करें।',
 
     selected: 'चुना गया',
   },
@@ -28842,8 +30542,7 @@ const hi: UiStrings = {
     deleteAdminOnly: 'केवल समूह का एडमिन ही यह समूह हटा सकता है।',
     archivedTitle: 'संग्रहित समूह',
     archivedEmpty: 'अभी कोई संग्रहित समूह नहीं',
-    archivedEmptyBody:
-      'जब आप किसी समूह को संग्रहित करेंगे, वह यहाँ दिखेगा। आप उसे कभी भी वापस ला सकते हैं।',
+    archivedEmptyBody: 'जब आप किसी समूह को संग्रहित करेंगे, वह यहाँ दिखेगा। आप उसे कभी भी वापस ला सकते हैं।',
     archivedSubtitle: 'आपके संग्रहित समूह मुख्य सूची से छिपे रहते हैं। कुछ भी नहीं हटाया जाता।',
     unarchive: 'वापस लाएँ',
     unarchiveHint: 'इसे फिर आपकी सूची में लाएँ',
@@ -28852,15 +30551,13 @@ const hi: UiStrings = {
     recordedNotMoved: 'दर्ज किया गया, Waves ने पैसा नहीं भेजा',
     rejectSettlement: 'नहीं मिला',
     rejectTitle: 'कहें कि आपको यह नहीं मिला?',
-    rejectBody:
-      '{name} ने आपको भुगतान करना दर्ज किया। इससे लंबित भुगतान हट जाएगा और कोई बैलेंस नहीं बदलेगा।',
+    rejectBody: '{name} ने आपको भुगतान करना दर्ज किया। इससे लंबित भुगतान हट जाएगा और कोई बैलेंस नहीं बदलेगा।',
     rejectConfirm: 'अस्वीकारें',
     cancelSettlement: 'भुगतान रद्द करें',
     paymentsToSettle: 'चुकाने वाले भुगतान',
     everyonesBalance: 'ग्रुप टोटल',
     cancelTitle: 'यह भुगतान रद्द करें?',
-    cancelBody:
-      'आपके द्वारा दर्ज भुगतान हट जाएगा। {name} से पुष्टि नहीं मांगी जाएगी और कोई बैलेंस नहीं बदलेगा।',
+    cancelBody: 'आपके द्वारा दर्ज भुगतान हट जाएगा। {name} से पुष्टि नहीं मांगी जाएगी और कोई बैलेंस नहीं बदलेगा।',
     cancelConfirm: 'हटाएँ',
     keep: 'रखें',
     draftsHere: 'Waiting to be finished',
@@ -28909,8 +30606,7 @@ const hi: UiStrings = {
     upiForGroupNote:
       'सिर्फ़ यहाँ आपके खाते की UPI ID की जगह लेता है — जब कोई समूह किसी दूसरे खाते में निपटता हो तो काम आता है।',
     inviteTitle: 'लोगों को बुलाएँ',
-    inviteTrust:
-      'इस लिंक वाला कोई भी {group} में जुड़ सकता है, इसलिए इसे भरोसेमंद लोगों के साथ ही साझा करें।',
+    inviteTrust: 'इस लिंक वाला कोई भी {group} में जुड़ सकता है, इसलिए इसे भरोसेमंद लोगों के साथ ही साझा करें।',
     inviteMembersHere: {
       one: '{n} व्यक्ति पहले से यहाँ',
       other: '{n} लोग पहले से यहाँ',
@@ -28936,8 +30632,7 @@ const hi: UiStrings = {
     createLink: 'निमंत्रण लिंक बनाएँ',
     expires: '{when} को खत्म',
     usesBadge: '{count} उपयोग',
-    shareMessage:
-      'साथ मिलकर खर्च बाँटने के लिए Waves पर {group} में शामिल हों। जुड़ने के लिए टैप करें: {link}',
+    shareMessage: 'साथ मिलकर खर्च बाँटने के लिए Waves पर {group} में शामिल हों। जुड़ने के लिए टैप करें: {link}',
     emailSubject: 'Waves पर {group} में शामिल हों',
     hideContacts: 'संपर्क छिपाएँ',
     browseContacts: 'मेरे संपर्क देखें',
@@ -29000,8 +30695,7 @@ const hi: UiStrings = {
     discoveryIntro:
       'जिसके पास पहले से आपका नंबर या पता है, वह आपको Waves पर खोज सकता है। कोई यूँ ही लोगों में आपको ढूँढ़ नहीं सकता, और नाम से खोज कभी नहीं होती।',
     discoveryPhone: 'मेरे फ़ोन नंबर से मुझे खोजा जा सके',
-    discoveryPhoneHint:
-      'सिर्फ़ पूरा मिलान। इसे बंद करने से आप उन समूहों से नहीं हटते जिनमें आप पहले से हैं।',
+    discoveryPhoneHint: 'सिर्फ़ पूरा मिलान। इसे बंद करने से आप उन समूहों से नहीं हटते जिनमें आप पहले से हैं।',
     discoveryEmail: 'मेरे ईमेल पते से मुझे खोजा जा सके',
     discoveryEmailHint: 'सिर्फ़ पूरा मिलान, और सिर्फ़ इस खाते का पता।',
     visibilityTitle: 'आपकी प्रोफ़ाइल पर',
@@ -29040,15 +30734,13 @@ const hi: UiStrings = {
       'बदलने पर पुराना संस्करण बना रहता है। सब देख सकते हैं क्या बदला, और उसे वापस भी लाया जा सकता है।',
     splitByItem: 'चीज़-वार बाँटें',
     scanBillTitle: 'बिल स्कैन करें',
-    scanBillBody:
-      'कुल रकम और जगह का नाम अपने आप भर जाते हैं। जाँच लें — हाथ से डालना हमेशा मुफ़्त है।',
+    scanBillBody: 'कुल रकम और जगह का नाम अपने आप भर जाते हैं। जाँच लें — हाथ से डालना हमेशा मुफ़्त है।',
     scan: 'स्कैन',
     reading: 'पढ़ रहे हैं…',
     scanReconciles: 'बिल से कुल रकम पढ़ ली। जाँच लें, फिर जैसे चाहें बाँटें।',
     scanCheckTotal: 'सेव करने से पहले कुल रकम बिल से मिला लें।',
     capReachedTitle: 'रसीद की सीमा पूरी हो गई',
-    capReachedBody:
-      'इस ग्रुप की मुफ़्त रसीदें ख़त्म हो गई हैं। स्कैन करते रहने के लिए अपग्रेड करें या अपना स्टोरेज जोड़ें।',
+    capReachedBody: 'इस ग्रुप की मुफ़्त रसीदें ख़त्म हो गई हैं। स्कैन करते रहने के लिए अपग्रेड करें या अपना स्टोरेज जोड़ें।',
     capUpgrade: 'अपग्रेड करें',
     capAddStorage: 'स्टोरेज जोड़ें',
     attach: 'जोड़ें',
@@ -29063,16 +30755,14 @@ const hi: UiStrings = {
     shareReceiptTitle: 'रसीद ग्रुप के साथ साझा करें',
     shareReceiptBody:
       'ग्रुप के सभी लोग आपके Drive से बिल खोल सकते हैं। छवि कभी Waves तक नहीं पहुँचती। डिफ़ॉल्ट रूप से बंद।',
-    shareReceiptNeedsStorage:
-      'ग्रुप के साथ साझा करने के लिए पहले इस रसीद का Google Drive पर बैकअप लें।',
+    shareReceiptNeedsStorage: 'ग्रुप के साथ साझा करने के लिए पहले इस रसीद का Google Drive पर बैकअप लें।',
     aBill: 'एक बिल',
     splitBillA11y: '{merchant} को चीज़-वार बाँटें',
     receiptClaimedNone: {
       one: '{n} पंक्ति, अभी किसी ने दावा नहीं किया। जो आपने लिया उसे टैप करें।',
       other: '{n} पंक्तियाँ, अभी किसी ने दावा नहीं किया। जो आपने लिया उसे टैप करें।',
     },
-    receiptClaimedSome:
-      '{items} में से {claimed} पंक्तियों का दावा हुआ। जो आपने लिया उसे टैप करें।',
+    receiptClaimedSome: '{items} में से {claimed} पंक्तियों का दावा हुआ। जो आपने लिया उसे टैप करें।',
     scanReadItemsCta: {
       one: '{n} आइटम पढ़ा — इसके बजाय चीज़-वार बाँटें',
       other: '{n} आइटम पढ़े — इसके बजाय चीज़-वार बाँटें',
@@ -29149,8 +30839,7 @@ const hi: UiStrings = {
     notInSplit: 'इसमें नहीं',
     notInvolvedTitle: 'आप इस बँटवारे में नहीं हैं',
     notInvolvedChip: 'Not in this split',
-    notInvolvedBody:
-      'आप इसे समूह सदस्य के रूप में देख रहे हैं — इसमें कुछ भी आपके बैलेंस को नहीं बदलता।',
+    notInvolvedBody: 'आप इसे समूह सदस्य के रूप में देख रहे हैं — इसमें कुछ भी आपके बैलेंस को नहीं बदलता।',
     editedTimes: { one: 'एक बार संपादित', other: '{n} बार संपादित' },
     inCount: { one: '{n} खर्च में', other: '{n} खर्चों में' },
     whoOwesWhat: 'किस पर क्या बाकी',
@@ -29237,10 +30926,8 @@ const hi: UiStrings = {
   misc: {
     settleYouOweTotal: 'इस ग्रुप में आपको {amount} देने हैं',
     settleOwedTotal: 'इस ग्रुप में आपको {amount} मिलने हैं',
-    settlePickPayee:
-      'ग्रुप जिसे भी पैसे देता है, उसे चुका सकते हैं। हर नाम के नीचे वह रकम है जो आप उन्हें देंगे।',
-    settlePickPayer:
-      'जिस पर भी उधार है, वह आपको चुका सकता है। हर नाम के नीचे वह रकम है जो वे आपको देंगे।',
+    settlePickPayee: 'ग्रुप जिसे भी पैसे देता है, उसे चुका सकते हैं। हर नाम के नीचे वह रकम है जो आप उन्हें देंगे।',
+    settlePickPayer: 'जिस पर भी उधार है, वह आपको चुका सकता है। हर नाम के नीचे वह रकम है जो वे आपको देंगे।',
     settleClearsAll: 'इससे यहाँ आपका पूरा बकाया चुक जाता है।',
     settleAllOwed: 'यहाँ आपको बस इतना ही मिलना है।',
     settleLeftOver: '{amount} दूसरों के साथ चुकाना बाकी।',
@@ -29347,8 +31034,7 @@ const hi: UiStrings = {
     personName: 'व्यक्ति का नाम',
     createGroup: 'समूह बनाएँ',
     linkExpired: 'यह लिंक खत्म हो चुका है',
-    linkExpiredBody:
-      'जिसने भेजा था उससे नया माँग लें — लिंक इसीलिए खत्म होते हैं ताकि वे हमेशा घूमते न रहें।',
+    linkExpiredBody: 'जिसने भेजा था उससे नया माँग लें — लिंक इसीलिए खत्म होते हैं ताकि वे हमेशा घूमते न रहें।',
     linkMissingCode: 'इस लिंक में निमंत्रण कोड नहीं है',
     goToWaves: 'Waves पर जाएँ',
     joinFreeBadge: 'हमेशा मुफ़्त',
@@ -29372,13 +31058,11 @@ const hi: UiStrings = {
     joinGroup: 'इस समूह में जुड़ें',
     joinSignUp: 'जुड़ने के लिए साइन अप करें',
     joinLogIn: 'लॉग इन करें',
-    joinAccountWhy:
-      '{group} से जुड़ने के लिए मुफ़्त खाता बनाएँ, ताकि आपके खर्चे हर डिवाइस पर आपके ही रहें।',
+    joinAccountWhy: '{group} से जुड़ने के लिए मुफ़्त खाता बनाएँ, ताकि आपके खर्चे हर डिवाइस पर आपके ही रहें।',
     joinGuestUpgrade: 'खाता बनाकर जुड़ें',
     joinGuestWhy:
       'आप Waves को मेहमान के तौर पर इस्तेमाल कर रहे हैं। {group} से जुड़ने के लिए मुफ़्त खाता बनाएँ। अब तक का सब कुछ आपके साथ रहेगा।',
-    joinAccountRequired:
-      'इस ग्रुप से जुड़ने के लिए खाता चाहिए। साइन अप या लॉग इन करें, फिर लिंक दोबारा खोलें।',
+    joinAccountRequired: 'इस ग्रुप से जुड़ने के लिए खाता चाहिए। साइन अप या लॉग इन करें, फिर लिंक दोबारा खोलें।',
     joinRemoved: 'आपको इस ग्रुप से हटा दिया गया था। नए निमंत्रण के लिए किसी एडमिन से पूछें।',
     fromYourContacts: 'आपके संपर्कों से',
     continueWith: 'इनके साथ जारी रखें',
@@ -29513,8 +31197,7 @@ const hi: UiStrings = {
     fxOneEquals: '1 {from} = ? {to}',
     fxRateFromTo: '{from} से {to} की दर',
     convertedApprox: '≈ {amount} ({currency} में)',
-    rateStoredNote:
-      'दर {rate}, {source} से। खर्च के साथ सहेजी गई है, इसलिए बाद में भी यही रूपांतरण होगा।',
+    rateStoredNote: 'दर {rate}, {source} से। खर्च के साथ सहेजी गई है, इसलिए बाद में भी यही रूपांतरण होगा।',
     rateSourceEcb: 'ECB',
     rateSourceImplied: 'आपके स्टेटमेंट',
     rateSourceYou: 'आप',
@@ -29531,8 +31214,7 @@ const hi: UiStrings = {
     title: 'बैंक संदेशों से जोड़ें',
     howTo:
       'अपना मैसेज ऐप खोलें, इस यात्रा के बैंक संदेश चुनें, कॉपी करें और यहाँ पेस्ट करें। Waves उन्हें इसी फ़ोन पर पढ़ता है — जब तक आप कोई खर्च पक्का नहीं करते, कुछ भी कहीं नहीं भेजा जाता।',
-    whyNotAutomatic:
-      'Waves आपके संदेश खुद नहीं पढ़ सकता, इसलिए जो चाहिए वे आप ही कॉपी करके लाते हैं।',
+    whyNotAutomatic: 'Waves आपके संदेश खुद नहीं पढ़ सकता, इसलिए जो चाहिए वे आप ही कॉपी करके लाते हैं।',
     pasteLabel: 'बैंक संदेश पेस्ट करें',
     pastePlaceholder: 'अपने बैंक संदेश यहाँ पेस्ट करें',
     nothingPasted: 'अभी कुछ पेस्ट नहीं किया',
@@ -29577,8 +31259,7 @@ const hi: UiStrings = {
       other: 'आपके इनबॉक्स से {n} संदेश पढ़े गए।',
     },
     readNothing: 'इन तारीखों में कोई बैंक संदेश नहीं मिला।',
-    permissionDenied:
-      'संदेश पढ़ने के लिए Waves को आपकी अनुमति चाहिए। आप नीचे उन्हें पेस्ट भी कर सकते हैं।',
+    permissionDenied: 'संदेश पढ़ने के लिए Waves को आपकी अनुमति चाहिए। आप नीचे उन्हें पेस्ट भी कर सकते हैं।',
     permissionBlocked:
       'Waves के लिए संदेश एक्सेस बंद है। इसे Settings › Apps › Waves › Permissions में चालू करें, या नीचे संदेश पेस्ट करें।',
     readUnsupported: 'संदेश पढ़ना केवल Android पर काम करता है। नीचे उन्हें पेस्ट करें।',
@@ -29670,13 +31351,11 @@ const hi: UiStrings = {
   statementImport: {
     title: 'स्टेटमेंट इम्पोर्ट करें',
     tileSub: 'आपके बैंक से, फ़ाइल के रूप में',
-    intro:
-      'बैंक स्टेटमेंट को ड्राफ़्ट के रूप में लाएँ, जिन्हें आप Review में जाँचते हैं। आपके कहे बिना कुछ नहीं जुड़ता।',
+    intro: 'बैंक स्टेटमेंट को ड्राफ़्ट के रूप में लाएँ, जिन्हें आप Review में जाँचते हैं। आपके कहे बिना कुछ नहीं जुड़ता।',
     chooseFile: 'फ़ाइल चुनें',
     choosePhoto: 'स्क्रीनशॉट चुनें',
     supported: 'CSV, Excel, OFX या QFX, PDF, या स्टेटमेंट के पन्ने का स्क्रीनशॉट।',
-    consent:
-      'Waves इस स्टेटमेंट को AI से पढ़ता है। खाता नंबर पहले छिपा दिए जाते हैं और कुछ भी सहेजा नहीं जाता।',
+    consent: 'Waves इस स्टेटमेंट को AI से पढ़ता है। खाता नंबर पहले छिपा दिए जाते हैं और कुछ भी सहेजा नहीं जाता।',
     pdfNotYet:
       'PDF स्टेटमेंट अभी इस वर्ज़न में समर्थित नहीं हैं। अपने बैंक से CSV या Excel वर्ज़न डाउनलोड करें, या स्क्रीनशॉट इस्तेमाल करें।',
     freeNote: 'Free में आपके स्टेटमेंट का प्रीव्यू दिखता है। Pro उसे इम्पोर्ट करता है।',
@@ -29883,14 +31562,12 @@ const hi: UiStrings = {
     addTheLines: 'बिल की पंक्तियाँ जोड़ें और टैप करें कि किसने क्या लिया।',
     stillUnclaimed: {
       one: '{n} पंक्ति पर अब भी दावा नहीं — जो किसी ने मँगाया ही नहीं उसका पैसा कोई नहीं देता।',
-      other:
-        '{n} पंक्तियों पर अब भी दावा नहीं — जो किसी ने मँगाया ही नहीं उसका पैसा कोई नहीं देता।',
+      other: '{n} पंक्तियों पर अब भी दावा नहीं — जो किसी ने मँगाया ही नहीं उसका पैसा कोई नहीं देता।',
     },
     tapWhoHadEach: 'बँटवारा देखने के लिए टैप करें कि हर पंक्ति किसने ली।',
     taxAndTipShared: '{amount} का टैक्स और टिप हर किसी की चीज़ों के अनुपात में बाँटा जाता है।',
     scanTitle: 'रसीद स्कैन करें',
-    scanBody:
-      'बिल स्कैन करें और आइटम अपने आप भर जाते हैं। सेव करने से पहले उन्हें जाँच लें — हाथ से भरना हमेशा मुफ़्त है।',
+    scanBody: 'बिल स्कैन करें और आइटम अपने आप भर जाते हैं। सेव करने से पहले उन्हें जाँच लें — हाथ से भरना हमेशा मुफ़्त है।',
     scanReadItems: {
       one: '{n} आइटम पढ़ा। उसे जाँचें, फिर टैप करें कि किसने क्या लिया।',
       other: '{n} आइटम पढ़े। उन्हें जाँचें, फिर टैप करें कि किसने क्या लिया।',
@@ -29925,13 +31602,10 @@ const hi: UiStrings = {
     nothingAddedBody: 'इम्पोर्ट से पहले हम एक झलक दिखाएँगे, ताकि आप पुष्टि कर सकें।',
     reading: 'फ़ाइल पढ़ी जा रही है…',
     parsing: 'पंक्तियाँ जाँची जा रही हैं…',
-    errTooLarge:
-      'वह फ़ाइल {mb} MB से बड़ी है। उसे छोटी फ़ाइलों में बाँटकर एक-एक करके इम्पोर्ट करें।',
-    errTooMany:
-      'उस फ़ाइल में {n} से ज़्यादा पंक्तियाँ हैं। उसे {n} पंक्तियों तक के हिस्सों में बाँटें।',
+    errTooLarge: 'वह फ़ाइल {mb} MB से बड़ी है। उसे छोटी फ़ाइलों में बाँटकर एक-एक करके इम्पोर्ट करें।',
+    errTooMany: 'उस फ़ाइल में {n} से ज़्यादा पंक्तियाँ हैं। उसे {n} पंक्तियों तक के हिस्सों में बाँटें।',
     errEmpty: 'इस फ़ाइल में कोई खर्च नहीं मिला।',
-    errEncoding:
-      'कुछ अक्षर ठीक से नहीं आए। फ़ाइल को “CSV UTF-8” के रूप में सेव करके फिर कोशिश करें।',
+    errEncoding: 'कुछ अक्षर ठीक से नहीं आए। फ़ाइल को “CSV UTF-8” के रूप में सेव करके फिर कोशिश करें।',
     errUnreadable: 'वह फ़ाइल खुल नहीं सकी। उसे CSV या Excel (.xlsx) के रूप में सेव करके देखें।',
     errNoColumns: 'इस फ़ाइल में तारीख़, विवरण और रकम नहीं मिले।',
     errNoRows: 'इस फ़ाइल में कोई खर्च नहीं मिला।',
@@ -30053,8 +31727,7 @@ const hi: UiStrings = {
     waitingTitle: 'कनेक्शन का इंतज़ार',
     waitingHint: 'Waves खुला रखें। ऑनलाइन होते ही इम्पोर्ट हो जाएगा।',
     failedTitle: 'इम्पोर्ट पूरा नहीं हो सका',
-    partialNote:
-      'कुछ पंक्तियाँ पहले से जुड़ चुकी हो सकती हैं। दोबारा कोशिश करने पर वे दो बार नहीं जुड़ेंगी।',
+    partialNote: 'कुछ पंक्तियाँ पहले से जुड़ चुकी हो सकती हैं। दोबारा कोशिश करने पर वे दो बार नहीं जुड़ेंगी।',
     tryAgain: 'फिर कोशिश करें',
     resultImported: {
       one: '{group} में {n} खर्च इम्पोर्ट हुआ',
@@ -30081,8 +31754,7 @@ const hi: UiStrings = {
       other: 'वापस लिया गया: {n} खर्च हटे',
     },
     undoHint: 'जब तक इसमें से कुछ बदला न गया हो, आप 24 घंटे तक इसे वापस ले सकते हैं।',
-    undoEdited:
-      'इस इम्पोर्ट में से कुछ बाद में बदला गया है, इसलिए इसे एक बार में वापस नहीं लिया जा सकता।',
+    undoEdited: 'इस इम्पोर्ट में से कुछ बाद में बदला गया है, इसलिए इसे एक बार में वापस नहीं लिया जा सकता।',
     undoExpired: 'इम्पोर्ट केवल 24 घंटे के भीतर वापस लिया जा सकता है।',
     undoNotAllowed: 'इसे केवल इम्पोर्ट करने वाला व्यक्ति या ग्रुप एडमिन वापस ले सकता है।',
     undoFailed: 'इम्पोर्ट वापस नहीं लिया जा सका। कृपया फिर कोशिश करें।',
@@ -30219,8 +31891,7 @@ const hi: UiStrings = {
     nobodyHere: 'यहाँ कोई नहीं',
     noContactMatches: 'उससे कोई संपर्क नहीं मिला। नाम, फ़ोन नंबर या ईमेल आज़माएँ।',
     noneHasEmailOrNumber: 'आपके किसी संपर्क के पास ईमेल या नंबर नहीं है।',
-    onlyPickedAreSent:
-      'सिर्फ़ वही लोग Waves को भेजे जाते हैं जिन्हें आप चुनते हैं। आपके संपर्क इसी फ़ोन पर रहते हैं।',
+    onlyPickedAreSent: 'सिर्फ़ वही लोग Waves को भेजे जाते हैं जिन्हें आप चुनते हैं। आपके संपर्क इसी फ़ोन पर रहते हैं।',
     jumpToLetter: 'किसी अक्षर पर जाएँ',
     country: 'देश',
     dialCodeTitle: 'देश कोड',
@@ -30295,8 +31966,7 @@ const hi: UiStrings = {
     whatNeverWillBody:
       'हिसाब। समूह, खर्च, बँटवारा, बकाया, निपटान, और यह सब वापस बाहर निकालना — {free}। जो हिसाब आप आधा ही पढ़ सकें, वह हिसाब नहीं।',
     plansTitle: 'Waves Pro',
-    plansBody:
-      'ज़्यादा स्कैन, बड़े ट्रांसफ़र और एडवांस्ड AI वॉइस (हर महीने 100 कमांड)। लेजर मुफ़्त ही रहेगा।',
+    plansBody: 'ज़्यादा स्कैन, बड़े ट्रांसफ़र और एडवांस्ड AI वॉइस (हर महीने 100 कमांड)। लेजर मुफ़्त ही रहेगा।',
     seePlans: 'प्लान देखें',
     onPlan: 'आप Waves {plan} पर हैं',
     plansPromise: 'लेजर कभी लॉक नहीं होता।',
@@ -30374,8 +32044,7 @@ const hi: UiStrings = {
     terms: 'शर्तें',
     privacy: 'निजता',
     heroTitle: 'Waves Pro में अपग्रेड करें',
-    heroSubtitle:
-      'ज़्यादा स्कैन, बड़े ट्रांसफ़र और एडवांस्ड AI वॉइस। बुनियादी सुविधाएँ हमेशा मुफ़्त रहती हैं।',
+    heroSubtitle: 'ज़्यादा स्कैन, बड़े ट्रांसफ़र और एडवांस्ड AI वॉइस। बुनियादी सुविधाएँ हमेशा मुफ़्त रहती हैं।',
     continueWith: '{plan} के साथ आगे बढ़ें',
     noPlans: 'प्लान अभी उपलब्ध नहीं हैं।',
     freeTitle: 'क्या मुफ़्त रहता है?',
@@ -30561,16 +32230,13 @@ const hi: UiStrings = {
     thisIsMeAsked: 'पूछ लिया। कुछ भी बदलने से पहले ग्रुप का एडमिन इसकी पुष्टि करेगा।',
     thisIsMeDone: 'हो गया। {name} के नाम दर्ज सब कुछ अब आपका है।',
     thisIsMeFailed: 'अभी भेजा नहीं जा सका। थोड़ी देर बाद फिर कोशिश करें।',
-    youHaveHistory:
-      'इस ग्रुप में आपके अपने नाम से पहले से खर्च हैं, इसलिए दोनों को जोड़ा नहीं जा सकता।',
-    theyHaveHistory:
-      'इस ग्रुप में उनके अपने नाम से पहले से खर्च हैं, इसलिए दोनों को जोड़ा नहीं जा सकता।',
+    youHaveHistory: 'इस ग्रुप में आपके अपने नाम से पहले से खर्च हैं, इसलिए दोनों को जोड़ा नहीं जा सकता।',
+    theyHaveHistory: 'इस ग्रुप में उनके अपने नाम से पहले से खर्च हैं, इसलिए दोनों को जोड़ा नहीं जा सकता।',
   },
   link: {
     row: 'Waves यूज़र से जोड़ें',
     rowHint: 'बताएँ कि {name} असल में कौन है।',
-    pickGroupBody:
-      '{name} {n} समूहों में प्लेसहोल्डर है। हर समूह अलग से जुड़ता है: एक चुनें, फिर बाकी के लिए लौटें।',
+    pickGroupBody: '{name} {n} समूहों में प्लेसहोल्डर है। हर समूह अलग से जुड़ता है: एक चुनें, फिर बाकी के लिए लौटें।',
     waiting: '{who} के स्वीकार करने का इंतज़ार',
     waitingHint: 'जब तक वे हाँ न कहें, कुछ नहीं बदलेगा।',
     cancelAsk: 'पूछना रद्द करें',
@@ -30615,8 +32281,7 @@ const hi: UiStrings = {
     rowHint: 'जिन नाम और चेहरों को आपने छिपाया है',
     title: 'अवरोधित लोग',
     emptyTitle: 'कोई अवरोधित नहीं है',
-    emptyBody:
-      'किसी को अवरोधित करें और वे यहाँ भूत के रूप में दिखेंगे — आप कभी भी अवरोध हटा सकते हैं।',
+    emptyBody: 'किसी को अवरोधित करें और वे यहाँ भूत के रूप में दिखेंगे — आप कभी भी अवरोध हटा सकते हैं।',
     note: 'अवरोधित करना केवल यह छिपाता है कि कोई व्यक्ति आपको कैसा दिखता है। इससे आपका लेन-देन कभी नहीं बदलता।',
     action: 'अवरोधित करें',
     unblock: 'अवरोध हटाएँ',
@@ -30698,8 +32363,7 @@ const hi: UiStrings = {
         data: 'स्टोर की रसीदें और आपकी खाता आईडी।',
       },
       sentry: {
-        purpose:
-          'क्रैश रिपोर्ट, फ़ोन से निकलने से पहले साफ़ की हुई। सिर्फ़ उन बिल्ड में जिनमें क्रैश रिपोर्टिंग सेट है।',
+        purpose: 'क्रैश रिपोर्ट, फ़ोन से निकलने से पहले साफ़ की हुई। सिर्फ़ उन बिल्ड में जिनमें क्रैश रिपोर्टिंग सेट है।',
         data: 'ऐप में क्या गड़बड़ हुई, नाम, रकम और संपर्क हटाकर।',
       },
       firebase: {
@@ -30762,8 +32426,7 @@ const hi: UiStrings = {
     lastUpdated: 'अंतिम बार {date} को अपडेट किया गया।',
     expandLabel: 'और पढ़ें',
     collapseLabel: 'कम दिखाएँ',
-    storeSummary:
-      'आपकी प्रोफ़ाइल, समूह, ख़र्च, रसीदें, टिप्पणियाँ, सेटिंग्स और कौन किसका देनदार है।',
+    storeSummary: 'आपकी प्रोफ़ाइल, समूह, ख़र्च, रसीदें, टिप्पणियाँ, सेटिंग्स और कौन किसका देनदार है।',
     protectSummary: 'हर पठन पर डेटाबेस नियम, निजी रसीद लिंक, साफ़ की गई क्रैश रिपोर्ट।',
     servicesSummary:
       'डेटाबेस के लिए Supabase, तस्वीरों के लिए Cloudflare, क्रैश के लिए Sentry, वॉइस और स्कैन के लिए Deepgram और OpenRouter, अनुमति देने पर ही Clarity, और मुफ़्त खाते के विज्ञापनों के लिए Google AdMob।',
@@ -30773,14 +32436,12 @@ const hi: UiStrings = {
       'खाता खुला रहने तक; 3 साल अछूता रहा तो हटा दिया जाता है। साझा रिकॉर्ड आपके नाम के बिना बने रहते हैं।',
     choicesSummary: 'सब कुछ निर्यात करें, कोई भी सूचना बंद करें, या खाता हटाएँ।',
     deviceTitle: 'इस फ़ोन पर',
-    deviceSummary:
-      'हिसाब डिवाइस की कुंजी से सील है; सेटिंग्स और बचे अपलोड नहीं। साइन आउट पर सब मिट जाता है।',
+    deviceSummary: 'हिसाब डिवाइस की कुंजी से सील है; सेटिंग्स और बचे अपलोड नहीं। साइन आउट पर सब मिट जाता है।',
     deviceBody:
       'सिग्नल न होने पर भी चले, इसके लिए Waves आपके हिसाब की एक नक़ल फ़ोन में रखता है। हिसाब की पंक्तियाँ और भेजे जाने को बची हुई बदलावों की कतार फ़ोन के सुरक्षित स्टोर में रखी कुंजी से सील रहती हैं, इसलिए वह फ़ाइल फ़ोन से निकाल भी ली जाए तो कुंजी के बिना पढ़ी नहीं जा सकती। कुछ चीज़ें उस सील से बाहर हैं: आपकी ऐप सेटिंग्स, और अपलोड होने को बची रसीद तस्वीरें। साइन आउट करते ही हिसाब, कतार, कैश की तस्वीरें और कुंजी — सब साथ मिट जाते हैं।',
     licensesRow: 'ओपन सोर्स लाइसेंस',
     licensesTitle: 'ओपन सोर्स',
-    licensesIntro:
-      'Waves ओपन-सोर्स सॉफ़्टवेयर पर बना है। इन्हें बनाने और सँभालने वालों का धन्यवाद।',
+    licensesIntro: 'Waves ओपन-सोर्स सॉफ़्टवेयर पर बना है। इन्हें बनाने और सँभालने वालों का धन्यवाद।',
     artworkTitle: 'Artwork',
     licenseNote: 'हर एक अपने लाइसेंस के तहत, बिना बदलाव के इस्तेमाल होती है।',
     previewGroups: { one: 'आप {n} समूह में हैं।', other: 'आप {n} समूहों में हैं।' },
@@ -30796,8 +32457,7 @@ const hi: UiStrings = {
     feedbackRow: 'सुझाव भेजें',
     feedbackRowHint: 'बताइए क्या ग़लत है, या क्या नहीं है',
     feedbackTitle: 'सुझाव भेजें',
-    feedbackHint:
-      'इसे एक व्यक्ति पढ़ता है। जितना चाहें लिखें — विशिष्ट होने पर सबसे ज़्यादा मदद मिलती है।',
+    feedbackHint: 'इसे एक व्यक्ति पढ़ता है। जितना चाहें लिखें — विशिष्ट होने पर सबसे ज़्यादा मदद मिलती है।',
     feedbackPlaceholder: 'क्या हुआ, या आप क्या चाहते थे कि यह करे',
     feedbackSend: 'भेजें',
     feedbackThanks: 'धन्यवाद — मिल गया।',
@@ -30850,8 +32510,7 @@ const hi: UiStrings = {
   },
   clone: {
     pickTitle: 'किसी ग्रुप से शुरू करें',
-    pickIntro:
-      'कॉपी करने के लिए एक ग्रुप चुनें। बनाने से पहले नाम बदलें, आइकन बदलें, और किसी को भी हटाएँ।',
+    pickIntro: 'कॉपी करने के लिए एक ग्रुप चुनें। बनाने से पहले नाम बदलें, आइकन बदलें, और किसी को भी हटाएँ।',
     nothingToClone: 'शुरू करने के लिए अभी कोई ग्रुप नहीं।',
     startFrom: '{name} से नया ग्रुप शुरू करें',
     star: '{name} को पसंदीदा बनाएँ',
@@ -30868,8 +32527,7 @@ const hi: UiStrings = {
     blankNameHint: 'खाली छोड़ दें तो समूह का नाम उसमें शामिल लोगों पर रख दिया जाएगा।',
     tripBudgetOptional: 'ट्रिप बजट (वैकल्पिक)',
     tripWelcomeTitle: 'इस ट्रिप की योजना बनाएँ?',
-    tripWelcomeBody:
-      'रोज़ाना रिमाइंडर चालू करने के लिए तारीखें जोड़ें, या खर्च देखने के लिए बजट सेट करें।',
+    tripWelcomeBody: 'रोज़ाना रिमाइंडर चालू करने के लिए तारीखें जोड़ें, या खर्च देखने के लिए बजट सेट करें।',
     tripWelcomeAddDates: 'तारीखें जोड़ें',
     tripWelcomeSetBudget: 'बजट सेट करें',
     tripWelcomeLater: 'बाद में',
@@ -30901,8 +32559,7 @@ const hi: UiStrings = {
     },
     groupTypeTitle: 'समूह का प्रकार',
     datesRow: 'तारीखें',
-    groupTypeInfo:
-      'प्रकार से समूह का लेबल, डिफ़ॉल्ट कवर और ट्रिप टूल तय होते हैं। पहले से दर्ज कुछ भी नहीं बदलता।',
+    groupTypeInfo: 'प्रकार से समूह का लेबल, डिफ़ॉल्ट कवर और ट्रिप टूल तय होते हैं। पहले से दर्ज कुछ भी नहीं बदलता।',
     tagSuggestions: {
       trip: ['वीकेंड', 'रोड ट्रिप', 'छुट्टी'],
       home: ['किराया', 'फ्लैटमेट', 'बिल'],
@@ -30925,8 +32582,7 @@ const hi: UiStrings = {
     tryAgain: 'फिर कोशिश करें',
     discardIt: 'इसे छोड़ दें',
     needsUpdating: 'Waves को अपडेट चाहिए',
-    nothingIsLost:
-      'कुछ नहीं खोया। हर समूह, खर्च और निपटान सर्वर पर है और ठीक वहीं मिलेगा जहाँ आपने छोड़ा था।',
+    nothingIsLost: 'कुछ नहीं खोया। हर समूह, खर्च और निपटान सर्वर पर है और ठीक वहीं मिलेगा जहाँ आपने छोड़ा था।',
     worthAMinute: 'नए सुधार और बग फ़िक्स पाने के लिए अपडेट करें।',
     theGroup: 'समूह',
     noGroupsYet:
@@ -30961,8 +32617,7 @@ const hi: UiStrings = {
     maintenanceUntil: 'Waves सर्वर {to} तक रुके हुए हैं।',
     maintenanceSoon: 'Waves सर्वर थोड़ी देर में {to} तक रुक जाएँगे।',
     incidentBody: 'सिंक धीमा हो सकता है या विफल हो सकता है। हम इस पर काम कर रहे हैं।',
-    keepGoing:
-      'हमेशा की तरह ख़र्च जोड़ते रहें — वे इसी फ़ोन में सहेजे जाते हैं और सेवा लौटते ही अपने आप सिंक हो जाएँगे।',
+    keepGoing: 'हमेशा की तरह ख़र्च जोड़ते रहें — वे इसी फ़ोन में सहेजे जाते हैं और सेवा लौटते ही अपने आप सिंक हो जाएँगे।',
     writtenIn: '{language} में लिखा गया।',
     dismiss: 'ठीक है',
     blockedAnnouncement: 'Waves इस्तेमाल करने से पहले उसे अपडेट करना ज़रूरी है।',
@@ -30970,8 +32625,7 @@ const hi: UiStrings = {
   fx: {
     section: 'मुद्रा',
     convertTitle: '{currency} में हिसाब करें',
-    convertBody:
-      'दूसरी मुद्राओं में चुकाए गए बिल, हर बिल पर सहेजी गई दर से {currency} में गिने जाते हैं।',
+    convertBody: 'दूसरी मुद्राओं में चुकाए गए बिल, हर बिल पर सहेजी गई दर से {currency} में गिने जाते हैं।',
     convertNeedsRates: {
       one: 'पहले {n} {currency} बिल के लिए दर चाहिए।',
       other: 'पहले {n} {currency} बिलों के लिए दर चाहिए।',
@@ -31021,8 +32675,7 @@ const hi: UiStrings = {
     rateYours: 'आपकी दर',
     rateTrip: 'यात्रा दर',
     rateNotSet: 'दर तय करने के लिए छुएँ',
-    rateExplainer:
-      'हम आज की बाज़ार दर लेते हैं। अगर आपको कोई और दर मिली (जैसे एयरपोर्ट पर), तो उसे बदल दें।',
+    rateExplainer: 'हम आज की बाज़ार दर लेते हैं। अगर आपको कोई और दर मिली (जैसे एयरपोर्ट पर), तो उसे बदल दें।',
     sheetTitle: 'मुद्रा बदलाव',
     sheetLiveMarket: 'लाइव बाज़ार दर',
     sheetUpdatedNow: 'अभी अपडेट हुआ',
@@ -31061,6 +32714,110 @@ const hi: UiStrings = {
     appliesNote: 'दर बदलने से पहले सहेजा गया बिल कभी नहीं बदलता।',
   },
 
+  personalHome: {
+    hi: 'नमस्ते, {name} 👋',
+    space: 'व्यक्तिगत वित्त',
+    sharedSpace: 'साझा',
+    switchSpace: 'स्पेस बदलें',
+    search: 'खोजें',
+    reminders: 'आने वाले और रिमाइंडर',
+    settings: 'सेटिंग',
+    loan: 'लोन',
+    reminder: 'रिमाइंडर',
+    spentAmount: '{amount} खर्च',
+    budgetLine: 'बजट: {amount}',
+    leftChip: 'इस महीने {amount} बाकी',
+    overChip: 'इस महीने {amount} ज़्यादा',
+    aDay: 'लगभग {amount} प्रतिदिन',
+    upcomingTitle: 'आने वाले और रिमाइंडर',
+    dueOn: '{date} को देय',
+    today: 'आज',
+    overdue: 'देर हो चुकी',
+    todo: 'करने के काम: सेटअप पूरा करें',
+    upcomingEmpty: 'कुछ आने वाला नहीं है। कोई बिल या तारीख जोड़ें।',
+    recentTitle: 'हाल के लेन-देन',
+    toolLoans: 'लोन और EMI',
+    toolTodo: 'काम और कार्य',
+    toolReminders: 'रिमाइंडर',
+    toolMore: 'और',
+    moreVoice: 'आवाज़ से जोड़ें',
+    navHome: 'होम',
+    navPlanning: 'योजना',
+    navReports: 'रिपोर्ट',
+    navMe: 'मैं',
+    addDateRow: 'तारीख जोड़ें',
+    inDays: { one: '{n} दिन में', other: '{n} दिन में' },
+    itemsLeft: { one: '{n} आइटम बाकी', other: '{n} आइटम बाकी' },
+    filterAll: 'सभी',
+    filterBills: 'बिल',
+    filterTodo: 'टू-डू',
+    filterRecurring: 'आवर्ती',
+    filterLabel: 'दिखाएँ',
+    dueThisMonth: 'इस महीने देय',
+    billsCount: { one: '{n} बिल', other: '{n} बिल' },
+    itemsCount: { one: '{n} आइटम', other: '{n} आइटम' },
+    thisMonth: 'इस महीने',
+    nextSection: 'आगे',
+    dueOverdue: '{date} को देय (अतिदेय)',
+    addReminder: 'रिमाइंडर जोड़ें',
+    markPaid: 'चुकाया हुआ चिह्नित करें',
+    editBill: 'संपादित करें',
+    pickMonth: 'महीना चुनें',
+    reminderTitle: 'यह किसलिए है?',
+    reminderAmount: 'राशि (वैकल्पिक)',
+    reminderDate: 'तारीख',
+    repeat: 'दोहराएँ',
+    repeatNone: 'दोहराएगा नहीं',
+    repeatMonthly: 'हर महीने',
+    repeatYearly: 'हर साल',
+    nothingHere: 'यहाँ अभी कुछ नहीं है।',
+  },
+  personalPlan: {
+    leftToday: 'आज {amount} बचे हैं',
+    leftTodayShort: 'आज के लिए बचा',
+    overToday: 'आज ज़्यादा खर्च हुआ',
+    leftWeek: 'इस हफ़्ते {amount} बचे हैं',
+    saveTitle: 'कहाँ बचा सकते हैं',
+    setLimit: 'सीमा तय करें',
+    review: 'देखें',
+    notNow: 'अभी नहीं',
+    tip: {
+      overMedian: 'इस महीने {category} आपके सामान्य से {amount} ज़्यादा है।',
+      subscriptions: {
+        one: 'आपकी सब्सक्रिप्शन का खर्च साल में {amount} है।',
+        other: 'आपकी {n} सब्सक्रिप्शन का खर्च साल में {amount} है।',
+      },
+      overBudget: '{category} अपनी सीमा से {amount} ऊपर है।',
+    },
+    recap: {
+      weekReady: 'आपका हफ़्ता तैयार है',
+      monthReady: 'आपका {month} तैयार है',
+      seeIt: 'देखें',
+      weekTitle: 'आपका हफ़्ता',
+      monthTitle: 'आपका महीना',
+      youSpent: 'आपने खर्च किया',
+      vsLess: 'सामान्य हफ़्ते से {amount} कम',
+      vsMore: 'सामान्य हफ़्ते से {amount} ज़्यादा',
+      vsSame: 'लगभग सामान्य हफ़्ते जितना',
+      vsNone: 'तुलना के लिए पिछले हफ़्ते काफ़ी नहीं हैं',
+      biggest: 'सबसे बड़ी श्रेणी',
+      noSpend: 'कोई खर्च नहीं',
+      nextBill: 'अगला बिल',
+      noBill: 'कोई बिल आने वाला नहीं',
+      leftOver: '{month}: {amount} बचे',
+      overIncome: '{month}: आय से {amount} ज़्यादा',
+      best: {
+        one: 'अब तक का आपका सबसे अच्छा महीना',
+        other: '{n} महीनों में आपका सबसे अच्छा महीना',
+      },
+      worst: { one: 'मुश्किल महीना', other: '{n} महीनों में आपका सबसे मुश्किल महीना' },
+      trend: 'पिछले 6 महीने',
+      next: 'आगे',
+      done: 'हो गया',
+      close: 'बंद करें',
+      page: 'पेज {n} / {total}',
+    },
+  },
   personalReceipt: {
     title: 'रसीद',
     add: 'जोड़ें',
@@ -31079,6 +32836,96 @@ const hi: UiStrings = {
     storageFull: 'आपकी स्टोरेज सीमा पूरी हो गई है।',
     waitingWifi: 'Wi‑Fi का इंतज़ार है। Wi‑Fi पर होने पर फ़ोटो जोड़ें।',
     couldNotAdd: 'रसीद जोड़ी नहीं जा सकी। दोबारा कोशिश करें।',
+  },
+  personalSetup: {
+    title: 'पर्सनल सेट करें',
+    privateLine: 'सिर्फ़ आपके लिए — इसे केवल आप देखते हैं',
+    skip: 'छोड़ें',
+    cont: 'आगे',
+    stepOf: 'चरण {n} / {total}',
+    nameIncome: 'आमदनी',
+    nameHome: 'किराया या होम लोन',
+    nameBills: 'बिल',
+    nameEmi: 'लोन EMI',
+    nameEat: 'बाहर खाना',
+    nameSavings: 'बचत',
+    nameCap: 'खर्च की सीमा',
+    incomeQ: 'क्या आपको नियमित वेतन/आमदनी मिलती है?',
+    incomeSalary: 'वेतन',
+    incomeBusiness: 'बिज़नेस',
+    incomeFreelance: 'फ़्रीलांस',
+    incomePension: 'पेंशन',
+    incomeNone: 'नियमित नहीं',
+    incomeDetailsQ: 'कितना, और किस तारीख़ को?',
+    homeQ: 'किराया या होम लोन?',
+    homeRent: 'किराया',
+    homeEmi: 'होम लोन भुगतान',
+    homeNone: 'दोनों नहीं',
+    homeDetailsQ: 'कितना, और किस तारीख़ को?',
+    billsQ: 'आप कौन-से बिल भरते हैं?',
+    billElectricity: 'बिजली',
+    billMobile: 'मोबाइल',
+    billWifi: 'वाई-फ़ाई',
+    billGas: 'गैस',
+    billHelp: 'घरेलू सहायता',
+    billSchool: 'स्कूल फ़ीस (तिमाही)',
+    billSociety: 'बिल्डिंग शुल्क',
+    billInsurance: 'बीमा (सालाना)',
+    billSip: 'निवेश योगदान',
+    billsDetailsQ: 'कितना, और किस तारीख़ को?',
+    loanQ: 'क्या आप कोई कर्ज़ चुका रहे हैं?',
+    yes: 'हाँ',
+    no: 'नहीं',
+    loanTypeQ: 'कौन-सा लोन?',
+    loanCar: 'कार',
+    loanPersonal: 'पर्सनल',
+    loanGold: 'अन्य सुरक्षित ऋण',
+    loanEducation: 'एजुकेशन',
+    loanCard: 'क्रेडिट कार्ड',
+    loanDetailsQ: 'EMI, तारीख़ और बचे महीने',
+    emiLabel: 'EMI',
+    monthsLeft: 'बचे महीने',
+    eatQ: 'आप कितनी बार बाहर खाते या ऑर्डर करते हैं?',
+    eatRarely: 'कभी-कभार',
+    eat12: 'हफ़्ते में 1–2',
+    eat34: 'हफ़्ते में 3–4',
+    eatMost: 'लगभग रोज़',
+    eatEachQ: 'एक बार में लगभग कितना?',
+    eatMonthly: 'महीने में लगभग {amount}',
+    savingsQ: 'कुछ बचत रखी है?',
+    saveNone: 'नहीं',
+    saveUnder1: '1 महीने के वेतन से कम',
+    save1to3: '1–3 महीने',
+    save3to6: '3–6 महीने',
+    save6plus: '6+ महीने',
+    capQ: 'रोज़ के खर्च की सीमा तय करें?',
+    capHint: 'आपकी आमदनी में से तय बिल घटाकर',
+    amountLabel: 'रकम',
+    dayLabel: 'महीने की तारीख़',
+    revealTitle: 'आपका {month}',
+    comingIn: 'आमदनी',
+    fixedBills: 'तय बिल',
+    freeToSpend: 'खर्च के लिए बचा',
+    perDay: 'लगभग {amount} रोज़',
+    nextBillToday: '{name} आज देय है',
+    doneBtn: 'हो गया',
+    finishCard: 'सेटअप पूरा करें · {n} बाकी',
+    finishRow: '{name}',
+    fixedBillsCount: { one: '{n} बिल', other: '{n} बिल' },
+    nextBillIn: { one: '{name} कल', other: '{name} {n} दिन में' },
+
+    hintEmi: 'EMI',
+    hintSociety: 'सोसाइटी मेंटेनेंस',
+    hintHoa: 'HOA',
+    hintServiceCharge: 'सर्विस चार्ज',
+    hintCouncilTax: 'काउंसिल टैक्स',
+    hintStrata: 'स्ट्राटा',
+    hintRates: 'रेट्स',
+    hintDewa: 'DEWA',
+    hintChiller: 'चिलर',
+    hintMaidCookDriver: 'मेड / कुक / ड्राइवर',
+    hintSipChitFund: 'SIP / चिट फ़ंड',
+    hintGoldLoan: 'गोल्ड लोन',
   },
   personal: {
     introCards: [
@@ -31146,6 +32993,7 @@ const hi: UiStrings = {
       methods: {
         cash: 'नकद',
         upi: 'UPI',
+        instant_transfer: 'तुरंत ट्रांसफ़र',
         card: 'कार्ड',
         bank: 'बैंक ट्रांसफ़र',
         wallet: 'वॉलेट',
@@ -31249,6 +33097,16 @@ const hi: UiStrings = {
     noRecurring: 'अभी कोई आवर्ती मद नहीं।',
     loans: 'ऋण',
     loansSub: 'जो आप देते हैं या आपको मिलना है।',
+    loansTotal: 'कुल बकाया',
+    youOwe: 'आपको देना है',
+    youAreOwed: 'आपको मिलना है',
+    repaidOf: 'चुकाया: {paid} / {total}',
+    addReminderShort: 'रिमाइंडर जोड़ें',
+    editDetails: 'विवरण संपादित करें',
+    loanShareOwe: '{name} — मुझे {amount} देना है, चुकाया {repaid}',
+    loanShareLent: '{name} को मुझे {amount} देना है, चुकाया {repaid}',
+    loanReminderOwe: '{name} को चुकाएँ',
+    loanReminderLent: '{name} से वसूलें',
     addLoan: 'ऋण जोड़ें',
     editLoan: 'ऋण संपादित करें',
     borrowed: 'मैंने उधार लिया',
@@ -31269,13 +33127,11 @@ const hi: UiStrings = {
     settleUp: 'हिसाब चुकाएँ',
     stopSharing: 'साझा करना बंद करें',
     stopSharingBody: 'इससे उनकी ओर से यह कर्ज़ हट जाएगा। आपका निजी उधार बना रहेगा।',
-    cannotStopSharing:
-      'इसका कुछ हिस्सा चुकाया जा चुका है, इसलिए साझा करना बंद नहीं हो सकता। बाकी चुका दें।',
+    cannotStopSharing: 'इसका कुछ हिस्सा चुकाया जा चुका है, इसलिए साझा करना बंद नहीं हो सकता। बाकी चुका दें।',
     shareFailed: 'यह उधार साझा नहीं हो सका। फिर कोशिश करें।',
     shareToggle: 'यह {name} को भी दिखाएँ',
     deleteSharedBody: 'इससे उनकी ओर से भी यह कर्ज़ हट जाएगा।',
-    deleteSharedKept:
-      'इसका कुछ हिस्सा चुकाया जा चुका है, इसलिए कर्ज़ {name} के साथ आपके हिसाब में बना रहेगा।',
+    deleteSharedKept: 'इसका कुछ हिस्सा चुकाया जा चुका है, इसलिए कर्ज़ {name} के साथ आपके हिसाब में बना रहेगा।',
     closeLoan: 'बंद करें',
     reopenLoan: 'फिर खोलें',
     paidOff: 'चुका दिया',
@@ -31602,6 +33458,44 @@ const ar: UiStrings = {
   allSettled: 'تمت التسوية',
   yourGroups: 'مجموعاتك',
   allGroups: 'كل المجموعات',
+  homeToday: {
+    needsYou: 'يحتاجك',
+    nothingNeeds: 'لا شيء يحتاجك اليوم',
+    pay: 'ادفع',
+    remind: 'ذكّر',
+    review: 'راجع',
+    markPaid: 'تم الدفع',
+    reminded: 'تم التذكير',
+    overdueSub: 'متأخر · {amount}',
+    dueSub: 'يستحق {date} · {amount}',
+    owesYou: '{name} يدين لك بـ {amount}',
+    youOweName: 'تدين لـ {name} بـ {amount}',
+    reviewTitle: 'عناصر للمراجعة: {n}',
+    comingUp: 'قريبًا',
+    addReminder: 'أضف تذكيرًا',
+    spaces: 'المجموعات',
+    addSpace: 'أضف مساحة',
+    personal: 'شخصي',
+    justMe: 'أنا فقط',
+    leftMonth: 'متبقٍّ هذا الشهر',
+    spentMonth: 'أُنفق هذا الشهر',
+    leftPool: 'متبقٍّ في الصندوق',
+    spentPool: 'أُنفق هذا الشهر',
+    billDue: 'فاتورة تستحق {date}',
+    newSpace: 'مساحة جديدة',
+    newSpaceHint: 'رحلة · منزل · زوجان · عائلة',
+    seeAll: 'عرض الكل',
+    startMine: 'أموالي',
+    startMineSub: 'تتبّع إنفاقك',
+    startSplit: 'قسّم مع الأصدقاء',
+    startSplitSub: 'رحلات وشقق وعشاء',
+    startHome: 'أدِر المنزل',
+    startHomeSub: 'فواتير مشتركة وميزانية',
+    people: 'الأشخاص',
+    friendsLink: 'الأصدقاء',
+    all: 'الكل',
+    privateDate: 'تاريخ خاص',
+  },
   yourFriends: 'أصدقاؤك',
   viewGroups: 'عرض المجموعات',
   groupsTitle: 'المجموعات',
@@ -32040,6 +33934,38 @@ const ar: UiStrings = {
     tooFastMoment: 'محاولات كثيرة دفعة واحدة. انتظر قليلًا ثم أعد المحاولة.',
     tooFastLater: 'محاولات كثيرة دفعة واحدة. أعد المحاولة بعد قليل.',
   },
+  firstRun: {
+    stepOf: 'الخطوة {n} من 3',
+    skip: 'تخطّي',
+    nameTitle: 'بماذا يناديك أصدقاؤك؟',
+    nameHint: 'يظهر على كل فاتورة تشاركها.',
+    namePlaceholder: 'اسمك',
+    addPhoto: 'أضف صورة',
+    continue: 'متابعة',
+    hi: 'مرحبًا {name}',
+    intentTitle: 'ما الذي أتى بك إلى Waves؟',
+    intentHint: 'اختر كل ما ينطبق.',
+    intents: {
+      trip: 'رحلة',
+      flat: 'شقة أو منزل',
+      family: 'العائلة',
+      couple: 'زوجان',
+      own: 'أموالي الخاصة فقط',
+    },
+    suggested: { trip: 'رحلتنا', flat: 'شقتنا', family: 'العائلة', couple: 'نحن الاثنان' },
+    voiceTitle: 'قلها.\nونحن نكتبها.',
+    voiceHint: 'اضغط مطولًا على الزر واقرأ هذا:',
+    sample: '\u201cعشاء 1,200 مع رامي وآشا\u201d',
+    holdToSpeak: 'اضغط مطولًا للتحدث',
+    listening: 'جارٍ الاستماع\u2026',
+    notHeard: 'لم نسمع جيدًا. اضغط مطولًا وحاول مجددًا.',
+    micOff: 'الميكروفون متوقف. يمكنك الكتابة بدلًا من ذلك.',
+    heardTitle: 'سمعنا',
+    people: '{n} أشخاص',
+    notSaved: 'لم يُحفظ شيء. كانت هذه مجرد تجربة.',
+    done: 'تم',
+    typeInstead: 'سأكتب',
+  },
   onboarding: [
     {
       title: 'قسّم أي مصروف',
@@ -32220,6 +34146,129 @@ const ar: UiStrings = {
     status: 'الحالة',
     stuckShort: 'أقدم من يوم، غير معروض على الشاشة',
     copyHint: 'انسخ التفاصيل للمشاركة أو لحل المشكلة',
+  },
+  dates: {
+    title: 'تواريخك',
+    upcoming: 'القادم',
+    addDate: 'أضف تاريخًا',
+    empty: 'أضف عيد ميلاد أو ذكرى سنوية وسنذكّرك في الوقت المناسب للتخطيط.',
+    inDays: {
+      one: 'غدًا',
+      two: 'بعد يومين',
+      few: 'بعد {n} أيام',
+      many: 'بعد {n} يومًا',
+      other: 'بعد {n} يوم',
+    },
+    today: 'اليوم',
+    yearsAtWork: {
+      one: 'سنة واحدة في العمل',
+      two: 'سنتان في العمل',
+      few: '{n} سنوات في العمل',
+      many: '{n} سنة في العمل',
+      other: '{n} سنة في العمل',
+    },
+    kinds: {
+      my_birthday: 'عيد ميلادي',
+      anniversary: 'ذكرى سنوية',
+      work_anniversary: 'ذكرى العمل',
+      family_birthday: 'العائلة أو الأصدقاء',
+      other: 'أخرى',
+    },
+    titles: {
+      myBirthday: 'عيد ميلادك',
+      anniversary: 'ذكراك السنوية',
+      workAnniversary: 'ذكرى العمل',
+      birthdayOf: 'عيد ميلاد {name}',
+      other: '{name}',
+    },
+    actions: {
+      giftCollection: 'جمع هدية',
+      setBudget: 'حدّد ميزانية',
+      updatePay: 'حدّث الراتب',
+      planBudget: 'خطّط لميزانية',
+    },
+    giftGroupName: 'هدية عيد ميلاد {name}',
+    festivals: {
+      diwali: 'ديوالي',
+      holi: 'هولي',
+      eid_al_fitr: 'عيد الفطر',
+      eid_al_adha: 'عيد الأضحى',
+      christmas: 'عيد الميلاد المجيد',
+      pongal: 'بونغال',
+      onam: 'أونام',
+      raksha_bandhan: 'راكشا باندهان',
+      navratri: 'نافراتري',
+      thanksgiving: 'عيد الشكر',
+      easter: 'عيد الفصح',
+      lunar_new_year: 'رأس السنة القمرية',
+      hanukkah: 'حانوكا',
+      vesak: 'فيساك',
+      mothers_day: 'عيد الأم',
+      fathers_day: 'عيد الأب',
+      national_day: 'اليوم الوطني',
+      ramadan_start: 'بداية رمضان',
+    },
+    editNew: 'أضف تاريخًا',
+    editExisting: 'عدّل التاريخ',
+    name: 'الاسم',
+    namePlaceholder: 'آشا',
+    day: 'اليوم',
+    month: 'الشهر',
+    sinceYear: 'سنة البدء (اختياري)',
+    privacyMine: 'أنت وحدك ترى هذا. نستخدمه لتذكيرك فقط.',
+    privacyFamily: 'هذه ملاحظاتك الخاصة. لن نتواصل أبدًا مع من تضيفهم.',
+    shareLabel: 'أظهر للأشخاص في مجموعاتي',
+    shareComing: 'قريبًا',
+    save: 'حفظ',
+    notNow: 'ليس الآن',
+    remove: 'احذف هذا التاريخ',
+    festivalsTitle: 'الأعياد',
+    festivalsHint: 'نذكّرك قبلها بأسابيع. أوقف ما لا تريده.',
+    notifTitle: 'تذكير من Waves',
+    reminder: {
+      from: 'من Waves',
+      notThisTime: 'ليس هذه المرة',
+      birthday: {
+        one: 'عيد ميلاد {name} غدًا.',
+        two: 'عيد ميلاد {name} بعد يومين.',
+        few: 'عيد ميلاد {name} بعد {n} أيام.',
+        many: 'عيد ميلاد {name} بعد {n} يومًا.',
+        other: 'عيد ميلاد {name} بعد {n} يوم.',
+      },
+      anniversary: {
+        one: 'ذكراك السنوية غدًا.',
+        two: 'ذكراك السنوية بعد يومين.',
+        few: 'ذكراك السنوية بعد {n} أيام.',
+        many: 'ذكراك السنوية بعد {n} يومًا.',
+        other: 'ذكراك السنوية بعد {n} يوم.',
+      },
+      work: {
+        one: 'ذكرى عملك غدًا.',
+        two: 'ذكرى عملك بعد يومين.',
+        few: 'ذكرى عملك بعد {n} أيام.',
+        many: 'ذكرى عملك بعد {n} يومًا.',
+        other: 'ذكرى عملك بعد {n} يوم.',
+      },
+      named: {
+        one: '{name} غدًا.',
+        two: '{name} بعد يومين.',
+        few: '{name} بعد {n} أيام.',
+        many: '{name} بعد {n} يومًا.',
+        other: '{name} بعد {n} يوم.',
+      },
+      today: {
+        birthday: 'عيد ميلاد {name} اليوم.',
+        anniversary: 'ذكراك السنوية اليوم.',
+        work: 'ذكرى عملك اليوم.',
+        named: '{name} اليوم.',
+      },
+      ask: {
+        birthday: 'هل نبدأ جمع هدية؟',
+        anniversary: 'هل نخصص ميزانية للعشاء أو الهدية؟',
+        work: 'حان وقت تحديث راتبك؟',
+        named: 'هل نخصص ميزانية؟',
+      },
+    },
   },
   recent: {
     title: 'الأحدث على ساعتك',
@@ -34580,6 +36629,159 @@ const ar: UiStrings = {
     preferences: 'التفضيلات',
     preferencesSub: 'الإشعارات والعملة والمزيد',
   },
+  hhome: {
+    sharedNote: 'فقط أعضاء هذه المجموعة يمكنهم رؤية هذا',
+    tabOverview: 'نظرة عامة',
+    tabBills: 'الفواتير',
+    tabUpcoming: 'القادم',
+    tabIncome: 'الدخل',
+    thisMonth: 'هذا الشهر',
+    spent: 'المصروف',
+    income: 'الدخل',
+    left: 'المتبقي',
+    vsLast: 'مقارنة بالشهر الماضي',
+    addExpense: 'إضافة مصروف',
+    addBill: 'إضافة فاتورة',
+    addIncome: 'إضافة دخل',
+    upcomingTitle: 'القادم',
+    upcomingEmpty: 'لا شيء مستحق خلال 30 يومًا.',
+    markPaid: 'تم الدفع',
+    recentTitle: 'أحدث المصروفات',
+    noExpenses: 'لا مصروفات هذا الشهر بعد.',
+    allExpenses: 'كل المصروفات',
+    billsTotal: '{amount} شهريًا في الفواتير الثابتة',
+    billsEmpty: 'لا فواتير بعد',
+    billsEmptyHint:
+      'الإيجار والكهرباء والإنترنت والرسوم الدراسية. أضفها مرة واحدة وشاهد ما يحتاجه كل شهر.',
+    addBillRow: 'إضافة فاتورة',
+    dayEvery: 'اليوم {day} من كل شهر',
+    billOptions: 'خيارات {name}',
+    incomeTotal: '{amount} شهريًا مخطط',
+    incomeEmpty: 'لا دخل مخطط بعد',
+    incomeEmptyHint: 'أضف راتب كل شخص أو معاشه أو مصروفه لترى ما يتبقى كل شهر.',
+    addIncomeRow: 'إضافة دخل',
+    incomeNote: 'مجرد خطة. لا تغيّر من يدين لمن.',
+    kindSalary: 'راتب',
+    kindPension: 'معاش',
+    kindBusiness: 'عمل حر',
+    kindRent: 'إيجار',
+    kindOther: 'أخرى',
+    incomeNewTitle: 'إضافة دخل',
+    incomeEditTitle: 'تعديل الدخل',
+    whoQ: 'دخل مَن هذا؟',
+    labelQ: 'ما هو؟',
+    labelPlaceholder: 'راتب',
+    amountQ: 'كم شهريًا؟',
+    dayQ: 'أي يوم من الشهر؟',
+    removeIncome: 'إزالة هذا الدخل',
+    addMember: 'إضافة فرد من العائلة',
+    memberName: 'الاسم',
+    memberHint: 'يمكنه الانضمام لاحقًا وتولّي ملفه.',
+    memberAdd: 'إضافة',
+    relPartner: 'الشريك',
+    relFather: 'الأب',
+    relMother: 'الأم',
+    relSon: 'الابن',
+    relDaughter: 'الابنة',
+    relOther: 'آخر',
+    pickTitle: 'إضافة فواتير',
+    pickSub: 'اضغط على كل ما يدفعه بيتكم.',
+    pickNext: 'التالي',
+    pickDetails: 'المبالغ والتواريخ',
+    pickWho: 'من يدفع',
+    pickDay: 'يوم الشهر',
+    estimateNote: 'تقدير شهري. يُحفظ كميزانية لا كفاتورة.',
+    perQuarter: 'كل 3 أشهر',
+    perYear: 'كل سنة',
+    pickSave: {
+      zero: 'إضافة {n} فاتورة',
+      one: 'إضافة فاتورة',
+      two: 'إضافة فاتورتين',
+      few: 'إضافة {n} فواتير',
+      many: 'إضافة {n} فاتورة',
+      other: 'إضافة {n} فاتورة',
+    },
+    pickNeed: 'أضف مبلغًا لكل واحدة.',
+    presets: {
+      rent: 'الإيجار',
+      home_loan: 'دفعة قرض المنزل',
+      electricity: 'الكهرباء',
+      water: 'المياه',
+      gas: 'الغاز',
+      internet: 'الإنترنت',
+      mobile: 'الهاتف',
+      streaming: 'البث',
+      building_fees: 'رسوم المبنى',
+      household_help: 'مساعدة منزلية',
+      childcare_school: 'رعاية الأطفال / المدرسة',
+      groceries: 'البقالة',
+      fuel: 'الوقود',
+      insurance: 'التأمين',
+      investment_contribution: 'مساهمة استثمارية',
+      milk: 'الحليب',
+      emi: 'قسط EMI',
+      maid_cook_driver: 'عاملة منزلية / طاهٍ / سائق',
+      ott: 'OTT',
+      petrol: 'بنزين',
+      society_maintenance: 'صيانة المجمع',
+      hoa: 'رسوم HOA',
+      fuel_gas: 'الغاز',
+      council_tax: 'ضريبة البلدية',
+      service_charge: 'رسوم الخدمة',
+      strata: 'ستراتا',
+      rates: 'الرسوم البلدية',
+      dewa: 'ديوا',
+      chiller: 'التبريد',
+    },
+  },
+  household: {
+    askTitle: 'كيف تتعاملون مع المال في «{name}»؟',
+    askTitleNoName: 'كيف تتعاملون مع المال هنا؟',
+    askSub: 'يمكنك تغيير هذا لاحقًا من الإعدادات.',
+    splitTitle: 'قسّموه',
+    splitBody: 'تابعوا من دفع ومن عليه. الأنسب لزملاء السكن والرحلات.',
+    shareTitle: 'شاركوه',
+    shareBody:
+      'صندوق واحد للبيت. لا أحد مدين لأحد. أضيفوا الفواتير والميزانية وأهدافًا تدّخرون لها معًا.',
+    continue: 'متابعة',
+    settingsTitle: 'كيف تتعاملون مع المال',
+    openBalancesNote: 'تبقى الأرصدة المفتوحة حتى تتم تسويتها.',
+    adminOnly: 'المشرف فقط يمكنه تغيير هذا.',
+    ourMonth: '{month} لدينا',
+    ofBudget: 'من ميزانية {amount}',
+    noBudget: 'حدّد ميزانية شهرية',
+    leftOnTrack: 'متبقٍ {amount} · على المسار',
+    overBy: 'تجاوز بمقدار {amount}',
+    whoPaid: 'من دفع',
+    whoPaidA11y: 'اعرض من دفع',
+    billPays: 'يدفع {name} · {when}',
+    everyWeek: 'كل أسبوع',
+    everyTwoWeeks: 'كل أسبوعين',
+    twiceMonth: 'مرتين في الشهر',
+    everyMonths: 'كل {n} أشهر',
+    everyYear: 'كل سنة',
+    billsTitle: 'الفواتير المشتركة',
+    budgetTitle: 'ميزانية البيت',
+    budgetMonthly: 'الميزانية الشهرية',
+    budgetHint: 'ما يخطط البيت لإنفاقه كل شهر.',
+    budgetSave: 'حفظ',
+    budgetClear: 'إزالة الميزانية',
+    budgetMenu: 'الميزانية',
+    splitThisOne: 'قسّم هذا',
+    splitThisOneHint: 'مدفوع من الصندوق المشترك. لا أحد مدين لأحد.',
+    reminderAhead: 'يستحق {bill} بعد 3 أيام',
+    reminderToday: 'يستحق {bill} اليوم',
+    reminderBody: '{amount} · {group}',
+    moveKeep: 'أبقِه خاصًا',
+    moveTo: 'انقل إلى {group}',
+    movePrivacy: 'حسابك الشخصي يبقى خاصًا. شريكك لا يستطيع رؤيته.',
+    moved: 'تم النقل إلى {group}',
+    moveFailed: 'تعذّر النقل. لم يتغير شيء.',
+    moveReceiptFailed: 'تعذّر نقل الإيصال. إدخالك ما زال هنا.',
+    moveReceiptRetry: 'حاول مرة أخرى',
+    moveWithoutReceipt: 'انقل بدون إيصال',
+    switched: 'أصبحتم الآن تشاركون صندوقًا واحدًا',
+  },
   groupRecurring: {
     title: 'المتكررة',
     sub: 'الإيجار والفواتير وكل ما يتكرر في موعد محدد. يُضاف كل واحد في تاريخه للجميع.',
@@ -34833,6 +37035,21 @@ const ar: UiStrings = {
     slideToCancel: 'اسحب للإلغاء',
     holdReading: 'أقرأ…',
     holdAdded: 'أُضيف {amount} إلى {where}',
+    holdReadingMany: 'أقرأ {count}…',
+    holdAddedMany: {
+      one: 'أُضيف مصروف واحد',
+      two: 'أُضيف مصروفان',
+      few: 'أُضيفت {n} مصاريف',
+      many: 'أُضيف {n} مصروفًا',
+      other: 'أُضيف {n} مصروف',
+    },
+    holdInReview: {
+      one: 'واحد في المراجعة',
+      two: 'اثنان في المراجعة',
+      few: '{n} في المراجعة',
+      many: '{n} في المراجعة',
+      other: '{n} في المراجعة',
+    },
     heardSpan: 'سُمع {word}، طابق مع {name}. اضغط للتغيير',
     heardPick: 'من هو «{word}»؟',
     title: 'انطق مصروفًا',
@@ -35296,6 +37513,27 @@ const ar: UiStrings = {
     savedForLater: 'مصاريف محفوظة لوقت لاحق',
     savedForLaterBody:
       'إذا بقي مصروف ينتظر مجموعة بعد يوم كامل، يذكّرك هذا الهاتف مساءً. وفي يوم لم تفتح فيه Waves إطلاقًا، يسألك بدلًا من ذلك إن كان هناك ما تريد تقسيمه. مرة واحدة في اليوم على الأكثر، وواحد من الاثنين فقط.',
+    planBills: 'تذكيرات الفواتير',
+    planBillsBody: 'مساء اليوم السابق لسداد فاتورتك.',
+    planRecap: 'ملخص أسبوعي وشهري',
+    planRecapBody: 'مساء الأحد، وفي أول كل شهر.',
+    planDaily: 'المبلغ المتبقي يوميًا',
+    planDailyBody: 'ملاحظة صباحية بما تبقّى لهذا اليوم.',
+    plan: {
+      title: 'خطتك',
+      bill: 'سيُدفع {name} بقيمة {amount} غدًا.',
+      billCovered: 'أنت مغطّى.',
+      billHidden: 'هناك فاتورة تُدفع غدًا.',
+      weekLess: 'أسبوعك: أنفقت {spent}، أقل من المعتاد بمقدار {delta}. اضغط للعرض.',
+      weekMore: 'أسبوعك: أنفقت {spent}، أكثر من المعتاد بمقدار {delta}. اضغط للعرض.',
+      weekPlain: 'أسبوعك: أنفقت {spent}. اضغط للعرض.',
+      weekHidden: 'أسبوعك جاهز. اضغط للعرض.',
+      monthLeft: 'انتهى {month} وبقي {amount}.',
+      monthOver: '{month}: أنفقت {amount} فوق دخلك.',
+      monthHidden: 'شهرك جاهز. اضغط للعرض.',
+      daily: 'بقي {amount} لهذا اليوم. أنت على الخطة.',
+      dailyHidden: 'خطة اليوم جاهزة.',
+    },
   },
   phonePrompt: {
     title: 'أضف رقم هاتفك',
@@ -35405,8 +37643,7 @@ const ar: UiStrings = {
     termsWord: 'الشروط',
     privacyWord: 'سياسة الخصوصية',
     notifyTitle: 'تفعيل الإشعارات',
-    notifyBody:
-      'سنُعلمك عندما يضيف أحدهم مصروفًا، أو يسوّي حسابًا، أو يدعوك إلى مجموعة. بلا إزعاج.',
+    notifyBody: 'سنُعلمك عندما يضيف أحدهم مصروفًا، أو يسوّي حسابًا، أو يدعوك إلى مجموعة. بلا إزعاج.',
     notifyEnable: 'تفعيل',
     notifyJoinBody: 'احصل على إشعار عندما يضيف أحدهم مصروفًا في {group} أو يسدّد حسابه.',
     notifyNotNow: 'ليس الآن',
@@ -37179,8 +39416,7 @@ const ar: UiStrings = {
     settleReceivedBody: 'سيُسجَّل دفعهم في المجموعة وتُحدَّث الأرصدة.',
     settleReceivedConfirm: 'نعم، استلمت',
     settleMarkPaidTitle: 'تحديد {amount} إلى {name} كمدفوع؟',
-    settleMarkPaidBody:
-      'سيُسجَّل دفعك في المجموعة وتُحدَّث الأرصدة. فقط إذا كنت قد دفعت لهم بالفعل.',
+    settleMarkPaidBody: 'سيُسجَّل دفعك في المجموعة وتُحدَّث الأرصدة. فقط إذا كنت قد دفعت لهم بالفعل.',
     settleMarkPaidConfirm: 'نعم، دفعت',
     settleConfirmReceivedBody: 'سيُسجَّل دفعهم في المجموعة وتُحدَّث أرصدة الجميع.',
     settleConfirmPaidTitle: 'هل دفعت {amount} إلى {name}؟',
@@ -37424,8 +39660,7 @@ const ar: UiStrings = {
     rightToLeft: 'من اليمين إلى اليسار',
     withLabel: 'مع',
     settleNoDetailsTitle: 'لا توجد تفاصيل {rail} بعد',
-    settleNoDetailsBody:
-      'لم يُضِف {name} كيفية استلامه للمدفوعات. سوِّ نقدًا، أو اطلب منه إضافتها.',
+    settleNoDetailsBody: 'لم يُضِف {name} كيفية استلامه للمدفوعات. سوِّ نقدًا، أو اطلب منه إضافتها.',
     settleRailFallback: 'الدفع',
     settlePayTitle: 'ادفع إلى {name}',
     settlePayBody: '{rail}\n{handle}\n\nثم عُد وسجِّل ذلك.',
@@ -37462,8 +39697,7 @@ const ar: UiStrings = {
     fxOneEquals: '1 {from} = ? {to}',
     fxRateFromTo: 'السعر من {from} إلى {to}',
     convertedApprox: '≈ {amount} بعملة {currency}',
-    rateStoredNote:
-      'السعر {rate} من {source}. يُحفظ مع المصروف، لذا يُحوَّل بالطريقة نفسها لاحقًا.',
+    rateStoredNote: 'السعر {rate} من {source}. يُحفظ مع المصروف، لذا يُحوَّل بالطريقة نفسها لاحقًا.',
     rateSourceEcb: 'البنك المركزي الأوروبي',
     rateSourceImplied: 'كشف حسابك',
     rateSourceYou: 'أنت',
@@ -37979,8 +40213,7 @@ const ar: UiStrings = {
     tapWhoHadEach: 'اضغط على من تناول كل صنف لترى التقسيم.',
     taxAndTipShared: 'تُوزَّع ضريبة وإكرامية بقيمة {amount} بنسبة أصناف كل شخص.',
     scanTitle: 'امسح الفاتورة',
-    scanBody:
-      'امسح الفاتورة فتظهر البنود مملوءة. تحقّق منها قبل الحفظ — إدخالها يدويًا مجاني دائمًا.',
+    scanBody: 'امسح الفاتورة فتظهر البنود مملوءة. تحقّق منها قبل الحفظ — إدخالها يدويًا مجاني دائمًا.',
     scanReadItems: {
       zero: 'لم نقرأ أي بند. تحقّق ثم اضغط لمن كان ماذا.',
       one: 'قرأنا بندًا واحدًا. تحقّق منه ثم اضغط لمن كان ماذا.',
@@ -38263,8 +40496,7 @@ const ar: UiStrings = {
     newPerson: 'شخص جديد',
     importedGroup: 'مجموعة مستوردة',
     rowsLeftOut: 'صفوف مستبعدة',
-    rowsLeftOutNote:
-      'كل ما عداها يُستورد. ذُكرت بأسمائها لتضيفها يدويًا بدل أن تكتشف غيابها لاحقًا.',
+    rowsLeftOutNote: 'كل ما عداها يُستورد. ذُكرت بأسمائها لتضيفها يدويًا بدل أن تكتشف غيابها لاحقًا.',
     fileWide: 'الملف',
     rowNumber: 'الصف {n}',
     problemUnreadable: "Couldn't read this row, so it was left out.",
@@ -39358,8 +41590,7 @@ const ar: UiStrings = {
     retryRate: 'إعادة المحاولة',
     staleRateFrom: 'سعر من {date}',
     staleRateUse: 'استخدام',
-    missingRatesStale:
-      'لم يتوفر لـ {n} فواتير سوى سعر من يوم آخر ({date}). استخدمه أو حاول لاحقًا.',
+    missingRatesStale: 'لم يتوفر لـ {n} فواتير سوى سعر من يوم آخر ({date}). استخدمه أو حاول لاحقًا.',
     missingRatesUseStale: 'استخدام أسعار من أيام أخرى',
     missingRatesLead: 'فواتير بعملات أخرى بلا سعر صرف.',
     missingRatesRest: 'تبقى مبالغها مخفية حتى يُضاف سعر.',
@@ -39375,6 +41606,123 @@ const ar: UiStrings = {
     appliesNote: 'تغيير السعر لا يحرّك فاتورة محفوظة أبداً.',
   },
 
+  personalHome: {
+    hi: 'مرحبًا، {name} 👋',
+    space: 'المالية الشخصية',
+    sharedSpace: 'المشتركة',
+    switchSpace: 'تبديل المساحة',
+    search: 'بحث',
+    reminders: 'القادم والتذكيرات',
+    settings: 'الإعدادات',
+    loan: 'قرض',
+    reminder: 'تذكير',
+    spentAmount: 'أُنفق {amount}',
+    budgetLine: 'الميزانية: {amount}',
+    leftChip: 'متبقٍ {amount} لهذا الشهر',
+    overChip: 'تجاوز بمقدار {amount} هذا الشهر',
+    aDay: 'نحو {amount} يوميًا',
+    upcomingTitle: 'القادم والتذكيرات',
+    dueOn: 'مستحق في {date}',
+    today: 'اليوم',
+    overdue: 'متأخر',
+    todo: 'المهام: أكمل الإعداد',
+    upcomingEmpty: 'لا شيء قادم. أضف فاتورة أو تاريخًا.',
+    recentTitle: 'أحدث المعاملات',
+    toolLoans: 'القروض والأقساط',
+    toolTodo: 'المهام',
+    toolReminders: 'التذكيرات',
+    toolMore: 'المزيد',
+    moreVoice: 'أضف بالصوت',
+    navHome: 'الرئيسية',
+    navPlanning: 'التخطيط',
+    navReports: 'التقارير',
+    navMe: 'أنا',
+    addDateRow: 'أضف تاريخًا',
+    inDays: { one: 'خلال {n} يوم', other: 'خلال {n} يومًا' },
+    itemsLeft: { one: '{n} عنصر متبقٍ', other: '{n} عناصر متبقية' },
+    filterAll: 'الكل',
+    filterBills: 'الفواتير',
+    filterTodo: 'المهام',
+    filterRecurring: 'المتكررة',
+    filterLabel: 'عرض',
+    dueThisMonth: 'مستحق هذا الشهر',
+    billsCount: { one: '{n} فاتورة', other: '{n} فواتير' },
+    itemsCount: { one: '{n} عنصر', other: '{n} عناصر' },
+    thisMonth: 'هذا الشهر',
+    nextSection: 'التالي',
+    dueOverdue: 'مستحق في {date} (متأخر)',
+    addReminder: 'أضف تذكيرًا',
+    markPaid: 'تحديد كمدفوع',
+    editBill: 'تعديل',
+    pickMonth: 'اختر شهرًا',
+    reminderTitle: 'لأي غرض؟',
+    reminderAmount: 'المبلغ (اختياري)',
+    reminderDate: 'التاريخ',
+    repeat: 'التكرار',
+    repeatNone: 'لا يتكرر',
+    repeatMonthly: 'كل شهر',
+    repeatYearly: 'كل سنة',
+    nothingHere: 'لا شيء هنا بعد.',
+  },
+  personalPlan: {
+    leftToday: 'تبقّى {amount} اليوم',
+    leftTodayShort: 'متبقٍ اليوم',
+    overToday: 'تجاوزت اليوم',
+    leftWeek: 'تبقّى {amount} هذا الأسبوع',
+    saveTitle: 'أين يمكنك التوفير',
+    setLimit: 'حدّد سقفًا',
+    review: 'راجع',
+    notNow: 'ليس الآن',
+    tip: {
+      overMedian: '{category} أعلى من المعتاد بمقدار {amount} هذا الشهر.',
+      subscriptions: {
+        zero: 'لا اشتراكات.',
+        one: 'اشتراكك يكلّف {amount} في السنة.',
+        two: 'اشتراكاك يكلّفان {amount} في السنة.',
+        few: 'اشتراكاتك الـ{n} تكلّف {amount} في السنة.',
+        many: 'اشتراكاتك الـ{n} تكلّف {amount} في السنة.',
+        other: 'اشتراكاتك الـ{n} تكلّف {amount} في السنة.',
+      },
+      overBudget: '{category} تجاوزت سقفها بمقدار {amount}.',
+    },
+    recap: {
+      weekReady: 'أسبوعك جاهز',
+      monthReady: '{month} جاهز',
+      seeIt: 'اعرضه',
+      weekTitle: 'أسبوعك',
+      monthTitle: 'شهرك',
+      youSpent: 'أنفقت',
+      vsLess: 'أقل بمقدار {amount} من الأسبوع المعتاد',
+      vsMore: 'أكثر بمقدار {amount} من الأسبوع المعتاد',
+      vsSame: 'قريب من الأسبوع المعتاد',
+      vsNone: 'لا توجد أسابيع سابقة كافية للمقارنة',
+      biggest: 'أكبر فئة',
+      noSpend: 'لا إنفاق',
+      nextBill: 'الفاتورة القادمة',
+      noBill: 'لا فواتير قادمة',
+      leftOver: '{month}: تبقّى {amount}',
+      overIncome: '{month}: {amount} فوق دخلك',
+      best: {
+        one: 'أفضل شهر لك حتى الآن',
+        two: 'أفضل شهر لك في شهرين',
+        few: 'أفضل شهر لك في {n} أشهر',
+        many: 'أفضل شهر لك في {n} شهرًا',
+        other: 'أفضل شهر لك في {n} شهر',
+      },
+      worst: {
+        one: 'شهر صعب',
+        two: 'أصعب شهر لك في شهرين',
+        few: 'أصعب شهر لك في {n} أشهر',
+        many: 'أصعب شهر لك في {n} شهرًا',
+        other: 'أصعب شهر لك في {n} شهر',
+      },
+      trend: 'آخر 6 أشهر',
+      next: 'التالي',
+      done: 'تم',
+      close: 'إغلاق',
+      page: 'صفحة {n} من {total}',
+    },
+  },
   personalReceipt: {
     title: 'الإيصال',
     add: 'إضافة',
@@ -39393,6 +41741,109 @@ const ar: UiStrings = {
     storageFull: 'لقد بلغت حد التخزين.',
     waitingWifi: 'في انتظار Wi‑Fi. أضف الصورة عندما تكون على Wi‑Fi.',
     couldNotAdd: 'تعذّرت إضافة الإيصال. حاول مرة أخرى.',
+  },
+  personalSetup: {
+    title: 'إعداد الشخصي',
+    privateLine: 'خاص بك — أنت وحدك من يراه',
+    skip: 'تخطي',
+    cont: 'متابعة',
+    stepOf: 'الخطوة {n} من {total}',
+    nameIncome: 'الدخل',
+    nameHome: 'الإيجار أو قرض المنزل',
+    nameBills: 'الفواتير',
+    nameEmi: 'أقساط القروض',
+    nameEat: 'الأكل خارج المنزل',
+    nameSavings: 'المدخرات',
+    nameCap: 'سقف الإنفاق',
+    incomeQ: 'هل يصلك دخل منتظم؟',
+    incomeSalary: 'راتب',
+    incomeBusiness: 'عمل تجاري',
+    incomeFreelance: 'عمل حر',
+    incomePension: 'معاش',
+    incomeNone: 'غير منتظم',
+    incomeDetailsQ: 'كم المبلغ، وفي أي يوم؟',
+    homeQ: 'إيجار أم قرض منزل؟',
+    homeRent: 'إيجار',
+    homeEmi: 'دفعة قرض المنزل',
+    homeNone: 'لا هذا ولا ذاك',
+    homeDetailsQ: 'كم المبلغ، وفي أي يوم؟',
+    billsQ: 'ما الفواتير التي تدفعها؟',
+    billElectricity: 'الكهرباء',
+    billMobile: 'الجوال',
+    billWifi: 'الواي فاي',
+    billGas: 'الغاز',
+    billHelp: 'مساعدة منزلية',
+    billSchool: 'رسوم المدرسة (ربع سنوية)',
+    billSociety: 'رسوم المبنى',
+    billInsurance: 'التأمين (سنوي)',
+    billSip: 'مساهمة استثمارية',
+    billsDetailsQ: 'كم المبلغ، وفي أي يوم؟',
+    loanQ: 'هل تسدّد أي قروض؟',
+    yes: 'نعم',
+    no: 'لا',
+    loanTypeQ: 'أي قرض؟',
+    loanCar: 'سيارة',
+    loanPersonal: 'شخصي',
+    loanGold: 'قرض مضمون آخر',
+    loanEducation: 'تعليم',
+    loanCard: 'بطاقة ائتمان',
+    loanDetailsQ: 'القسط واليوم والأشهر المتبقية',
+    emiLabel: 'القسط',
+    monthsLeft: 'الأشهر المتبقية',
+    eatQ: 'كم مرة تأكل خارج المنزل أو تطلب أكلاً؟',
+    eatRarely: 'نادراً',
+    eat12: '1–2 في الأسبوع',
+    eat34: '3–4 في الأسبوع',
+    eatMost: 'معظم الأيام',
+    eatEachQ: 'كم تدفع تقريباً في المرة؟',
+    eatMonthly: 'حوالي {amount} شهرياً',
+    savingsQ: 'هل لديك مدخرات؟',
+    saveNone: 'لا شيء',
+    saveUnder1: 'أقل من راتب شهر',
+    save1to3: '1–3 أشهر',
+    save3to6: '3–6 أشهر',
+    save6plus: '6 أشهر فأكثر',
+    capQ: 'تحديد سقف للإنفاق اليومي؟',
+    capHint: 'دخلك ناقص الفواتير الثابتة',
+    amountLabel: 'المبلغ',
+    dayLabel: 'يوم الشهر',
+    revealTitle: '{month} الخاص بك',
+    comingIn: 'الداخل',
+    fixedBills: 'الفواتير الثابتة',
+    freeToSpend: 'المتاح للإنفاق',
+    perDay: 'حوالي {amount} يومياً',
+    nextBillToday: '{name} مستحق اليوم',
+    doneBtn: 'تم',
+    finishCard: 'أكمل الإعداد · متبقٍ {n}',
+    finishRow: '{name}',
+    fixedBillsCount: {
+      zero: 'لا فواتير',
+      one: 'فاتورة واحدة',
+      two: 'فاتورتان',
+      few: '{n} فواتير',
+      many: '{n} فاتورة',
+      other: '{n} فاتورة',
+    },
+    nextBillIn: {
+      one: '{name} غداً',
+      two: '{name} بعد يومين',
+      few: '{name} بعد {n} أيام',
+      many: '{name} بعد {n} يوماً',
+      other: '{name} بعد {n} يوم',
+    },
+
+    hintEmi: 'قسط قرض المنزل',
+    hintSociety: 'صيانة المجمّع',
+    hintHoa: 'رسوم اتحاد الملاك',
+    hintServiceCharge: 'رسوم الخدمة',
+    hintCouncilTax: 'ضريبة المجلس المحلي',
+    hintStrata: 'ستراتا',
+    hintRates: 'الرسوم البلدية',
+    hintDewa: 'DEWA',
+    hintChiller: 'تبريد',
+    hintMaidCookDriver: 'خادمة / طباخ / سائق',
+    hintSipChitFund: 'استثمار شهري / جمعية',
+    hintGoldLoan: 'قرض ذهب',
   },
   personal: {
     introCards: [
@@ -39467,6 +41918,7 @@ const ar: UiStrings = {
       methods: {
         cash: 'نقداً',
         upi: 'UPI',
+        instant_transfer: 'تحويل فوري',
         card: 'بطاقة',
         bank: 'تحويل بنكي',
         wallet: 'محفظة',
@@ -39577,6 +42029,16 @@ const ar: UiStrings = {
     noRecurring: 'لا عناصر متكررة بعد.',
     loans: 'القروض',
     loansSub: 'أموال تدين بها أو مستحقة لك.',
+    loansTotal: 'إجمالي المستحق',
+    youOwe: 'عليك',
+    youAreOwed: 'لك',
+    repaidOf: 'المسدّد: {paid} من {total}',
+    addReminderShort: 'أضف تذكيرًا',
+    editDetails: 'تعديل التفاصيل',
+    loanShareOwe: '{name} — أدين بـ {amount}، سدّدت {repaid}',
+    loanShareLent: '{name} يدين لي بـ {amount}، سُدّد {repaid}',
+    loanReminderOwe: 'سدّد لـ {name}',
+    loanReminderLent: 'حصّل من {name}',
     addLoan: 'إضافة قرض',
     editLoan: 'تعديل القرض',
     borrowed: 'اقترضت',
@@ -39815,7 +42277,7 @@ export function isRtl(): boolean {
 }
 
 export function deviceLocale(): string {
-  return getLocales()[0]?.languageTag ?? 'en-IN';
+  return getLocales()[0]?.languageTag ?? 'en-US';
 }
 
 /**
@@ -39854,14 +42316,18 @@ export function deviceCountry(): string | null {
  * one to show a zero in before any group exists.
  *
  * The new-group form derives its currency the same way (`currencyForCountry`
- * of the device country, INR when the country is unknown), so the home
+ * of the device country, USD only as a last resort), so the home
  * screen's empty state and a group made a moment later agree instead of the
- * home showing ₹0 and the group then counting in dollars. India is the last
- * resort, not an American fallback: an unrecognised country is not the US.
+ * home showing 0 in one currency and the group then counting in another. An unrecognised
+ * country gets a neutral default, never India.
  */
 export function deviceDefaultCurrency(): CurrencyCode {
-  return currencyForCountry(deviceCountry()) ?? 'INR';
+  return resolveCurrency(null, deviceCountry(), 'USD'); // shortcut: last resort when region unknown
 }
+
+// Inject the device defaults into core once, at startup.
+setDefaultLocale(deviceLocale);
+setFallbackCurrency(deviceDefaultCurrency);
 
 /**
  * Whether the phone's region can pay over UPI — India today.
@@ -39873,11 +42339,8 @@ export function deviceDefaultCurrency(): CurrencyCode {
  * include UPI, so the tag stays hidden rather than guessing India.
  */
 export function deviceSupportsUpi(): boolean {
-  // An unknown region assumes India, exactly as deviceDefaultCurrency falls back
-  // to INR — otherwise a phone with no Region set shows ₹ everywhere yet hides
-  // UPI, the one rail that ₹ implies. A device set to a real country without the
-  // rail (the UAE, the US) still hides it correctly.
-  return railsFor(deviceCountry() ?? 'IN').some((rail) => rail.id === RailId.Upi);
+  // An unknown region gets the universal rails, which do not include UPI.
+  return railsFor(deviceCountry() ?? '').some((rail) => rail.id === RailId.Upi);
 }
 
 /**

@@ -272,3 +272,61 @@ export function splitDialCode(
   if (!best) return null;
   return { ...best, national: cleaned.slice(best.dialCode.length) };
 }
+
+/**
+ * The currency to use when a record or group carries none: the profile's, else
+ * the country's, else `fallback`. Never India by assumption.
+ */
+export function resolveCurrency(
+  profileCurrency: string | null | undefined,
+  countryCode: string | null | undefined,
+  fallback: CurrencyCode = 'USD', // shortcut: USD only when nothing else is known, until a region is always set
+): CurrencyCode {
+  const own = (profileCurrency ?? '').trim().toUpperCase();
+  return own || currencyForCountry(countryCode) || fallback;
+}
+
+// Set once at startup from the device region (see mobile i18n); read wherever
+// a stored currency is missing and no profile is at hand.
+let deviceCurrency: CurrencyCode | (() => CurrencyCode) = 'USD'; // shortcut: USD until the app injects the device currency
+export function setFallbackCurrency(currency: CurrencyCode | (() => CurrencyCode)): void {
+  deviceCurrency = currency;
+}
+export function fallbackCurrency(): CurrencyCode {
+  return typeof deviceCurrency === 'function' ? deviceCurrency() : deviceCurrency;
+}
+
+/** First day of the week by region (CLDR): 0 = Sunday, 1 = Monday, 6 = Saturday. */
+const WEEK_START_SUNDAY = new Set(['US', 'IN', 'CA', 'JP', 'BR', 'MX', 'IL', 'PH', 'ZA', 'SG']);
+const WEEK_START_SATURDAY = new Set([
+  'SA',
+  'QA',
+  'KW',
+  'BH',
+  'OM',
+  'EG',
+  'IQ',
+  'JO',
+  'DZ',
+  'LY',
+  'SY',
+  'AF',
+  'IR',
+]);
+export function weekStartForRegion(countryCode: string | null | undefined): 0 | 1 | 6 {
+  const country = (countryCode ?? '').trim().toUpperCase();
+  try {
+    // `getWeekInfo` (or the older `weekInfo`) where the engine has it; 7 = Sunday.
+    const locale = new Intl.Locale(`und-${country}`) as unknown as {
+      getWeekInfo?: () => { firstDay: number };
+      weekInfo?: { firstDay: number };
+    };
+    const first = (locale.getWeekInfo?.() ?? locale.weekInfo)?.firstDay;
+    if (country && first !== undefined) return first === 7 ? 0 : first === 6 ? 6 : 1;
+  } catch {
+    // fall through to the table
+  }
+  if (WEEK_START_SUNDAY.has(country)) return 0;
+  if (WEEK_START_SATURDAY.has(country)) return 6;
+  return 1; // AE moved to Monday-start; GB, AU and the rest of Europe too
+}

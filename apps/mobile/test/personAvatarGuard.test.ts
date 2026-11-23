@@ -18,6 +18,8 @@ const SRC = join(process.cwd(), 'src');
 const ALLOWED: Record<string, string> = {
   'components/PersonAvatar.tsx': 'the person avatar itself',
   'components/ProfileAvatar.tsx': 'the viewer-portrait wrapper (camera badge, picker)',
+  'app/start.tsx':
+    "the viewer's own portrait, drawn from the name they are typing (ProfileAvatar reads the saved name)",
   'components/GroupCard.tsx': 'draws a group cover mark, not a person',
   'components/SaveToSheet.tsx': 'draws group cover marks; people go through PersonAvatar',
   'app/clone-group.tsx': 'draws a group cover emoji, not a person',

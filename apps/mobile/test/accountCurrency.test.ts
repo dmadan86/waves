@@ -25,6 +25,6 @@ describe('currencyAfterCountryChange', () => {
   });
   it('falls back to stored then default when the new country has none', () => {
     expect(currencyAfterCountryChange('INR', 'INR', null)).toBe('INR');
-    expect(currencyAfterCountryChange(null, null, null)).toBe('INR');
+    expect(currencyAfterCountryChange(null, null, null)).toBe('USD');
   });
 });

@@ -130,6 +130,7 @@ type RowContext = {
   labels: ActivityLabels;
   labelForBuiltin: (id: string) => string | undefined;
   groupTagLabels: GroupTypeTagLabels;
+  groupCurrencies: ReadonlyMap<string, string>;
   /** Opened from one group: the group kind is redundant on every row. */
   scoped: boolean;
 };
@@ -207,7 +208,7 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
       : category
         ? { ...category.glyph, label: category.label }
         : null,
-    money: parseMoney(entry.payload),
+    money: parseMoney(entry.payload, ctx.groupCurrencies.get(entry.group_id) || undefined),
     stake: entry.stake,
     amountTone: amount.tone,
     amountStrike: amount.strike,
@@ -508,6 +509,7 @@ function ActivityScreen() {
       }),
       labelForBuiltin: (id) => (t.categories as Record<string, string | undefined>)[id],
       groupTagLabels,
+      groupCurrencies: new Map(groups.map((group) => [group.id, group.default_currency ?? ''])),
       scoped: !!onlyGroup,
     };
     const rows: FeedRow[] = [];
@@ -537,6 +539,7 @@ function ActivityScreen() {
     blockedIds,
     rtf,
     groupTagLabels,
+    groups,
     onlyGroup,
     adSlotsKey,
   ]);

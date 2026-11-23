@@ -45,7 +45,8 @@ import { EmptyStateCta } from '@/components/EmptyStateCta';
 import { filterTxns, groupByDay, type TxnTab } from '@/lib/txnLedger';
 import { CategoryBadge, CategoryPicker } from '@/components/Category';
 import { usePersonalLedger } from '@/data/personal';
-import { plural, useStrings } from '@/i18n';
+import { deviceCountry, plural, useStrings } from '@/i18n';
+import { paymentMethodLabel } from '@/lib/paymentMethodLabel';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
@@ -475,9 +476,7 @@ function PersonalTransactionsScreenBody() {
           const categoryLabel = labelFor(txn.category) ?? t.categories.other;
           const title = txn.note?.trim() || categoryLabel;
           const method = txn.paymentMethod
-            ? t.personal.entryScreen.methods[
-                txn.paymentMethod as keyof typeof t.personal.entryScreen.methods
-              ]
+            ? paymentMethodLabel(t.personal.entryScreen.methods, txn.paymentMethod, deviceCountry())
             : null;
           return (
             <Pressable

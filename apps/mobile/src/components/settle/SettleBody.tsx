@@ -27,6 +27,7 @@ import {
   toMajorString,
   type CurrencyCode,
   type Receivable,
+  fallbackCurrency,
 } from '@waves/core';
 import {
   Button,
@@ -113,7 +114,7 @@ export function useSettleFlow(
   } | null>(null);
   const [settleAskOpen, setSettleAskOpen] = useState(false);
 
-  const currency = group.data?.default_currency ?? 'INR';
+  const currency = group.data?.default_currency ?? fallbackCurrency();
   const myMemberId = ledger.myMemberId;
   const lookup = useMemo(() => memberLookup(everyone.data), [everyone.data]);
 
