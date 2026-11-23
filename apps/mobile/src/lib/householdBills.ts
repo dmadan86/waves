@@ -1,0 +1,150 @@
+/**
+ * Shared bills that fall on the viewer, and the local reminders for them.
+ *
+ * `groupBillsForPayer` is also the feed the Personal "Upcoming" list can read
+ * (this branch has no `personalUpcoming.ts` yet).
+ */
+import type { GroupRecurringRule } from '@waves/core';
+
+export interface PayerBill {
+  readonly ruleId: string;
+  readonly groupId: string;
+  readonly description: string;
+  readonly amount: bigint;
+  readonly currency: string;
+  /** yyyy-mm-dd of the next payment. */
+  readonly date: string;
+}
+
+/** Active rules whose payer is `myMemberId`, soonest first, optionally within `horizonDays` of `today`. */
+export function groupBillsForPayer(
+  rules: readonly GroupRecurringRule[],
+  myMemberId: string | null,
+  opts: { today?: string; horizonDays?: number } = {},
+): PayerBill[] {
+  if (!myMemberId) return [];
+  const limit =
+    opts.today && opts.horizonDays !== undefined ? addDays(opts.today, opts.horizonDays) : null;
+  return rules
+    .filter((r) => r.status === 'active' && (r.payers[myMemberId] ?? 0n) > 0n)
+    .filter((r) => !limit || r.nextDate <= limit)
+    .map((r) => ({
+      ruleId: r.id,
+      groupId: r.groupId,
+      description: r.description,
+      amount: r.payers[myMemberId] ?? 0n,
+      currency: r.currency,
+      date: r.nextDate,
+    }))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}
+
+export function addDays(day: string, n: number): string {
+  const d = new Date(Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10) + n));
+  return d.toISOString().slice(0, 10);
+}
+
+export const BILL_REMINDER_HOUR = 10;
+export const BILL_LEAD_DAYS = 3;
+
+export interface BillReminder {
+  readonly key: string;
+  readonly bill: PayerBill;
+  readonly kind: 'ahead' | 'today';
+  readonly at: Date;
+}
+export interface HeldBillReminder {
+  readonly identifier: string;
+  readonly key: string;
+  readonly fireAt: number;
+}
+
+function at10(day: string): Date {
+  return new Date(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10), BILL_REMINDER_HOUR);
+}
+
+/**
+ * What to schedule: 3 days before and on the day, 10:00 local, never in the
+ * past, and at most one reminder per calendar day (the day-of one wins; a later
+ * bill's lead reminder gives way). Idempotent against what is already held.
+ */
+export function planBillReminders(
+  bills: readonly PayerBill[],
+  held: readonly HeldBillReminder[],
+  now: Date,
+): { add: BillReminder[]; cancel: string[] } {
+  const candidates: BillReminder[] = [];
+  for (const bill of bills) {
+    candidates.push({
+      key: `${bill.ruleId}:${bill.date}:today`,
+      bill,
+      kind: 'today',
+      at: at10(bill.date),
+    });
+    candidates.push({
+      key: `${bill.ruleId}:${bill.date}:ahead`,
+      bill,
+      kind: 'ahead',
+      at: at10(addDays(bill.date, -BILL_LEAD_DAYS)),
+    });
+  }
+  const perDay = new Map<string, BillReminder>();
+  for (const c of candidates) {
+    if (c.at.getTime() <= now.getTime()) continue;
+    const day = `${c.at.getFullYear()}-${c.at.getMonth()}-${c.at.getDate()}`;
+    const have = perDay.get(day);
+    if (!have || (c.kind === 'today' && have.kind === 'ahead')) perDay.set(day, c);
+  }
+  const want = new Map([...perDay.values()].map((c) => [c.key, c]));
+  const cancel: string[] = [];
+  const kept = new Set<string>();
+  for (const h of held) {
+    const w = want.get(h.key);
+    if (w && w.at.getTime() === h.fireAt && !kept.has(h.key)) kept.add(h.key);
+    else cancel.push(h.identifier);
+  }
+  return { add: [...want.values()].filter((c) => !kept.has(c.key)), cancel };
+}
+
+/** The server's `md5(...)::uuid`: 32 hex digits regrouped 8-4-4-4-12. */
+export function hexToUuid(hex: string): string {
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+/** The text the server's generator hashes for one occurrence (`waves_recurring_derived_id`). */
+export function occurrenceSeed(kind: 'expense' | 'mutation', ruleId: string, date: string): string {
+  return `waves.recurring.${kind}:${ruleId}:${date}`;
+}
+
+/**
+ * Debounced, single-flight re-runs: a burst of requests runs once after `delayMs`
+ * of quiet, and a request that lands while a run is going queues exactly one more
+ * run after it, so two runs never overlap and the last word always wins.
+ */
+export function createReplanner(run: () => Promise<void>, delayMs: number): () => void {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let running = false;
+  let again = false;
+  const fire = (): void => {
+    timer = null;
+    if (running) {
+      again = true;
+      return;
+    }
+    running = true;
+    void run()
+      .catch(() => undefined)
+      .finally(() => {
+        running = false;
+        if (again) {
+          again = false;
+          request();
+        }
+      });
+  };
+  function request(): void {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(fire, delayMs);
+  }
+  return request;
+}

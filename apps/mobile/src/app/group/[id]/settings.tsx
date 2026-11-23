@@ -28,7 +28,14 @@ import {
   useTabBarClearance,
 } from '@waves/ui';
 
-import { format, money, type CurrencyCode } from '@waves/core';
+import {
+  canSwitchLedgerMode,
+  format,
+  ledgerModeOf,
+  money,
+  switchKeepsOpenBalances,
+  type CurrencyCode,
+} from '@waves/core';
 
 import { withScenicGroup } from '@/components/ScenicScope';
 import { GroupPhoto } from '@/components/GroupPhoto';
@@ -142,7 +149,7 @@ function GroupSettingsScreen() {
   // rows sat behind the bar and could not be reached.
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
-  const { confirm } = useDialog();
+  const { confirm, choose } = useDialog();
   // Why the group is still here. It sits under the delete row rather than
   // fading, because a refused delete leaves the screen looking exactly as it
   // did and a line that is gone in three seconds is a tap that did nothing.
@@ -737,6 +744,24 @@ function GroupSettingsScreen() {
   );
 
   /** The ⓘ beside a title; the explanation opens under the row. */
+  // Switch Split <-> Share. Allowed with open balances; says they stay.
+  const switchMode = async (): Promise<void> => {
+    const from = ledgerModeOf(group.data);
+    const picked = await choose({
+      title: t.household.settingsTitle,
+      body: switchKeepsOpenBalances(ledger.transfers.length)
+        ? t.household.openBalancesNote
+        : undefined,
+      options: [
+        { id: 'split', label: t.household.splitTitle },
+        { id: 'pool', label: t.household.shareTitle },
+      ],
+    });
+    if (picked !== 'split' && picked !== 'pool') return;
+    if (!canSwitchLedgerMode(isAdmin, from, picked)) return;
+    updateGroup.mutate({ ledger_mode: picked });
+  };
+
   const infoDot = (key: 'simplify' | 'mute', title: string): ReactNode => (
     <Pressable
       accessibilityRole="button"
@@ -1509,6 +1534,24 @@ function GroupSettingsScreen() {
                 Mute is this person's own switch, not the group's: pushes about
                 the group stop reaching them, the inbox keeps everything, and the
                 others are never told (the `group_mutes` migration). */}
+                {/* Split it / Share it. Admin switches; open balances stay until
+                    settled, so either direction is allowed with a note. */}
+                {!isCompany && (isAdmin || group.data.ledger_mode === 'pool') ? (
+                  <ListRow
+                    leading={chip('people-outline', null)}
+                    title={t.household.settingsTitle}
+                    subtitle={
+                      isAdmin
+                        ? group.data.ledger_mode === 'pool'
+                          ? t.household.shareTitle
+                          : t.household.splitTitle
+                        : `${group.data.ledger_mode === 'pool' ? t.household.shareTitle : t.household.splitTitle} · ${t.household.adminOnly}`
+                    }
+                    subtitleLines={2}
+                    divider
+                    onPress={isAdmin ? () => void switchMode() : undefined}
+                  />
+                ) : null}
                 {/* A company records, never splits: nothing to simplify. */}
                 {!isCompany ? (
                   <ListRow
