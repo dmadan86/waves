@@ -205,7 +205,7 @@ function numberParts(
  * lists or entry rows: it drops digits.
  */
 export function compactMoney(amount: Money, options: FormatOptions = {}): string {
-  const { locale = DEFAULT_LOCALE } = options;
+  const { locale = getDefaultLocale() } = options;
   const major = Number(toMajorString(amount));
   if (Math.abs(major) < 1000) return format(amount, options);
   const loc = rupeeLocale(locale, amount.currency);
