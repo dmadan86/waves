@@ -8082,6 +8082,95 @@ export interface UiStrings {
     waitingWifi: string;
     couldNotAdd: string;
   };
+  personalSetup: {
+    title: string;
+    privateLine: string;
+    skip: string;
+    cont: string;
+    stepOf: string;
+    nameIncome: string;
+    nameHome: string;
+    nameBills: string;
+    nameEmi: string;
+    nameEat: string;
+    nameSavings: string;
+    nameCap: string;
+    incomeQ: string;
+    incomeSalary: string;
+    incomeBusiness: string;
+    incomeFreelance: string;
+    incomePension: string;
+    incomeNone: string;
+    incomeDetailsQ: string;
+    homeQ: string;
+    homeRent: string;
+    homeEmi: string;
+    hintEmi: string;
+    homeNone: string;
+    homeDetailsQ: string;
+    billsQ: string;
+    billElectricity: string;
+    billMobile: string;
+    billWifi: string;
+    billGas: string;
+    billHelp: string;
+    billSchool: string;
+    billSociety: string;
+    hintSociety: string;
+    hintHoa: string;
+    hintServiceCharge: string;
+    hintCouncilTax: string;
+    hintStrata: string;
+    hintRates: string;
+    hintDewa: string;
+    hintChiller: string;
+    billInsurance: string;
+    billSip: string;
+    hintMaidCookDriver: string;
+    hintSipChitFund: string;
+    billsDetailsQ: string;
+    loanQ: string;
+    yes: string;
+    no: string;
+    loanTypeQ: string;
+    loanCar: string;
+    loanPersonal: string;
+    loanGold: string;
+    hintGoldLoan: string;
+    loanEducation: string;
+    loanCard: string;
+    loanDetailsQ: string;
+    emiLabel: string;
+    monthsLeft: string;
+    eatQ: string;
+    eatRarely: string;
+    eat12: string;
+    eat34: string;
+    eatMost: string;
+    eatEachQ: string;
+    eatMonthly: string;
+    savingsQ: string;
+    saveNone: string;
+    saveUnder1: string;
+    save1to3: string;
+    save3to6: string;
+    save6plus: string;
+    capQ: string;
+    capHint: string;
+    amountLabel: string;
+    dayLabel: string;
+    revealTitle: string;
+    comingIn: string;
+    fixedBills: string;
+    freeToSpend: string;
+    perDay: string;
+    nextBillToday: string;
+    doneBtn: string;
+    finishCard: string;
+    finishRow: string;
+    fixedBillsCount: PluralForms;
+    nextBillIn: PluralForms;
+  };
   personal: {
     /** The Personal tab's first-visit intro cards, and their skip. */
     introCards: readonly { title: string; body: string }[];
@@ -15676,6 +15765,96 @@ const en: UiStrings = {
     storageFull: 'You have reached your storage limit.',
     waitingWifi: 'Waiting for Wi‑Fi. Add the photo when you are on Wi‑Fi.',
     couldNotAdd: 'Could not add the receipt. Try again.',
+  },
+  personalSetup: {
+    title: 'Set up Personal',
+    privateLine: 'Private to you — only you see this',
+    skip: 'Skip',
+    cont: 'Continue',
+    stepOf: 'Step {n} of {total}',
+    nameIncome: 'Income',
+    nameHome: 'Rent or home loan',
+    nameBills: 'Bills',
+    nameEmi: 'Loan EMIs',
+    nameEat: 'Eating out',
+    nameSavings: 'Savings',
+    nameCap: 'Spending cap',
+    incomeQ: 'Do you get paid regularly?',
+    incomeSalary: 'Salary',
+    incomeBusiness: 'Business',
+    incomeFreelance: 'Freelance',
+    incomePension: 'Pension',
+    incomeNone: 'Not regular',
+    incomeDetailsQ: 'How much, and on which day?',
+    homeQ: 'Rent or home loan?',
+    homeRent: 'Rent',
+    homeEmi: 'Home loan payment',
+    homeNone: 'Neither',
+    homeDetailsQ: 'How much, and on which day?',
+    billsQ: 'Which bills do you pay?',
+    billElectricity: 'Electricity',
+    billMobile: 'Mobile',
+    billWifi: 'Wi-Fi',
+    billGas: 'Gas',
+    billHelp: 'Household help',
+    billSchool: 'School fees (quarterly)',
+    billSociety: 'Building fees',
+    billInsurance: 'Insurance (yearly)',
+    billSip: 'Investment contribution',
+    billsDetailsQ: 'How much, and on which day?',
+    loanQ: 'Paying off any loans?',
+    yes: 'Yes',
+    no: 'No',
+    loanTypeQ: 'Which loan?',
+    loanCar: 'Car',
+    loanPersonal: 'Personal',
+    loanGold: 'Other secured loan',
+    loanEducation: 'Education',
+    loanCard: 'Credit card',
+    loanDetailsQ: 'EMI, day and months left',
+    emiLabel: 'EMI',
+    monthsLeft: 'Months left',
+    eatQ: 'How often do you eat out or order in?',
+    eatRarely: 'Rarely',
+    eat12: '1–2 a week',
+    eat34: '3–4 a week',
+    eatMost: 'Most days',
+    eatEachQ: 'About how much each time?',
+    eatMonthly: 'About {amount} a month',
+    savingsQ: 'Any savings set aside?',
+    saveNone: 'None',
+    saveUnder1: 'Under 1 month of pay',
+    save1to3: '1–3 months',
+    save3to6: '3–6 months',
+    save6plus: '6+ months',
+    capQ: 'Cap everyday spending?',
+    capHint: 'Your income minus fixed bills',
+    amountLabel: 'Amount',
+    dayLabel: 'Day of the month',
+    revealTitle: 'Your {month}',
+    comingIn: 'Coming in',
+    fixedBills: 'Fixed bills',
+    freeToSpend: 'Free to spend',
+    perDay: 'about {amount} a day',
+    nextBillToday: '{name} is due today',
+    doneBtn: 'Done',
+    finishCard: 'Finish setting up · {n} left',
+    finishRow: '{name}',
+    fixedBillsCount: { one: '{n} bill', other: '{n} bills' },
+    nextBillIn: { one: '{name} tomorrow', other: '{name} in {n} days' },
+
+    hintEmi: 'EMI',
+    hintSociety: 'Society maintenance',
+    hintHoa: 'HOA',
+    hintServiceCharge: 'Service charge',
+    hintCouncilTax: 'Council tax',
+    hintStrata: 'Strata',
+    hintRates: 'Rates',
+    hintDewa: 'DEWA',
+    hintChiller: 'Chiller',
+    hintMaidCookDriver: 'Maid / cook / driver',
+    hintSipChitFund: 'SIP / chit fund',
+    hintGoldLoan: 'Gold loan',
   },
   personal: {
     introCards: [
@@ -23350,6 +23529,96 @@ const ta: UiStrings = {
     waitingWifi: 'Wi‑Fi-க்காகக் காத்திருக்கிறது. Wi‑Fi-இல் இருக்கும்போது படத்தைச் சேர்க்கவும்.',
     couldNotAdd: 'ரசீதைச் சேர்க்க முடியவில்லை. மீண்டும் முயலவும்.',
   },
+  personalSetup: {
+    title: 'தனிப்பட்டதை அமைக்கவும்',
+    privateLine: 'உங்களுக்கு மட்டும் — நீங்கள் மட்டுமே பார்க்கலாம்',
+    skip: 'தவிர்',
+    cont: 'தொடரவும்',
+    stepOf: 'படி {n} / {total}',
+    nameIncome: 'வருமானம்',
+    nameHome: 'வாடகை அல்லது வீட்டுக் கடன்',
+    nameBills: 'கட்டணங்கள்',
+    nameEmi: 'கடன் EMI',
+    nameEat: 'வெளியே சாப்பிடுதல்',
+    nameSavings: 'சேமிப்பு',
+    nameCap: 'செலவு வரம்பு',
+    incomeQ: 'நிரந்தரமாக வருமானம் வருகிறதா?',
+    incomeSalary: 'சம்பளம்',
+    incomeBusiness: 'தொழில்',
+    incomeFreelance: 'ஃப்ரீலான்ஸ்',
+    incomePension: 'ஓய்வூதியம்',
+    incomeNone: 'நிரந்தரமில்லை',
+    incomeDetailsQ: 'எவ்வளவு, எந்த நாளில்?',
+    homeQ: 'வாடகை அல்லது வீட்டுக் கடன்?',
+    homeRent: 'வாடகை',
+    homeEmi: 'வீட்டுக் கடன் கட்டணம்',
+    homeNone: 'இரண்டும் இல்லை',
+    homeDetailsQ: 'எவ்வளவு, எந்த நாளில்?',
+    billsQ: 'எந்தக் கட்டணங்களைச் செலுத்துகிறீர்கள்?',
+    billElectricity: 'மின்சாரம்',
+    billMobile: 'மொபைல்',
+    billWifi: 'வைஃபை',
+    billGas: 'எரிவாயு',
+    billHelp: 'வீட்டு உதவி',
+    billSchool: 'பள்ளிக் கட்டணம் (காலாண்டு)',
+    billSociety: 'கட்டிடக் கட்டணங்கள்',
+    billInsurance: 'காப்பீடு (ஆண்டு)',
+    billSip: 'முதலீட்டுப் பங்களிப்பு',
+    billsDetailsQ: 'எவ்வளவு, எந்த நாளில்?',
+    loanQ: 'ஏதேனும் கடனைத் திருப்பிச் செலுத்துகிறீர்களா?',
+    yes: 'ஆம்',
+    no: 'இல்லை',
+    loanTypeQ: 'எந்தக் கடன்?',
+    loanCar: 'கார்',
+    loanPersonal: 'தனிநபர்',
+    loanGold: 'பிற அடமானக் கடன்',
+    loanEducation: 'கல்வி',
+    loanCard: 'கிரெடிட் கார்டு',
+    loanDetailsQ: 'EMI, நாள், மீதமுள்ள மாதங்கள்',
+    emiLabel: 'EMI',
+    monthsLeft: 'மீதமுள்ள மாதங்கள்',
+    eatQ: 'எவ்வளவு அடிக்கடி வெளியே சாப்பிடுவீர்கள் அல்லது ஆர்டர் செய்வீர்கள்?',
+    eatRarely: 'அரிதாக',
+    eat12: 'வாரம் 1–2',
+    eat34: 'வாரம் 3–4',
+    eatMost: 'பெரும்பாலான நாட்கள்',
+    eatEachQ: 'ஒரு முறைக்கு சுமார் எவ்வளவு?',
+    eatMonthly: 'மாதம் சுமார் {amount}',
+    savingsQ: 'ஒதுக்கி வைத்த சேமிப்பு உண்டா?',
+    saveNone: 'இல்லை',
+    saveUnder1: '1 மாத சம்பளத்துக்குக் குறைவு',
+    save1to3: '1–3 மாதங்கள்',
+    save3to6: '3–6 மாதங்கள்',
+    save6plus: '6+ மாதங்கள்',
+    capQ: 'அன்றாடச் செலவுக்கு வரம்பு?',
+    capHint: 'உங்கள் வருமானம் கழித்தல் நிலையான கட்டணங்கள்',
+    amountLabel: 'தொகை',
+    dayLabel: 'மாதத்தின் நாள்',
+    revealTitle: 'உங்கள் {month}',
+    comingIn: 'வரவு',
+    fixedBills: 'நிலையான கட்டணங்கள்',
+    freeToSpend: 'செலவழிக்கக் கிடைப்பது',
+    perDay: 'நாளுக்கு சுமார் {amount}',
+    nextBillToday: '{name} இன்று செலுத்த வேண்டும்',
+    doneBtn: 'முடிந்தது',
+    finishCard: 'அமைப்பை முடிக்கவும் · {n} மீதம்',
+    finishRow: '{name}',
+    fixedBillsCount: { one: '{n} கட்டணம்', other: '{n} கட்டணங்கள்' },
+    nextBillIn: { one: '{name} நாளை', other: '{name} {n} நாட்களில்' },
+
+    hintEmi: 'EMI',
+    hintSociety: 'சங்கப் பராமரிப்பு',
+    hintHoa: 'HOA',
+    hintServiceCharge: 'சேவை கட்டணம்',
+    hintCouncilTax: 'கவுன்சில் வரி',
+    hintStrata: 'ஸ்ட்ராட்டா',
+    hintRates: 'விகிதக் கட்டணங்கள்',
+    hintDewa: 'DEWA',
+    hintChiller: 'சில்லர்',
+    hintMaidCookDriver: 'வேலைக்காரர் / சமையல் / ஓட்டுநர்',
+    hintSipChitFund: 'SIP / சீட்டு',
+    hintGoldLoan: 'தங்கக் கடன்',
+  },
   personal: {
     introCards: [
       {
@@ -30856,6 +31125,96 @@ const hi: UiStrings = {
     storageFull: 'आपकी स्टोरेज सीमा पूरी हो गई है।',
     waitingWifi: 'Wi‑Fi का इंतज़ार है। Wi‑Fi पर होने पर फ़ोटो जोड़ें।',
     couldNotAdd: 'रसीद जोड़ी नहीं जा सकी। दोबारा कोशिश करें।',
+  },
+  personalSetup: {
+    title: 'पर्सनल सेट करें',
+    privateLine: 'सिर्फ़ आपके लिए — इसे केवल आप देखते हैं',
+    skip: 'छोड़ें',
+    cont: 'आगे',
+    stepOf: 'चरण {n} / {total}',
+    nameIncome: 'आमदनी',
+    nameHome: 'किराया या होम लोन',
+    nameBills: 'बिल',
+    nameEmi: 'लोन EMI',
+    nameEat: 'बाहर खाना',
+    nameSavings: 'बचत',
+    nameCap: 'खर्च की सीमा',
+    incomeQ: 'क्या आपको नियमित वेतन/आमदनी मिलती है?',
+    incomeSalary: 'वेतन',
+    incomeBusiness: 'बिज़नेस',
+    incomeFreelance: 'फ़्रीलांस',
+    incomePension: 'पेंशन',
+    incomeNone: 'नियमित नहीं',
+    incomeDetailsQ: 'कितना, और किस तारीख़ को?',
+    homeQ: 'किराया या होम लोन?',
+    homeRent: 'किराया',
+    homeEmi: 'होम लोन भुगतान',
+    homeNone: 'दोनों नहीं',
+    homeDetailsQ: 'कितना, और किस तारीख़ को?',
+    billsQ: 'आप कौन-से बिल भरते हैं?',
+    billElectricity: 'बिजली',
+    billMobile: 'मोबाइल',
+    billWifi: 'वाई-फ़ाई',
+    billGas: 'गैस',
+    billHelp: 'घरेलू सहायता',
+    billSchool: 'स्कूल फ़ीस (तिमाही)',
+    billSociety: 'बिल्डिंग शुल्क',
+    billInsurance: 'बीमा (सालाना)',
+    billSip: 'निवेश योगदान',
+    billsDetailsQ: 'कितना, और किस तारीख़ को?',
+    loanQ: 'क्या आप कोई कर्ज़ चुका रहे हैं?',
+    yes: 'हाँ',
+    no: 'नहीं',
+    loanTypeQ: 'कौन-सा लोन?',
+    loanCar: 'कार',
+    loanPersonal: 'पर्सनल',
+    loanGold: 'अन्य सुरक्षित ऋण',
+    loanEducation: 'एजुकेशन',
+    loanCard: 'क्रेडिट कार्ड',
+    loanDetailsQ: 'EMI, तारीख़ और बचे महीने',
+    emiLabel: 'EMI',
+    monthsLeft: 'बचे महीने',
+    eatQ: 'आप कितनी बार बाहर खाते या ऑर्डर करते हैं?',
+    eatRarely: 'कभी-कभार',
+    eat12: 'हफ़्ते में 1–2',
+    eat34: 'हफ़्ते में 3–4',
+    eatMost: 'लगभग रोज़',
+    eatEachQ: 'एक बार में लगभग कितना?',
+    eatMonthly: 'महीने में लगभग {amount}',
+    savingsQ: 'कुछ बचत रखी है?',
+    saveNone: 'नहीं',
+    saveUnder1: '1 महीने के वेतन से कम',
+    save1to3: '1–3 महीने',
+    save3to6: '3–6 महीने',
+    save6plus: '6+ महीने',
+    capQ: 'रोज़ के खर्च की सीमा तय करें?',
+    capHint: 'आपकी आमदनी में से तय बिल घटाकर',
+    amountLabel: 'रकम',
+    dayLabel: 'महीने की तारीख़',
+    revealTitle: 'आपका {month}',
+    comingIn: 'आमदनी',
+    fixedBills: 'तय बिल',
+    freeToSpend: 'खर्च के लिए बचा',
+    perDay: 'लगभग {amount} रोज़',
+    nextBillToday: '{name} आज देय है',
+    doneBtn: 'हो गया',
+    finishCard: 'सेटअप पूरा करें · {n} बाकी',
+    finishRow: '{name}',
+    fixedBillsCount: { one: '{n} बिल', other: '{n} बिल' },
+    nextBillIn: { one: '{name} कल', other: '{name} {n} दिन में' },
+
+    hintEmi: 'EMI',
+    hintSociety: 'सोसाइटी मेंटेनेंस',
+    hintHoa: 'HOA',
+    hintServiceCharge: 'सर्विस चार्ज',
+    hintCouncilTax: 'काउंसिल टैक्स',
+    hintStrata: 'स्ट्राटा',
+    hintRates: 'रेट्स',
+    hintDewa: 'DEWA',
+    hintChiller: 'चिलर',
+    hintMaidCookDriver: 'मेड / कुक / ड्राइवर',
+    hintSipChitFund: 'SIP / चिट फ़ंड',
+    hintGoldLoan: 'गोल्ड लोन',
   },
   personal: {
     introCards: [
@@ -39175,6 +39534,109 @@ const ar: UiStrings = {
     storageFull: 'لقد بلغت حد التخزين.',
     waitingWifi: 'في انتظار Wi‑Fi. أضف الصورة عندما تكون على Wi‑Fi.',
     couldNotAdd: 'تعذّرت إضافة الإيصال. حاول مرة أخرى.',
+  },
+  personalSetup: {
+    title: 'إعداد الشخصي',
+    privateLine: 'خاص بك — أنت وحدك من يراه',
+    skip: 'تخطي',
+    cont: 'متابعة',
+    stepOf: 'الخطوة {n} من {total}',
+    nameIncome: 'الدخل',
+    nameHome: 'الإيجار أو قرض المنزل',
+    nameBills: 'الفواتير',
+    nameEmi: 'أقساط القروض',
+    nameEat: 'الأكل خارج المنزل',
+    nameSavings: 'المدخرات',
+    nameCap: 'سقف الإنفاق',
+    incomeQ: 'هل يصلك دخل منتظم؟',
+    incomeSalary: 'راتب',
+    incomeBusiness: 'عمل تجاري',
+    incomeFreelance: 'عمل حر',
+    incomePension: 'معاش',
+    incomeNone: 'غير منتظم',
+    incomeDetailsQ: 'كم المبلغ، وفي أي يوم؟',
+    homeQ: 'إيجار أم قرض منزل؟',
+    homeRent: 'إيجار',
+    homeEmi: 'دفعة قرض المنزل',
+    homeNone: 'لا هذا ولا ذاك',
+    homeDetailsQ: 'كم المبلغ، وفي أي يوم؟',
+    billsQ: 'ما الفواتير التي تدفعها؟',
+    billElectricity: 'الكهرباء',
+    billMobile: 'الجوال',
+    billWifi: 'الواي فاي',
+    billGas: 'الغاز',
+    billHelp: 'مساعدة منزلية',
+    billSchool: 'رسوم المدرسة (ربع سنوية)',
+    billSociety: 'رسوم المبنى',
+    billInsurance: 'التأمين (سنوي)',
+    billSip: 'مساهمة استثمارية',
+    billsDetailsQ: 'كم المبلغ، وفي أي يوم؟',
+    loanQ: 'هل تسدّد أي قروض؟',
+    yes: 'نعم',
+    no: 'لا',
+    loanTypeQ: 'أي قرض؟',
+    loanCar: 'سيارة',
+    loanPersonal: 'شخصي',
+    loanGold: 'قرض مضمون آخر',
+    loanEducation: 'تعليم',
+    loanCard: 'بطاقة ائتمان',
+    loanDetailsQ: 'القسط واليوم والأشهر المتبقية',
+    emiLabel: 'القسط',
+    monthsLeft: 'الأشهر المتبقية',
+    eatQ: 'كم مرة تأكل خارج المنزل أو تطلب أكلاً؟',
+    eatRarely: 'نادراً',
+    eat12: '1–2 في الأسبوع',
+    eat34: '3–4 في الأسبوع',
+    eatMost: 'معظم الأيام',
+    eatEachQ: 'كم تدفع تقريباً في المرة؟',
+    eatMonthly: 'حوالي {amount} شهرياً',
+    savingsQ: 'هل لديك مدخرات؟',
+    saveNone: 'لا شيء',
+    saveUnder1: 'أقل من راتب شهر',
+    save1to3: '1–3 أشهر',
+    save3to6: '3–6 أشهر',
+    save6plus: '6 أشهر فأكثر',
+    capQ: 'تحديد سقف للإنفاق اليومي؟',
+    capHint: 'دخلك ناقص الفواتير الثابتة',
+    amountLabel: 'المبلغ',
+    dayLabel: 'يوم الشهر',
+    revealTitle: '{month} الخاص بك',
+    comingIn: 'الداخل',
+    fixedBills: 'الفواتير الثابتة',
+    freeToSpend: 'المتاح للإنفاق',
+    perDay: 'حوالي {amount} يومياً',
+    nextBillToday: '{name} مستحق اليوم',
+    doneBtn: 'تم',
+    finishCard: 'أكمل الإعداد · متبقٍ {n}',
+    finishRow: '{name}',
+    fixedBillsCount: {
+      zero: 'لا فواتير',
+      one: 'فاتورة واحدة',
+      two: 'فاتورتان',
+      few: '{n} فواتير',
+      many: '{n} فاتورة',
+      other: '{n} فاتورة',
+    },
+    nextBillIn: {
+      one: '{name} غداً',
+      two: '{name} بعد يومين',
+      few: '{name} بعد {n} أيام',
+      many: '{name} بعد {n} يوماً',
+      other: '{name} بعد {n} يوم',
+    },
+
+    hintEmi: 'قسط قرض المنزل',
+    hintSociety: 'صيانة المجمّع',
+    hintHoa: 'رسوم اتحاد الملاك',
+    hintServiceCharge: 'رسوم الخدمة',
+    hintCouncilTax: 'ضريبة المجلس المحلي',
+    hintStrata: 'ستراتا',
+    hintRates: 'الرسوم البلدية',
+    hintDewa: 'DEWA',
+    hintChiller: 'تبريد',
+    hintMaidCookDriver: 'خادمة / طباخ / سائق',
+    hintSipChitFund: 'استثمار شهري / جمعية',
+    hintGoldLoan: 'قرض ذهب',
   },
   personal: {
     introCards: [
