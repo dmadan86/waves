@@ -95,7 +95,7 @@ describe('answersToRecords', () => {
       ],
       emi: { kind: 'gold', emi: rupees(4000), day: 8, monthsLeft: 12 },
     } as const;
-    const recs = answersToRecords(legacy, ctx);
+    const recs = answersToRecords(legacy as unknown as Parameters<typeof answersToRecords>[0], ctx);
     const notes = recs.map((r) => decodeRecurring(r.recordId, r.data).note);
     expect(notes).toEqual([
       'home:home_loan',
