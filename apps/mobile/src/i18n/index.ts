@@ -4109,6 +4109,27 @@ export interface UiStrings {
     localSection: string;
     savedForLater: string;
     savedForLaterBody: string;
+    planBills: string;
+    planBillsBody: string;
+    planRecap: string;
+    planRecapBody: string;
+    planDaily: string;
+    planDailyBody: string;
+    plan: {
+      title: string;
+      bill: string;
+      billCovered: string;
+      billHidden: string;
+      weekLess: string;
+      weekMore: string;
+      weekPlain: string;
+      weekHidden: string;
+      monthLeft: string;
+      monthOver: string;
+      monthHidden: string;
+      daily: string;
+      dailyHidden: string;
+    };
   };
   /** Attaching an email or phone to the account you already have (ADR-006). */
   /** The ask to add a phone number, shown after sign-in until one is linked. */
@@ -12312,6 +12333,27 @@ const en: UiStrings = {
     savedForLater: 'Expenses saved for later',
     savedForLaterBody:
       'If one is still waiting for a group a day later, this phone reminds you in the evening. On a day you have not opened Waves at all, it asks instead whether anything needs splitting. Once a day at most, and only ever one of the two.',
+    planBills: 'Bill reminders',
+    planBillsBody: 'The evening before a bill of yours goes out.',
+    planRecap: 'Weekly and monthly recap',
+    planRecapBody: 'Sunday evening, and on the 1st of each month.',
+    planDaily: 'Daily amount left',
+    planDailyBody: 'A morning note with what is left for today.',
+    plan: {
+      title: 'Your plan',
+      bill: '{name} of {amount} goes out tomorrow.',
+      billCovered: "You're covered.",
+      billHidden: 'A bill goes out tomorrow.',
+      weekLess: 'Your week: {spent} spent, {delta} less than usual. Tap to see.',
+      weekMore: 'Your week: {spent} spent, {delta} more than usual. Tap to see.',
+      weekPlain: 'Your week: {spent} spent. Tap to see.',
+      weekHidden: 'Your week is ready. Tap to see.',
+      monthLeft: '{month} closed with {amount} left over.',
+      monthOver: '{month} closed {amount} over your income.',
+      monthHidden: 'Your month is ready. Tap to see.',
+      daily: "{amount} left for today. You're on plan.",
+      dailyHidden: 'Your plan for today is ready.',
+    },
   },
   phonePrompt: {
     title: 'Add your phone number',
@@ -20039,6 +20081,27 @@ const ta: UiStrings = {
     savedForLater: 'பிறகு சேமித்த செலவுகள்',
     savedForLaterBody:
       'ஒரு நாள் கழித்தும் ஒரு செலவு குழுவுக்காகக் காத்திருந்தால், இந்த ஃபோன் மாலையில் நினைவூட்டும். நீங்கள் Waves-ஐத் திறக்காத நாளில், பிரிக்க ஏதேனும் உள்ளதா என்று கேட்கும். நாளொன்றுக்கு ஒரு முறை மட்டுமே; இரண்டில் ஒன்று மட்டுமே.',
+    planBills: 'பில் நினைவூட்டல்கள்',
+    planBillsBody: 'உங்கள் பில் செலுத்தப்படுவதற்கு முந்தைய மாலை.',
+    planRecap: 'வாராந்திர மற்றும் மாதாந்திர சுருக்கம்',
+    planRecapBody: 'ஞாயிறு மாலை, மற்றும் ஒவ்வொரு மாதம் 1-ஆம் தேதி.',
+    planDaily: 'தினமும் மீதமுள்ள தொகை',
+    planDailyBody: 'இன்றைக்கு மீதமுள்ள தொகையுடன் காலை குறிப்பு.',
+    plan: {
+      title: 'உங்கள் திட்டம்',
+      bill: '{name} {amount} நாளை செலவாகும்.',
+      billCovered: 'உங்களிடம் போதுமான பணம் உள்ளது.',
+      billHidden: 'நாளை ஒரு பில் செலுத்தப்படும்.',
+      weekLess: 'உங்கள் வாரம்: {spent} செலவு, வழக்கத்தை விட {delta} குறைவு. பார்க்கத் தட்டவும்.',
+      weekMore: 'உங்கள் வாரம்: {spent} செலவு, வழக்கத்தை விட {delta} அதிகம். பார்க்கத் தட்டவும்.',
+      weekPlain: 'உங்கள் வாரம்: {spent} செலவு. பார்க்கத் தட்டவும்.',
+      weekHidden: 'உங்கள் வாரச் சுருக்கம் தயார். பார்க்கத் தட்டவும்.',
+      monthLeft: '{month} முடிவில் {amount} மீதம்.',
+      monthOver: '{month}: வருமானத்தை விட {amount} அதிகம்.',
+      monthHidden: 'உங்கள் மாதச் சுருக்கம் தயார். பார்க்கத் தட்டவும்.',
+      daily: 'இன்று {amount} மீதம். திட்டப்படி உள்ளீர்கள்.',
+      dailyHidden: 'இன்றைய திட்டம் தயார்.',
+    },
   },
   phonePrompt: {
     title: 'உங்கள் தொலைபேசி எண்ணைச் சேர்க்கவும்',
@@ -27807,6 +27870,27 @@ const hi: UiStrings = {
     savedForLater: 'बाद के लिए सहेजे गए खर्च',
     savedForLaterBody:
       'अगर कोई खर्च एक दिन बाद भी किसी समूह का इंतज़ार कर रहा हो, तो यह फ़ोन शाम को याद दिलाता है। जिस दिन आपने Waves खोला ही न हो, उस दिन यह पूछता है कि बाँटने के लिए कुछ है क्या। दिन में ज़्यादा से ज़्यादा एक बार, और दोनों में से सिर्फ़ एक।',
+    planBills: 'बिल रिमाइंडर',
+    planBillsBody: 'आपका बिल जाने से एक शाम पहले।',
+    planRecap: 'साप्ताहिक और मासिक सार',
+    planRecapBody: 'रविवार शाम, और हर महीने की 1 तारीख़ को।',
+    planDaily: 'रोज़ बची रकम',
+    planDailyBody: 'आज के लिए कितना बचा है, इसका सुबह का नोट।',
+    plan: {
+      title: 'आपका प्लान',
+      bill: '{name} के {amount} कल जाएँगे।',
+      billCovered: 'आपके पास पूरे हैं।',
+      billHidden: 'कल एक बिल जाएगा।',
+      weekLess: 'आपका हफ़्ता: {spent} खर्च, आम तौर से {delta} कम। देखने के लिए टैप करें।',
+      weekMore: 'आपका हफ़्ता: {spent} खर्च, आम तौर से {delta} ज़्यादा। देखने के लिए टैप करें।',
+      weekPlain: 'आपका हफ़्ता: {spent} खर्च। देखने के लिए टैप करें।',
+      weekHidden: 'आपका हफ़्ता तैयार है। देखने के लिए टैप करें।',
+      monthLeft: '{month} में {amount} बचे।',
+      monthOver: '{month}: आमदनी से {amount} ज़्यादा खर्च।',
+      monthHidden: 'आपका महीना तैयार है। देखने के लिए टैप करें।',
+      daily: 'आज के लिए {amount} बचे हैं। आप प्लान पर हैं।',
+      dailyHidden: 'आज का प्लान तैयार है।',
+    },
   },
   phonePrompt: {
     title: 'अपना फ़ोन नंबर जोड़ें',
@@ -35618,6 +35702,27 @@ const ar: UiStrings = {
     savedForLater: 'مصاريف محفوظة لوقت لاحق',
     savedForLaterBody:
       'إذا بقي مصروف ينتظر مجموعة بعد يوم كامل، يذكّرك هذا الهاتف مساءً. وفي يوم لم تفتح فيه Waves إطلاقًا، يسألك بدلًا من ذلك إن كان هناك ما تريد تقسيمه. مرة واحدة في اليوم على الأكثر، وواحد من الاثنين فقط.',
+    planBills: 'تذكيرات الفواتير',
+    planBillsBody: 'مساء اليوم السابق لسداد فاتورتك.',
+    planRecap: 'ملخص أسبوعي وشهري',
+    planRecapBody: 'مساء الأحد، وفي أول كل شهر.',
+    planDaily: 'المبلغ المتبقي يوميًا',
+    planDailyBody: 'ملاحظة صباحية بما تبقّى لهذا اليوم.',
+    plan: {
+      title: 'خطتك',
+      bill: 'سيُدفع {name} بقيمة {amount} غدًا.',
+      billCovered: 'أنت مغطّى.',
+      billHidden: 'هناك فاتورة تُدفع غدًا.',
+      weekLess: 'أسبوعك: أنفقت {spent}، أقل من المعتاد بمقدار {delta}. اضغط للعرض.',
+      weekMore: 'أسبوعك: أنفقت {spent}، أكثر من المعتاد بمقدار {delta}. اضغط للعرض.',
+      weekPlain: 'أسبوعك: أنفقت {spent}. اضغط للعرض.',
+      weekHidden: 'أسبوعك جاهز. اضغط للعرض.',
+      monthLeft: 'انتهى {month} وبقي {amount}.',
+      monthOver: '{month}: أنفقت {amount} فوق دخلك.',
+      monthHidden: 'شهرك جاهز. اضغط للعرض.',
+      daily: 'بقي {amount} لهذا اليوم. أنت على الخطة.',
+      dailyHidden: 'خطة اليوم جاهزة.',
+    },
   },
   phonePrompt: {
     title: 'أضف رقم هاتفك',

@@ -59,6 +59,9 @@ import { markLaunchReady } from '@/lib/launchReady';
 import { AutoBackup } from '@/lib/backup/AutoBackup';
 import { backendConfigured } from '@/lib/backend';
 import { CaptureNudge } from '@/lib/captureNudge/CaptureNudge';
+import { PlanNudge } from '@/lib/planNudge/PlanNudge';
+import { PLAN_KEY } from '@/lib/planNudge/schedule';
+import { recordPlanOpened } from '@/lib/planNudge/settings';
 import { SmsAutoRead } from '@/lib/smsAutoRead';
 import { SmsDraftUpkeep } from '@/lib/useSmsDraftUpkeep';
 import { DeviceSessionProvider } from '@/lib/deviceSession';
@@ -329,6 +332,7 @@ function RootLayout() {
                                 read from the mirror, which must not be touched
                                 while the app is still locked. */}
                                             <CaptureNudge />
+                                            <PlanNudge />
                                             {/* Renders nothing: opens add-expense with a photo
                                 another app shared to Waves. Inside the lock
                                 because it reads the group list from the mirror,
@@ -474,6 +478,11 @@ function PushRouting() {
     // One gate for both paths: the cold-start "last response" survives root
     // remounts, so without it the same tap re-navigated every time.
     const handle = async (response: Notifications.NotificationResponse) => {
+      const planData = response.notification.request.content.data as
+        { key?: unknown; ownerId?: unknown; fireAt?: unknown } | undefined;
+      if (planData?.key === PLAN_KEY) {
+        void recordPlanOpened(String(planData.ownerId ?? ''), Number(planData.fireAt));
+      }
       const target = routeForNotification(response);
       const route = target && !COMPANIES_ENABLED && isCompanyRoute(target) ? '/' : target;
       if (!route || !(await firstTime(response.notification.request.identifier))) return;
