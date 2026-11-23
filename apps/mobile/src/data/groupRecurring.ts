@@ -9,15 +9,24 @@
  * app opens, so nothing waits on the schedule.
  */
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
+import { AppState } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 
 import {
   buildGroupRecurringCreate,
   groupRecurringFromRow,
+  format,
+  isPoolGroup,
+  materialiseGroup,
+  materialiseGroups,
+  money,
+  type CurrencyCode,
   materialiseGroupRecurring,
   materialiseMembers,
   MutationKind,
+  poolSplit,
   type GroupRecurringPatch,
   type GroupRecurringRule,
   type GroupRecurringTemplate,
@@ -28,8 +37,18 @@ import { todayIso } from '@/data/personal';
 import { isViewer, type MemberRow } from '@/data/types';
 import { useAuth } from '@/lib/auth';
 import { backend } from '@/lib/backend';
+import { fill, useStrings } from '@/i18n';
+import { serialiseExpense } from '@/data/serialiseExpense';
+import {
+  groupBillsForPayer,
+  createReplanner,
+  hexToUuid,
+  occurrenceSeed,
+  type PayerBill,
+} from '@/lib/householdBills';
+import { syncBillReminders } from '@/lib/householdBillReminders';
 import { reportHandled } from '@/lib/observability';
-import { useSync } from '@/sync';
+import { syncEngine, useSync } from '@/sync';
 
 /** The group's repeating rules, newest first, with queued changes shown. */
 export function useGroupRecurring(groupId: string): {
@@ -52,7 +71,7 @@ export function useGroupRecurring(groupId: string): {
 
 /** Make a rule. Resolves to the new rule's id. */
 export function useCreateGroupRecurring(groupId: string) {
-  const { mutate } = useSync();
+  const { mutate, mirror, queue } = useSync();
   return useMutation({
     mutationFn: async (input: {
       /** Derived from what the rule repeats, so a retry finds the same rule. */
@@ -61,11 +80,16 @@ export function useCreateGroupRecurring(groupId: string) {
       when: GroupRecurringWhen;
     }): Promise<string> => {
       const ruleId = input.ruleId;
+      // Share it: a shared bill is paid from the pot, so nobody owes the payer.
+      const template = isPoolGroup(materialiseGroup(mirror, queue, groupId) as never)
+        ? { ...input.template, ...poolSplit(input.template.payers) }
+        : input.template;
       await mutate(MutationKind.GroupRecurringCreate, groupId, {
-        ...buildGroupRecurringCreate(ruleId, input.template, input.when),
+        ...buildGroupRecurringCreate(ruleId, template, input.when),
       });
       return ruleId;
     },
+    onSuccess: () => replanBillReminders(),
   });
 }
 
@@ -78,6 +102,7 @@ export function useUpdateGroupRecurring(groupId: string) {
         ruleId: input.ruleId,
         patch: { ...input.patch },
       }),
+    onSuccess: () => replanBillReminders(),
   });
 }
 
@@ -107,4 +132,134 @@ export function useRecurringCatchUp(): void {
       }
     })();
   }, [userId, hydrated, flush]);
+}
+
+type BillCollect = { bills: PayerBill[]; names: Map<string, string> };
+
+/** Every shared bill this person pays, across their pooled groups, from the given local state. */
+function collectBills(
+  mirror: Parameters<typeof materialiseGroups>[0],
+  queue: Parameters<typeof materialiseGroups>[1],
+  profileId: string | undefined,
+): BillCollect {
+  const bills: PayerBill[] = [];
+  const names = new Map<string, string>();
+  for (const group of materialiseGroups(mirror, queue)) {
+    if (!isPoolGroup(group as never)) continue;
+    const me = (
+      materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[]
+    ).find((member) => isViewer(member, profileId) && member.left_at === null);
+    if (!me) continue;
+    names.set(group.id, (group as { name?: string | null }).name ?? '');
+    const rules = materialiseGroupRecurring(mirror, queue, {
+      groupId: group.id,
+      myMemberId: me.id,
+      today: todayIso(),
+    }).map((row) => groupRecurringFromRow(row as never));
+    bills.push(...groupBillsForPayer(rules, me.id));
+  }
+  return { bills, names };
+}
+
+// What the last mounted hook knew (language, who is signed in): the re-plan reads
+// the live local state itself, so it works after a bill change anywhere in the app.
+let replanContext: {
+  profileId: string | undefined;
+  locale: string;
+  t: ReturnType<typeof useStrings>['t'];
+} | null = null;
+
+const replanBillReminders = createReplanner(async () => {
+  const ctx = replanContext;
+  const state = syncEngine.getState();
+  if (!ctx || !state.hydrated) return;
+  const { bills, names } = collectBills(state.mirror, state.queue, ctx.profileId);
+  await syncBillReminders(bills, {
+    title: (b, kind) =>
+      fill(kind === 'today' ? ctx.t.household.reminderToday : ctx.t.household.reminderAhead, {
+        bill: b.description,
+      }),
+    body: (b) =>
+      fill(ctx.t.household.reminderBody, {
+        amount: format(money(b.amount, b.currency as CurrencyCode), { locale: ctx.locale }),
+        group: names.get(b.groupId) ?? '',
+      }),
+  });
+}, 1500);
+
+/**
+ * Share-it households: local reminders (3 days before and on the day, 10:00) for
+ * the shared bills this person pays, across every pooled group. Re-planned (debounced,
+ * one at a time) when the bills change, after a bill is added, edited or removed,
+ * and when the app comes to the foreground; never asks for permission.
+ */
+export function useHouseholdBillReminders(): void {
+  const { mirror, queue, hydrated } = useSync();
+  const { profile } = useAuth();
+  const { t, locale } = useStrings();
+  const profileId = profile?.id;
+  const signature = useMemo(
+    () =>
+      collectBills(mirror, queue, profileId)
+        .bills.map((b) => `${b.ruleId}:${b.date}:${b.amount}`)
+        .join('|'),
+    [mirror, queue, profileId],
+  );
+  useEffect(() => {
+    replanContext = { profileId, locale, t };
+    if (hydrated) replanBillReminders();
+  }, [hydrated, signature, locale, profileId, t]);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') replanBillReminders();
+    });
+    return () => sub.remove();
+  }, []);
+}
+
+/** The ids the server's generator gives one occurrence, so a paid bill and the generated one are the same expense. */
+export async function occurrenceIds(
+  ruleId: string,
+  date: string,
+): Promise<{ expenseId: string; mutationId: string }> {
+  const id = async (kind: 'expense' | 'mutation'): Promise<string> =>
+    hexToUuid(
+      await digestStringAsync(CryptoDigestAlgorithm.MD5, occurrenceSeed(kind, ruleId, date)),
+    );
+  return { expenseId: await id('expense'), mutationId: await id('mutation') };
+}
+
+/**
+ * Mark one bill occurrence paid: post it as a group expense now. It takes the
+ * generator's own ids for (rule, date), so tapping twice, or the server posting
+ * it later on the day, replays the same expense instead of adding another.
+ */
+export function useMarkBillPaid(groupId: string) {
+  const { mutate, flush } = useSync();
+  return useCallback(
+    async (rule: GroupRecurringRule, date: string): Promise<void> => {
+      const { expenseId, mutationId } = await occurrenceIds(rule.id, date);
+      await mutate(
+        MutationKind.ExpenseCreate,
+        groupId,
+        {
+          ...serialiseExpense({
+            description: rule.description,
+            category: rule.category,
+            expenseDate: date,
+            currency: rule.currency,
+            amount: rule.amount,
+            splitParams: rule.splitParams,
+            participants: [...rule.participants],
+            payers: { ...rule.payers },
+            notes: rule.notes,
+          }),
+          expenseId,
+        },
+        mutationId,
+      );
+      void flush([groupId]);
+    },
+    [mutate, flush, groupId],
+  );
 }

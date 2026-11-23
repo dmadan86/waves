@@ -85,5 +85,9 @@ export function formatShortDateRange(
   if (from.getMonth() !== to.getMonth()) return `${dayMonth(from)} – ${dayMonth(to)}`;
   if (from.getDate() === to.getDate()) return dayMonth(to);
   const day = from.toLocaleDateString(locale, { day: 'numeric' });
+  // Month-first locales (en-US) print "Oct 21" — the range is "Oct 21–23", not "21–Oct 23".
+  if (!/^\d/.test(dayMonth(to))) {
+    return `${dayMonth(from)}–${to.toLocaleDateString(locale, { day: 'numeric' })}`;
+  }
   return `${day}–${dayMonth(to)}`;
 }

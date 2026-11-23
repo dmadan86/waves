@@ -315,7 +315,7 @@ export const SERVICES: readonly ServiceEntry[] = [
   },
   {
     id: 'insurance',
-    name: 'Insurance premium',
+    name: 'Insurance',
     kind: 'bill',
     // Not "premium payment": `normaliseMerchantName` deletes "payment" as
     // gateway noise, so the pattern could never meet a string to match.
@@ -324,14 +324,14 @@ export const SERVICES: readonly ServiceEntry[] = [
   },
   {
     id: 'loan-emi',
-    name: 'Loan EMI',
+    name: 'Loan payment',
     kind: 'bill',
     patterns: ['emi', 'loan emi', 'home loan', 'car loan', 'loan repayment'],
     cadence: 'monthly',
   },
   {
     id: 'sip',
-    name: 'SIP',
+    name: 'Investment contribution',
     kind: 'other',
     // `other`, not `subscription`: a SIP repeats exactly like one and is
     // savings. Offering to cancel it would be the worst advice this app gives.

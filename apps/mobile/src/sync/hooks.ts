@@ -23,6 +23,7 @@ import {
   type SettlementSnapshot,
   type Transfer,
   byNewest,
+  fallbackCurrency,
 } from '@waves/core';
 
 import type { GroupRow, MemberRow, SettlementRow } from '@/data/types';
@@ -96,7 +97,7 @@ export function useOfflineLedger(groupId: string, myProfileId: string | null): O
   const local = useLocalGroup(groupId);
 
   return useMemo(() => {
-    const currency = local.group?.default_currency ?? 'INR';
+    const currency = local.group?.default_currency ?? fallbackCurrency();
 
     const snapshots = toLedgerSnapshots(
       liveExpenses(local.expenses).map(toExpenseSnapshot),

@@ -5,6 +5,7 @@ import {
   serialiseSplitParams,
   toLedgerSnapshots,
   type CurrencyCode,
+  fallbackCurrency,
 } from '@waves/core';
 import type { ExpenseRow, ExpenseVersionRow } from '../data/types';
 import type { ResplitItem } from '../data/api';
@@ -157,7 +158,7 @@ export function summarizeDepartedExpenses(
     count += 1;
     totals.set(row.currency, (totals.get(row.currency) ?? 0n) + share);
   }
-  const currency = group?.default_currency ?? totals.keys().next().value ?? 'INR';
+  const currency = group?.default_currency ?? totals.keys().next().value ?? fallbackCurrency();
   return { totals, count, currency, amount: totals.get(currency) ?? 0n };
 }
 

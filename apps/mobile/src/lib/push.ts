@@ -344,6 +344,9 @@ const ID = '[A-Za-z0-9-]+';
 const NOTIFICATION_PATHS = [
   /^\/activity$/,
   /^\/captures$/,
+  /^\/me$/,
+  /^\/personal\/recurring$/,
+  /^\/personal\/recap\?kind=(week|month)$/,
   /^\/settings\/devices$/,
   new RegExp(`^/group/${ID}(/(add-expense|company-followups|expense/${ID}))?$`),
 ];

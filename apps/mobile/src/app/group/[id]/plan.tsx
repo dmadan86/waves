@@ -31,6 +31,7 @@ import {
   spendBySubEvent,
   type SubEventExpense,
   type TimelineExpense,
+  fallbackCurrency,
 } from '@waves/core';
 import {
   AmountField,
@@ -132,7 +133,7 @@ function PlanScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const currency = group.data?.default_currency ?? 'INR';
+  const currency = group.data?.default_currency ?? fallbackCurrency();
   const timeZone = group.data?.time_zone ?? 'Asia/Kolkata';
   const today = todayIn(timeZone);
 
