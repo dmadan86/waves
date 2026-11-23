@@ -219,15 +219,16 @@ function NewGroupScreen() {
   // same bargain the icon strikes. So the screen never opens assuming a trip: a
   // group called "Goa" still becomes one, "Dinner" does not, and an untyped
   // name falls back to Other rather than dragging trip fields in behind it.
+  // Couple / home / other: one extra question before the group is made.
+  const [askingMode, setAskingMode] = useState(false);
+  const [ledgerMode, setLedgerMode] = useState<LedgerMode>('split');
+  // `?type=` seeds the kind (dates open a birthday Event); Company is never prefilled.
   const [pickedType, setPickedType] = useState<GroupType | null>(() =>
     (Object.values(GroupType) as string[]).includes(initialType ?? '') &&
     initialType !== GroupType.Company
       ? (initialType as GroupType)
       : null,
   );
-  // Couple / home / other: one extra question before the group is made.
-  const [askingMode, setAskingMode] = useState(false);
-  const [ledgerMode, setLedgerMode] = useState<LedgerMode>('split');
   // Event organizer (docs/event-organizer.md): which fixed sub-event list an
   // Event group starts with. Null until somebody picks one — a group is
   // allowed to stay a plain Event with no template, same as it is allowed to
@@ -1631,9 +1632,13 @@ function NewGroupScreen() {
         <CreateButton
           label={t.misc.createGroup}
           disabled={createGroup.isPending}
-          onPress={() =>
-            POOLABLE_GROUP_TYPES.includes(type) && !cloning ? setAskingMode(true) : void submit()
-          }
+          onPress={() => {
+            if (POOLABLE_GROUP_TYPES.includes(type) && !cloning) {
+              // A couple's group starts on Share it (still asked, one tap to change).
+              if (type === GroupType.Couple) setLedgerMode('pool');
+              setAskingMode(true);
+            } else void submit();
+          }}
         />
       </View>
     </Screen>

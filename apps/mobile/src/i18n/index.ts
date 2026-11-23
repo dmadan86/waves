@@ -3377,6 +3377,102 @@ export interface UiStrings {
     preferences: string;
     preferencesSub: string;
   };
+  hhome: {
+    sharedNote: string;
+    tabOverview: string;
+    tabBills: string;
+    tabUpcoming: string;
+    tabIncome: string;
+    thisMonth: string;
+    spent: string;
+    income: string;
+    left: string;
+    vsLast: string;
+    addExpense: string;
+    addBill: string;
+    addIncome: string;
+    upcomingTitle: string;
+    upcomingEmpty: string;
+    recentTitle: string;
+    noExpenses: string;
+    allExpenses: string;
+    billsTotal: string;
+    billsEmpty: string;
+    billsEmptyHint: string;
+    addBillRow: string;
+    dayEvery: string;
+    billOptions: string;
+    incomeTotal: string;
+    incomeEmpty: string;
+    incomeEmptyHint: string;
+    addIncomeRow: string;
+    incomeNote: string;
+    kindSalary: string;
+    kindPension: string;
+    kindBusiness: string;
+    kindRent: string;
+    kindOther: string;
+    incomeNewTitle: string;
+    incomeEditTitle: string;
+    whoQ: string;
+    labelQ: string;
+    labelPlaceholder: string;
+    amountQ: string;
+    dayQ: string;
+    removeIncome: string;
+    addMember: string;
+    memberName: string;
+    memberHint: string;
+    memberAdd: string;
+    relPartner: string;
+    relFather: string;
+    relMother: string;
+    relSon: string;
+    relDaughter: string;
+    relOther: string;
+    pickTitle: string;
+    pickSub: string;
+    pickNext: string;
+    pickDetails: string;
+    pickWho: string;
+    pickDay: string;
+    estimateNote: string;
+    perQuarter: string;
+    perYear: string;
+    pickSave: PluralForms;
+    pickNeed: string;
+    presets: {
+      rent: string;
+      home_loan: string;
+      electricity: string;
+      water: string;
+      gas: string;
+      internet: string;
+      mobile: string;
+      streaming: string;
+      building_fees: string;
+      household_help: string;
+      childcare_school: string;
+      groceries: string;
+      fuel: string;
+      insurance: string;
+      investment_contribution: string;
+      milk: string;
+      emi: string;
+      maid_cook_driver: string;
+      ott: string;
+      petrol: string;
+      society_maintenance: string;
+      hoa: string;
+      fuel_gas: string;
+      council_tax: string;
+      service_charge: string;
+      strata: string;
+      rates: string;
+      dewa: string;
+      chiller: string;
+    };
+  };
   household: {
     askTitle: string;
     askTitleNoName: string;
@@ -11934,6 +12030,104 @@ const en: UiStrings = {
     preferences: 'Preferences',
     preferencesSub: 'Notifications, currency and more',
   },
+  hhome: {
+    sharedNote: 'Only people in this group can see this',
+    tabOverview: 'Overview',
+    tabBills: 'Bills',
+    tabUpcoming: 'Upcoming',
+    tabIncome: 'Income',
+    thisMonth: 'This month',
+    spent: 'Spent',
+    income: 'Income',
+    left: 'Left',
+    vsLast: 'vs last month',
+    addExpense: 'Add expense',
+    addBill: 'Add bill',
+    addIncome: 'Add income',
+    upcomingTitle: 'Upcoming',
+    upcomingEmpty: 'Nothing due in the next 30 days.',
+    recentTitle: 'Recent expenses',
+    noExpenses: 'No expenses yet this month.',
+    allExpenses: 'All expenses',
+    billsTotal: '{amount} a month in fixed bills',
+    billsEmpty: 'No bills yet',
+    billsEmptyHint:
+      'Rent, electricity, Wi-Fi, school fees. Add them once and see what each month needs.',
+    addBillRow: 'Add a bill',
+    dayEvery: 'day {day} every month',
+    billOptions: 'Options for {name}',
+    incomeTotal: '{amount} a month planned',
+    incomeEmpty: 'No income planned yet',
+    incomeEmptyHint:
+      'Add each person’s salary, pension or pocket money to see what is left each month.',
+    addIncomeRow: 'Add income',
+    incomeNote: 'A plan only. It never changes who owes whom.',
+    kindSalary: 'Salary',
+    kindPension: 'Pension',
+    kindBusiness: 'Business',
+    kindRent: 'Rent',
+    kindOther: 'Other',
+    incomeNewTitle: 'Add income',
+    incomeEditTitle: 'Edit income',
+    whoQ: 'Whose income is it?',
+    labelQ: 'What is it?',
+    labelPlaceholder: 'Salary',
+    amountQ: 'How much a month?',
+    dayQ: 'Which day of the month?',
+    removeIncome: 'Remove this income',
+    addMember: 'Add family member',
+    memberName: 'Name',
+    memberHint: 'They can join later and take over their profile.',
+    memberAdd: 'Add',
+    relPartner: 'Partner',
+    relFather: 'Father',
+    relMother: 'Mother',
+    relSon: 'Son',
+    relDaughter: 'Daughter',
+    relOther: 'Other',
+    pickTitle: 'Add bills',
+    pickSub: 'Tap everything your home pays for.',
+    pickNext: 'Next',
+    pickDetails: 'Amounts and dates',
+    pickWho: 'Who pays',
+    pickDay: 'Day of the month',
+    estimateNote: 'A monthly estimate. Saved as a budget, not a bill.',
+    perQuarter: 'every 3 months',
+    perYear: 'every year',
+    pickSave: { one: 'Add {n} bill', other: 'Add {n} bills' },
+    pickNeed: 'Add an amount for each one.',
+    presets: {
+      rent: 'Rent',
+      home_loan: 'Home loan payment',
+      electricity: 'Electricity',
+      water: 'Water',
+      gas: 'Gas',
+      internet: 'Internet',
+      mobile: 'Mobile',
+      streaming: 'Streaming',
+      building_fees: 'Building fees',
+      household_help: 'Household help',
+      childcare_school: 'Childcare / school',
+      groceries: 'Groceries',
+      fuel: 'Fuel',
+      insurance: 'Insurance',
+      investment_contribution: 'Investment contribution',
+      milk: 'Milk',
+      emi: 'EMI',
+      maid_cook_driver: 'Maid / cook / driver',
+      ott: 'OTT',
+      petrol: 'Petrol',
+      society_maintenance: 'Society maintenance',
+      hoa: 'HOA',
+      fuel_gas: 'Gas',
+      council_tax: 'Council tax',
+      service_charge: 'Service charge',
+      strata: 'Strata',
+      rates: 'Rates',
+      dewa: 'DEWA',
+      chiller: 'Chiller',
+    },
+  },
   household: {
     askTitle: 'How do you handle money in “{name}”?',
     askTitleNoName: 'How do you handle money here?',
@@ -11941,8 +12135,7 @@ const en: UiStrings = {
     splitTitle: 'Split it',
     splitBody: 'Track who paid and who owes. Best for flatmates and trips.',
     shareTitle: 'Share it',
-    shareBody:
-      'One pot for the home. Nobody owes anybody. Add bills, a budget and goals you save for together.',
+    shareBody: 'One pot for the home. Nobody owes anybody. Add bills and a budget together.',
     continue: 'Continue',
     settingsTitle: 'How you handle money',
     openBalancesNote: 'Open balances stay until settled.',
@@ -19915,6 +20108,103 @@ const ta: UiStrings = {
     billingSub: 'கட்டணங்கள், பில்கள், அறிக்கைகள்',
     preferences: 'விருப்பங்கள்',
     preferencesSub: 'அறிவிப்புகள், நாணயம் மற்றும் பல',
+  },
+  hhome: {
+    sharedNote: 'இந்தக் குழுவில் உள்ளவர்கள் மட்டுமே இதைப் பார்க்க முடியும்',
+    tabOverview: 'மேலோட்டம்',
+    tabBills: 'பில்கள்',
+    tabUpcoming: 'வரவிருப்பவை',
+    tabIncome: 'வருமானம்',
+    thisMonth: 'இந்த மாதம்',
+    spent: 'செலவு',
+    income: 'வருமானம்',
+    left: 'மீதம்',
+    vsLast: 'கடந்த மாதத்தை விட',
+    addExpense: 'செலவு சேர்',
+    addBill: 'பில் சேர்',
+    addIncome: 'வருமானம் சேர்',
+    upcomingTitle: 'வரவிருப்பவை',
+    upcomingEmpty: 'அடுத்த 30 நாட்களில் செலுத்த எதுவும் இல்லை.',
+    recentTitle: 'சமீபத்திய செலவுகள்',
+    noExpenses: 'இந்த மாதம் இன்னும் செலவுகள் இல்லை.',
+    allExpenses: 'அனைத்து செலவுகள்',
+    billsTotal: 'நிலையான பில்களுக்கு மாதம் {amount}',
+    billsEmpty: 'இன்னும் பில்கள் இல்லை',
+    billsEmptyHint:
+      'வாடகை, மின்சாரம், வைஃபை, பள்ளிக் கட்டணம். ஒருமுறை சேர்த்தால் ஒவ்வொரு மாதமும் தேவையானது தெரியும்.',
+    addBillRow: 'பில் சேர்',
+    dayEvery: 'மாதந்தோறும் {day}-ஆம் தேதி',
+    billOptions: '{name} விருப்பங்கள்',
+    incomeTotal: 'மாதம் {amount} திட்டமிடப்பட்டது',
+    incomeEmpty: 'இன்னும் வருமானம் திட்டமிடப்படவில்லை',
+    incomeEmptyHint: 'ஒவ்வொருவரின் சம்பளம், ஓய்வூதியம் அல்லது கைச்செலவுப் பணத்தைச் சேர்த்தால் மாதம் மீதம் தெரியும்.',
+    addIncomeRow: 'வருமானம் சேர்',
+    incomeNote: 'இது ஒரு திட்டம் மட்டுமே. யார் யாருக்குக் கொடுக்க வேண்டும் என்பதை மாற்றாது.',
+    kindSalary: 'சம்பளம்',
+    kindPension: 'ஓய்வூதியம்',
+    kindBusiness: 'தொழில்',
+    kindRent: 'வாடகை',
+    kindOther: 'மற்றவை',
+    incomeNewTitle: 'வருமானம் சேர்',
+    incomeEditTitle: 'வருமானத்தைத் திருத்து',
+    whoQ: 'யாருடைய வருமானம்?',
+    labelQ: 'இது என்ன?',
+    labelPlaceholder: 'சம்பளம்',
+    amountQ: 'மாதம் எவ்வளவு?',
+    dayQ: 'மாதத்தின் எந்த நாள்?',
+    removeIncome: 'இந்த வருமானத்தை நீக்கு',
+    addMember: 'குடும்ப உறுப்பினரைச் சேர்',
+    memberName: 'பெயர்',
+    memberHint: 'அவர்கள் பிறகு சேர்ந்து தங்கள் சுயவிவரத்தை ஏற்கலாம்.',
+    memberAdd: 'சேர்',
+    relPartner: 'துணை',
+    relFather: 'அப்பா',
+    relMother: 'அம்மா',
+    relSon: 'மகன்',
+    relDaughter: 'மகள்',
+    relOther: 'மற்றவர்',
+    pickTitle: 'பில்களைச் சேர்',
+    pickSub: 'உங்கள் வீடு செலுத்துவதை எல்லாம் தொடுங்கள்.',
+    pickNext: 'அடுத்து',
+    pickDetails: 'தொகைகளும் தேதிகளும்',
+    pickWho: 'யார் செலுத்துவார்',
+    pickDay: 'மாதத்தின் நாள்',
+    estimateNote: 'மாதாந்திர மதிப்பீடு. பில்லாக அல்ல, பட்ஜெட்டாகச் சேமிக்கப்படும்.',
+    perQuarter: '3 மாதங்களுக்கு ஒருமுறை',
+    perYear: 'ஆண்டுக்கு ஒருமுறை',
+    pickSave: { one: '{n} பில்லைச் சேர்', other: '{n} பில்களைச் சேர்' },
+    pickNeed: 'ஒவ்வொன்றுக்கும் தொகையைச் சேர்க்கவும்.',
+    presets: {
+      rent: 'வாடகை',
+      home_loan: 'வீட்டுக் கடன் கட்டணம்',
+      electricity: 'மின்சாரம்',
+      water: 'தண்ணீர்',
+      gas: 'எரிவாயு',
+      internet: 'இணையம்',
+      mobile: 'மொபைல்',
+      streaming: 'ஸ்ட்ரீமிங்',
+      building_fees: 'கட்டிடக் கட்டணம்',
+      household_help: 'வீட்டு உதவி',
+      childcare_school: 'குழந்தை பராமரிப்பு / பள்ளி',
+      groceries: 'மளிகை',
+      fuel: 'எரிபொருள்',
+      insurance: 'காப்பீடு',
+      investment_contribution: 'முதலீட்டு பங்களிப்பு',
+      milk: 'பால்',
+      emi: 'EMI',
+      maid_cook_driver: 'வீட்டு வேலை / சமையல் / ஓட்டுநர்',
+      ott: 'OTT',
+      petrol: 'பெட்ரோல்',
+      society_maintenance: 'சொசைட்டி பராமரிப்பு',
+      hoa: 'HOA',
+      fuel_gas: 'காஸ்',
+      council_tax: 'கவுன்சில் வரி',
+      service_charge: 'சேவை கட்டணம்',
+      strata: 'ஸ்ட்ராட்டா',
+      rates: 'விகிதக் கட்டணம்',
+      dewa: 'DEWA',
+      chiller: 'சில்லர்',
+    },
   },
   household: {
     askTitle: '“{name}” குழுவில் பணத்தை எப்படி கையாள்கிறீர்கள்?',
@@ -27944,6 +28234,102 @@ const hi: UiStrings = {
     billingSub: 'भुगतान, बिल और स्टेटमेंट',
     preferences: 'प्राथमिकताएँ',
     preferencesSub: 'सूचनाएँ, मुद्रा और बहुत कुछ',
+  },
+  hhome: {
+    sharedNote: 'इसे सिर्फ़ इस समूह के लोग देख सकते हैं',
+    tabOverview: 'सारांश',
+    tabBills: 'बिल',
+    tabUpcoming: 'आने वाले',
+    tabIncome: 'आमदनी',
+    thisMonth: 'इस महीने',
+    spent: 'खर्च',
+    income: 'आमदनी',
+    left: 'बचा',
+    vsLast: 'पिछले महीने से',
+    addExpense: 'खर्च जोड़ें',
+    addBill: 'बिल जोड़ें',
+    addIncome: 'आमदनी जोड़ें',
+    upcomingTitle: 'आने वाले',
+    upcomingEmpty: 'अगले 30 दिनों में कुछ देय नहीं है।',
+    recentTitle: 'हाल के खर्च',
+    noExpenses: 'इस महीने अभी कोई खर्च नहीं।',
+    allExpenses: 'सभी खर्च',
+    billsTotal: 'तय बिलों में महीने के {amount}',
+    billsEmpty: 'अभी कोई बिल नहीं',
+    billsEmptyHint: 'किराया, बिजली, वाई-फाई, स्कूल फीस। एक बार जोड़ें और देखें कि हर महीने क्या चाहिए।',
+    addBillRow: 'बिल जोड़ें',
+    dayEvery: 'हर महीने की {day} तारीख',
+    billOptions: '{name} के विकल्प',
+    incomeTotal: 'महीने के {amount} की योजना',
+    incomeEmpty: 'अभी कोई आमदनी तय नहीं',
+    incomeEmptyHint: 'हर किसी की सैलरी, पेंशन या जेब खर्च जोड़ें, ताकि दिखे कि हर महीने क्या बचता है।',
+    addIncomeRow: 'आमदनी जोड़ें',
+    incomeNote: 'यह सिर्फ़ एक योजना है। इससे किसी का हिसाब नहीं बदलता।',
+    kindSalary: 'सैलरी',
+    kindPension: 'पेंशन',
+    kindBusiness: 'कारोबार',
+    kindRent: 'किराया',
+    kindOther: 'अन्य',
+    incomeNewTitle: 'आमदनी जोड़ें',
+    incomeEditTitle: 'आमदनी बदलें',
+    whoQ: 'यह किसकी आमदनी है?',
+    labelQ: 'यह क्या है?',
+    labelPlaceholder: 'सैलरी',
+    amountQ: 'महीने में कितनी?',
+    dayQ: 'महीने की कौन-सी तारीख?',
+    removeIncome: 'यह आमदनी हटाएँ',
+    addMember: 'परिवार का सदस्य जोड़ें',
+    memberName: 'नाम',
+    memberHint: 'वे बाद में जुड़कर अपनी प्रोफ़ाइल संभाल सकते हैं।',
+    memberAdd: 'जोड़ें',
+    relPartner: 'साथी',
+    relFather: 'पिता',
+    relMother: 'माता',
+    relSon: 'बेटा',
+    relDaughter: 'बेटी',
+    relOther: 'अन्य',
+    pickTitle: 'बिल जोड़ें',
+    pickSub: 'घर में जो भी चुकाते हैं, उस पर टैप करें।',
+    pickNext: 'आगे',
+    pickDetails: 'रकम और तारीखें',
+    pickWho: 'कौन चुकाता है',
+    pickDay: 'महीने की तारीख',
+    estimateNote: 'महीने का अनुमान। बिल नहीं, बजट के रूप में सहेजा जाएगा।',
+    perQuarter: 'हर 3 महीने',
+    perYear: 'हर साल',
+    pickSave: { one: '{n} बिल जोड़ें', other: '{n} बिल जोड़ें' },
+    pickNeed: 'हर एक के लिए रकम डालें।',
+    presets: {
+      rent: 'किराया',
+      home_loan: 'होम लोन भुगतान',
+      electricity: 'बिजली',
+      water: 'पानी',
+      gas: 'गैस',
+      internet: 'इंटरनेट',
+      mobile: 'मोबाइल',
+      streaming: 'स्ट्रीमिंग',
+      building_fees: 'इमारत शुल्क',
+      household_help: 'घरेलू मदद',
+      childcare_school: 'बच्चों की देखभाल / स्कूल',
+      groceries: 'किराना',
+      fuel: 'ईंधन',
+      insurance: 'बीमा',
+      investment_contribution: 'निवेश योगदान',
+      milk: 'दूध',
+      emi: 'EMI',
+      maid_cook_driver: 'मेड / कुक / ड्राइवर',
+      ott: 'OTT',
+      petrol: 'पेट्रोल',
+      society_maintenance: 'सोसायटी रखरखाव',
+      hoa: 'HOA',
+      fuel_gas: 'गैस',
+      council_tax: 'काउंसिल टैक्स',
+      service_charge: 'सर्विस चार्ज',
+      strata: 'स्ट्राटा',
+      rates: 'रेट्स',
+      dewa: 'DEWA',
+      chiller: 'चिलर',
+    },
   },
   household: {
     askTitle: '“{name}” में पैसे कैसे संभालते हैं?',
@@ -36024,6 +36410,110 @@ const ar: UiStrings = {
     billingSub: 'المدفوعات والفواتير والكشوف',
     preferences: 'التفضيلات',
     preferencesSub: 'الإشعارات والعملة والمزيد',
+  },
+  hhome: {
+    sharedNote: 'فقط أعضاء هذه المجموعة يمكنهم رؤية هذا',
+    tabOverview: 'نظرة عامة',
+    tabBills: 'الفواتير',
+    tabUpcoming: 'القادم',
+    tabIncome: 'الدخل',
+    thisMonth: 'هذا الشهر',
+    spent: 'المصروف',
+    income: 'الدخل',
+    left: 'المتبقي',
+    vsLast: 'مقارنة بالشهر الماضي',
+    addExpense: 'إضافة مصروف',
+    addBill: 'إضافة فاتورة',
+    addIncome: 'إضافة دخل',
+    upcomingTitle: 'القادم',
+    upcomingEmpty: 'لا شيء مستحق خلال 30 يومًا.',
+    recentTitle: 'أحدث المصروفات',
+    noExpenses: 'لا مصروفات هذا الشهر بعد.',
+    allExpenses: 'كل المصروفات',
+    billsTotal: '{amount} شهريًا في الفواتير الثابتة',
+    billsEmpty: 'لا فواتير بعد',
+    billsEmptyHint:
+      'الإيجار والكهرباء والإنترنت والرسوم الدراسية. أضفها مرة واحدة وشاهد ما يحتاجه كل شهر.',
+    addBillRow: 'إضافة فاتورة',
+    dayEvery: 'اليوم {day} من كل شهر',
+    billOptions: 'خيارات {name}',
+    incomeTotal: '{amount} شهريًا مخطط',
+    incomeEmpty: 'لا دخل مخطط بعد',
+    incomeEmptyHint: 'أضف راتب كل شخص أو معاشه أو مصروفه لترى ما يتبقى كل شهر.',
+    addIncomeRow: 'إضافة دخل',
+    incomeNote: 'مجرد خطة. لا تغيّر من يدين لمن.',
+    kindSalary: 'راتب',
+    kindPension: 'معاش',
+    kindBusiness: 'عمل حر',
+    kindRent: 'إيجار',
+    kindOther: 'أخرى',
+    incomeNewTitle: 'إضافة دخل',
+    incomeEditTitle: 'تعديل الدخل',
+    whoQ: 'دخل مَن هذا؟',
+    labelQ: 'ما هو؟',
+    labelPlaceholder: 'راتب',
+    amountQ: 'كم شهريًا؟',
+    dayQ: 'أي يوم من الشهر؟',
+    removeIncome: 'إزالة هذا الدخل',
+    addMember: 'إضافة فرد من العائلة',
+    memberName: 'الاسم',
+    memberHint: 'يمكنه الانضمام لاحقًا وتولّي ملفه.',
+    memberAdd: 'إضافة',
+    relPartner: 'الشريك',
+    relFather: 'الأب',
+    relMother: 'الأم',
+    relSon: 'الابن',
+    relDaughter: 'الابنة',
+    relOther: 'آخر',
+    pickTitle: 'إضافة فواتير',
+    pickSub: 'اضغط على كل ما يدفعه بيتكم.',
+    pickNext: 'التالي',
+    pickDetails: 'المبالغ والتواريخ',
+    pickWho: 'من يدفع',
+    pickDay: 'يوم الشهر',
+    estimateNote: 'تقدير شهري. يُحفظ كميزانية لا كفاتورة.',
+    perQuarter: 'كل 3 أشهر',
+    perYear: 'كل سنة',
+    pickSave: {
+      zero: 'إضافة {n} فاتورة',
+      one: 'إضافة فاتورة',
+      two: 'إضافة فاتورتين',
+      few: 'إضافة {n} فواتير',
+      many: 'إضافة {n} فاتورة',
+      other: 'إضافة {n} فاتورة',
+    },
+    pickNeed: 'أضف مبلغًا لكل واحدة.',
+    presets: {
+      rent: 'الإيجار',
+      home_loan: 'دفعة قرض المنزل',
+      electricity: 'الكهرباء',
+      water: 'المياه',
+      gas: 'الغاز',
+      internet: 'الإنترنت',
+      mobile: 'الهاتف',
+      streaming: 'البث',
+      building_fees: 'رسوم المبنى',
+      household_help: 'مساعدة منزلية',
+      childcare_school: 'رعاية الأطفال / المدرسة',
+      groceries: 'البقالة',
+      fuel: 'الوقود',
+      insurance: 'التأمين',
+      investment_contribution: 'مساهمة استثمارية',
+      milk: 'الحليب',
+      emi: 'قسط EMI',
+      maid_cook_driver: 'عاملة منزلية / طاهٍ / سائق',
+      ott: 'OTT',
+      petrol: 'بنزين',
+      society_maintenance: 'صيانة المجمع',
+      hoa: 'رسوم HOA',
+      fuel_gas: 'الغاز',
+      council_tax: 'ضريبة البلدية',
+      service_charge: 'رسوم الخدمة',
+      strata: 'ستراتا',
+      rates: 'الرسوم البلدية',
+      dewa: 'ديوا',
+      chiller: 'التبريد',
+    },
   },
   household: {
     askTitle: 'كيف تتعاملون مع المال في «{name}»؟',

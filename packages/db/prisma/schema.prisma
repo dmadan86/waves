@@ -419,6 +419,7 @@ model Group {
   passes             GroupPass[]
   planItems          TripPlanItem[]
   recurringExpenses  GroupRecurringExpense[]
+  incomePlans        GroupIncomePlan[]
   companyEntries     CompanyEntry[]
   companyProjects CompanyProject[]
   companyWageRuns CompanyWageRun[]
@@ -517,6 +518,8 @@ model GroupMember {
   itemClaims         ReceiptItemClaim[]
   planItems          TripPlanItem[]
   recurringExpenses  GroupRecurringExpense[]
+  incomePlans        GroupIncomePlan[]      @relation("IncomePlanMember")
+  incomePlansCreated GroupIncomePlan[]      @relation("IncomePlanCreator")
   managerId String? @map("manager_id") @db.Uuid
   companyAttendance CompanyAttendance[] @relation("CompanyAttendanceMember")
   markedAttendance CompanyAttendance[] @relation("CompanyAttendanceMarker")
@@ -3145,6 +3148,37 @@ model GroupRecurringExpense {
   @@index([nextDate], map: "group_recurring_expenses_due_idx")
   @@index([createdBy])
   @@map("group_recurring_expenses")
+  @@schema("public")
+}
+
+/// What a household member plans to bring in each month — a plan, never an
+/// expense. See `20261218090000_group_income_plans`. Written only through
+/// `waves_set_group_income` / `waves_delete_group_income`.
+model GroupIncomePlan {
+  id          String    @id @db.Uuid
+  groupId     String    @map("group_id") @db.Uuid
+  memberId    String    @map("member_id") @db.Uuid
+  label       String
+  /// salary | pension | business | rent | other
+  kind        String    @default("salary")
+  amountMinor BigInt    @map("amount_minor")
+  currency    String    @db.Char(3)
+  dayOfMonth  Int       @default(1) @map("day_of_month")
+  active      Boolean   @default(true)
+  createdBy   String    @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedSeq  BigInt    @default(0) @map("updated_seq")
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  group   Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member  GroupMember @relation("IncomePlanMember", fields: [memberId], references: [id], onDelete: Cascade)
+  creator GroupMember @relation("IncomePlanCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([groupId, updatedSeq])
+  @@index([memberId])
+  @@index([createdBy])
+  @@map("group_income_plans")
   @@schema("public")
 }
 

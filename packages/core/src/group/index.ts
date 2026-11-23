@@ -6,3 +6,4 @@ export * from './units';
 export * from './families';
 export * from './sharedExpense';
 export * from './ledgerMode';
+export * from './household';
