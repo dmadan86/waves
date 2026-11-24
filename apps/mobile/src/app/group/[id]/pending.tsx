@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { fallbackCurrency } from '@waves/core';
 import { useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
@@ -75,7 +76,7 @@ function PendingConfirmationsScreen() {
   const disputeSettlement = useDisputeSettlement(groupId);
   const { blockedIds } = useBlockedUsers();
 
-  const currency = group.data?.default_currency ?? 'INR';
+  const currency = group.data?.default_currency ?? fallbackCurrency();
   const lookup = memberLookup(everyone.data);
   const nameOf = (memberId: string | null): string => {
     return memberNameById(lookup, memberId, {

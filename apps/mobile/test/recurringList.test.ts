@@ -1,42 +1,45 @@
 import { describe, expect, it } from 'vitest';
 
-import { filterRecurrings, nextDateLabel, type RecurringFilter } from '../src/lib/recurringList';
+import { nextDateLabel, sectionRecurrings } from '../src/lib/recurringList';
+import type { PersonalRecurring } from '@waves/core';
 
-const rules = [
-  { txnKind: 'expense' as const, active: true },
-  { txnKind: 'income' as const, active: false },
-  { txnKind: 'expense' as const, active: false },
-  { txnKind: 'income' as const, active: true },
-];
-
-describe('filterRecurrings', () => {
-  it.each<[RecurringFilter, number[]]>([
-    ['all', [0, 1, 2, 3]],
-    ['bills', [0, 2]],
-    ['income', [1, 3]],
-    ['active', [0, 3]],
-    ['paused', [1, 2]],
-  ])('filters %s while preserving order and records', (filter, indexes) => {
-    expect(filterRecurrings(rules, filter)).toEqual(indexes.map((i) => rules[i]));
-    expect(rules).toHaveLength(4);
-  });
-  it('accepts empty lists', () => expect(filterRecurrings([], 'all')).toEqual([]));
+const rule = (
+  id: string,
+  txnKind: 'income' | 'expense',
+  nextDate: string,
+  amount: bigint,
+): PersonalRecurring => ({
+  id,
+  txnKind,
+  amount,
+  currency: 'INR',
+  category: null,
+  note: null,
+  cadence: 'monthly',
+  interval: 1,
+  secondDay: null,
+  anchorDate: nextDate,
+  nextDate,
+  endDate: null,
+  autoPost: false,
+  active: true,
 });
 
-describe('nextDateLabel', () => {
-  it('formats a calendar date with a short month', () => {
-    expect(nextDateLabel('2026-11-06', 'en-GB')).toBe('6 Nov 2026');
+describe('recurring list helpers', () => {
+  it('sections by kind, sorts by due date, and totals monthly equivalents', () => {
+    const result = sectionRecurrings([
+      rule('later', 'expense', '2027-01-01', 200n),
+      rule('salary', 'income', '2026-12-01', 300n),
+      rule('earlier', 'expense', '2026-11-25', 100n),
+    ]);
+    expect(result.income.map((r) => r.id)).toEqual(['salary']);
+    expect(result.expense.map((r) => r.id)).toEqual(['earlier', 'later']);
+    expect(result.incomeTotal).toBe(300n);
+    expect(result.expenseTotal).toBe(300n);
   });
-  it.each(['ta-IN', 'hi-IN', 'ar'])('localizes for %s', (locale) => {
-    expect(nextDateLabel('2026-11-06', locale)).toBe(
-      new Intl.DateTimeFormat(locale, {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }).format(new Date(2026, 10, 6)),
-    );
-  });
-  it('keeps the calendar day at year boundaries', () => {
-    expect(nextDateLabel('2027-01-01', 'en-GB')).toBe('1 Jan 2027');
+
+  it('omits the year within twelve months and includes it beyond twelve months', () => {
+    expect(nextDateLabel('2027-03-01', 'en-GB', '2026-11-22')).toBe('1 Mar');
+    expect(nextDateLabel('2028-01-01', 'en-GB', '2026-11-22')).toBe('1 Jan 2028');
   });
 });

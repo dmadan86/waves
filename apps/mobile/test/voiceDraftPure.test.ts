@@ -2,12 +2,26 @@ import { describe, expect, it } from 'vitest';
 
 import {
   heardCaptureInput,
+  leftoverCaptureInput,
+  defaultVoicePayerId,
+  voicePayerId,
   leaveUpdatesDraft,
+  recoveredVoiceDraftAmount,
   unclearAmount,
   worthFiling,
 } from '@/lib/voiceDraftPure';
 
 describe('heardCaptureInput', () => {
+  it('files several expenses with their total', () => {
+    const input = heardCaptureInput(
+      '80 rupees for food, 10 for petrol and 1 for tea',
+      '2026-11-21',
+      'INR',
+    );
+    expect(input.amount).toBe(9100n);
+    expect(input.description).toBe('80 rupees for food, 10 for petrol and 1 for tea');
+  });
+
   it('files the sentence with no amount, kept as the words too', () => {
     expect(heardCaptureInput('  lunch with Ravi ', '2026-11-19', 'INR')).toEqual({
       description: 'lunch with Ravi',
@@ -21,6 +35,22 @@ describe('heardCaptureInput', () => {
   it('skips a cough', () => {
     expect(worthFiling(' a ')).toBe(false);
     expect(worthFiling('tea')).toBe(true);
+  });
+});
+
+describe('defaultVoicePayerId', () => {
+  it('selects the viewer instead of the first group member', () => {
+    const members = [
+      { id: 'other', profile_id: 'someone-else' },
+      { id: 'viewer', profile_id: 'viewer-profile' },
+    ];
+    expect(defaultVoicePayerId(members, 'viewer-profile')).toBe('viewer');
+    expect(defaultVoicePayerId(members, null)).toBeNull();
+  });
+  it('uses the viewer for an inferred payer and preserves a named payer', () => {
+    const members = [{ id: 'other' }, { id: 'viewer', isMe: true }];
+    expect(voicePayerId('other', false, members)).toBe('viewer');
+    expect(voicePayerId('other', true, members)).toBe('other');
   });
 });
 
@@ -57,5 +87,43 @@ describe('heardCaptureInput amount fill', () => {
   });
   it('stays at 0 when nothing numeric was heard', () => {
     expect(heardCaptureInput('for current editing football', '2026-11-19', 'INR').amount).toBe(0n);
+    expect(heardCaptureInput('Add A rupees for food', '2026-11-19', 'INR').amount).toBe(0n);
+  });
+
+  it('recovers an older voice draft for display only', () => {
+    expect(
+      recoveredVoiceDraftAmount({
+        amount: '0',
+        currency: 'INR',
+        expense_date: '2026-11-19',
+        raw_text: '80 rupees for food and snacks',
+        description: '80 rupees for food and snacks',
+        parsed: { voiceTranscript: '80 rupees for food and snacks' },
+      }),
+    ).toEqual({ amount: 8000n, currency: 'INR' });
+    expect(
+      recoveredVoiceDraftAmount({
+        amount: '0',
+        currency: 'INR',
+        expense_date: '2026-11-19',
+        raw_text: null,
+        description: 'lunch',
+        parsed: null,
+      }),
+    ).toBeNull();
+  });
+});
+
+describe('leftoverCaptureInput', () => {
+  it('holds only what was not added, with its total', () => {
+    const input = leftoverCaptureInput(
+      'tea 10 and 40',
+      [{ amountMajor: 40, note: '', currency: null }],
+      '2026-11-21',
+      'INR',
+    );
+    expect(input.amount).toBe(4000n);
+    expect(input.description).toBe('tea 10 and 40');
+    expect(input.rawText).toBe('tea 10 and 40');
   });
 });

@@ -47,7 +47,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   buildVoiceSplit,
   COMPANY_EXPENSE_CATEGORIES,
-  computeShares,
   decimalToMinor,
   encodeTxn,
   format as formatMoney,
@@ -153,12 +152,15 @@ import { VoiceFollowUps } from '@/components/VoiceFollowUps';
 import { StageStrip } from '@/components/voice/StageStrip';
 import {
   heardCaptureInput,
+  defaultVoicePayerId,
+  voicePayerId,
   leaveUpdatesDraft,
   unclearAmount,
   worthFiling,
 } from '@/lib/voiceDraftPure';
 import { VoiceDetailRows } from '@/components/voice/VoiceDetailRows';
 import { VoiceSplitSheet } from '@/components/voice/VoiceSplitSheet';
+import { payerRowValue, splitRowValue, voiceExpenseAmounts } from '@/lib/voiceReviewRows';
 import type { UndoEntry } from '@/lib/assistantUndo';
 import type { AgentExpenseWrite } from '@/lib/voiceAgentPlan';
 import { splitEditFromParams } from '@/lib/voiceSplitPure';
@@ -318,6 +320,8 @@ function toMinor(amount: string, currency: string): bigint | null {
 /** The reader's corrections to who paid and who shares. */
 interface WhoEdit {
   payerId?: string;
+  /** Several payers set in the sheet, each with their figure (against one total). */
+  payers?: Record<string, bigint>;
   participantIds?: string[];
   /** A heard name settled with one tap ("Did you mean Renny?" → yes): its {@link nameKey} → member id. */
   picks?: Record<string, string>;
@@ -342,6 +346,8 @@ function toCandidates(
 interface WhoView {
   intent: VoiceIntent;
   payerId: string | null;
+  /** Everyone who paid, when the reader set more than one. */
+  payers: Record<string, bigint> | null;
   participantIds: readonly string[];
   params: SplitParams;
   problems: VoiceSplitPlan['problems'];
@@ -367,6 +373,7 @@ function planWho(
     members,
   });
   let { payerId, participants: participantIds, params } = plan;
+  payerId = voicePayerId(payerId, intent.payer.explicit === true, members);
   let problems = [...plan.problems];
   // One exact total cannot be spread over several expenses.
   if (params.kind === 'exact' && draftCount > 1) problems.push({ code: 'exact_sum_mismatch' });
@@ -401,6 +408,7 @@ function planWho(
   return {
     intent: resolved,
     payerId,
+    payers: edit?.payers ?? null,
     participantIds,
     params,
     problems,
@@ -1939,7 +1947,12 @@ export default function VoiceScreen() {
   // clear which heard name it answers: the named payer, or the one person in
   // the split still in question.
   const editWho = (next: WhoEdit): void => {
-    setWhoEdit((current) => ({ ...current, ...next }));
+    // A payer picked on its own replaces any several-payer figures set before.
+    setWhoEdit((current) => ({
+      ...current,
+      ...(next.payerId && !next.payers ? { payers: undefined } : {}),
+      ...next,
+    }));
     if (!who) return;
     const { payer, participants } = who.intent;
     if (next.payerId && payer.kind === 'member' && payer.explicit)
@@ -2282,9 +2295,9 @@ export default function VoiceScreen() {
       if (who && who.problems.length > 0) throw new Error('payer or people not resolved');
       const payer =
         dest.kind === 'existing'
-          ? (who?.payerId ??
-            groupMembers.find((member) => isViewer(member, viewerId))?.id ??
-            groupMembers[0]?.id)
+          ? who
+            ? voicePayerId(who.payerId, who.intent.payer.explicit === true, targetMembers)
+            : defaultVoicePayerId(groupMembers, viewerId)
           : dest.memberId;
       if (!payer) throw new Error('no members to split among');
       const splitParams: SplitParams = dest.kind === 'existing' && who ? who.params : EQUAL;
@@ -2322,12 +2335,15 @@ export default function VoiceScreen() {
         // The draft's stable id is the expense id (and the split seed), so a
         // retry appends no duplicate.
         const expenseId = draft.key;
-        const shares = computeShares({
+        // The same checks Add expense makes: the payers add up to the total and
+        // so do the shares; anything else throws instead of being queued.
+        const { payers, expectedShares } = voiceExpenseAmounts({
+          expenseId,
           amount,
           currency,
           params: splitParams,
           participants,
-          seed: expenseId,
+          payers: dest.kind === 'existing' && who?.payers ? who.payers : { [payer]: amount },
         });
         // Same category guess as the inbox path: a voiced expense carries a bucket
         // read from its description, which the reader can still change afterwards.
@@ -2341,9 +2357,8 @@ export default function VoiceScreen() {
           amount,
           splitParams,
           participants: [...participants],
-          payers: { [payer]: amount },
-          // ShareMap is a Map; the write input wants a plain record.
-          expectedShares: Object.fromEntries(shares),
+          payers,
+          expectedShares,
         };
         await writeExpense.mutateAsync({ ...write, location });
         voiceAdded.mark(dest.groupId, [expenseId]);
@@ -2545,21 +2560,41 @@ export default function VoiceScreen() {
       ...names.filter((name) => name !== t.voice.youLabel),
     ];
   })();
-  // One plain line: "Split equally with: You, Ravi", or the split in words when
-  // it was set another way. Who paid is a second small line only when it was not you.
+  // The split sheet owns the full participant list; the review keeps its value compact.
   const splitText =
     (who ? describeSplit(who, targetMembers, splitCurrency, t) : null) ??
     (splitWith && splitWith.length > 1
       ? t.voiceScreen.splitEquallyWith.replace('{names}', splitWith.join(', '))
       : null);
-  const payerMember = who?.payerId ? targetMembers.find((m) => m.id === who.payerId) : undefined;
+  const payerId = who
+    ? voicePayerId(who.payerId, who.intent.payer.explicit === true, targetMembers)
+    : targetMembers.find((member) => member.isMe)?.id;
+  const payerName = payerId
+    ? targetMembers.find((member) => member.id === payerId)?.isMe
+      ? t.voice.youLabel
+      : targetMembers.find((member) => member.id === payerId)?.name
+    : t.voice.youLabel;
   const splitProps = splitText
     ? {
-        text: splitText,
-        paidBy:
-          payerMember && !payerMember.isMe
-            ? t.voiceScreen.paidByName.replace('{name}', payerMember.name)
-            : null,
+        splitLabel: t.voiceScreen.splitLabel,
+        splitValue: splitRowValue(
+          who?.params ?? EQUAL,
+          splitWith?.length ?? who?.participantIds.length ?? 0,
+          {
+            equally: t.voiceScreen.equallyPeople,
+            shares: t.voiceScreen.sharesPeople,
+            percent: t.voiceScreen.percentPeople,
+            amounts: t.voiceScreen.amountsPeople,
+          },
+        ),
+        paidByLabel: t.voiceScreen.paidByLabel,
+        paidBy: payerRowValue(
+          who?.payers
+            ? Object.keys(who.payers).map((id) => ({ name: id }))
+            : [{ name: payerName ?? '', isYou: payerName === t.voice.youLabel }],
+          t.voice.youLabel,
+          t.voiceScreen.payersPeople,
+        ),
         onPress: canEditSplit ? () => openSplit('people') : undefined,
         onPaidBy: canEditSplit ? () => openSplit('payer') : undefined,
       }
@@ -3145,7 +3180,11 @@ export default function VoiceScreen() {
                           </View>
                         ))}
                       </Card>
-                      {splitProps ? <SplitLine {...splitProps} /> : null}
+                      {splitProps ? (
+                        <Card padded={false} style={{ overflow: 'hidden' }}>
+                          <SplitLine {...splitProps} />
+                        </Card>
+                      ) : null}
                     </>
                   )}
 
@@ -3547,7 +3586,8 @@ export default function VoiceScreen() {
           currency={splitCurrency}
           amount={splitAmount}
           initialView={splitView}
-          simple={drafts.length > 1}
+          hideExact={drafts.length > 1}
+          seedPayers={who.payers ?? undefined}
           seed={splitEditFromParams(
             who.payerId ?? '',
             who.params,
@@ -3557,6 +3597,7 @@ export default function VoiceScreen() {
           onApply={(result) =>
             editWho({
               payerId: result.payerId,
+              payers: result.payers,
               participantIds: result.participants,
               params: result.params,
             })

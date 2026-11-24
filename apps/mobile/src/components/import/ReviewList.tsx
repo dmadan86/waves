@@ -238,7 +238,7 @@ const ReviewRowView = memo(function ReviewRowView({
             minor: row.duplicate.existing.amount,
             currency: row.duplicate.existing.currency as CurrencyCode,
           },
-          { locale },
+          { locale, trimZeros: true },
         ),
       }),
     );
@@ -256,7 +256,10 @@ const ReviewRowView = memo(function ReviewRowView({
         : '';
   const amountText =
     row.amount !== null
-      ? format({ minor: row.amount, currency: row.currency as CurrencyCode }, { locale })
+      ? format(
+          { minor: row.amount, currency: row.currency as CurrencyCode },
+          { locale, trimZeros: true },
+        )
       : '';
 
   return (

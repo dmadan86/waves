@@ -7,7 +7,7 @@
 import { minorUnitExponent, type CurrencyCode } from './currency';
 import { toMajorString, type Money } from './money';
 
-export type Locale = 'en-IN' | 'ta-IN' | 'hi-IN' | (string & {});
+export type Locale = 'en-US' | 'en-IN' | 'ta-IN' | 'hi-IN' | (string & {});
 
 export interface FormatOptions {
   locale?: Locale;
@@ -15,9 +15,25 @@ export interface FormatOptions {
   signDisplay?: 'auto' | 'always' | 'never';
   /** Round to whole units (₹2,09,256), for a single headline total — never a list column. */
   whole?: boolean;
+  /**
+   * Drop a bare ".00" (exactly zero minor units) from the DISPLAY of an amount:
+   * ₹750, but ₹45,025.69 keeps its paise. Off by default so exports, receipts and
+   * settlement confirmations stay exact; the display components turn it on.
+   */
+  trimZeros?: boolean;
 }
 
-const DEFAULT_LOCALE: Locale = 'en-IN';
+// Neutral until the app injects the device locale once at startup; never India.
+let defaultLocale: Locale | (() => Locale) = 'en-US';
+
+/** A function is read on every use, so it follows the phone and loads lazily. */
+export function setDefaultLocale(locale: Locale | (() => Locale)): void {
+  defaultLocale = locale;
+}
+
+export function getDefaultLocale(): Locale {
+  return typeof defaultLocale === 'function' ? defaultLocale() : defaultLocale;
+}
 
 export function format(amount: Money, options: FormatOptions = {}): string {
   return parts(amount, options)
@@ -65,14 +81,10 @@ export function formatParts(amount: Money, options: FormatOptions = {}): MoneyPa
 }
 
 function parts(amount: Money, options: FormatOptions): Intl.NumberFormatPart[] {
-  const { locale = DEFAULT_LOCALE, signDisplay = 'auto', whole = false } = options;
-  // Always the currency's own number of minor digits, whole amount or not.
-  // There used to be an option to drop `.00`, and in a list it misreads: a
-  // column of ₹24,182.42 and ₹80,100 invites the eye to line up 80,100 with
-  // 24,182 and lose a digit, and the faint-fraction styling makes the short
-  // one look truncated rather than round. A currency with no minor unit (JPY)
-  // is unaffected — its exponent is already 0.
-  const fractionDigits = whole ? 0 : minorUnitExponent(amount.currency);
+  const { locale = getDefaultLocale(), signDisplay = 'auto', whole = false } = options;
+  const exponent = minorUnitExponent(amount.currency);
+  const fractionDigits =
+    whole || (options.trimZeros && amount.minor % 10n ** BigInt(exponent) === 0n) ? 0 : exponent;
 
   const magnitude = signDisplay === 'never' && amount.minor < 0n ? -amount.minor : amount.minor;
 
@@ -187,8 +199,66 @@ function numberParts(
   return [{ type: 'integer', value: text }];
 }
 
+/**
+ * A short headline figure for tight tiles: ₹3.2L and ₹1.5Cr for rupees (always
+ * read in an Indian locale, see `rupeeLocale`), $3.2K and $1.5M elsewhere, from
+ * CLDR compact notation. Under a thousand major units it is the plain amount, and
+ * where the engine has no compact notation it falls back to `format`. Never for
+ * lists or entry rows: it drops digits.
+ */
+export function compactMoney(amount: Money, options: FormatOptions = {}): string {
+  const { locale = getDefaultLocale() } = options;
+  const major = Number(toMajorString(amount));
+  if (Math.abs(major) < 1000) return format(amount, options);
+  const loc = rupeeLocale(locale, amount.currency);
+  const signed = options.signDisplay === 'never' ? Math.abs(major) : major;
+  const sign = options.signDisplay ?? 'auto';
+  try {
+    const compact = new Intl.NumberFormat(loc, {
+      style: 'currency',
+      currency: amount.currency,
+      notation: 'compact',
+      maximumFractionDigits: 1,
+      signDisplay: sign,
+    });
+    // Some engines (Hermes) accept the option and silently ignore it.
+    if (compact.resolvedOptions().notation === 'compact') return compact.format(signed);
+  } catch {
+    // fall through to the explicit scale below
+  }
+  const indian = amount.currency === 'INR';
+  const scale: readonly (readonly [number, string])[] = indian
+    ? [
+        [1e7, 'Cr'],
+        [1e5, 'L'],
+        [1e3, 'K'],
+      ]
+    : [
+        [1e9, 'B'],
+        [1e6, 'M'],
+        [1e3, 'K'],
+      ];
+  const [unit, suffix] = scale.find(([size]) => Math.abs(signed) >= size) ?? [1, ''];
+  const scaled = new Intl.NumberFormat(loc, {
+    style: 'currency',
+    currency: amount.currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+    signDisplay: sign,
+  });
+  return scaled.formatToParts
+    ? scaled
+        .formatToParts(signed / unit)
+        .map((p) => p.value)
+        .join('') + suffix
+    : scaled.format(signed / unit) + suffix;
+}
+
 /** Just the currency symbol for the locale ("₹", "$"). */
-export function currencySymbol(currency: CurrencyCode, locale: Locale = DEFAULT_LOCALE): string {
+export function currencySymbol(
+  currency: CurrencyCode,
+  locale: Locale = getDefaultLocale(),
+): string {
   const formatter = currencyFormatter(locale, currency, 0, 'auto');
   if (typeof formatter.formatToParts === 'function') {
     const parts = formatter.formatToParts(0);

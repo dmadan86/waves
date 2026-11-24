@@ -19,6 +19,7 @@ export const TAB_BAR_HIDDEN_ROUTES: ReadonlySet<string> = new Set([
   'phone',
   'verify-email',
   'guest-welcome',
+  'start',
   'join',
   'r',
   'language',
@@ -117,17 +118,23 @@ export function isPersonalMode(segments: readonly string[]): boolean {
   if (root === 'captures' && screen === 'statement') return true;
   // Categories is a personal-ledger feature opened from Overview.
   if (root === 'settings' && screen === 'categories') return true;
-  return (root === '(tabs)' && screen === 'me') || root === 'personal';
+  return (
+    (root === '(tabs)' && screen === 'me') ||
+    root === 'personal' ||
+    root === 'investments' ||
+    root === 'rentals'
+  );
 }
 
 /** Highlight the owning Personal destination, leaving standalone features unselected. */
 export function personalActiveKey(segments: readonly string[]): string {
-  if (segments[0] === '(tabs)') return segments[1] === 'me' ? 'me' : '';
+  if (segments[0] === '(tabs)') return segments[1] === 'me' ? 'home' : '';
   if (segments[0] !== 'personal') return '';
   const leaf = segments[1] ?? '';
-  if (leaf === 'budgets' || leaf === 'loans') return 'me';
-  if (leaf === 'entry' || leaf === 'source') return 'transactions';
-  return leaf === 'transactions' || leaf === 'spending' || leaf === 'recurring' ? leaf : '';
+  if (leaf === 'upcoming') return 'home';
+  if (leaf === 'entry' || leaf === 'source' || leaf === 'transactions') return 'transactions';
+  if (leaf === 'recurring' || leaf === 'budgets' || leaf === 'loans') return 'planning';
+  return leaf === 'spending' ? 'reports' : '';
 }
 
 /** Where a Personal-mode bar tap goes, or null when it is already current. */
@@ -135,20 +142,68 @@ export function personalRouteForSelection(
   activeKey: string,
   selectedKey: string,
   atRoot = true,
-): '/' | '/me' | '/personal/transactions' | '/personal/recurring' | '/personal/spending' | null {
+):
+  | '/me'
+  | '/profile'
+  | '/personal/transactions'
+  | '/personal/recurring'
+  | '/personal/spending'
+  | null {
   if (selectedKey === activeKey && atRoot) return null;
   switch (selectedKey) {
-    case 'shared':
-      return '/';
     case 'transactions':
       return '/personal/transactions';
-    case 'recurring':
+    case 'planning':
       return '/personal/recurring';
-    case 'spending':
+    case 'reports':
       return '/personal/spending';
+    case 'me':
+      return '/profile';
     default:
       return '/me';
   }
+}
+
+/**
+ * How a Personal bar tap reaches `route`. From the (tabs) navigator it must push,
+ * never replace: replacing swaps the whole navigator out, so Home would rebuild all
+ * four tabs on return. Between Personal screens siblings replace each other, and
+ * Home is reached by popping back to the still-mounted navigator.
+ */
+export function personalBarAction(
+  segments: readonly string[],
+  route: string,
+): 'push' | 'replace' | 'dismissTo' | 'navigate' {
+  if (route === '/me') return segments[0] === '(tabs)' ? 'navigate' : 'dismissTo';
+  if (route === '/profile') return 'navigate';
+  return segments[0] === '(tabs)' ? 'push' : 'replace';
+}
+
+/** Personal screens opened from a tab root: they pop their own stack, and the bar stays Personal. */
+export function isNestedPersonal(segments: readonly string[]): boolean {
+  return (
+    isPersonalMode(segments) &&
+    ['entry', 'source', 'budgets', 'loans', 'upcoming'].includes(segments[1] ?? '')
+  );
+}
+
+/** Hardware Back on a Personal tab root: another tab goes to Personal Home, Home leaves to the shared Home. */
+export function personalBackRoute(activeKey: string): '/me' | '/' {
+  return activeKey === 'home' ? '/' : '/me';
+}
+
+/** The screen a Personal destination opens on; Planning opens on Recurring. */
+const PERSONAL_ROOTS: Readonly<Record<string, string>> = {
+  transactions: 'transactions',
+  planning: 'recurring',
+  reports: 'spending',
+};
+
+/** True when the Personal destination's own root is the screen on show. */
+export function isPersonalRoot(segments: readonly string[], key: string): boolean {
+  if (key === 'home')
+    return segments[0] === '(tabs)' && segments[1] === 'me' && segments.length <= 2;
+  return segments[0] === 'personal' && segments.length === 2 && segments[1] === PERSONAL_ROOTS[key];
 }
 
 const screen2 = (segments: readonly string[]): string => segments[2] ?? '';

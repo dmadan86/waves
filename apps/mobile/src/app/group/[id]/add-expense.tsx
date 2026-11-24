@@ -17,7 +17,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  TextInput,
   View,
 } from 'react-native';
 
@@ -30,6 +29,7 @@ import {
   formatMinorInput,
   guessCategory,
   money,
+  isPoolGroup,
   MutationKind,
   rebalancePayers,
   headOf,
@@ -45,10 +45,10 @@ import {
   type PaymentMethod,
   type SplitParams,
   type UnitsParams,
+  fallbackCurrency,
 } from '@waves/core';
 import {
   AmountField,
-  amountKeyboard,
   Button,
   Callout,
   Card,
@@ -68,6 +68,7 @@ import { CategoryRow, CategorySheet } from '@/components/Category';
 import { ExpenseReceipts } from '@/components/ExpenseReceipts';
 import { TagEditorSheet } from '@/components/TagEditorSheet';
 import { PaymentMethodRow, PaymentMethodSheet } from '@/components/PaymentMethodPicker';
+import { PayersEditor } from '@/components/expense/PayersEditor';
 import { PayeeSheet } from '@/components/expense/PayeeSheet';
 import { LocationField } from '@/components/LocationField';
 import { GROUP_REPEAT_HIDDEN } from '@/lib/groupRepeat';
@@ -109,7 +110,7 @@ import { useCreateGroupRecurring } from '@/data/groupRecurring';
 import { frequencyLabel } from '@/lib/frequencyLabel';
 import { reportHandled } from '@/lib/observability';
 import { useAssignCapture, useGroup, useGroupFxRates, useSetGroupFxRate } from '@/data/hooks';
-import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
+import { displayName, groupLabel, isViewer } from '@/data/types';
 import { GroupNotFound } from '@/components/GroupNotFound';
 import { fill, plural, useStrings } from '@/i18n';
 import { isQueuedOffline, saveToastText } from '@/lib/saveToast';
@@ -172,7 +173,6 @@ import {
 import { useDialog } from '@/lib/dialog';
 import { moveAfterSave, rememberMove } from '@/lib/personalHandoff';
 import { dropHandedReceipt, peekHandedReceipt } from '@/lib/receiptHandoff';
-import { PersonAvatar } from '@/components/PersonAvatar';
 
 /** Shared empty set — a new one per render would defeat every memo below it. */
 const EMPTY_LOCKS: ReadonlySet<MemberId> = new Set();
@@ -465,6 +465,10 @@ function AddExpenseScreen() {
     canOfferOnlyMe({ groupType: group.data?.type, editing: Boolean(expenseId) }) &&
     !captureId &&
     !movePersonal;
+  // Share it: a new expense in a pooled household is not split unless asked
+  // ("Split this one"). The sync layer turns the default into the pool split.
+  const poolDefault = isPoolGroup(group.data) && !expenseId;
+  const [splitThis, setSplitThis] = useState(false);
 
   // The id is chosen here, not by the server. It seeds the remainder rotation
   // (ADR-009), so previewing with one id and writing with another would put the
@@ -838,7 +842,9 @@ function AddExpenseScreen() {
               memberId,
               formatMinorInput(
                 minor,
-                (expenseCurrency ?? group.data?.default_currency ?? 'INR') as CurrencyCode,
+                (expenseCurrency ??
+                  group.data?.default_currency ??
+                  fallbackCurrency()) as CurrencyCode,
               ),
             ]),
           ),
@@ -902,7 +908,7 @@ function AddExpenseScreen() {
         setLockedPayers(new Set(draft.lockedPayers ?? []));
         // `groupCurrency` is derived further down the render; the seeding block
         // runs above it, so the group's default is read straight off the row.
-        const draftCurrency = draft.currency ?? group.data?.default_currency ?? 'INR';
+        const draftCurrency = draft.currency ?? group.data?.default_currency ?? fallbackCurrency();
         setPaidText(
           Object.fromEntries(
             Object.entries(draft.payers).map(([id, v]) => [
@@ -1038,7 +1044,7 @@ function AddExpenseScreen() {
   // reopening an edit never hides a configuration that is already unusual.
   const [payerSectionChoice, setPayerSectionChoice] = useState<boolean | null>(null);
 
-  const groupCurrency = group.data?.default_currency ?? 'INR';
+  const groupCurrency = group.data?.default_currency ?? fallbackCurrency();
   // The expense keeps the currency it was paid in; the group's is only the
   // default and what a converted total would be shown in (ADR-003).
   const currency = expenseCurrency ?? groupCurrency;
@@ -1160,15 +1166,6 @@ function AddExpenseScreen() {
   // A bill that already records several payers is in several-payer mode however
   // the flag was left — an edit must never offer to quietly drop one of them.
   const manyPayers = payerMode === 'many' || payers.size > 1;
-  // The chooser's order: whoever is paying, then everybody else, each keeping
-  // the group's own order within their half (`sort` is stable). The lane scrolls
-  // sideways, so without this a payer picked from the end of a long member list
-  // would be the one thing on the screen you cannot see.
-  const payerChoices = useMemo(() => {
-    const rows = members.data ?? [];
-    return [...rows].sort((a, b) => Number(payers.has(b.id)) - Number(payers.has(a.id)));
-  }, [members.data, payers]);
-
   // Closed by default: the "paid by" row reads as a fact ("You") rather than a
   // control until it is tapped, or until the bill already has several payers
   // (an edit, or the several-payer link tapped earlier in this same visit).
@@ -1608,7 +1605,7 @@ function AddExpenseScreen() {
         mutate(
           expenseId ? MutationKind.ExpenseUpdate : MutationKind.ExpenseCreate,
           groupId,
-          writePayload,
+          poolDefault && splitThis ? { ...writePayload, splitThisOne: true } : writePayload,
         );
       const movedFrom = !expenseId && movePersonal ? movePersonal : null;
       if (movedFrom) {
@@ -1984,7 +1981,7 @@ function AddExpenseScreen() {
       : evenEach !== null && amount > 0n
         ? plural(locale, participants.length, t.expense.oweEach).replace(
             '{amount}',
-            format(money(evenEach, currency), { locale }),
+            format(money(evenEach, currency), { locale, trimZeros: true }),
           )
         : plural(locale, participants.length, t.memberCount);
 
@@ -2344,56 +2341,17 @@ function AddExpenseScreen() {
                   onPress={() => setPayerSectionChoice(!showPayerSection)}
                 />
                 {showPayerSection ? (
-                  <View style={{ gap: theme.spacing.sm, paddingBottom: theme.spacing.sm }}>
-                    <Row style={{ justifyContent: 'flex-end' }}>
-                      <Row style={{ gap: theme.spacing.lg, alignItems: 'center', flexShrink: 0 }}>
-                        {manyPayers && payers.size > 1 ? (
-                          <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={t.expense.splitPaidEvenly}
-                            onPress={splitPaidEvenly}
-                            hitSlop={LINK_HIT_SLOP}
-                          >
-                            <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
-                              {t.expense.splitPaidEvenly}
-                            </Text>
-                          </Pressable>
-                        ) : null}
-                        {/* The way in and out of several-payer mode. A link
-                            rather than a hidden long-press: nobody discovers a
-                            long-press, and this is the whole feature. */}
-                        <Pressable
-                          accessibilityRole="switch"
-                          accessibilityState={{ checked: manyPayers }}
-                          accessibilityLabel={
-                            manyPayers ? t.expense.paidByOne : t.expense.paidBySeveral
-                          }
-                          onPress={() => setManyPayers(!manyPayers)}
-                          hitSlop={LINK_HIT_SLOP}
-                        >
-                          <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
-                            {manyPayers ? t.expense.paidByOne : t.expense.paidBySeveral}
-                          </Text>
-                        </Pressable>
-                      </Row>
-                    </Row>
-
-                    {/* One lane that scrolls, not a grid that reflows. Every
-                      tile is the same width, the name gets one line and an
-                      ellipsis, and the overflow goes sideways where a tap can
-                      reach it. Whoever is paying leads the lane
-                      (`payerChoices`), so on a long member list the answer is
-                      at the start rather than somewhere off the right-hand
-                      edge. */}
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={{
-                        gap: theme.spacing.xs,
-                        paddingRight: theme.spacing.xl,
-                      }}
-                    >
-                      {familiesOn && !manyPayers
+                  <PayersEditor
+                    members={members.data ?? []}
+                    viewerId={viewerId}
+                    payers={payers}
+                    paidText={paidText}
+                    manyPayers={manyPayers}
+                    amount={amount}
+                    currency={currency}
+                    message={payerMessage}
+                    leading={
+                      familiesOn && !manyPayers
                         ? Object.entries(group.data?.units ?? {}).map(([id, unit]) => {
                             const head = headOf(unit);
                             if (!head || !(members.data ?? []).some((member) => member.id === head))
@@ -2439,148 +2397,13 @@ function AddExpenseScreen() {
                               </Pressable>
                             );
                           })
-                        : null}
-                      {payerChoices.map((member) => {
-                        const isPayer = payers.has(member.id);
-                        return (
-                          <Pressable
-                            key={member.id}
-                            // The role follows the mode, because the gesture
-                            // does: one payer is a radio (tapping replaces),
-                            // several is a checkbox (tapping adds).
-                            accessibilityRole={manyPayers ? 'checkbox' : 'radio'}
-                            accessibilityState={
-                              manyPayers ? { checked: isPayer } : { selected: isPayer }
-                            }
-                            accessibilityLabel={`${t.paidBy}: ${displayName(member, viewerId)}`}
-                            onPress={() => togglePayer(member.id)}
-                            style={{
-                              width: PAYER_TILE_WIDTH,
-                              alignItems: 'center',
-                              gap: 4,
-                              opacity: isPayer ? 1 : 0.45,
-                            }}
-                          >
-                            <PersonAvatar
-                              member={member}
-                              name={displayName(member)}
-                              ghost={isGhost(member)}
-                            />
-                            <Text
-                              variant="micro"
-                              tone={isPayer ? 'brand' : 'muted'}
-                              numberOfLines={1}
-                              style={{ textAlign: 'center' }}
-                            >
-                              {displayName(member, viewerId)}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </ScrollView>
-
-                    {manyPayers && payers.size > 1 ? (
-                      <View style={{ gap: theme.spacing.xs }}>
-                        {payerIds.map((memberId) => {
-                          const member = (members.data ?? []).find((row) => row.id === memberId);
-                          const name = member ? displayName(member, viewerId) : t.misc.someone;
-                          return (
-                            <Row
-                              key={memberId}
-                              style={{ gap: theme.spacing.md, alignItems: 'center' }}
-                            >
-                              <PersonAvatar
-                                member={member}
-                                name={member ? displayName(member) : name}
-                                ghost={member ? isGhost(member) : false}
-                                size={32}
-                              />
-                              <Text
-                                variant="body"
-                                numberOfLines={1}
-                                style={{ flex: 1, minWidth: 0 }}
-                              >
-                                {name}
-                              </Text>
-                              {/* The figure may be long — a six-figure trip
-                                  total, a yen amount, a large accessibility
-                                  font. It gives way to the name rather than
-                                  clipping, down to a floor wide enough to
-                                  still read as a field. */}
-                              <Row
-                                style={{
-                                  gap: theme.spacing.xs,
-                                  alignItems: 'center',
-                                  flexShrink: 1,
-                                  minWidth: 96,
-                                  maxWidth: '60%',
-                                }}
-                              >
-                                <Text variant="caption" tone="muted">
-                                  {currencySymbol(currency)}
-                                </Text>
-                                <TextInput
-                                  value={paidText[memberId] ?? ''}
-                                  onChangeText={(text) => setPaidEntry(memberId, text)}
-                                  keyboardType={amountKeyboard(currency as CurrencyCode)}
-                                  selectTextOnFocus
-                                  placeholder="0"
-                                  placeholderTextColor={theme.color.textFaint}
-                                  accessibilityLabel={t.expense.paidByNameAmount
-                                    .replace('{name}', name)
-                                    .replace(
-                                      '{amount}',
-                                      format(money(payers.get(memberId) ?? 0n, currency), {
-                                        locale,
-                                      }),
-                                    )}
-                                  // What is wrong with the set of figures, on
-                                  // each field that can put it right. React
-                                  // Native has no invalid accessibility state,
-                                  // so the message itself is the hint —
-                                  // otherwise the only announcement of a bill
-                                  // that does not add up arrives at the save
-                                  // button.
-                                  accessibilityHint={payerMessage ?? undefined}
-                                  style={{
-                                    flexGrow: 1,
-                                    flexShrink: 1,
-                                    minWidth: 72,
-                                    minHeight: 44,
-                                    fontSize: 16,
-                                    fontWeight: '700',
-                                    textAlign: 'right',
-                                    textAlignVertical: 'center',
-                                    color: theme.color.text,
-                                    backgroundColor: theme.color.bg,
-                                    borderRadius: theme.radius.sm,
-                                    paddingVertical: theme.spacing.sm,
-                                    paddingHorizontal: theme.spacing.sm,
-                                  }}
-                                />
-                              </Row>
-                            </Row>
-                          );
-                        })}
-                      </View>
-                    ) : null}
-
-                    {/* What is still unaccounted for, or claimed twice over.
-                      Only once the bill has a total: "₹0 left to assign" on an
-                      empty form is noise rather than guidance. A single payer
-                      always holds the whole bill, so there is nothing to
-                      report — that row gets the hint instead. */}
-                    {payerMessage && amount > 0n ? (
-                      <Text
-                        variant="micro"
-                        tone="negative"
-                        accessibilityRole="alert"
-                        accessibilityLiveRegion="polite"
-                      >
-                        {payerMessage}
-                      </Text>
-                    ) : null}
-                  </View>
+                        : null
+                    }
+                    onToggle={togglePayer}
+                    onEntry={setPaidEntry}
+                    onEvenly={splitPaidEvenly}
+                    onMany={setManyPayers}
+                  />
                 ) : null}
               </View>
 
@@ -2622,99 +2445,126 @@ function AddExpenseScreen() {
 
           {/* How the bill divides: the ways to split, who is in it, and what each
             owes. New expenses can still split line by line from here. */}
-          <Card padded={false} style={{ padding: theme.spacing.md, gap: theme.spacing.md }}>
-            <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text variant="subheading" accessibilityRole="header">
-                {t.expense.howToSplit}
-              </Text>
-              {/* Splitting the bill line by line is another answer to "how is this
+          {poolDefault ? (
+            <Card padded={false} style={{ padding: theme.spacing.md, gap: theme.spacing.xs }}>
+              <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text variant="subheading" accessibilityRole="header">
+                  {t.household.splitThisOne}
+                </Text>
+                <Toggle
+                  value={splitThis}
+                  onValueChange={(next) => {
+                    setSplitThis(next);
+                    if (!next) {
+                      setSavedUnits(null);
+                      setSplitKind(SplitKind.Equal);
+                    }
+                  }}
+                  accessibilityLabel={t.household.splitThisOne}
+                />
+              </Row>
+              {splitThis ? null : (
+                <Text variant="caption" tone="muted">
+                  {t.household.splitThisOneHint}
+                </Text>
+              )}
+            </Card>
+          ) : null}
+          {poolDefault && !splitThis ? null : (
+            <Card padded={false} style={{ padding: theme.spacing.md, gap: theme.spacing.md }}>
+              <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text variant="subheading" accessibilityRole="header">
+                  {t.expense.howToSplit}
+                </Text>
+                {/* Splitting the bill line by line is another answer to "how is this
                 split". New expenses only — an existing one is edited in place,
                 not re-itemised. */}
-              {!editing ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t.expense.splitByItem}
-                  onPress={() => router.replace(`/group/${groupId}/itemize`)}
-                  hitSlop={LINK_HIT_SLOP}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
-                >
-                  <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
-                    {t.expense.splitByItem}
+                {!editing ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.expense.splitByItem}
+                    onPress={() => router.replace(`/group/${groupId}/itemize`)}
+                    hitSlop={LINK_HIT_SLOP}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
+                  >
+                    <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+                      {t.expense.splitByItem}
+                    </Text>
+                    <Ionicons
+                      name={directionalIcon('chevron-forward')}
+                      size={iconSize.base}
+                      color={theme.color.brand}
+                    />
+                  </Pressable>
+                ) : null}
+              </Row>
+              <SplitKindSegments
+                value={splitKind}
+                onChange={(next) => {
+                  setSavedUnits(null);
+                  setSplitKind(next);
+                }}
+              />
+              {/* Custom editors use family rows in the family lens. */}
+              {familiesOn ? (
+                <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+                  <Text variant="caption" tone="muted">
+                    {t.families.splitBy}
                   </Text>
-                  <Ionicons
-                    name={directionalIcon('chevron-forward')}
-                    size={iconSize.base}
-                    color={theme.color.brand}
+                  <ChipRow<'people' | 'families'>
+                    options={[
+                      { value: 'people', label: t.families.byPeople },
+                      { value: 'families', label: t.families.byFamilies },
+                    ]}
+                    value={splitBy}
+                    onChange={(next) => {
+                      setSavedUnits(null);
+                      setSplitBy(next);
+                    }}
+                    variant="brand"
+                    onCard
+                    wrap
                   />
-                </Pressable>
+                </Row>
               ) : null}
-            </Row>
-            <SplitKindSegments
-              value={splitKind}
-              onChange={(next) => {
-                setSavedUnits(null);
-                setSplitKind(next);
-              }}
-            />
-            {/* Custom editors use family rows in the family lens. */}
-            {familiesOn ? (
-              <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                <Text variant="caption" tone="muted">
-                  {t.families.splitBy}
-                </Text>
-                <ChipRow<'people' | 'families'>
-                  options={[
-                    { value: 'people', label: t.families.byPeople },
-                    { value: 'families', label: t.families.byFamilies },
-                  ]}
-                  value={splitBy}
-                  onChange={(next) => {
-                    setSavedUnits(null);
-                    setSplitBy(next);
-                  }}
-                  variant="brand"
-                  onCard
-                  wrap
-                />
-              </Row>
-            ) : null}
-            {byFamily && splitKind === SplitKind.Equal ? (
-              <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                <Text variant="caption" tone="muted">
-                  {t.families.eachFamilyPays}
-                </Text>
-                <ChipRow<'same' | 'size'>
-                  options={[
-                    { value: 'same', label: t.families.same },
-                    { value: 'size', label: t.families.bySize },
-                  ]}
-                  value={familyBySize ? 'size' : 'same'}
-                  onChange={(next) => {
-                    setSavedUnits(null);
-                    setFamilyBySize(next === 'size');
-                  }}
-                  variant="brand"
-                  onCard
-                />
-              </Row>
-            ) : null}
-            <SplitParticipants
-              members={members.data ?? []}
-              viewerId={viewerId}
-              participants={participants}
-              onToggle={toggleParticipant}
-              splitKind={splitKind}
-              entries={entries}
-              onEntryChange={setEntry}
-              currency={currency}
-              amount={amount}
-              lineAmount={lineAmount}
-              splitIssue={splitIssue}
-              onSelectAll={selectAllParticipants}
-              units={byFamily}
-              onToggleFamily={toggleFamily}
-            />
-          </Card>
+              {byFamily && splitKind === SplitKind.Equal ? (
+                <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+                  <Text variant="caption" tone="muted">
+                    {t.families.eachFamilyPays}
+                  </Text>
+                  <ChipRow<'same' | 'size'>
+                    options={[
+                      { value: 'same', label: t.families.same },
+                      { value: 'size', label: t.families.bySize },
+                    ]}
+                    value={familyBySize ? 'size' : 'same'}
+                    onChange={(next) => {
+                      setSavedUnits(null);
+                      setFamilyBySize(next === 'size');
+                    }}
+                    variant="brand"
+                    onCard
+                  />
+                </Row>
+              ) : null}
+              <SplitParticipants
+                members={members.data ?? []}
+                viewerId={viewerId}
+                participants={participants}
+                onToggle={toggleParticipant}
+                splitKind={splitKind}
+                entries={entries}
+                onEntryChange={setEntry}
+                currency={currency}
+                amount={amount}
+                lineAmount={lineAmount}
+                splitIssue={splitIssue}
+                onSelectAll={selectAllParticipants}
+                units={byFamily}
+                onToggleFamily={toggleFamily}
+              />
+            </Card>
+          )}
 
           {/* What the card above does not carry — a vendor deposit and its
             sub-event on an Event group, how it was paid, who it was paid to, what
@@ -2828,7 +2678,7 @@ function AddExpenseScreen() {
 
               {/* A rent, a subscription: the same expense again on a schedule,
                   added for everyone on its date. New expenses only. */}
-              {!GROUP_REPEAT_HIDDEN && !expenseId && !fx ? (
+              {(!GROUP_REPEAT_HIDDEN || poolDefault) && !expenseId && !fx ? (
                 <View>
                   <DetailRow
                     icon={repeat ? 'repeat' : 'repeat-outline'}

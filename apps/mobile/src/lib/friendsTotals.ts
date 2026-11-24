@@ -61,6 +61,36 @@ export function currencyTotals(rows: readonly NetRow[]): CurrencyTotal[] {
     .sort((a, b) => (absBig(a.net) < absBig(b.net) ? 1 : absBig(a.net) > absBig(b.net) ? -1 : 0));
 }
 
+/**
+ * What you are owed and what you owe, as Home's "You lent" / "You owe" say it,
+ * but counted per person: each person is netted across every group first (one
+ * person who owes you in one group and is owed in another is one figure), then
+ * the people are split by direction and summed per currency. Owing amounts are
+ * negative; both lists are biggest-first. Never summed across currencies.
+ */
+export function personDirectionTotals(
+  rows: readonly { person_key: string; currency: string; net: string | bigint }[],
+): { owed: CurrencyTotal[]; owing: CurrencyTotal[] } {
+  const perPerson = new Map<string, { currency: string; net: bigint }>();
+  for (const row of rows) {
+    const key = `${row.person_key}|${row.currency}`;
+    const prev = perPerson.get(key);
+    perPerson.set(key, { currency: row.currency, net: (prev?.net ?? 0n) + BigInt(row.net) });
+  }
+  const sums = new Map<string, bigint>();
+  for (const { currency, net } of perPerson.values()) {
+    if (net === 0n) continue;
+    const k = `${net > 0n ? '+' : '-'}${currency}`;
+    sums.set(k, (sums.get(k) ?? 0n) + net);
+  }
+  const pick = (sign: string): CurrencyTotal[] =>
+    [...sums.entries()]
+      .filter(([k]) => k[0] === sign)
+      .map(([k, net]) => ({ currency: k.slice(1), net }))
+      .sort((a, b) => (absBig(a.net) < absBig(b.net) ? 1 : absBig(a.net) > absBig(b.net) ? -1 : 0));
+  return { owed: pick('+'), owing: pick('-') };
+}
+
 /** One direction's standing: the biggest currency, then the rest of them. */
 export interface DirectionGroup {
   owed: boolean;

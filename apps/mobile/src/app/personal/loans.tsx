@@ -9,7 +9,7 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
-import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Image, Platform, Pressable, ScrollView, Share, TextInput, View } from 'react-native';
 
 import {
   canUnlink,
@@ -20,14 +20,15 @@ import {
   shareBlocker,
   syncedOutstanding,
   currencySymbol,
+  minorUnitScale,
   money,
   type LoanDirection,
   type PersonalLoan,
+  fallbackCurrency,
 } from '@waves/core';
 import {
   AmountField,
   Button,
-  Card,
   directionalIcon,
   Divider,
   IconButton,
@@ -63,6 +64,11 @@ import { useDialog } from '@/lib/dialog';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { settleHref } from '@/lib/groupTab';
+import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
+import { AddReminderSheet } from '@/components/personal/AddReminderSheet';
+import { PlainHeader, StandardCard } from '@/components/standard';
+import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
+import { loanTotals, matchesLoanFilter, repaid, type LoanFilter } from '@/lib/loansSummary';
 
 function LoansScreenBody() {
   const theme = useTheme();
@@ -79,6 +85,9 @@ function LoansScreenBody() {
   const [creating, setCreating] = useState(false);
   const { share } = useLocalSearchParams<{ share?: string }>();
   const [sharing, setSharing] = useState<PersonalLoan | null>(null);
+  const [reminding, setReminding] = useState<PersonalLoan | null>(null);
+  const [filter, setFilter] = useState<LoanFilter>('all');
+  const { hidden } = usePersonalAmountsHidden();
   const [shareDismissed, setShareDismissed] = useState(false);
 
   // A shared loan's outstanding amount is the balance in its 1:1 group (repaid
@@ -101,6 +110,9 @@ function LoansScreenBody() {
   const wanted = share ? (loans.find((loan) => loan.id === share) ?? null) : null;
   const shareLoanTarget = sharing ?? (wanted && !wanted.synced && !shareDismissed ? wanted : null);
 
+  const show = (n: bigint, cur: string = dc): string =>
+    hidden ? BALANCE_MASK : format(money(n, cur), { locale });
+  const totals = loanTotals(loans.map((l) => ({ direction: l.direction, left: leftOf(l) })));
   const sorted = [...loans].sort((a, b) => {
     if (a.status !== b.status) return a.status === 'active' ? -1 : 1;
     return a.startDate < b.startDate ? 1 : -1;
@@ -108,45 +120,24 @@ function LoansScreenBody() {
 
   return (
     <Screen>
-      <Row
-        style={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.md,
-          alignItems: 'center',
-        }}
-      >
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.personal.loans}</Text>
-        </View>
-        <IconButton label={t.personal.addLoan} onPress={() => setCreating(true)}>
-          <Ionicons name="add" size={iconSize.xxl} color={theme.color.brand} />
-        </IconButton>
-      </Row>
+      <PlainHeader
+        title={t.personal.loans}
+        subtitle={t.personal.loansSub}
+        trailing={
+          <IconButton label={t.personal.addLoan} onPress={() => setCreating(true)}>
+            <Ionicons name="add" size={iconSize.xl} color={theme.color.brand} />
+          </IconButton>
+        }
+      />
 
       <ScrollView
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingBottom: clearance,
+          paddingHorizontal: theme.spacing.lg,
+          paddingBottom: clearance + 72,
           gap: theme.spacing.md,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Text
-          variant="caption"
-          tone="muted"
-          align="center"
-          style={{ marginBottom: theme.spacing.sm }}
-        >
-          {t.personal.loansSub}
-        </Text>
-
         {sorted.length === 0 ? (
           <View style={{ paddingTop: theme.spacing.lg, alignItems: 'center', gap: 8 }}>
             <WalletArt />
@@ -166,105 +157,342 @@ function LoansScreenBody() {
             </Text>
           </View>
         ) : (
-          sorted.map((loan) => {
-            const left = leftOf(loan);
-            const borrowed = loan.direction === 'borrowed';
-            const settled = loan.status === 'closed' || left === 0n;
-            return (
-              <Card key={loan.id} style={{ gap: theme.spacing.sm }}>
-                <Pressable accessibilityRole="button" onPress={() => setEditing(loan)}>
-                  <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                    <View
+          <>
+            <StandardCard>
+              <Row style={{ alignItems: 'center' }}>
+                <View style={{ flex: 1 }}>
+                  <Text variant="caption" tone="muted">
+                    {t.personal.loansTotal}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    style={{ fontSize: 26, lineHeight: 32, fontWeight: '800' }}
+                  >
+                    {show(totals.total)}
+                  </Text>
+                </View>
+                <Image
+                  source={require('../../../assets/images/personal-loans.webp')}
+                  resizeMode="contain"
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  style={{ width: 72, height: 56 }}
+                />
+              </Row>
+              <Divider />
+              <Row style={{ marginTop: theme.spacing.sm }}>
+                <TotalHalf icon="arrow-down" label={t.personal.youOwe} value={show(totals.owe)} />
+                <TotalHalf
+                  icon="arrow-up"
+                  label={t.personal.youAreOwed}
+                  value={show(totals.owed)}
+                />
+              </Row>
+            </StandardCard>
+
+            <Row
+              accessibilityLabel={t.personalHome.filterLabel}
+              style={{
+                backgroundColor: theme.color.surface,
+                borderRadius: theme.radius.pill,
+                padding: 4,
+                gap: 2,
+              }}
+            >
+              {(
+                [
+                  ['all', t.personalHome.filterAll, null],
+                  ['owe', t.personal.youOwe, 'arrow-down'],
+                  ['owed', t.personal.youAreOwed, 'arrow-up'],
+                ] as const
+              ).map(([value, label, icon]) => {
+                const on = filter === value;
+                const text = `${label}${hidden ? '' : ` (${totals.counts[value]})`}`;
+                return (
+                  <Pressable
+                    key={value}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={text}
+                    onPress={() => setFilter(value)}
+                    style={{
+                      flex: on ? 1.2 : 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                      height: 36,
+                      borderRadius: theme.radius.pill,
+                      backgroundColor: on ? theme.color.brand : 'transparent',
+                    }}
+                  >
+                    {icon ? (
+                      <Ionicons
+                        name={icon}
+                        size={iconSize.sm}
+                        color={on ? theme.color.onBrand : theme.color.text}
+                      />
+                    ) : null}
+                    <Text
+                      variant="caption"
+                      numberOfLines={1}
                       style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: theme.radius.md,
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        fontWeight: '600',
+                        flexShrink: 1,
+                        color: on ? theme.color.onBrand : theme.color.text,
+                      }}
+                    >
+                      {text}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </Row>
+
+            {sorted
+              .filter((loan) => matchesLoanFilter(loan.direction, filter))
+              .map((loan) => {
+                const left = leftOf(loan);
+                const borrowed = loan.direction === 'borrowed';
+                const settled = loan.status === 'closed' || left === 0n;
+                const name = loan.counterpart || (borrowed ? t.personal.borrowed : t.personal.lent);
+                const done = repaid(loan.principal, left);
+                const fmt = (n: bigint) => show(n, loan.currency);
+                const actions: {
+                  key: string;
+                  icon: keyof typeof Ionicons.glyphMap;
+                  label: string;
+                  onPress: () => void;
+                  primary?: boolean;
+                }[] = [
+                  {
+                    key: 'pay',
+                    icon: 'card-outline',
+                    label: t.personal.recordPayment,
+                    primary: true,
+                    onPress: () =>
+                      loan.synced
+                        ? router.push(settleHref(loan.synced.groupId))
+                        : router.push({
+                            pathname: '/personal/entry',
+                            params: { loanId: loan.id, kind: borrowed ? 'expense' : 'income' },
+                          }),
+                  },
+                  {
+                    key: 'remind',
+                    icon: 'calendar-outline',
+                    label: t.personal.addReminderShort,
+                    onPress: () => setReminding(loan),
+                  },
+                  {
+                    key: 'edit',
+                    icon: 'create-outline',
+                    label: t.personal.editDetails,
+                    onPress: () => setEditing(loan),
+                  },
+                  {
+                    key: 'share',
+                    icon: 'share-social-outline',
+                    label: t.personal.shareAction,
+                    onPress: () =>
+                      void Share.share({
+                        message: fill(
+                          borrowed ? t.personal.loanShareOwe : t.personal.loanShareLent,
+                          {
+                            name,
+                            amount: format(money(left, loan.currency), { locale }),
+                            repaid: format(money(done.amount, loan.currency), { locale }),
+                          },
+                        ),
+                      }),
+                  },
+                ];
+                return (
+                  <StandardCard key={loan.id} style={{ gap: theme.spacing.sm }}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${name}, ${settled ? t.personal.paidOff : t.personal.outstanding} ${fmt(left)}`}
+                      onPress={() => setEditing(loan)}
+                    >
+                      <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+                        <View
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: theme.radius.md,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: theme.color.brandSoft,
+                          }}
+                        >
+                          <Ionicons
+                            name={borrowed ? 'arrow-down' : 'arrow-up'}
+                            size={iconSize.md}
+                            color={theme.color.brand}
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text variant="body" numberOfLines={1} style={{ fontWeight: '700' }}>
+                            {name}
+                          </Text>
+                          <Text variant="micro" tone="muted" numberOfLines={1}>
+                            {borrowed ? t.personal.borrowed : t.personal.lent} ·{' '}
+                            {fmt(loan.principal)}
+                          </Text>
+                          {loan.synced ? (
+                            <Row style={{ alignItems: 'center', gap: 4, marginTop: 2 }}>
+                              <Ionicons name="people-outline" size={12} color={theme.color.brand} />
+                              <Text
+                                variant="micro"
+                                style={{ color: theme.color.brand }}
+                                numberOfLines={1}
+                              >
+                                {fill(t.personal.visibleTo, { name: loan.counterpart })}
+                              </Text>
+                            </Row>
+                          ) : null}
+                        </View>
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text variant="micro" tone="muted">
+                            {settled ? t.personal.paidOff : t.personal.outstanding}
+                          </Text>
+                          <Text variant="body" style={{ fontWeight: '800' }}>
+                            {fmt(left)}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name={directionalIcon('chevron-forward')}
+                          size={iconSize.sm}
+                          color={theme.color.textMuted}
+                        />
+                      </Row>
+                    </Pressable>
+                    <Divider />
+                    <Row style={{ justifyContent: 'space-between' }}>
+                      <Text variant="caption" numberOfLines={1} style={{ flex: 1 }}>
+                        {fill(t.personal.repaidOf, {
+                          paid: fmt(done.amount),
+                          total: fmt(loan.principal),
+                        })}
+                      </Text>
+                      <Text variant="caption" tone="muted">
+                        {hidden ? '' : `${done.percent}%`}
+                      </Text>
+                    </Row>
+                    <View
+                      accessible
+                      accessibilityRole="progressbar"
+                      accessibilityValue={
+                        hidden ? undefined : { min: 0, max: 100, now: done.percent }
+                      }
+                      style={{
+                        height: 8,
+                        borderRadius: 4,
+                        overflow: 'hidden',
                         backgroundColor: theme.color.brandSoft,
                       }}
                     >
-                      <Ionicons
-                        name={borrowed ? 'arrow-down' : 'arrow-up'}
-                        size={iconSize.md}
-                        color={theme.color.brand}
+                      <View
+                        style={{
+                          width: `${hidden ? 0 : done.percent}%`,
+                          height: 8,
+                          backgroundColor: theme.color.brand,
+                        }}
                       />
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
-                        {loan.counterpart || (borrowed ? t.personal.borrowed : t.personal.lent)}
-                      </Text>
-                      <Text variant="micro" tone="muted">
-                        {borrowed ? t.personal.borrowed : t.personal.lent} ·{' '}
-                        {format(money(loan.principal, loan.currency), {
-                          locale,
-                        })}
-                      </Text>
-                      {loan.synced ? (
-                        <Row style={{ alignItems: 'center', gap: 4, marginTop: 2 }}>
-                          <Ionicons name="people-outline" size={12} color={theme.color.brand} />
+                    <Divider />
+                    <Row>
+                      {actions.map((a) => (
+                        <Pressable
+                          key={a.key}
+                          accessibilityRole="button"
+                          accessibilityLabel={a.label}
+                          onPress={a.onPress}
+                          style={{
+                            flex: 1,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 4,
+                            paddingVertical: theme.spacing.sm,
+                            borderRadius: theme.radius.md,
+                            backgroundColor: a.primary ? theme.color.brandSoft : 'transparent',
+                          }}
+                        >
+                          <Ionicons
+                            name={a.icon}
+                            size={iconSize.md}
+                            color={a.primary ? theme.color.brand : theme.color.text}
+                          />
                           <Text
                             variant="micro"
-                            style={{ color: theme.color.brand }}
-                            numberOfLines={1}
+                            align="center"
+                            style={{
+                              fontWeight: '600',
+                              color: a.primary ? theme.color.brand : theme.color.text,
+                            }}
                           >
-                            {fill(t.personal.visibleTo, { name: loan.counterpart })}
+                            {a.label}
                           </Text>
-                        </Row>
-                      ) : null}
-                    </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text variant="micro" tone="faint">
-                        {settled ? t.personal.paidOff : t.personal.outstanding}
-                      </Text>
-                      <Text variant="body" style={{ fontWeight: '700' }}>
-                        {format(money(left, loan.currency), { locale })}
-                      </Text>
-                    </View>
-                  </Row>
-                </Pressable>
-                {!settled ? (
-                  <>
-                    <Divider />
-                    {loan.synced ? (
+                        </Pressable>
+                      ))}
+                    </Row>
+                    {/* The 1:1 link: shared loans repay through the group; others can be offered to the person. */}
+                    {!settled && !loan.synced && shareBlocker(loan) === null ? (
                       <Button
-                        label={t.personal.settleUp}
+                        label={fill(t.personal.shareWith, {
+                          name: cleanCounterpart(loan.counterpart),
+                        })}
                         size="sm"
-                        variant="secondary"
-                        onPress={() => router.push(settleHref(loan.synced?.groupId ?? ''))}
+                        variant="ghost"
+                        onPress={() => setSharing(loan)}
                       />
-                    ) : (
-                      <>
-                        <Button
-                          label={t.personal.recordPayment}
-                          size="sm"
-                          variant="secondary"
-                          onPress={() =>
-                            router.push({
-                              pathname: '/personal/entry',
-                              params: { loanId: loan.id, kind: borrowed ? 'expense' : 'income' },
-                            })
-                          }
-                        />
-                        {shareBlocker(loan) === null ? (
-                          <Button
-                            label={fill(t.personal.shareWith, {
-                              name: cleanCounterpart(loan.counterpart),
-                            })}
-                            size="sm"
-                            variant="ghost"
-                            onPress={() => setSharing(loan)}
-                          />
-                        ) : null}
-                      </>
-                    )}
-                  </>
-                ) : null}
-              </Card>
-            );
-          })
+                    ) : null}
+                  </StandardCard>
+                );
+              })}
+          </>
         )}
       </ScrollView>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.personal.addLoan}
+        onPress={() => setCreating(true)}
+        style={{
+          position: 'absolute',
+          end: theme.spacing.lg,
+          bottom: clearance,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.brand,
+        }}
+      >
+        <Ionicons name="add" size={iconSize.xl} color={theme.color.onBrand} />
+      </Pressable>
+      {reminding ? (
+        <AddReminderSheet
+          visible
+          currency={reminding.currency}
+          today={today}
+          initialTitle={fill(
+            reminding.direction === 'borrowed'
+              ? t.personal.loanReminderOwe
+              : t.personal.loanReminderLent,
+            { name: cleanCounterpart(reminding.counterpart) },
+          )}
+          // A lent loan is money coming in, so only a borrowed one carries an expense amount.
+          initialAmount={
+            reminding.direction === 'borrowed'
+              ? String(Number(leftOf(reminding)) / Number(minorUnitScale(reminding.currency)))
+              : ''
+          }
+          onClose={() => setReminding(null)}
+        />
+      ) : null}
 
       {creating ? (
         <LoanEditor
@@ -644,7 +872,9 @@ function LoanEditor({
 
         {loan ? (
           <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text variant="body">{t.personal.closeLoan}</Text>
+            <Text variant="body" style={{ flex: 1 }}>
+              {t.personal.closeLoan}
+            </Text>
             <Button
               label={closed ? t.personal.reopenLoan : t.personal.closeLoan}
               size="sm"
@@ -941,7 +1171,9 @@ function WalletArt() {
           borderColor: '#E39C18',
         }}
       >
-        <Text style={{ fontSize: 18, fontWeight: '800', color: '#FFF6DC' }}>₹</Text>
+        <Text style={{ fontSize: 18, fontWeight: '800', color: '#FFF6DC' }}>
+          {currencySymbol(fallbackCurrency())}
+        </Text>
       </View>
     </View>
   );
@@ -956,5 +1188,41 @@ export default function LoansScreen() {
     <PersonalGuard>
       <LoansScreenBody />
     </PersonalGuard>
+  );
+}
+
+function TotalHalf({
+  icon,
+  label,
+  value,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+}) {
+  const theme = useTheme();
+  return (
+    <Row style={{ flex: 1, alignItems: 'center', gap: theme.spacing.sm }}>
+      <View
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: theme.radius.sm,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.brandSoft,
+        }}
+      >
+        <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text variant="micro" tone="muted" numberOfLines={1}>
+          {label}
+        </Text>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontWeight: '800' }}>
+          {value}
+        </Text>
+      </View>
+    </Row>
   );
 }

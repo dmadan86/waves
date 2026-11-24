@@ -25,6 +25,7 @@ vi.mock('../src/sync/engine', () => ({ syncEngine: { clear: h.engineClear } }));
 vi.mock('@/lib/receiptQueue', () => ({ clearReceiptQueue: h.clearReceiptQueue }));
 vi.mock('@/lib/smsMessageStore', () => ({ forgetMessagesForOwner: h.forgetBankMessages }));
 vi.mock('@/lib/smsDraftStore', () => ({ forgetSmsDraftsForOwner: h.forgetSmsDrafts }));
+vi.mock('@/lib/homeSnapshotStore', () => ({ clearHomeSnapshot: vi.fn(async () => {}) }));
 vi.mock('@/lib/backup/engine', () => ({ clearBackupState: h.clearBackupState }));
 vi.mock('@/lib/storage/imageCache', () => ({ clearImageCache: h.clearImageCache }));
 

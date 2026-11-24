@@ -25,6 +25,7 @@
  */
 
 import { TextInput, View } from 'react-native';
+import { useState } from 'react';
 
 import { Row, Text, useTheme } from '@waves/ui';
 
@@ -57,6 +58,7 @@ export function PersonalNoteField({
   plain?: boolean;
 }): React.JSX.Element {
   const theme = useTheme();
+  const [inputHeight, setInputHeight] = useState(40);
   return (
     <View style={{ gap: theme.spacing.sm }}>
       {label ? (
@@ -70,30 +72,49 @@ export function PersonalNoteField({
           strip fights with. `Row` is `flexDirection: 'row'`, so the mic follows
           the writing direction into the leading position under RTL without this
           file needing to know which way that is. */}
-      <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+      <Row style={{ gap: theme.spacing.sm, alignItems: 'flex-start' }}>
         <TextInput
           value={value}
           onChangeText={onChange}
           placeholder={placeholder}
           placeholderTextColor={theme.color.textFaint}
           accessibilityLabel={accessibilityLabel}
+          multiline
+          onContentSizeChange={(event) =>
+            setInputHeight(Math.max(40, event.nativeEvent.contentSize.height))
+          }
           style={
             plain
-              ? { flex: 1, fontSize: 15, color: theme.color.text, paddingVertical: 2 }
+              ? {
+                  flex: 1,
+                  minHeight: 40,
+                  height: inputHeight,
+                  fontSize: 15,
+                  lineHeight: 20,
+                  color: theme.color.text,
+                  paddingVertical: 2,
+                  textAlignVertical: 'top',
+                }
               : {
                   flex: 1,
+                  minHeight: 40,
+                  height: inputHeight,
                   fontSize: 16,
+                  lineHeight: 22,
                   color: theme.color.text,
                   paddingVertical: theme.spacing.md,
                   paddingHorizontal: theme.spacing.lg,
                   backgroundColor: theme.color.surfaceMuted,
                   borderRadius: theme.radius.md,
+                  textAlignVertical: 'top',
                 }
           }
         />
         {/* Renders nothing on web, and nothing on a binary built before the
             speech module existed. Both leave the field exactly as it is today. */}
-        <DictateButton value={value} onChange={onChange} hints={hints} />
+        <View style={{ marginTop: -12 }}>
+          <DictateButton value={value} onChange={onChange} hints={hints} />
+        </View>
       </Row>
     </View>
   );

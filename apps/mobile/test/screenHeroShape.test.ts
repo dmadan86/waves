@@ -30,25 +30,18 @@ const SRC = join(__dirname, '../src');
 const source = (relativePath: string): string => readFileSync(join(SRC, relativePath), 'utf8');
 
 describe('every hero is a deliberate shape, not a drift from the shared one', () => {
-  it('the group hero uses the shared controls rather than its own copies', () => {
+  it('a split group wears the original photo hero; a household ledger wears the plain tab header', () => {
     const hero = source('components/GroupHero.tsx');
-    const shared = hero.match(/import \{([^}]*)\} from '@\/components\/ScenicScreenHero';/);
-    expect(shared?.[1]).toMatch(/\bHeroPillButton\b/);
-    // The white pill and the dim disc were defined here and are now shared. A
-    // local `function HeroActionCircle` reappearing means somebody has forked
-    // them back apart.
-    expect(hero).not.toMatch(/function Hero(ActionCircle|PillButton)\b/);
-  });
-
-  it("the group hero wears Home's terrace photo, with its figure stacked under its label", () => {
-    // The group screen follows its own design: Home's time-of-day terrace
-    // photograph (`HOME_HERO_PHOTOS`) with "You are owed" over a large figure, rather than
-    // the shared one-line "Label: figure". A deliberate shape, pinned here.
-    const hero = source('components/GroupHero.tsx');
-    expect(hero).toMatch(
-      /import \{ HOME_HERO_PHOTOS \} from '@\/components\/home\/HomeHeroBackground';/,
-    );
-    expect(hero).not.toMatch(/<HeroFigureLine\b/);
+    expect(hero).toMatch(/export function GroupHero\b/);
+    expect(hero).toMatch(/HOME_HERO_PHOTOS/);
+    expect(hero).not.toMatch(/HomeBalanceCard/);
+    expect(hero).not.toMatch(/#(1B1340|3A2A78)/i);
+    const screen = source('app/group/[id]/index.tsx');
+    expect(screen).toMatch(/<GroupHero\b/);
+    expect(screen).toMatch(/const classic = !hasHouseholdHome\(groupData\)/);
+    // The household ledger view draws the same plain header as the household Home.
+    expect(screen).toMatch(/<TabHeader\b/);
+    expect(screen).not.toMatch(/<ScenicScreen\b/);
   });
 
   it("Friends wears Home's own hero shape, not the shared gradient shell", () => {
@@ -64,8 +57,9 @@ describe('every hero is a deliberate shape, not a drift from the shared one', ()
       /import \{[^}]*FriendsHeroBackground[^}]*\} from '@\/components\/home\/FriendsHeroBackground';/,
     );
     expect(screen).toMatch(
-      /import \{[^}]*GlassSurface[^}]*\} from '@\/components\/home\/GlassSurface';/,
+      /import \{ HomeBalanceCard \} from '@\/components\/home\/ScenicBalanceCard';/,
     );
+    expect(screen).toMatch(/<HomeBalanceCard\b/);
     expect(screen).not.toMatch(/<ScreenHero\b/);
     expect(screen).toMatch(/<Screen edges=\{\[\]\}>/);
   });

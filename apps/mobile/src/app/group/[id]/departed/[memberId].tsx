@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Network from 'expo-network';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { format, money, resolveCategory, type CurrencyCode } from '@waves/core';
+import { format, money, resolveCategory, type CurrencyCode, fallbackCurrency } from '@waves/core';
 import {
   Button,
   directionalIcon,
@@ -114,7 +114,7 @@ function DepartedExpensesScreen() {
     });
   };
   const items = selected.flatMap((c) => buildResplitItem(c, memberId) ?? []);
-  const fmt = (amount: bigint, currency = group.data?.default_currency ?? 'INR') =>
+  const fmt = (amount: bigint, currency = group.data?.default_currency ?? fallbackCurrency()) =>
     format(money(amount, currency as CurrencyCode), { locale });
   const totals = (rows: Expense[]) => summarizeDepartedExpenses(rows, memberId, group.data).totals;
   const showTotals = (values: Map<string, bigint>) =>
@@ -271,7 +271,7 @@ function DepartedExpensesScreen() {
                     color={direction === 'lent' ? theme.color.positive : theme.color.negative}
                     amount={head?.[1] ?? 0n}
                     amountColor={direction === 'lent' ? theme.color.positive : theme.color.text}
-                    currency={head?.[0] ?? group.data?.default_currency ?? 'INR'}
+                    currency={head?.[0] ?? group.data?.default_currency ?? fallbackCurrency()}
                     label={fill(direction === 'lent' ? s.youLent : s.youOwe, { name })}
                     detail={expenseCount(side.count)}
                     locale={locale}

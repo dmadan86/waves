@@ -12,6 +12,7 @@ const KEY = 'personal:amountsHidden';
 
 let hidden = false;
 let loaded = false;
+let ready = false;
 const listeners = new Set<() => void>();
 
 const emit = () => listeners.forEach((listener) => listener());
@@ -23,8 +24,14 @@ function subscribe(listener: () => void) {
   };
 }
 
-export function usePersonalAmountsHidden(): { hidden: boolean; toggle: () => void } {
+export function usePersonalAmountsHidden(): {
+  hidden: boolean;
+  /** False until the stored preference has been read. */
+  ready: boolean;
+  toggle: () => void;
+} {
   const value = useSyncExternalStore(subscribe, () => hidden);
+  const isReady = useSyncExternalStore(subscribe, () => ready);
   useEffect(() => {
     if (loaded) return;
     loaded = true;
@@ -35,12 +42,16 @@ export function usePersonalAmountsHidden(): { hidden: boolean; toggle: () => voi
           emit();
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        ready = true;
+        emit();
+      });
   }, []);
   const toggle = useCallback(() => {
     hidden = !hidden;
     emit();
     void AsyncStorage.setItem(KEY, hidden ? '1' : '0').catch(() => {});
   }, []);
-  return { hidden: value, toggle };
+  return { hidden: value, ready: isReady, toggle };
 }

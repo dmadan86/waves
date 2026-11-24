@@ -433,7 +433,9 @@ export default function AddPersonScreen() {
             itself is not kept for this 1:1 IOU (see the receipt-state note). */}
         <Card style={{ gap: theme.spacing.md }}>
           <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text variant="subheading">{t.captures.receipt}</Text>
+            <Text variant="subheading" style={{ flex: 1 }}>
+              {t.captures.receipt}
+            </Text>
             <Button
               label={t.captures.addReceipt}
               variant="secondary"

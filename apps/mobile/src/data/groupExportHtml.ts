@@ -185,8 +185,8 @@ export function renderGroupExportHtml(
 <title>${escapeHtml(labels.documentTitle)}</title>
 <style>
   :root {
-    --brand: #4f46e5;
-    --brand-soft: #eef2ff;
+    --brand: #0a66c2;
+    --brand-soft: #e8f3ff;
     --ink: #111827;
     --ink-muted: #6b7280;
     --line: #e5e7eb;

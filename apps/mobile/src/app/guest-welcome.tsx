@@ -37,7 +37,6 @@ import { useGoBack } from '@/lib/navigation';
 /** The art's own edges are all but black; the field meets them there. */
 const FIELD = '#050F07';
 /** The name in the title, and the button: the brand's violet. */
-const VIOLET = '#7B5CF5';
 
 /** The placeholder in `entry.guestIntroTitle` where the app name is tinted. */
 const APP_TOKEN = '{app}';
@@ -125,7 +124,7 @@ export default function GuestWelcomeScreen() {
                     <Text
                       key={index}
                       style={{
-                        color: VIOLET,
+                        color: theme.color.brand,
                         fontSize: 32,
                         lineHeight: 40,
                         fontWeight: '800',
@@ -166,7 +165,7 @@ export default function GuestWelcomeScreen() {
             >
               <View
                 style={[
-                  { backgroundColor: VIOLET },
+                  { backgroundColor: theme.color.buttonPrimary },
                   {
                     height: 52,
                     borderRadius: 12,

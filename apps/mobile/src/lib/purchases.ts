@@ -39,6 +39,7 @@ const API_KEY = revenueCatApiKey(
   {
     ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
     android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
+    preview: process.env.EXPO_PUBLIC_REVENUECAT_PREVIEW_KEY,
   },
   __DEV__,
 );

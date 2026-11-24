@@ -55,25 +55,25 @@ const RESEND_SECONDS = 60;
 const MAX_RESENDS = 3;
 
 /** The auth pages' own light palette and type: front-of-house, every theme. */
-const PAGE = '#F6F4FD';
-const INK = '#16163A';
-const MUTED = '#5C6078';
-const ACCENT = '#6A45E8';
-const FIELD_LINE = '#ECE9F5';
 const DISPLAY = 'PlusJakartaSans-ExtraBold';
 const BODY = 'PlusJakartaSans-Medium';
-const CARD = {
-  backgroundColor: '#FFFFFF',
-  borderRadius: 12,
-  borderWidth: 1,
-  borderColor: FIELD_LINE,
-  padding: 14,
-} as const;
 const WORDMARK = require('../../assets/images/wordmark-script.webp') as number;
 const ART = require('../../assets/images/verify-phone.webp') as number;
 
 export default function PhoneScreen() {
   const theme = useTheme();
+  const PAGE = theme.color.bg;
+  const ACCENT = theme.color.brand;
+  const INK = theme.color.text;
+  const MUTED = theme.color.textMuted;
+  const FIELD_LINE = theme.color.border;
+  const CARD = {
+    backgroundColor: theme.color.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.color.border,
+    padding: 14,
+  } as const;
   const { width: windowWidth } = useWindowDimensions();
   const { t } = useStrings();
   const { sendOtp, verifyOtp, continueAsGuest } = useAuth();
@@ -225,12 +225,12 @@ export default function PhoneScreen() {
       >
         <Path
           d="M0 70 C 110 20, 210 120, 300 80 S 380 20, 400 30 L400 260 L0 260 Z"
-          fill="#E9E3FC"
+          fill={theme.color.brandSoft}
           opacity={0.7}
         />
         <Path
           d="M0 150 C 120 110, 230 190, 330 140 S 390 110, 400 115 L400 260 L0 260 Z"
-          fill="#DCD2FA"
+          fill={theme.color.brandSoft}
           opacity={0.6}
         />
       </Svg>
@@ -316,7 +316,11 @@ export default function PhoneScreen() {
                 source={WORDMARK}
                 accessibilityLabel={t.common.appName}
                 resizeMode="contain"
-                style={{ width: windowWidth * 0.24, height: windowWidth * 0.24 * (256 / 720) }}
+                style={{
+                  width: windowWidth * 0.24,
+                  height: windowWidth * 0.24 * (256 / 720),
+                  tintColor: theme.color.brand,
+                }}
               />
               <Text
                 maxFontSizeMultiplier={COMPACT_TYPE_CAP}
@@ -361,7 +365,7 @@ export default function PhoneScreen() {
                       opacity: pressed ? 0.6 : 1,
                     })}
                   >
-                    <Text style={{ fontSize: 15, fontWeight: '700', color: ACCENT }}>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: theme.color.brand }}>
                       {t.signIn.differentNumber}
                     </Text>
                   </Pressable>
@@ -428,7 +432,7 @@ export default function PhoneScreen() {
                       borderRadius: 17,
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: '#ECE7FD',
+                      backgroundColor: theme.color.brandSoft,
                     }}
                   >
                     <Ionicons name="lock-closed-outline" size={16} color={ACCENT} />
@@ -505,7 +509,7 @@ export default function PhoneScreen() {
                       })}
                     >
                       <Ionicons name="refresh" size={18} color={ACCENT} />
-                      <Text style={{ fontSize: 15, fontWeight: '700', color: ACCENT }}>
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: theme.color.brand }}>
                         {t.entry.resendCode}
                       </Text>
                     </Pressable>
@@ -548,6 +552,7 @@ function Pill({
   busy: boolean;
   onPress: () => void;
 }) {
+  const theme = useTheme();
   const inner = busy ? (
     <ActivityIndicator color="#FFFFFF" />
   ) : (
@@ -590,9 +595,9 @@ function Pill({
       })}
     >
       {disabled && !busy ? (
-        <View style={[shape, { backgroundColor: '#CFC4F6' }]}>{inner}</View>
+        <View style={[shape, { backgroundColor: theme.color.brandSoft }]}>{inner}</View>
       ) : (
-        <View style={[{ backgroundColor: '#6A45E8' }, shape]}>{inner}</View>
+        <View style={[{ backgroundColor: theme.color.buttonPrimary }, shape]}>{inner}</View>
       )}
     </Pressable>
   );

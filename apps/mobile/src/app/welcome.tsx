@@ -56,11 +56,6 @@ const RISE = 14;
     provider below. */
 /** The door's own light palette: a front-of-house screen, the same in every
     theme, drawn to sit on the picture. */
-const INK = '#16163A';
-const MUTED = '#5C6078';
-const ACCENT = '#6A45E8';
-const LINE = '#E6E4F0';
-const SHEET = '#F8F7FC';
 
 /** The door's typeface, embedded (assets/fonts, OFL): the headline in its
     ExtraBold, the lines under it in Medium. */
@@ -178,7 +173,7 @@ export default function WelcomeScreen() {
     provider === 'apple' ? t.signIn.continueApple : t.signIn.continueGoogle;
 
   return (
-    <View style={{ flex: 1, backgroundColor: SHEET }}>
+    <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
       {/* The picture: a terrace at sunset across the top of the screen, down
           past where the sheet begins so its rounded corners sit on it. */}
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: screenHeight }}>
@@ -241,14 +236,14 @@ export default function WelcomeScreen() {
                 opacity: pressed ? 0.6 : 1,
               })}
             >
-              <Ionicons name="globe-outline" size={20} color={INK} />
+              <Ionicons name="globe-outline" size={20} color={theme.color.text} />
               <Text
                 maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-                style={{ fontSize: 15, fontWeight: '600', color: INK }}
+                style={{ fontSize: 15, fontWeight: '600', color: theme.color.text }}
               >
                 {LANGUAGE_NAMES[language].own}
               </Text>
-              <Ionicons name="chevron-down" size={16} color={INK} />
+              <Ionicons name="chevron-down" size={16} color={theme.color.text} />
             </Pressable>
           )}
           <Pressable
@@ -272,11 +267,11 @@ export default function WelcomeScreen() {
           >
             <Text
               maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-              style={{ fontSize: 16, fontWeight: '700', color: INK }}
+              style={{ fontSize: 16, fontWeight: '700', color: theme.color.text }}
             >
               {t.common.skip}
             </Text>
-            <Ionicons name={directionalIcon('arrow-forward')} size={18} color={INK} />
+            <Ionicons name={directionalIcon('arrow-forward')} size={18} color={theme.color.text} />
           </Pressable>
         </Row>
 
@@ -304,7 +299,12 @@ export default function WelcomeScreen() {
                 accessibilityRole="header"
                 accessibilityLabel={t.common.appName}
                 resizeMode="contain"
-                style={{ width: 140, height: 140 * (256 / 720), marginBottom: 2 }}
+                style={{
+                  width: 140,
+                  height: 140 * (256 / 720),
+                  marginBottom: 2,
+                  tintColor: theme.color.brand,
+                }}
               />
               <Text
                 maxFontSizeMultiplier={COMPACT_TYPE_CAP}
@@ -312,7 +312,7 @@ export default function WelcomeScreen() {
                   fontFamily: DISPLAY,
                   fontSize: 38,
                   lineHeight: 44,
-                  color: INK,
+                  color: theme.color.text,
                   letterSpacing: -1,
                 }}
               >
@@ -381,7 +381,7 @@ export default function WelcomeScreen() {
         <Animated.View
           style={[
             {
-              backgroundColor: SHEET,
+              backgroundColor: theme.color.bg,
               borderTopLeftRadius: 32,
               borderTopRightRadius: 32,
               paddingHorizontal: theme.spacing.xl,
@@ -403,7 +403,7 @@ export default function WelcomeScreen() {
             onPress={() => signInWith(first)}
             style={({ pressed }) => ({ opacity: busy ? 0.5 : pressed ? 0.9 : 1 })}
           >
-            <View style={[{ backgroundColor: '#6A45E8' }, providerRow]}>
+            <View style={[{ backgroundColor: theme.color.buttonPrimary }, providerRow]}>
               <View style={markDisc}>
                 {first === 'apple' ? (
                   <AppleMark size={20} color="#000000" />
@@ -439,7 +439,7 @@ export default function WelcomeScreen() {
               {
                 backgroundColor: '#FFFFFF',
                 borderWidth: 1,
-                borderColor: LINE,
+                borderColor: theme.color.border,
                 opacity: busy ? 0.5 : pressed ? 0.9 : 1,
               },
             ]}
@@ -453,19 +453,32 @@ export default function WelcomeScreen() {
             </View>
             <Text
               maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-              style={{ flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '700', color: INK }}
+              style={{
+                flex: 1,
+                textAlign: 'center',
+                fontSize: 15,
+                fontWeight: '700',
+                color: theme.color.text,
+              }}
             >
               {labelFor(second)}
             </Text>
-            <Ionicons name={directionalIcon('chevron-forward')} size={20} color={INK} />
+            <Ionicons
+              name={directionalIcon('chevron-forward')}
+              size={20}
+              color={theme.color.text}
+            />
           </Pressable>
 
           <Row style={{ alignItems: 'center', gap: 12, marginVertical: 2 }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
-            <Text maxFontSizeMultiplier={COMPACT_TYPE_CAP} style={{ fontSize: 14, color: MUTED }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
+            <Text
+              maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+              style={{ fontSize: 14, color: theme.color.textMuted }}
+            >
               {t.signIn.orContinueWithCap}
             </Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
+            <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
           </Row>
 
           <Row style={{ gap: 12 }}>
@@ -491,12 +504,24 @@ export default function WelcomeScreen() {
             />
           </Row>
 
-          <LegalLine textStyle={{ color: MUTED, fontSize: 13, lineHeight: 18, marginTop: 2 }} />
+          <LegalLine
+            textStyle={{ color: theme.color.textMuted, fontSize: 13, lineHeight: 18, marginTop: 2 }}
+          />
 
-          <View style={{ height: 1, backgroundColor: LINE, marginHorizontal: 40, marginTop: 4 }} />
+          <View
+            style={{
+              height: 1,
+              backgroundColor: theme.color.border,
+              marginHorizontal: 40,
+              marginTop: 4,
+            }}
+          />
 
           <Row style={{ justifyContent: 'center', alignItems: 'center', gap: 8 }}>
-            <Text maxFontSizeMultiplier={COMPACT_TYPE_CAP} style={{ fontSize: 16, color: MUTED }}>
+            <Text
+              maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+              style={{ fontSize: 16, color: theme.color.textMuted }}
+            >
               {t.signIn.haveAccountPrompt}
             </Text>
             <Pressable
@@ -516,11 +541,15 @@ export default function WelcomeScreen() {
             >
               <Text
                 maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-                style={{ fontSize: 17, fontWeight: '800', color: ACCENT }}
+                style={{ fontSize: 17, fontWeight: '800', color: theme.color.brand }}
               >
                 {t.signIn.signInAction}
               </Text>
-              <Ionicons name={directionalIcon('arrow-forward')} size={18} color={ACCENT} />
+              <Ionicons
+                name={directionalIcon('arrow-forward')}
+                size={18}
+                color={theme.color.brand}
+              />
             </Pressable>
           </Row>
         </Animated.View>
@@ -545,6 +574,7 @@ function SplitChip({
   faces: readonly number[];
   style: object;
 }) {
+  const theme = useTheme();
   return (
     <View
       style={[
@@ -568,18 +598,21 @@ function SplitChip({
           borderRadius: 15,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#EFEBFD',
+          backgroundColor: theme.color.brandSoft,
         }}
       >
-        <Ionicons name={icon} size={18} color={ACCENT} />
+        <Ionicons name={icon} size={18} color={theme.color.brand} />
       </View>
       <View>
-        <Text maxFontSizeMultiplier={COMPACT_TYPE_CAP} style={{ fontSize: 11, color: INK }}>
+        <Text
+          maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+          style={{ fontSize: 11, color: theme.color.text }}
+        >
           {label}
         </Text>
         <Text
           maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-          style={{ fontSize: 13, fontWeight: '700', color: INK }}
+          style={{ fontSize: 13, fontWeight: '700', color: theme.color.text }}
         >
           {amount}
         </Text>
@@ -620,6 +653,7 @@ function WayTile({
   disabled: boolean;
   onPress: () => void;
 }) {
+  const theme = useTheme();
   return (
     <Pressable
       testID={testID}
@@ -633,7 +667,7 @@ function WayTile({
         height: 44,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: LINE,
+        borderColor: theme.color.border,
         backgroundColor: '#FFFFFF',
         flexDirection: 'row',
         alignItems: 'center',
@@ -642,10 +676,10 @@ function WayTile({
         opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
       })}
     >
-      <Ionicons name={icon} size={20} color={ACCENT} />
+      <Ionicons name={icon} size={20} color={theme.color.brand} />
       <Text
         maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-        style={{ fontSize: 15, fontWeight: '700', color: INK }}
+        style={{ fontSize: 15, fontWeight: '700', color: theme.color.text }}
       >
         {label}
       </Text>

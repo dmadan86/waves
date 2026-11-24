@@ -97,7 +97,7 @@ function SpendingScreenBody() {
   );
 
   const index = months.indexOf(month);
-  const fmt = (amount: bigint): string => format(money(amount, dc), { locale });
+  const fmt = (amount: bigint): string => format(money(amount, dc), { locale, trimZeros: true });
   const dcScale = minorUnitScale(dc);
   const dark = theme.scheme === 'dark';
   const ink = dark ? theme.color.text : SPEC_INK;
@@ -152,7 +152,7 @@ function SpendingScreenBody() {
           <>
             <SoftCard style={{ gap: theme.spacing.sm }}>
               <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: ink }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: ink, flexShrink: 1 }}>
                   {t.personal.last6Months}
                 </Text>
                 <Legend

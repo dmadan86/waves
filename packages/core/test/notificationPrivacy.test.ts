@@ -46,7 +46,7 @@ describe('renderPrivateNotification', () => {
       facts,
       tokens: ['tok'],
     };
-    expect(buildPushBatch([row]).messages[0].body).toContain('Taj');
-    expect(buildPushBatch([{ ...row, private: true }]).messages[0].body).not.toContain('Taj');
+    expect(buildPushBatch([row]).messages[0]?.body).toContain('Taj');
+    expect(buildPushBatch([{ ...row, private: true }]).messages[0]?.body).not.toContain('Taj');
   });
 });

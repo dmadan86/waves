@@ -27,6 +27,8 @@ import {
 import { fill, plural, useStrings } from '@/i18n';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { GroupTypeTag, useGroupTypeTag } from '@/components/GroupTypeTag';
+import { BALANCE_MASK } from '@/components/home/ScenicBalanceCard';
+import { useBalanceHidden } from '@/lib/balanceHidden';
 import { HeroPillButton } from '@/components/ScenicScreenHero';
 import { HOME_HERO_PHOTOS } from '@/components/home/HomeHeroBackground';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -96,7 +98,6 @@ export function GroupHero({
   convertedFrom = [],
   pending,
   pendingForMe,
-  heroGradient,
   nameOf,
   leftOwing = 0,
   onOpenMenu,
@@ -113,7 +114,6 @@ export function GroupHero({
   convertedFrom?: readonly string[];
   pending: bigint;
   pendingForMe: readonly SettlementRow[];
-  heroGradient: readonly string[];
   nameOf: (memberId: string | null) => string;
   /** Members who left but still have a balance: "2 members · 1 left". */
   leftOwing?: number;
@@ -131,6 +131,15 @@ export function GroupHero({
   const convertedNote = convertedCaption(convertedFrom, locale, t.fx.convertedCaption);
   const { confirm } = useDialog();
   const goBack = useGoBack();
+  const { hidden, ready } = useBalanceHidden();
+  const masked = hidden || !ready;
+  // The hero wears the group's verdict on its claim buttons, as before.
+  const heroGradient =
+    myBalance > 0n
+      ? theme.gradient.positive
+      : myBalance < 0n
+        ? theme.gradient.negative
+        : theme.gradient.brand;
   const confirmSettlement = useConfirmSettlement(groupId);
   const disputeSettlement = useDisputeSettlement(groupId);
 
@@ -199,7 +208,7 @@ export function GroupHero({
         borderBottomRightRadius: theme.radius.xxl,
         gap: theme.spacing.xs,
         overflow: 'hidden',
-        backgroundColor: '#1B1340',
+        backgroundColor: theme.color.brand,
       }}
     >
       {/* Measures the hero for the scene behind it; draws nothing. */}
@@ -266,7 +275,7 @@ export function GroupHero({
           <View
             style={{
               borderRadius: TILE / 3,
-              shadowColor: '#1B1340',
+              shadowColor: '#000',
               shadowOpacity: 0.15,
               shadowRadius: 6,
               shadowOffset: { width: 0, height: 2 },
@@ -278,7 +287,7 @@ export function GroupHero({
               emoji={group.cover_emoji}
               color={group.cover_color}
               size={TILE}
-              background="#FFFFFF"
+              background={theme.color.onBrand}
             />
           </View>
           <View style={{ flexShrink: 1, gap: 2 }}>
@@ -295,11 +304,17 @@ export function GroupHero({
               <Text
                 variant="micro"
                 numberOfLines={1}
-                style={{ color: ink, opacity: 0.9, flexShrink: 1, fontSize: 12 }}
+                style={{ color: ink, opacity: 0.9, flexShrink: 1, minWidth: 0, fontSize: 12 }}
               >
                 {plural(locale, members?.length ?? 0, t.memberCount)}
                 {leftOwing > 0 ? ` · ${fill(t.memberLeftCount, { n: leftOwing })}` : ''}
-                {` · ${startedOn}`}
+              </Text>
+              <Text
+                variant="micro"
+                numberOfLines={1}
+                style={{ color: ink, opacity: 0.9, flexShrink: 0, fontSize: 12 }}
+              >
+                · {startedOn}
               </Text>
             </Row>
           </View>
@@ -325,7 +340,7 @@ export function GroupHero({
                 borderRadius: 5,
                 backgroundColor: theme.color.negative,
                 borderWidth: 1.5,
-                borderColor: darkInk ? theme.color.surface : '#3A2A78',
+                borderColor: theme.color.brand,
               }}
             />
           ) : null}
@@ -382,18 +397,25 @@ export function GroupHero({
                 </Text>
                 {pending !== 0n ? <Badge label={t.pendingConfirmation} tone="brand" /> : null}
               </Row>
-              <MoneyText
-                amount={myBalance}
-                currency={currency}
-                locale={locale}
-                mode="balance"
-                variant="title"
-                tone="default"
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.6}
-                style={{ color: ink, fontSize: 26, lineHeight: 30, fontWeight: '800' }}
-              />
+              {masked ? (
+                <Text style={{ color: ink, fontSize: 26, lineHeight: 30, fontWeight: '800' }}>
+                  {BALANCE_MASK}
+                </Text>
+              ) : (
+                <MoneyText
+                  amount={myBalance}
+                  currency={currency}
+                  locale={locale}
+                  mode="balance"
+                  fadeFraction={false}
+                  variant="title"
+                  tone="default"
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.6}
+                  style={{ color: ink, fontSize: 26, lineHeight: 30, fontWeight: '800' }}
+                />
+              )}
               {myBalance !== 0n && convertedNote ? (
                 <Text
                   numberOfLines={1}
@@ -469,7 +491,7 @@ export function GroupHero({
                   height: 40,
                   paddingHorizontal: theme.spacing.md,
                   borderRadius: theme.radius.pill,
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: theme.color.onBrand,
                   opacity: pressed ? 0.85 : 1,
                 })}
               >
@@ -496,14 +518,20 @@ export function GroupHero({
                   })}
                 </Text>
 
-                <MoneyText
-                  amount={BigInt(settlement.amount)}
-                  currency={settlement.currency}
-                  locale={locale}
-                  variant="title"
-                  tone="default"
-                  style={{ color: theme.color.onBrand }}
-                />
+                {masked ? (
+                  <Text variant="title" style={{ color: theme.color.onBrand }}>
+                    {BALANCE_MASK}
+                  </Text>
+                ) : (
+                  <MoneyText
+                    amount={BigInt(settlement.amount)}
+                    currency={settlement.currency}
+                    locale={locale}
+                    variant="title"
+                    tone="default"
+                    style={{ color: theme.color.onBrand }}
+                  />
+                )}
 
                 <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
                   <HeroPillButton
@@ -575,17 +603,23 @@ export function GroupHero({
               <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }} numberOfLines={1}>
                 {plural(locale, pendingForMe.length, t.group.peopleSaidPaid)}
               </Text>
-              <MoneyText
-                amount={pendingForMe.reduce(
-                  (sum, settlement) => sum + BigInt(settlement.amount),
-                  0n,
-                )}
-                currency={currency}
-                locale={locale}
-                variant="title"
-                tone="default"
-                style={{ color: theme.color.onBrand }}
-              />
+              {masked ? (
+                <Text variant="title" style={{ color: theme.color.onBrand }}>
+                  {BALANCE_MASK}
+                </Text>
+              ) : (
+                <MoneyText
+                  amount={pendingForMe.reduce(
+                    (sum, settlement) => sum + BigInt(settlement.amount),
+                    0n,
+                  )}
+                  currency={currency}
+                  locale={locale}
+                  variant="title"
+                  tone="default"
+                  style={{ color: theme.color.onBrand }}
+                />
+              )}
               <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
                 <HeroPillButton
                   label={fill(t.group.reviewClaims, { count: pendingForMe.length })}

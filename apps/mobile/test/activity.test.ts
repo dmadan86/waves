@@ -902,7 +902,7 @@ describe('group settings in the feed', () => {
         from: { start: null, end: null },
         to: { start: '2026-10-21', end: '2026-10-23' },
       },
-      'Set the dates to 21–23 Oct',
+      'Set the dates to Oct 21–23',
     ],
     [
       {

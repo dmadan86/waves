@@ -63,7 +63,7 @@ export async function ensureAndroidChannel(): Promise<void> {
     name: 'Waves',
     importance: AndroidImportance.DEFAULT,
     vibrationPattern: [0, 200, 100, 200],
-    lightColor: '#7A73FF',
+    lightColor: '#378FE9',
   });
 }
 
@@ -344,6 +344,9 @@ const ID = '[A-Za-z0-9-]+';
 const NOTIFICATION_PATHS = [
   /^\/activity$/,
   /^\/captures$/,
+  /^\/me$/,
+  /^\/personal\/recurring$/,
+  /^\/personal\/recap\?kind=(week|month)$/,
   /^\/settings\/devices$/,
   new RegExp(`^/group/${ID}(/(add-expense|company-followups|expense/${ID}))?$`),
 ];

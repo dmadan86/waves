@@ -94,3 +94,10 @@ export function incomeSource(id: string | null): IncomeSource | null {
 export function isIncomeSourceId(id: string | null): boolean {
   return id !== null && BY_ID.has(id);
 }
+
+/** Category prefix marking money moved into or out of an investment. Like `inc.`
+ *  for income, it is reserved: such entries are not spending and not income. */
+export const INVESTMENT_CATEGORY_PREFIX = 'inv.';
+
+export const isInvestmentCategory = (category: string | null | undefined): boolean =>
+  typeof category === 'string' && category.startsWith(INVESTMENT_CATEGORY_PREFIX);

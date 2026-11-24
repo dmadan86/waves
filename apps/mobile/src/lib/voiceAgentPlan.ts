@@ -213,6 +213,7 @@ export function planVoiceAgentActions(
         card(segments, action.name.trim().length === 0);
         return;
       }
+
       case 'add_member': {
         const group = groups.get(action.groupId);
         card(

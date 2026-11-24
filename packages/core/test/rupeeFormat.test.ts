@@ -20,3 +20,19 @@ describe('rupee formatting', () => {
     expect(format(money(20925650n, 'INR'), { locale: 'en-IN', whole: true })).toBe('₹2,09,257');
   });
 });
+
+describe('trimZeros', () => {
+  it('drops a bare .00 but keeps real paise', () => {
+    expect(format({ minor: 75000n, currency: 'INR' }, { locale: 'en-IN', trimZeros: true })).toBe(
+      '₹750',
+    );
+    expect(
+      format({ minor: -9100000n, currency: 'INR' }, { locale: 'en-IN', trimZeros: true }),
+    ).toBe('-₹91,000');
+    expect(format({ minor: 4502569n, currency: 'INR' }, { locale: 'en-IN', trimZeros: true })).toBe(
+      '₹45,025.69',
+    );
+    expect(format({ minor: 0n, currency: 'INR' }, { locale: 'en-IN', trimZeros: true })).toBe('₹0');
+    expect(format({ minor: 75000n, currency: 'INR' }, { locale: 'en-IN' })).toBe('₹750.00');
+  });
+});

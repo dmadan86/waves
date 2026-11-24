@@ -15,7 +15,7 @@ export function isPrivateSpaceType(type: string | null | undefined): boolean {
 
 type Shape = 'added' | 'changed' | 'activity';
 
-const GENERIC: Record<string, Record<Shape | 'body', string>> = {
+const GENERIC: { en: Record<Shape | 'body', string> } & Record<string, Record<Shape | 'body', string>> = {
   en: {
     added: '{actor} added an expense in {group}',
     changed: '{actor} updated an expense in {group}',

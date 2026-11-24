@@ -223,6 +223,7 @@ export async function postDueRecurring(
           date,
           loanId: null,
           recurringId: rule.id,
+          ...(rule.investmentId ? { investmentId: rule.investmentId } : {}),
         }),
       });
       posted += 1;

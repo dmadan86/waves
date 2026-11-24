@@ -17,7 +17,16 @@
  * applies.
  */
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  type ComponentProps,
+  type ComponentType,
+  type ReactNode,
+} from 'react';
 
 import { Toast, type CalloutTone } from '@waves/ui';
 
@@ -34,7 +43,12 @@ interface ToastValue {
    * one-sentence failure nobody has to answer. Positive by default, because
    * that is what almost every caller means.
    */
-  show: (message: string, tone?: CalloutTone) => void;
+  show: (
+    message: string,
+    tone?: CalloutTone,
+    action?: { label: string; onPress: () => void },
+    durationMs?: number,
+  ) => void;
 }
 
 const ToastContext = createContext<ToastValue | null>(null);
@@ -47,11 +61,27 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     seq: number;
     message: string;
     tone: CalloutTone;
+    action?: { label: string; onPress: () => void };
+    durationMs?: number;
   } | null>(null);
 
-  const show = useCallback((message: string, tone: CalloutTone = 'positive'): void => {
-    setCurrent((previous) => ({ seq: (previous?.seq ?? 0) + 1, message, tone }));
-  }, []);
+  const show = useCallback(
+    (
+      message: string,
+      tone: CalloutTone = 'positive',
+      action?: { label: string; onPress: () => void },
+      durationMs?: number,
+    ): void => {
+      setCurrent((previous) => ({
+        seq: (previous?.seq ?? 0) + 1,
+        message,
+        tone,
+        action,
+        durationMs,
+      }));
+    },
+    [],
+  );
 
   const value = useMemo<ToastValue>(() => ({ show }), [show]);
 
@@ -77,11 +107,22 @@ export function useToast(): ToastValue {
 
 const NO_TOAST: ToastValue = { show: () => {} };
 
+type ActionToastProps = ComponentProps<typeof Toast> & {
+  action?: { label: string; onPress: () => void };
+};
+const ActionToast = Toast as ComponentType<ActionToastProps>;
+
 function ToastHost({
   current,
   onDone,
 }: {
-  current: { seq: number; message: string; tone: CalloutTone } | null;
+  current: {
+    seq: number;
+    message: string;
+    tone: CalloutTone;
+    action?: { label: string; onPress: () => void };
+    durationMs?: number;
+  } | null;
   onDone: () => void;
 }) {
   const reduceMotion = useReducedMotion();
@@ -93,7 +134,7 @@ function ToastHost({
   const bottom = useBottomClearance();
 
   return (
-    <Toast
+    <ActionToast
       // The key restarts the entrance and the timer for a repeated message.
       key={current?.seq ?? 0}
       message={current?.message ?? ''}
@@ -102,6 +143,8 @@ function ToastHost({
       onDone={onDone}
       bottom={bottom}
       animated={!reduceMotion}
+      action={current?.action}
+      durationMs={current?.durationMs}
     />
   );
 }

@@ -44,6 +44,9 @@ function ensureLoaded() {
     });
 }
 
+/** Start the pref read at launch, before Home mounts, so the eye is ready on first paint. */
+export const preloadBalanceHidden = ensureLoaded;
+
 function subscribe(listener: () => void) {
   listeners.add(listener);
   ensureLoaded();

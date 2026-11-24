@@ -70,7 +70,7 @@ import { groupLabel, isBlockedMember, isGhost, isViewer } from '@/data/types';
 import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { expenseReceiptPath, expenseReceiptUrl } from '@/data/api';
-import { coordLabel, mapsUrl } from '@/lib/location';
+import { mapsUrl } from '@/lib/location';
 import { useBottomClearance } from '@/lib/clearance';
 import { newMarksSince, type NewMark } from '@/lib/groupNew';
 import { useGroupBaseline } from '@/lib/useGroupUnread';
@@ -1094,10 +1094,10 @@ function ExpenseDetailScreen() {
                   <DetailRow
                     icon="location-outline"
                     label={t.location.label}
-                    value={location.name?.trim() || coordLabel(location)}
+                    value={location.name?.trim() || t.location.pinnedOnMap}
                     onPress={() => setMapOpen((open) => !open)}
                     expanded={mapOpen}
-                    accessibilityLabel={`${t.location.label}, ${location.name?.trim() || coordLabel(location)}`}
+                    accessibilityLabel={`${t.location.label}, ${location.name?.trim() || t.location.pinnedOnMap}`}
                   />
                 ) : null}
                 {location && mapOpen ? (

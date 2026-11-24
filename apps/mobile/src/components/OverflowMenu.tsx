@@ -66,6 +66,8 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 export interface OverflowMenuItem {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  /** Short context shown under the label. */
+  subtitle?: string;
   /** Where the row goes. Omit when the row runs an action instead (`onPress`). */
   route?: Href;
   /** An in-app action instead of a route — e.g. replaying the tour. Takes
@@ -330,7 +332,9 @@ export function OverflowMenu({
                         disabled: !!item.disabled,
                         checked: item.toggle?.value,
                       }}
-                      accessibilityLabel={item.hint ? `${item.label}, ${item.hint}` : item.label}
+                      accessibilityLabel={[item.label, item.subtitle, item.hint]
+                        .filter(Boolean)
+                        .join(', ')}
                       style={({ pressed }) => ({
                         flexDirection: 'row',
                         alignItems: 'center',
@@ -339,7 +343,7 @@ export function OverflowMenu({
                         // clear it — a menu row is a primary tap target.
                         minHeight: 44,
                         paddingHorizontal: theme.spacing.lg,
-                        paddingVertical: theme.spacing.md,
+                        paddingVertical: item.subtitle ? theme.spacing.xs : theme.spacing.md,
                         backgroundColor: pressed ? theme.color.surfaceMuted : 'transparent',
                         opacity: item.disabled ? 0.45 : 1,
                       })}
@@ -355,6 +359,11 @@ export function OverflowMenu({
                         <Text variant="body" tone={item.tone === 'danger' ? 'negative' : undefined}>
                           {item.label}
                         </Text>
+                        {item.subtitle ? (
+                          <Text variant="micro" tone="muted" numberOfLines={1}>
+                            {item.subtitle}
+                          </Text>
+                        ) : null}
                         {item.hint ? (
                           <Text variant="micro" tone="muted">
                             {item.hint}

@@ -1,6 +1,6 @@
 /**
- * The actions you start from Home — start a group, settle up, earn credits,
- * add an expense — as a strip along the foot of the balance card rather than
+ * The actions you start from Home — scan a bill, remind, settle up, earn
+ * credits, add an expense — as a strip along the foot of the balance card rather than
  * a row of tiles of their own: a small disc over a one-line word in each
  * column, so the actions cost the card a band instead of the screen a block.
  *
@@ -11,17 +11,12 @@
  * Friends' own quick actions use — brand-tinted here, lilac there.
  */
 
-import { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { View } from 'react-native';
 
 import { useTheme } from '@waves/ui';
 
-import { GroupAddIcon } from '@/components/GroupAddIcon';
 import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
-import type { MenuAnchor } from '@/components/home/NewGroupMenu';
-import { measureAnchor } from '@/lib/measureAnchor';
 import { fill, useStrings } from '@/i18n';
 import { queryCredits } from '@/lib/adCredits';
 import { useViewerId } from '@/lib/auth';
@@ -39,7 +34,9 @@ export function HomeQuickActions({
   onAddExpenseLong,
   onSettleUp,
   onReview,
-  onNewGroup,
+  onScan,
+  onRemind,
+  onJoin,
   radius,
 }: {
   onAddExpense: () => void;
@@ -47,14 +44,16 @@ export function HomeQuickActions({
   onSettleUp: () => void;
   /** Company users: opens Review, which has no tab of its own for them. */
   onReview: () => void;
-  /** Handed the tile's window position so the menu can drop from it. */
-  onNewGroup: (anchor: MenuAnchor | null) => void;
+  onScan: () => void;
+  /** Opens Friends, where each balance carries its own nudge. */
+  onRemind: () => void;
+  /** All groups: Join group takes Remind's place (join by code or QR). */
+  onJoin?: () => void;
   /** The card's corner radius, which the strip's bottom corners follow. */
   radius: number;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
-  const groupRef = useRef<View>(null);
   const viewerId = useViewerId();
   const { isPaid } = useEntitlement();
   const adOffer = useRewardedAdOffer();
@@ -73,13 +72,24 @@ export function HomeQuickActions({
 
   const actions: QuickAction[] = [
     {
-      key: 'group',
-      label: t.homeDash.newGroup,
-      glyph: (color) => <GroupAddIcon size={28} color={color} />,
-      onPress: () => measureAnchor(groupRef, onNewGroup),
-      ref: groupRef,
-      tourId: 'addGroup',
+      key: 'scan',
+      label: t.scanBill,
+      glyph: (color) => <Ionicons name="scan-outline" size={28} color={color} />,
+      onPress: onScan,
     },
+    onJoin
+      ? {
+          key: 'join',
+          label: t.homeToday.joinGroupShort,
+          glyph: (color) => <Ionicons name="people-outline" size={28} color={color} />,
+          onPress: onJoin,
+        }
+      : {
+          key: 'remind',
+          label: t.people.remind,
+          glyph: (color) => <Ionicons name="alarm-outline" size={28} color={color} />,
+          onPress: onRemind,
+        },
     isReview
       ? {
           key: 'review',

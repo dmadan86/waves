@@ -23,14 +23,14 @@
  */
 
 export const palette = {
-  brand50: '#F4F3FF',
-  brand100: '#E8E7FE',
-  brand200: '#D2CFFF',
-  brand300: '#B0AAFF',
-  brand400: '#8C85FF',
-  brand500: '#7A73FF',
-  brand600: '#635BFF',
-  brand700: '#4B42E8',
+  brand50: '#F3F9FE',
+  brand100: '#E8F3FF',
+  brand200: '#DCEBFA',
+  brand300: '#A8D0F7',
+  brand400: '#70B5F9',
+  brand500: '#378FE9',
+  brand600: '#0A66C2',
+  brand700: '#004182',
 
   ink900: '#14142B',
   ink700: '#2E2F45',
@@ -105,8 +105,8 @@ export const gradients = {
   // white text and the small balance labels stay legible on every corner. No
   // green anywhere: the neutral balance deck and the primary action tile both
   // wear this, so the dashboard opens on indigo, never green.
-  light: ['#3A31C9', '#4B42E8', '#635BFF'],
-  dark: ['#241C8A', '#3A31C9', '#4B42E8'],
+  light: ['#00305F', '#004182', '#0A66C2'],
+  dark: ['#001F3D', '#00305F', '#004182'],
   // The paired action tile: a warm sunset coral, the "warm highlight over a cool
   // base" of the 2025 palettes. Kept off the money hues (blue/red) and off
   // warning amber (deeper, more orange-brown) so it never reads as a status.
