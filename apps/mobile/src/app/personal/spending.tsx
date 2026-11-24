@@ -35,6 +35,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import {
@@ -82,7 +83,11 @@ function SpendingScreenBody() {
   // columns harder to compare, which is the only thing a chart is for.
   const [thisMonth] = useState(() => todayIso().slice(0, 7));
   const months = useMemo(() => recentMonths(thisMonth, WINDOW), [thisMonth]);
-  const [month, setMonth] = useState(thisMonth);
+  // The dashboard's "See all" opens on the month its card showed, if it is in the window.
+  const { month: monthParam } = useLocalSearchParams<{ month?: string }>();
+  const [month, setMonth] = useState(() =>
+    typeof monthParam === 'string' && months.includes(monthParam) ? monthParam : thisMonth,
+  );
   const [includeBills, setIncludeBills] = useState(true);
 
   // No classifier yet: the recurring rules cannot say which of them are bills,

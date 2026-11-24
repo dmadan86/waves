@@ -81,6 +81,7 @@ function PersonalTransactionsScreenBody() {
     kind?: string;
     month?: string;
     method?: string;
+    currency?: string;
     uncategorized?: string;
     from?: string;
     to?: string;
@@ -103,6 +104,10 @@ function PersonalTransactionsScreenBody() {
   // Extra narrowings from the dashboard, each dismissed by its own chip.
   const [dropCredit, setDropCredit] = useState(false);
   const [dropUncategorized, setDropUncategorized] = useState(false);
+  const currencyParam =
+    typeof params.currency === 'string' && /^[A-Z]{3}$/.test(params.currency)
+      ? params.currency
+      : null;
   const creditOnly = params.method === 'credit' && !dropCredit;
   const uncategorizedOnly = params.uncategorized === '1' && !dropUncategorized;
 
@@ -152,6 +157,7 @@ function PersonalTransactionsScreenBody() {
       locale,
       categoryMatch: matchesCategory,
       creditOnly,
+      currency: currencyParam,
       categoryLabel: (id) => t.categories[id as keyof typeof t.categories] ?? id,
       month,
       from: fromDate,
@@ -179,6 +185,7 @@ function PersonalTransactionsScreenBody() {
     picked,
     bucketed,
     creditOnly,
+    currencyParam,
     uncategorizedOnly,
     month,
     fromDate,

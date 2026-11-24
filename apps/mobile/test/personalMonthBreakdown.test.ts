@@ -147,3 +147,12 @@ describe('monthBreakdown', () => {
     expect(b.categories.uncategorizedTotal).toBe(50n);
   });
 });
+
+describe('filterTxns currency scope', () => {
+  it('keeps only the dashboard currency when asked, and everything otherwise', async () => {
+    const { filterTxns } = await import('../src/lib/txnLedger');
+    const rows = [txn({ currency: 'INR' }), txn({ currency: 'USD' })];
+    expect(filterTxns(rows, { tab: 'all', needle: '', currency: 'INR' })).toHaveLength(1);
+    expect(filterTxns(rows, { tab: 'all', needle: '' })).toHaveLength(2);
+  });
+});

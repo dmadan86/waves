@@ -12,6 +12,8 @@ export interface TxnFilters {
   categoryLabel?: (category: string) => string;
   /** Narrow to credit-card payments (the dashboard's credit-card row). */
   creditOnly?: boolean;
+  /** Only this currency, for drill-ins that must match the dashboard's total. */
+  currency?: string | null;
   month?: string | null;
   from?: string | null;
   to?: string | null;
@@ -19,12 +21,14 @@ export interface TxnFilters {
 
 /** Search the same displayed note, category label and formatted amount as the ledger. */
 export function filterTxns(txns: readonly PersonalTxn[], filters: TxnFilters): PersonalTxn[] {
-  const { tab, locale, categoryMatch, categoryLabel, creditOnly, month, from, to } = filters;
+  const { tab, locale, categoryMatch, categoryLabel, creditOnly, currency, month, from, to } =
+    filters;
   const needle = filters.needle.trim().toLocaleLowerCase(locale);
   return txns.filter(
     (txn) =>
       (!categoryMatch || categoryMatch(txn.category)) &&
       (!creditOnly || isCreditCard(txn)) &&
+      (!currency || txn.currency === currency) &&
       (tab === 'all' || (tab === 'transfer' ? txn.loanId !== null : txn.kind === tab)) &&
       (!month || txn.date.slice(0, 7) === month) &&
       (!from || txn.date >= from) &&

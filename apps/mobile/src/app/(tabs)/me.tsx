@@ -56,7 +56,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { CategoryBadge } from '@/components/Category';
+import { CategoryBadge, useLabelledCategoryCatalog } from '@/components/Category';
 import { useWealthReminders } from '@/lib/wealthReminders';
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import {
@@ -518,10 +518,18 @@ function MeLedger() {
             ) : null}
           </Card>
 
-          <MonthMoneyCard b={breakdown} month={month} shown={shown} t={t} locale={locale} />
+          <MonthMoneyCard
+            b={breakdown}
+            month={month}
+            currency={dc}
+            shown={shown}
+            t={t}
+            locale={locale}
+          />
           <ByCategoryCard
             b={breakdown}
             month={month}
+            currency={dc}
             shown={shown}
             t={t}
             locale={locale}
@@ -1066,12 +1074,14 @@ function MoneyRow({
 function MonthMoneyCard({
   b,
   month,
+  currency,
   shown,
   t,
   locale,
 }: {
   b: MonthBreakdown;
   month: string;
+  currency: string;
   shown: (amount: bigint) => string;
   t: Strings;
   locale: string;
@@ -1132,7 +1142,7 @@ function MonthMoneyCard({
           onPress={() =>
             router.push({
               pathname: '/personal/transactions',
-              params: { kind: 'expense', month, method: 'credit' },
+              params: { kind: 'expense', month, method: 'credit', currency },
             })
           }
         />
@@ -1156,6 +1166,7 @@ function MonthMoneyCard({
 function ByCategoryCard({
   b,
   month,
+  currency,
   shown,
   t,
   locale,
@@ -1163,6 +1174,7 @@ function ByCategoryCard({
 }: {
   b: MonthBreakdown;
   month: string;
+  currency: string;
   shown: (amount: bigint) => string;
   t: Strings;
   locale: string;
@@ -1170,6 +1182,7 @@ function ByCategoryCard({
 }) {
   const theme = useTheme();
   const h = t.personalHome;
+  const catalog = useLabelledCategoryCatalog().all;
   const { rows, uncategorizedCount } = b.categories;
   // Uncategorised spend has its own line below, so it is not ranked here.
   const top = rows.filter((row) => row.category !== null).slice(0, 5);
@@ -1179,11 +1192,13 @@ function ByCategoryCard({
       <CardTitle
         title={h.byCategory}
         action={t.personal.dash.viewAll}
-        onAction={() => router.push('/personal/spending')}
+        onAction={() => router.push({ pathname: '/personal/spending', params: { month } })}
       />
       {top.map((row) => {
-        const resolved = resolveCategory(row.category, null);
-        const name = catLabel(row.category) ?? t.categories.other;
+        // A custom tag has no translated label; its catalog entry carries name and tint.
+        const entry = catalog.find((e) => e.key === row.category);
+        const resolved = entry ?? resolveCategory(row.category, null);
+        const name = entry?.label ?? catLabel(row.category) ?? t.categories.other;
         const amount = shown(row.spent);
         const percent = Math.round(row.share * 100);
         return (
@@ -1194,7 +1209,7 @@ function ByCategoryCard({
             onPress={() =>
               router.push({
                 pathname: '/personal/transactions',
-                params: { kind: 'expense', month, category: row.category! },
+                params: { kind: 'expense', month, category: row.category!, currency },
               })
             }
             style={({ pressed }) => ({ gap: 4, minHeight: 40, opacity: pressed ? 0.6 : 1 })}
@@ -1233,7 +1248,7 @@ function ByCategoryCard({
           onPress={() =>
             router.push({
               pathname: '/personal/transactions',
-              params: { kind: 'expense', month, uncategorized: '1' },
+              params: { kind: 'expense', month, uncategorized: '1', currency },
             })
           }
           style={({ pressed }) => ({
