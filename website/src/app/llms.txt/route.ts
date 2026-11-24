@@ -37,11 +37,11 @@ export async function GET() {
     `- [Compare Waves](${absoluteUrl('/en/compare')}): sourced side-by-side comparisons with Splitwise, Tricount, Settle Up, Splid, Spliit, Kittysplit, Splitkaro, Google Pay, PhonePe, Venmo and spreadsheets, including where each is better.`,
     `- [Source code on GitHub](${site.githubUrl}): the whole app is open source under AGPL-3.0, so how money, data and sync are handled can be read, not just claimed.`,
     `- [Press kit](${absoluteUrl('/en/press')}), [Splitwise alternative](${absoluteUrl('/en/alternatives/splitwise-alternative')}) and [use cases](${absoluteUrl('/en/use-cases/split-bills-with-roommates')}).`,
-    `- [Web app](${site.appUrl})`,
+    `- [Web app](${site.webAppUrl})`,
     '',
     '## Facts',
     '',
-    `- Platforms: Android app${site.iosUrl ? ', iPhone app' : ' (iPhone app coming soon)'}, web app at ${site.appUrl}, Android home-screen widgets.`,
+    `- Platforms: Android app${site.iosUrl ? ', iPhone app' : ' (iPhone app coming soon)'}, web app at ${site.webAppUrl}, Android home-screen widgets.`,
     `- Free: ₹0. Ad-supported. ${voiceCommands.free} AI voice commands a month, then 1 credit each.`,
     `- Pro (India prices): ₹${plans.pro.monthly} a month or ₹${plans.pro.yearly} a year. No ads, ${voiceCommands.pro} AI voice commands a month. Bought inside the app; other countries see their local store price.`,
     ...t.pricing.plans

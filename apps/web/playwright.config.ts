@@ -35,6 +35,8 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
+      // The suite drives the app at the origin root; production mounts it at /app.
+      NEXT_PUBLIC_BASE_PATH: '',
       // Not a real project — the sign-in surface never calls it. The live join
       // spec (`e2e/join-live.spec.ts`) points these at a local Supabase stack
       // with E2E_SUPABASE_URL / E2E_SUPABASE_ANON_KEY; without them it is skipped.
