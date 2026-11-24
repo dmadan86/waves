@@ -1325,6 +1325,20 @@ export interface UiStrings {
     openDetail: string;
   };
   /** The app lock, the delay before it asks again, and the way out. */
+  spacePrivacy: {
+    lockOfferTitle: string;
+    lockOfferBody: string;
+    lockOfferYes: string;
+    lockOfferNo: string;
+    onlyMeTitle: string;
+    onlyMeHint: string;
+    savedToPersonal: string;
+    aiConsentTitle: string;
+    aiConsentBody: string;
+    aiConsentAllow: string;
+    aiConsentNotNow: string;
+    aiDeclined: string;
+  };
   lock: {
     subtitle: string;
     requireShort: string;
@@ -10034,6 +10048,22 @@ const en: UiStrings = {
       'Still saved on this phone — it just keeps failing to send. Try again, or let it go.',
     openDetail: 'Opens what needs your decision',
   },
+  spacePrivacy: {
+    lockOfferTitle: 'Lock Waves with your fingerprint?',
+    lockOfferBody:
+      'Your shared space holds money details. Lock Waves so only you can open it. You can change this anytime in Settings.',
+    lockOfferYes: 'Turn on',
+    lockOfferNo: 'Not now',
+    onlyMeTitle: 'Only me',
+    onlyMeHint: "Your partner won't see this",
+    savedToPersonal: 'Saved to your Personal',
+    aiConsentTitle: 'Send your entries to AI?',
+    aiConsentBody:
+      'To answer, Waves sends the entries you ask about to our AI provider. They are not used for training.',
+    aiConsentAllow: 'Allow',
+    aiConsentNotNow: 'Not now',
+    aiDeclined: 'Okay. Waves did not send anything. You can allow it whenever you ask again.',
+  },
   lock: {
     subtitle: 'Keep your information private and your account safe.',
     requireShort: 'App lock',
@@ -18184,6 +18214,22 @@ const ta: UiStrings = {
     stuckExplain:
       'இந்த ஃபோனில் இன்னும் சேமிக்கப்பட்டுள்ளது — அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும், அல்லது நீக்கிவிடவும்.',
     openDetail: 'உங்கள் முடிவு தேவைப்படுவதைத் திறக்கும்',
+  },
+  spacePrivacy: {
+    lockOfferTitle: 'உங்கள் கைரேகையால் Waves-ஐ பூட்டவா?',
+    lockOfferBody:
+      'உங்கள் பகிர்ந்த இடத்தில் பணத் தகவல்கள் உள்ளன. நீங்கள் மட்டும் திறக்கும்படி Waves-ஐ பூட்டுங்கள். அமைப்புகளில் எப்போது வேண்டுமானாலும் மாற்றலாம்.',
+    lockOfferYes: 'இயக்கு',
+    lockOfferNo: 'இப்போது வேண்டாம்',
+    onlyMeTitle: 'நான் மட்டும்',
+    onlyMeHint: 'உங்கள் துணை இதைப் பார்க்கமாட்டார்',
+    savedToPersonal: 'உங்கள் தனிப்பட்டதில் சேமிக்கப்பட்டது',
+    aiConsentTitle: 'உங்கள் பதிவுகளை AI-க்கு அனுப்பவா?',
+    aiConsentBody:
+      'பதிலளிக்க, நீங்கள் கேட்கும் பதிவுகளை Waves எங்கள் AI வழங்குநருக்கு அனுப்பும். அவை பயிற்சிக்குப் பயன்படுத்தப்படாது.',
+    aiConsentAllow: 'அனுமதி',
+    aiConsentNotNow: 'இப்போது வேண்டாம்',
+    aiDeclined: 'சரி. Waves எதையும் அனுப்பவில்லை. மீண்டும் கேட்கும்போது அனுமதிக்கலாம்.',
   },
   lock: {
     subtitle: 'உங்கள் தகவலைத் தனிப்பட்டதாகவும் கணக்கைப் பாதுகாப்பாகவும் வைத்திருங்கள்.',
@@ -26397,6 +26443,22 @@ const hi: UiStrings = {
     stuckExplain: 'इस फ़ोन पर अब भी सहेजा है — बस भेजा नहीं जा पा रहा। दोबारा कोशिश करें, या हटा दें।',
     openDetail: 'आपके निर्णय की ज़रूरत वाली चीज़ खोलता है',
   },
+  spacePrivacy: {
+    lockOfferTitle: 'अपनी फ़िंगरप्रिंट से Waves लॉक करें?',
+    lockOfferBody:
+      'आपकी साझा जगह में पैसों की जानकारी है। Waves को लॉक करें ताकि सिर्फ़ आप इसे खोल सकें। आप इसे कभी भी सेटिंग्स में बदल सकते हैं।',
+    lockOfferYes: 'चालू करें',
+    lockOfferNo: 'अभी नहीं',
+    onlyMeTitle: 'सिर्फ़ मैं',
+    onlyMeHint: 'आपके पार्टनर को यह नहीं दिखेगा',
+    savedToPersonal: 'आपके पर्सनल में सेव हुआ',
+    aiConsentTitle: 'अपनी एंट्रियाँ AI को भेजें?',
+    aiConsentBody:
+      'जवाब देने के लिए Waves आपकी पूछी गई एंट्रियाँ हमारे AI प्रदाता को भेजता है। इनका उपयोग ट्रेनिंग के लिए नहीं होता।',
+    aiConsentAllow: 'अनुमति दें',
+    aiConsentNotNow: 'अभी नहीं',
+    aiDeclined: 'ठीक है। Waves ने कुछ नहीं भेजा। जब दोबारा पूछें तब अनुमति दे सकते हैं।',
+  },
   lock: {
     subtitle: 'अपनी जानकारी निजी और अपना खाता सुरक्षित रखें।',
     requireShort: 'ऐप लॉक',
@@ -34540,6 +34602,22 @@ const ar: UiStrings = {
     discardBody: 'إنه على هذا الهاتف فقط. بعد تجاهله لن يعود.',
     stuckExplain: 'ما زال محفوظًا على هذا الهاتف — لكنه لا يُرسَل. أعد المحاولة، أو تجاهله.',
     openDetail: 'يفتح ما يحتاج إلى قرارك',
+  },
+  spacePrivacy: {
+    lockOfferTitle: 'هل تقفل Waves ببصمة إصبعك؟',
+    lockOfferBody:
+      'مساحتك المشتركة تحتوي على تفاصيل مالية. اقفل Waves ليتمكن أنت فقط من فتحه. يمكنك تغيير ذلك في أي وقت من الإعدادات.',
+    lockOfferYes: 'تشغيل',
+    lockOfferNo: 'ليس الآن',
+    onlyMeTitle: 'أنا فقط',
+    onlyMeHint: 'شريكك لن يرى هذا',
+    savedToPersonal: 'تم الحفظ في حسابك الشخصي',
+    aiConsentTitle: 'إرسال مدخلاتك إلى الذكاء الاصطناعي؟',
+    aiConsentBody:
+      'للإجابة، ترسل Waves المدخلات التي تسأل عنها إلى مزوّد الذكاء الاصطناعي لدينا. لا تُستخدم للتدريب.',
+    aiConsentAllow: 'سماح',
+    aiConsentNotNow: 'ليس الآن',
+    aiDeclined: 'حسنًا. لم ترسل Waves أي شيء. يمكنك السماح عند السؤال مرة أخرى.',
   },
   lock: {
     subtitle: 'حافظ على خصوصية معلوماتك وأمان حسابك.',
