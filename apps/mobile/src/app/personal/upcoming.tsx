@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { format, money, pickUpcoming } from '@waves/core';
-import { Button, iconSize, Row, Sheet, Text, useTabBarClearance, useTheme } from '@waves/ui';
+import { Badge, Button, iconSize, Row, Sheet, Text, useTabBarClearance, useTheme } from '@waves/ui';
 
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { GroupRow } from '@/components/home/GroupRow';
@@ -56,6 +56,11 @@ export default function PersonalUpcomingScreen() {
   const [acting, setActing] = useState<{
     rule: (typeof ledger.recurrings)[number];
     date: string;
+    title: string;
+    subtitle: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    status: string;
+    overdue: boolean;
   } | null>(null);
   const wealth = useWealthRows({ ...ledger, today }, 90);
   const view = upcomingView({
@@ -120,7 +125,16 @@ export default function PersonalUpcomingScreen() {
               router.push({ pathname: '/dates/edit', params: { id: item.id } });
             else router.push('/dates');
           } else if (row.href) router.push(row.href as never);
-          else if (rule) setActing({ rule, date: row.date ?? rule.nextDate });
+          else if (rule)
+            setActing({
+              rule,
+              date: row.date ?? rule.nextDate,
+              title,
+              subtitle,
+              icon,
+              status: dateLabel,
+              overdue: row.inDays < 0,
+            });
         }}
       />
     );
@@ -229,8 +243,44 @@ export default function PersonalUpcomingScreen() {
       <Sheet visible={acting !== null} onClose={() => setActing(null)} closeLabel={t.common.close}>
         {acting ? (
           <View style={{ gap: theme.spacing.sm }}>
-            <Text variant="heading">{acting.rule.note?.trim() || t.personal.expense}</Text>
+            <Row style={{ gap: theme.spacing.md, marginBottom: theme.spacing.sm }}>
+              <View
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: theme.radius.lg,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: theme.color.brandSoft,
+                }}
+              >
+                <Ionicons name={acting.icon} size={iconSize.xl} color={theme.color.brand} />
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text variant="heading" numberOfLines={2}>
+                  {acting.title}
+                </Text>
+                <Row style={{ gap: 4 }}>
+                  <Ionicons
+                    name="calendar-outline"
+                    size={iconSize.sm}
+                    color={theme.color.textMuted}
+                  />
+                  <Text variant="caption" tone="muted" numberOfLines={1}>
+                    {acting.subtitle}
+                  </Text>
+                </Row>
+              </View>
+              <Badge label={acting.status} tone={acting.overdue ? 'negative' : 'brand'} />
+            </Row>
             <Button
+              icon={
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={iconSize.md}
+                  color={theme.color.onBrand}
+                />
+              }
               label={acting.rule.txnKind === 'income' ? t.personal.postNow : h.markPaid}
               disabled={posting}
               onPress={() => {
@@ -241,6 +291,7 @@ export default function PersonalUpcomingScreen() {
             />
             <Button
               variant="secondary"
+              icon={<Ionicons name="create-outline" size={iconSize.md} color={theme.color.brand} />}
               label={h.editBill}
               onPress={() => {
                 const id = acting.rule.id;
