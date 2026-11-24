@@ -8433,6 +8433,19 @@ export interface UiStrings {
     repeatNone: string;
     repeatMonthly: string;
     repeatYearly: string;
+    monthMoney: string;
+    recurringBills: string;
+    stillDue: string;
+    allPaid: string;
+    loansEmis: string;
+    stillOwe: string;
+    creditCard: string;
+    byCategory: string;
+    categorize: string;
+    uncategorized: string;
+    billCount: PluralForms;
+    cardCount: PluralForms;
+    uncategorizedCount: PluralForms;
   };
   personalPlan: {
     leftToday: string;
@@ -16592,6 +16605,19 @@ const en: UiStrings = {
     repeatNone: 'Does not repeat',
     repeatMonthly: 'Every month',
     repeatYearly: 'Every year',
+    monthMoney: "This month's money",
+    recurringBills: 'Recurring bills',
+    stillDue: 'Still due {amount}',
+    allPaid: 'All paid',
+    loansEmis: 'Loans & EMIs',
+    stillOwe: 'Still owe {amount}',
+    creditCard: 'Credit card',
+    byCategory: 'By category',
+    categorize: 'Categorize',
+    uncategorized: 'Uncategorized',
+    billCount: { one: '{n} bill', other: '{n} bills' },
+    cardCount: { one: '{n} payment', other: '{n} payments' },
+    uncategorizedCount: { one: '{n} uncategorized', other: '{n} uncategorized' },
   },
   personalPlan: {
     leftToday: '{amount} left today',
@@ -24827,6 +24853,19 @@ const ta: UiStrings = {
     repeatNone: 'மீண்டும் வராது',
     repeatMonthly: 'ஒவ்வொரு மாதமும்',
     repeatYearly: 'ஒவ்வொரு ஆண்டும்',
+    monthMoney: 'இந்த மாதத்தின் பணம்',
+    recurringBills: 'தொடர் கட்டணங்கள்',
+    stillDue: 'இன்னும் செலுத்த வேண்டியது {amount}',
+    allPaid: 'அனைத்தும் செலுத்தப்பட்டது',
+    loansEmis: 'கடன்கள் & EMI',
+    stillOwe: 'இன்னும் செலுத்த வேண்டிய தொகை {amount}',
+    creditCard: 'கிரெடிட் கார்டு',
+    byCategory: 'வகை வாரியாக',
+    categorize: 'வகைப்படுத்து',
+    uncategorized: 'வகைப்படுத்தப்படாதவை',
+    billCount: { one: '{n} கட்டணம்', other: '{n} கட்டணங்கள்' },
+    cardCount: { one: '{n} செலுத்துதல்', other: '{n} செலுத்துதல்கள்' },
+    uncategorizedCount: { one: '{n} வகைப்படுத்தப்படாதது', other: '{n} வகைப்படுத்தப்படாதவை' },
   },
   personalPlan: {
     leftToday: 'இன்று {amount} மீதம்',
@@ -32888,6 +32927,19 @@ const hi: UiStrings = {
     repeatNone: 'दोहराएगा नहीं',
     repeatMonthly: 'हर महीने',
     repeatYearly: 'हर साल',
+    monthMoney: 'इस महीने का पैसा',
+    recurringBills: 'आवर्ती बिल',
+    stillDue: 'अभी बाकी {amount}',
+    allPaid: 'सब चुका दिए',
+    loansEmis: 'लोन और EMI',
+    stillOwe: 'अभी बकाया {amount}',
+    creditCard: 'क्रेडिट कार्ड',
+    byCategory: 'श्रेणी के अनुसार',
+    categorize: 'श्रेणी चुनें',
+    uncategorized: 'बिना श्रेणी',
+    billCount: { one: '{n} बिल', other: '{n} बिल' },
+    cardCount: { one: '{n} भुगतान', other: '{n} भुगतान' },
+    uncategorizedCount: { one: '{n} बिना श्रेणी', other: '{n} बिना श्रेणी' },
   },
   personalPlan: {
     leftToday: 'आज {amount} बचे हैं',
@@ -41817,6 +41869,40 @@ const ar: UiStrings = {
     repeatNone: 'لا يتكرر',
     repeatMonthly: 'كل شهر',
     repeatYearly: 'كل سنة',
+    monthMoney: 'أموال هذا الشهر',
+    recurringBills: 'الفواتير المتكررة',
+    stillDue: 'المتبقي للدفع {amount}',
+    allPaid: 'تم دفع الكل',
+    loansEmis: 'القروض والأقساط',
+    stillOwe: 'لا يزال عليك {amount}',
+    creditCard: 'بطاقة الائتمان',
+    byCategory: 'حسب الفئة',
+    categorize: 'حدّد الفئة',
+    uncategorized: 'بلا فئة',
+    billCount: {
+      zero: 'لا فواتير',
+      one: 'فاتورة واحدة',
+      two: 'فاتورتان',
+      few: '{n} فواتير',
+      many: '{n} فاتورة',
+      other: '{n} فاتورة',
+    },
+    cardCount: {
+      zero: 'لا عمليات دفع',
+      one: 'عملية دفع واحدة',
+      two: 'عمليتا دفع',
+      few: '{n} عمليات دفع',
+      many: '{n} عملية دفع',
+      other: '{n} عملية دفع',
+    },
+    uncategorizedCount: {
+      zero: 'لا عناصر بلا فئة',
+      one: 'عنصر واحد بلا فئة',
+      two: 'عنصران بلا فئة',
+      few: '{n} عناصر بلا فئة',
+      many: '{n} عنصرًا بلا فئة',
+      other: '{n} عنصر بلا فئة',
+    },
   },
   personalPlan: {
     leftToday: 'تبقّى {amount} اليوم',

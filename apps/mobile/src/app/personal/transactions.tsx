@@ -80,6 +80,8 @@ function PersonalTransactionsScreenBody() {
     categoryMode?: string;
     kind?: string;
     month?: string;
+    method?: string;
+    uncategorized?: string;
     from?: string;
     to?: string;
   }>();
@@ -98,6 +100,12 @@ function PersonalTransactionsScreenBody() {
   const fromDate = dateParam(params.from);
   const toDate = dateParam(params.to);
 
+  // Extra narrowings from the dashboard, each dismissed by its own chip.
+  const [dropCredit, setDropCredit] = useState(false);
+  const [dropUncategorized, setDropUncategorized] = useState(false);
+  const creditOnly = params.method === 'credit' && !dropCredit;
+  const uncategorizedOnly = params.uncategorized === '1' && !dropUncategorized;
+
   const [tab, setTab] = useState<Tab>(kindParam ?? 'all');
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -106,9 +114,15 @@ function PersonalTransactionsScreenBody() {
     const timer = setTimeout(() => setDebouncedQuery(query), 200);
     return () => clearTimeout(timer);
   }, [query]);
-  const drillIn = [params.category, params.kind, params.month, params.from, params.to].some(
-    (value) => value !== undefined,
-  );
+  const drillIn = [
+    params.category,
+    params.kind,
+    params.month,
+    params.method,
+    params.uncategorized,
+    params.from,
+    params.to,
+  ].some((value) => value !== undefined);
   const addExpense = () =>
     router.push({ pathname: '/personal/entry', params: { kind: 'expense' } });
   // The filter sheet's pick replaces the one the screen was opened with.
@@ -127,15 +141,17 @@ function PersonalTransactionsScreenBody() {
    */
   const items: LedgerItem[] = useMemo(() => {
     const matchesCategory = (category: string | null | undefined): boolean =>
-      !filter ||
-      (bucketed && picked === undefined
-        ? (resolveCategory(category ?? null, null).builtinId ?? 'other') === filter
-        : category === filter);
+      (!uncategorizedOnly || !category) &&
+      (!filter ||
+        (bucketed && picked === undefined
+          ? (resolveCategory(category ?? null, null).builtinId ?? 'other') === filter
+          : category === filter));
     const shown = filterTxns(txns, {
       tab,
       needle: debouncedQuery,
       locale,
       categoryMatch: matchesCategory,
+      creditOnly,
       categoryLabel: (id) => t.categories[id as keyof typeof t.categories] ?? id,
       month,
       from: fromDate,
@@ -162,6 +178,8 @@ function PersonalTransactionsScreenBody() {
     filter,
     picked,
     bucketed,
+    creditOnly,
+    uncategorizedOnly,
     month,
     fromDate,
     toDate,
@@ -374,6 +392,25 @@ function PersonalTransactionsScreenBody() {
             );
           })}
         </Row>
+
+        {creditOnly || uncategorizedOnly ? (
+          <Row style={{ gap: 6, flexWrap: 'wrap' }}>
+            {creditOnly ? (
+              <FilterChip
+                label={t.personalHome.creditCard}
+                clearLabel={t.entry.clear}
+                onClear={() => setDropCredit(true)}
+              />
+            ) : null}
+            {uncategorizedOnly ? (
+              <FilterChip
+                label={t.personalHome.uncategorized}
+                clearLabel={t.entry.clear}
+                onClear={() => setDropUncategorized(true)}
+              />
+            ) : null}
+          </Row>
+        ) : null}
       </View>
 
       <FlashList
@@ -616,4 +653,38 @@ function monthName(month: string, locale: string): string {
   } catch {
     return month;
   }
+}
+
+/** A removable pill naming a narrowing the screen was opened with. */
+function FilterChip({
+  label,
+  clearLabel,
+  onClear,
+}: {
+  label: string;
+  clearLabel: string;
+  onClear: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}, ${clearLabel}`}
+      onPress={onClear}
+      hitSlop={6}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        height: 30,
+        paddingHorizontal: 12,
+        borderRadius: 15,
+        backgroundColor: theme.color.brandSoft,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Text style={{ fontSize: 12, fontWeight: '600', color: theme.color.brand }}>{label}</Text>
+      <Ionicons name="close" size={14} color={theme.color.brand} />
+    </Pressable>
+  );
 }

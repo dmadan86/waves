@@ -37,6 +37,7 @@ import {
   monthOutlook,
   personalBudgetProgress,
   recentMonths,
+  resolveCategory,
   spendDelta,
   worstOverBudget,
   type PersonalTxn,
@@ -79,6 +80,7 @@ import {
 } from '@/components/personal/PersonalHomeParts';
 import { monthLabel, monthShort, monthShortYear, monthsBetween, shiftMonth } from '@/lib/monthNav';
 import { hasDue } from '@/lib/personalUpcoming';
+import { monthBreakdown, type MonthBreakdown } from '@/lib/personalMonthBreakdown';
 import { personalIntroSeen, rememberPersonalIntroSeen } from '@/lib/onboardingSeen';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { useSpaceSwitchItems } from '@/lib/useSpaceSwitchItems';
@@ -188,6 +190,10 @@ function MeLedger() {
     return /[1-9]/.test(p.fraction) ? p.text : p.lead + p.trail;
   };
   const catLabel = labelForCategory(t);
+
+  const breakdown = monthBreakdown(ledger.txns, ledger.recurrings, ledger.loans, month, dc, today);
+  // Every figure on the two cards below honours the eye on the hero.
+  const shown = (amount: bigint): string => (amountsHidden ? BALANCE_MASK : fmt(amount));
 
   // Spend against the month before, as a percentage — null when there is no
   // earlier month to hold it against.
@@ -511,6 +517,16 @@ function MeLedger() {
               </Row>
             ) : null}
           </Card>
+
+          <MonthMoneyCard b={breakdown} month={month} shown={shown} t={t} locale={locale} />
+          <ByCategoryCard
+            b={breakdown}
+            month={month}
+            shown={shown}
+            t={t}
+            locale={locale}
+            catLabel={catLabel}
+          />
 
           {monthsBack === 0 ? (
             <PersonalPlanCards plan={plan} ownerId={ownerId} hidden={amountsHidden} only="recap" />
@@ -982,4 +998,260 @@ function PrivacyFooterPill() {
 function labelForCategory(t: ReturnType<typeof useStrings>['t']) {
   return (id: string | null): string | null =>
     id ? (t.categories[id as keyof typeof t.categories] ?? null) : null;
+}
+
+type Strings = ReturnType<typeof useStrings>['t'];
+
+/** One tappable line: icon, label over a sub line, amount at the end. */
+function MoneyRow({
+  icon,
+  tint,
+  label,
+  sub,
+  amount,
+  onPress,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  tint: { bg: string; ink: string };
+  label: string;
+  sub: string | null;
+  amount: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}, ${sub ? `${sub}, ` : ''}${amount}`}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        minHeight: 48,
+        paddingVertical: theme.spacing.xs,
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: tint.bg,
+        }}
+      >
+        <Ionicons name={icon} size={iconSize.md} color={tint.ink} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+        <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
+          {label}
+        </Text>
+        {sub ? (
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {sub}
+          </Text>
+        ) : null}
+      </View>
+      <Text variant="body" numberOfLines={1} style={{ fontWeight: '700' }}>
+        {amount}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** Recurring bills, loan repayments and credit-card spend for the browsed month. */
+function MonthMoneyCard({
+  b,
+  month,
+  shown,
+  t,
+  locale,
+}: {
+  b: MonthBreakdown;
+  month: string;
+  shown: (amount: bigint) => string;
+  t: Strings;
+  locale: string;
+}) {
+  const theme = useTheme();
+  const h = t.personalHome;
+  const showRecurring = b.recurring.expected !== 0n || b.recurring.count > 0;
+  const showLoans = b.loans.repaid !== 0n || b.loans.outstanding !== 0n;
+  const showCard = b.creditCard.total !== 0n || b.creditCard.count > 0;
+  if (!showRecurring && !showLoans && !showCard) return null;
+  const rows: { key: string; node: ReactNode }[] = [];
+  if (showRecurring) {
+    const due =
+      b.recurring.due > 0n ? fill(h.stillDue, { amount: shown(b.recurring.due) }) : h.allPaid;
+    rows.push({
+      key: 'recurring',
+      node: (
+        <MoneyRow
+          icon="repeat"
+          tint={theme.tint.lilac}
+          label={h.recurringBills}
+          sub={`${plural(locale, b.recurring.count, h.billCount)} · ${due}`}
+          amount={shown(b.recurring.expected)}
+          onPress={() => router.push('/personal/recurring')}
+        />
+      ),
+    });
+  }
+  if (showLoans) {
+    rows.push({
+      key: 'loans',
+      node: (
+        <MoneyRow
+          icon="layers-outline"
+          tint={theme.tint.sky}
+          label={h.loansEmis}
+          sub={
+            b.loans.outstanding > 0n
+              ? fill(h.stillOwe, { amount: shown(b.loans.outstanding) })
+              : null
+          }
+          amount={shown(b.loans.repaid)}
+          onPress={() => router.push('/personal/loans')}
+        />
+      ),
+    });
+  }
+  if (showCard) {
+    rows.push({
+      key: 'card',
+      node: (
+        <MoneyRow
+          icon="card-outline"
+          tint={theme.tint.coral}
+          label={h.creditCard}
+          sub={plural(locale, b.creditCard.count, h.cardCount)}
+          amount={shown(b.creditCard.total)}
+          onPress={() =>
+            router.push({
+              pathname: '/personal/transactions',
+              params: { kind: 'expense', month, method: 'credit' },
+            })
+          }
+        />
+      ),
+    });
+  }
+  return (
+    <Card style={{ gap: theme.spacing.xs, padding: theme.spacing.lg }}>
+      <CardTitle title={h.monthMoney} />
+      {rows.map((row, index) => (
+        <View key={row.key}>
+          {index > 0 ? <Divider /> : null}
+          {row.node}
+        </View>
+      ))}
+    </Card>
+  );
+}
+
+/** The month's biggest categories with their share, and what still needs one. */
+function ByCategoryCard({
+  b,
+  month,
+  shown,
+  t,
+  locale,
+  catLabel,
+}: {
+  b: MonthBreakdown;
+  month: string;
+  shown: (amount: bigint) => string;
+  t: Strings;
+  locale: string;
+  catLabel: (id: string | null) => string | null;
+}) {
+  const theme = useTheme();
+  const h = t.personalHome;
+  const { rows, uncategorizedCount } = b.categories;
+  // Uncategorised spend has its own line below, so it is not ranked here.
+  const top = rows.filter((row) => row.category !== null).slice(0, 5);
+  if (top.length === 0 && uncategorizedCount === 0) return null;
+  return (
+    <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
+      <CardTitle
+        title={h.byCategory}
+        action={t.personal.dash.viewAll}
+        onAction={() => router.push('/personal/spending')}
+      />
+      {top.map((row) => {
+        const resolved = resolveCategory(row.category, null);
+        const name = catLabel(row.category) ?? t.categories.other;
+        const amount = shown(row.spent);
+        const percent = Math.round(row.share * 100);
+        return (
+          <Pressable
+            key={row.category}
+            accessibilityRole="button"
+            accessibilityLabel={`${name}, ${percent}%, ${amount}`}
+            onPress={() =>
+              router.push({
+                pathname: '/personal/transactions',
+                params: { kind: 'expense', month, category: row.category! },
+              })
+            }
+            style={({ pressed }) => ({ gap: 4, minHeight: 40, opacity: pressed ? 0.6 : 1 })}
+          >
+            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+              <Text variant="body" numberOfLines={1} style={{ flex: 1, fontWeight: '600' }}>
+                {name}
+              </Text>
+              <Text variant="body" numberOfLines={1} style={{ fontWeight: '700' }}>
+                {amount}
+              </Text>
+            </Row>
+            <View
+              style={{
+                height: 4,
+                borderRadius: 2,
+                overflow: 'hidden',
+                backgroundColor: theme.color.border,
+                flexDirection: 'row',
+              }}
+            >
+              <View
+                style={{
+                  width: `${Math.max(percent, 2)}%`,
+                  backgroundColor: theme.tint[resolved.tint].ink,
+                }}
+              />
+            </View>
+          </Pressable>
+        );
+      })}
+      {uncategorizedCount > 0 ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${plural(locale, uncategorizedCount, h.uncategorizedCount)}, ${h.categorize}`}
+          onPress={() =>
+            router.push({
+              pathname: '/personal/transactions',
+              params: { kind: 'expense', month, uncategorized: '1' },
+            })
+          }
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.xs,
+            minHeight: 36,
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+            {plural(locale, uncategorizedCount, h.uncategorizedCount)} ·
+          </Text>
+          <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+            {h.categorize}
+          </Text>
+        </Pressable>
+      ) : null}
+    </Card>
+  );
 }

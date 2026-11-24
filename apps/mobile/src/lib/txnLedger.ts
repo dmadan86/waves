@@ -1,5 +1,7 @@
 import { format, money, type PersonalTxn } from '@waves/core';
 
+import { isCreditCard } from '@/lib/personalMonthBreakdown';
+
 export type TxnTab = 'all' | 'expense' | 'income' | 'transfer';
 
 export interface TxnFilters {
@@ -8,6 +10,8 @@ export interface TxnFilters {
   locale?: string;
   categoryMatch?: (category: PersonalTxn['category']) => boolean;
   categoryLabel?: (category: string) => string;
+  /** Narrow to credit-card payments (the dashboard's credit-card row). */
+  creditOnly?: boolean;
   month?: string | null;
   from?: string | null;
   to?: string | null;
@@ -15,11 +19,12 @@ export interface TxnFilters {
 
 /** Search the same displayed note, category label and formatted amount as the ledger. */
 export function filterTxns(txns: readonly PersonalTxn[], filters: TxnFilters): PersonalTxn[] {
-  const { tab, locale, categoryMatch, categoryLabel, month, from, to } = filters;
+  const { tab, locale, categoryMatch, categoryLabel, creditOnly, month, from, to } = filters;
   const needle = filters.needle.trim().toLocaleLowerCase(locale);
   return txns.filter(
     (txn) =>
       (!categoryMatch || categoryMatch(txn.category)) &&
+      (!creditOnly || isCreditCard(txn)) &&
       (tab === 'all' || (tab === 'transfer' ? txn.loanId !== null : txn.kind === tab)) &&
       (!month || txn.date.slice(0, 7) === month) &&
       (!from || txn.date >= from) &&
