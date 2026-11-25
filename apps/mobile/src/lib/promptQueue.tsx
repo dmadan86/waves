@@ -26,6 +26,7 @@
  */
 
 import { useVoiceBusy } from '@/lib/voiceBusy';
+import { useOverlayBusyState } from '@/lib/firstRun';
 import {
   createContext,
   useCallback,
@@ -72,8 +73,10 @@ export function PromptQueueProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   // A voice hold in progress is as quiet as the voice screen itself.
   const voiceBusy = useVoiceBusy();
+  const overlayBusy = useOverlayBusyState();
   const quiet =
     voiceBusy ||
+    overlayBusy ||
     QUIET_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
   const claim = useCallback(
@@ -121,6 +124,7 @@ export function PromptQueueProvider({ children }: { children: ReactNode }) {
   // the first-inserted on a tie, but priorities are meant to be distinct.
   const winnerId = useMemo(() => {
     const { claims, holder, spent } = state;
+    if (overlayBusy) return null;
     if (holder && holder in claims) return holder;
     let best: string | null = null;
     let bestPriority = -Infinity;
@@ -132,7 +136,7 @@ export function PromptQueueProvider({ children }: { children: ReactNode }) {
       }
     }
     return best;
-  }, [state, quiet]);
+  }, [state, quiet, overlayBusy]);
 
   const value = useMemo<PromptQueueValue>(
     () => ({ claim, release, hold, winnerId }),
