@@ -82,7 +82,7 @@ export function TipSheet() {
   // tour on a first run, and after a short delay either way.
   const granted = usePromptSlot({
     id: 'dashboardTip',
-    priority: 10,
+    priority: 60,
     active: wants,
     delayMs: TIP_DELAY_MS,
   });

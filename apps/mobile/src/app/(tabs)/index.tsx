@@ -236,9 +236,9 @@ function HomeScreen() {
   const tourSlot = usePromptSlot({
     id: 'tour',
     priority: 100,
-    // Exempt from the one-prompt-per-launch allowance: the intro that just closed
-    // spent it, and the tour must still follow it on a first run.
-    essential: true,
+    // The tour follows full-screen onboarding, but still spends the single
+    // launch prompt allowance before every other launch-time ask.
+    allowAfterPrompt: true,
     active: tour.active || (tour.ready && !tour.seen),
   });
 

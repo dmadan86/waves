@@ -123,7 +123,7 @@ export function NotificationPrompt() {
   // tour or the 3-card intro — it waits its turn and shows only when it is the
   // live winner. It outranks the campaign and guest asks (a permission the OS
   // will only offer once is worth more than an announcement).
-  const granted = usePromptSlot({ id: 'notifPrompt', priority: 80, active: visible, delayMs: 300 });
+  const granted = usePromptSlot({ id: 'notifPrompt', priority: 50, active: visible, delayMs: 300 });
   const showing = visible && granted;
 
   // Counted as shown only once it is actually on screen, and the moment it is,

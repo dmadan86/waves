@@ -21,9 +21,8 @@
  *   finished late). Pulling a popup out from under somebody and putting it back
  *   after the other one reads as the same popup opening twice.
  * - **One per launch.** After a prompt has been shown and dismissed, the rest
- *   wait for the next launch. An `essential` claim — one that cannot be put off,
- *   like the required phone ask — is the only exception. The tour is not a
- *   popup and never holds, so the first prompt can still follow it.
+ *   wait for the next launch. The first-run Home tour may follow the full-screen
+ *   onboarding flow, then spends the same allowance as every other prompt.
  */
 
 import { useVoiceBusy } from '@/lib/voiceBusy';
@@ -38,12 +37,12 @@ import {
 } from 'react';
 import { usePathname } from 'expo-router';
 
-/** Focused capture screens: nothing but an essential ask may pop up over them (a widget cold launch lands here). */
+/** Focused capture screens: ordinary prompts wait while a widget cold launch is active. */
 const QUIET_ROUTES = ['/voice', '/start'];
 
 interface PromptQueueValue {
   /** Register or update a claim; higher priority wins the screen. */
-  claim: (id: string, priority: number, essential?: boolean) => void;
+  claim: (id: string, priority: number, essential?: boolean, allowAfterPrompt?: boolean) => void;
   /** Drop a claim — the next-highest live claim becomes the winner. */
   release: (id: string) => void;
   /** A granted slot is now on screen: it keeps the screen until it releases. */
@@ -57,6 +56,7 @@ const PromptQueueContext = createContext<PromptQueueValue | null>(null);
 interface Claim {
   readonly priority: number;
   readonly essential: boolean;
+  readonly allowAfterPrompt: boolean;
 }
 
 interface QueueState {
@@ -76,13 +76,25 @@ export function PromptQueueProvider({ children }: { children: ReactNode }) {
     voiceBusy ||
     QUIET_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
-  const claim = useCallback((id: string, priority: number, essential = false) => {
-    setState((prev) => {
-      const current = prev.claims[id];
-      if (current && current.priority === priority && current.essential === essential) return prev;
-      return { ...prev, claims: { ...prev.claims, [id]: { priority, essential } } };
-    });
-  }, []);
+  const claim = useCallback(
+    (id: string, priority: number, essential = false, allowAfterPrompt = false) => {
+      setState((prev) => {
+        const current = prev.claims[id];
+        if (
+          current &&
+          current.priority === priority &&
+          current.essential === essential &&
+          current.allowAfterPrompt === allowAfterPrompt
+        )
+          return prev;
+        return {
+          ...prev,
+          claims: { ...prev.claims, [id]: { priority, essential, allowAfterPrompt } },
+        };
+      });
+    },
+    [],
+  );
 
   const release = useCallback((id: string) => {
     setState((prev) => {
@@ -112,8 +124,8 @@ export function PromptQueueProvider({ children }: { children: ReactNode }) {
     if (holder && holder in claims) return holder;
     let best: string | null = null;
     let bestPriority = -Infinity;
-    for (const [id, { priority, essential }] of Object.entries(claims)) {
-      if ((spent || quiet) && !essential) continue;
+    for (const [id, { priority, essential, allowAfterPrompt }] of Object.entries(claims)) {
+      if ((spent && !allowAfterPrompt) || (quiet && !essential)) continue;
       if (priority > bestPriority) {
         bestPriority = priority;
         best = id;
@@ -162,8 +174,8 @@ export function usePromptQueueClear(): boolean {
  * so a tip that was a beat from showing steps aside the instant the tour starts.
  * Once granted it holds the screen until it goes inactive or unmounts.
  *
- * `essential` is for a prompt that cannot be put off (the required phone ask):
- * it still shows after another prompt has had this launch's turn.
+ * `essential` may show on quiet capture routes. `allowAfterPrompt` is reserved
+ * for the first-run Home tour, which follows the full-screen onboarding flow.
  */
 export function usePromptSlot({
   id,
@@ -171,22 +183,24 @@ export function usePromptSlot({
   active,
   delayMs = 0,
   essential = false,
+  allowAfterPrompt = false,
 }: {
   id: string;
   priority: number;
   active: boolean;
   delayMs?: number;
   essential?: boolean;
+  allowAfterPrompt?: boolean;
 }): boolean {
   const ctx = useContext(PromptQueueContext);
   if (!ctx) throw new Error('usePromptSlot must be used within a PromptQueueProvider');
   const { claim, release, hold, winnerId } = ctx;
 
   useEffect(() => {
-    if (active) claim(id, priority, essential);
+    if (active) claim(id, priority, essential, allowAfterPrompt);
     else release(id);
     return () => release(id);
-  }, [id, priority, active, essential, claim, release]);
+  }, [id, priority, active, essential, allowAfterPrompt, claim, release]);
 
   const isWinner = active && winnerId === id;
   const [granted, setGranted] = useState(false);
