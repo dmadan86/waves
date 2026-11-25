@@ -282,6 +282,7 @@ export default function PersonalUpcomingScreen() {
                 />
               }
               label={acting.rule.txnKind === 'income' ? t.personal.postNow : h.markPaid}
+              fullWidth
               disabled={posting}
               onPress={() => {
                 const { rule, date } = acting;
@@ -293,6 +294,7 @@ export default function PersonalUpcomingScreen() {
               variant="secondary"
               icon={<Ionicons name="create-outline" size={iconSize.md} color={theme.color.brand} />}
               label={h.editBill}
+              fullWidth
               onPress={() => {
                 const id = acting.rule.id;
                 setActing(null);
@@ -303,6 +305,7 @@ export default function PersonalUpcomingScreen() {
               variant="secondary"
               icon={<Ionicons name="time-outline" size={iconSize.md} color={theme.color.brand} />}
               label={t.personal.seeHistory}
+              fullWidth
               onPress={() => {
                 const id = acting.rule.id;
                 setActing(null);

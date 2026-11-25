@@ -29,7 +29,6 @@ import {
   frequencyOf,
   money,
   monthKey,
-  occurrences,
   recurringOccurrenceId,
   stepOccurrence,
   type Occurrence,
@@ -62,7 +61,8 @@ import {
 } from '@/data/personal';
 import { usePostRecurring } from '@/data/postRecurring';
 import { fill, plural, useStrings } from '@/i18n';
-import { nextDateLabel, rulePayments } from '@/lib/recurringList';
+import { dateTimeFormat } from '@/lib/dateTimeFormat';
+import { nextDateLabel, ruleTimeline, rulePayments } from '@/lib/recurringList';
 import { useToast } from '@/lib/toast';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
@@ -76,6 +76,14 @@ import { router } from '@/lib/navigation';
  * thousand rows. The walk in core is capped independently.
  */
 const LOOKBACK_YEARS = 5;
+
+/** "1 Dec 2026" in the person's locale. */
+function longDate(iso: string, locale: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  return dateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' }).format(
+    new Date(y!, m! - 1, d),
+  );
+}
 
 function SourceTimelineScreenBody() {
   const theme = useTheme();
@@ -97,8 +105,7 @@ function SourceTimelineScreenBody() {
   // the current one, and it should not be at the bottom of five years.
   const timeline = useMemo(() => {
     if (!rule) return [];
-    const from = `${Number(today.slice(0, 4)) - LOOKBACK_YEARS}${today.slice(4, 7)}-01`;
-    return occurrences(rule, txns, { from, to: today }, today).reverse();
+    return ruleTimeline(rule, txns, today, LOOKBACK_YEARS).reverse();
   }, [rule, txns, today]);
 
   if (!rule) {
@@ -150,7 +157,7 @@ function SourceTimelineScreenBody() {
                   <Text variant="micro" tone="muted">
                     {frequencyLabel(t, frequencyOf(rule), rule.interval)}
                     {rule.anchorDate
-                      ? ` · ${fill(t.personal.everySince, { date: rule.anchorDate })}`
+                      ? ` · ${fill(t.personal.everySince, { date: longDate(rule.anchorDate, locale) })}`
                       : ''}
                   </Text>
                 </View>
@@ -175,7 +182,7 @@ function SourceTimelineScreenBody() {
             <Text variant="caption" style={{ fontWeight: '600' }}>
               {fill(t.personal.yearSummary, {
                 amount: format(money(paid.yearTotal, rule.currency), { locale, trimZeros: true }),
-                n: String(paid.yearCount),
+                entries: plural(locale, paid.yearCount, t.personal.yearEntries),
               })}
             </Text>
             <Row style={{ gap: theme.spacing.sm }}>
@@ -183,6 +190,7 @@ function SourceTimelineScreenBody() {
                 <View style={{ flex: 1 }}>
                   <Button
                     size="sm"
+                    fullWidth
                     label={income ? t.personal.postNow : h.markPaid}
                     disabled={posting}
                     onPress={() => {
@@ -200,6 +208,7 @@ function SourceTimelineScreenBody() {
               <View style={{ flex: 1 }}>
                 <Button
                   size="sm"
+                  fullWidth
                   variant="secondary"
                   label={h.editBill}
                   onPress={() =>
@@ -210,6 +219,7 @@ function SourceTimelineScreenBody() {
               <View style={{ flex: 1 }}>
                 <Button
                   size="sm"
+                  fullWidth
                   variant="secondary"
                   label={rule.active ? t.personal.pauseRecurring : t.personal.resumeRecurring}
                   disabled={upsert.isPending}
