@@ -34,6 +34,32 @@ function stub(seqs: Record<string, number>) {
 const groupCursors = (c: Record<string, number>) =>
   Object.fromEntries(Object.entries(c).filter(([k]) => k.startsWith('0000')));
 
+function trackingStub(updatedSeq: number, type: string) {
+  const reads: string[] = [];
+  const group = {
+    id: id(1),
+    updated_seq: updatedSeq,
+    updated_at: '2026-01-01T00:00:00.000Z',
+    type,
+  };
+  const client = {
+    from: (table: string) => {
+      const b: Record<string, unknown> = {};
+      b.select = () => b;
+      b.eq = () => b;
+      b.gt = () => b;
+      b.order = () => b;
+      b.in = () => Promise.resolve({ data: table === 'groups' ? [group] : [], error: null });
+      b.limit = () => {
+        reads.push(table);
+        return Promise.resolve({ data: [], error: null });
+      };
+      return b;
+    },
+  };
+  return { client: client as never, reads };
+}
+
 describe('pull: progressive first sync', () => {
   // group n has updated_seq n, so higher n = more recent.
   const seqs = Object.fromEntries(Array.from({ length: 20 }, (_, i) => [id(i + 1), i + 1]));
@@ -74,5 +100,42 @@ describe('pull: progressive first sync', () => {
   it('is done once everything has a cursor', async () => {
     const cur = Object.fromEntries(Object.entries(seqs));
     expect((await pull(caller, new Set(all), cur, ME)).hasMore).toBe(false);
+  });
+});
+
+describe('pull: group table reads', () => {
+  it('skips stamped child reads when the group is unchanged', async () => {
+    const { client, reads } = trackingStub(12, 'trip');
+    const out = await pull(client, new Set([id(1)]), { [id(1)]: 12 }, ME);
+    expect(
+      reads.filter(
+        (table) =>
+          ![
+            'captures',
+            'ghost_merges',
+            'category_tags',
+            'personal_records',
+            'pack_installs',
+            'group_pins',
+            'group_mutes',
+          ].includes(table),
+      ),
+    ).toEqual([]);
+    expect(out.changes).toEqual([]);
+    expect(out.cursors[id(1)]).toBe(12);
+    expect(out.hasMore).toBe(false);
+  });
+
+  it('reads children when the group has changed', async () => {
+    const { client, reads } = trackingStub(12, 'trip');
+    await pull(client, new Set([id(1)]), { [id(1)]: 11 }, ME);
+    expect(reads).toContain('expenses');
+    expect(reads).not.toContain('company_entries');
+  });
+
+  it('does not read company tables for a non-company group', async () => {
+    const { client, reads } = trackingStub(12, 'trip');
+    await pull(client, new Set([id(1)]), { [id(1)]: 11 }, ME);
+    expect(reads.some((table) => table.startsWith('company_'))).toBe(false);
   });
 });
