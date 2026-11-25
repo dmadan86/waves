@@ -20,6 +20,7 @@ import {
   Row,
   Screen,
   Text,
+  useTabBarClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -30,6 +31,7 @@ import { deviceCountry, fill, plural, useStrings, type UiStrings } from '@/i18n'
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { router } from '@/lib/navigation';
+import { dismissPersonalIntro } from '@/lib/onboardingSeen';
 import {
   answersToRecords,
   BILL_IDS,
@@ -90,6 +92,8 @@ function Shell({
   const theme = useTheme();
   const { t } = useStrings();
   const back = useContext(BackContext);
+  // Setup lives under the tab bar: its bottom buttons must sit above it.
+  const clearance = useTabBarClearance();
   return (
     <Screen>
       <View style={{ paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md, flex: 1 }}>
@@ -157,7 +161,7 @@ function Shell({
           ) : null}
         </ScrollView>
         {onSkip ? (
-          <View style={{ paddingBottom: theme.spacing.lg }}>
+          <View style={{ paddingBottom: clearance + theme.spacing.lg }}>
             <Button label={s.skip} variant="ghost" onPress={onSkip} />
           </View>
         ) : null}
@@ -640,6 +644,7 @@ function Reveal({
   today: string;
 }) {
   const theme = useTheme();
+  const clearance = useTabBarClearance();
   const sum = setupSummary(recurrings, today, currency);
   const f = (v: bigint): string => format(money(v, currency), { locale });
   const month = new Date(`${today}T12:00:00`).toLocaleDateString(locale, { month: 'long' });
@@ -695,7 +700,7 @@ function Reveal({
           </Row>
         ) : null}
         <View style={{ flex: 1 }} />
-        <View style={{ paddingBottom: theme.spacing.lg }}>
+        <View style={{ paddingBottom: clearance + theme.spacing.lg }}>
           <Button label={s.doneBtn} onPress={() => router.back()} />
         </View>
       </View>
@@ -714,6 +719,7 @@ function SetupBody() {
   const ledger = usePersonalLedger();
   const params = useLocalSearchParams<{ step?: string }>();
   const [today] = useState(() => todayIso());
+  useEffect(() => dismissPersonalIntro(ownerId), [ownerId]);
   // From a "finish" row the flow starts at that question; otherwise at the top.
   const [order] = useState<readonly SetupStep[]>(() => {
     const at = SETUP_STEPS.findIndex((x) => x === params.step);

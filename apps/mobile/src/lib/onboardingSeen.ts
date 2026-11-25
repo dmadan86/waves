@@ -127,6 +127,18 @@ export const personalIntroSeen = (ownerId: string): Promise<boolean> =>
 export const rememberPersonalIntroSeen = (ownerId: string): Promise<void> =>
   writeFlag(personalIntroSlot(ownerId));
 
+/** Listeners told when the Personal intro stops being wanted (setup started). */
+const introDismissers = new Set<() => void>();
+export function onPersonalIntroDismissed(listener: () => void): () => void {
+  introDismissers.add(listener);
+  return () => introDismissers.delete(listener);
+}
+/** Setup is the deeper version of the intro: starting it closes and retires the tour. */
+export function dismissPersonalIntro(ownerId: string): void {
+  if (ownerId) void rememberPersonalIntroSeen(ownerId);
+  for (const listener of introDismissers) listener();
+}
+
 /**
  * Drop both answers for an account that no longer exists. Never rejects.
  *
