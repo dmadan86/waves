@@ -163,6 +163,8 @@ export function SignIn({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [sent, setSent] = useState(false);
+  // The code on screen confirms a new password account, not a sign-in mail.
+  const [signupCode, setSignupCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /**
    * Whether the password is showing. False on every load, deliberately: a
@@ -256,7 +258,11 @@ export function SignIn({
     setError(null);
     try {
       // The core picks the call; a guest is upgraded in place, keeping groups.
-      await withPassword(address, password, mode);
+      const { confirmEmail } = await withPassword(address, password, mode);
+      if (confirmEmail) {
+        setSignupCode(true);
+        setSent(true);
+      }
     } catch (caught) {
       setError(
         validationWords(caught, t) ??
@@ -287,7 +293,7 @@ export function SignIn({
     setBusy('code');
     setError(null);
     try {
-      await verifyEmailCode(email.trim(), digits);
+      await verifyEmailCode(email.trim(), digits, signupCode ? 'signup' : 'email');
       // No navigation: `onAuthChange` swaps this card out.
     } catch (caught) {
       setBusy(null);
@@ -434,6 +440,7 @@ export function SignIn({
                   className="linklike"
                   onClick={() => {
                     setSent(false);
+                    setSignupCode(false);
                     setCode('');
                     setError(null);
                   }}
