@@ -29,7 +29,8 @@
     "wearables": "Watch & widgets",
     "companies": "For companies",
     "personal": "Your money",
-    "github": "Waves on GitHub"
+    "github": "Waves on GitHub",
+    "home": "Family"
   },
   "stores": {
     "downloadOn": "Download on the",
@@ -340,7 +341,7 @@
     "title": "Private, secure and never sold.",
     "body": "Your data belongs to you. We never sell your data. Free is ad-supported, with banner ads on some screens and short ads you can watch for credits, never on the settle-up screen. Pro has none.",
     "cta": "Learn more",
-    "pills": ["Private by default", "Encrypted on your device", "You own your data"],
+    "pills": ["Private by default", "Never sold", "You own your data"],
     "alt": "A blue shield with a tick, framed by green leaves"
   },
   "faq": {
@@ -358,6 +359,10 @@
       {
         "q": "What does Pro add?",
         "a": "Pro has no ads and adds 100 AI voice commands and 300 receipt scans a month, with use on up to 3 devices. In India Pro is ₹79 a month or ₹699 a year; other countries are priced in the app store."
+      },
+      {
+        "q": "Can couples and families share a household budget?",
+        "a": "Yes. Make a Home or Couple group and choose Share it. The home has one pot, a monthly budget, upcoming bills and income, and nobody owes anybody. Entries marked Only me stay private to the person who added them."
       },
       {
         "q": "Does everyone need to install the app?",
@@ -433,7 +438,8 @@
       "wearables": "Watch & widgets",
       "companies": "For companies",
       "personal": "Your money",
-      "github": "GitHub"
+      "github": "GitHub",
+      "home": "Family & home"
     },
     "rights": "All rights reserved."
   },
@@ -868,12 +874,12 @@
       {
         "id": "watchos",
         "label": "Apple Watch",
-        "status": "available"
+        "status": "soon"
       },
       {
         "id": "ios",
         "label": "iPhone widgets",
-        "status": "available"
+        "status": "soon"
       },
       {
         "id": "android",
@@ -922,7 +928,7 @@
         "body": "The widgets are shortcuts. They don't show balances, and they work with the app's own screens."
       }
     ],
-    "soonNote": "Wear OS is on its way and not released yet.",
+    "soonNote": "The iPhone app, Apple Watch and Wear OS are on their way and not released yet. Android widgets are available now.",
     "lead": "Quick actions, updates and expenses, right on your wrist."
   },
   "companies": {
@@ -1214,6 +1220,14 @@
       {
         "title": "AI assistant",
         "body": "Owners can let an AI assistant find entries and answer questions about the books in plain language. One switch turns it off, and changes can need your approval."
+      },
+      {
+        "title": "Leave",
+        "body": "Record casual, sick and other leave for each person, and see it alongside attendance."
+      },
+      {
+        "title": "Advances",
+        "body": "Give an advance, record what is spent and returned, and see the balance left for each person."
       }
     ],
     "videos": {
@@ -1696,6 +1710,31 @@
           "Deleting the entry deletes its photo"
         ],
         "note": "Photos on personal entries are a paid feature. Scanning a bill to read its items and total works when you split a bill in a group: 20 scans a month on Free, 300 on Pro."
+      },
+      {
+        "id": "dashboard",
+        "eyebrow": "Dashboard",
+        "title": "This month at a glance",
+        "body": "Your month in one view: what is coming, what you owe and what you spent.",
+        "points": [
+          "This month's repeating bills and income",
+          "Loans due",
+          "Spend by category, with each row opening its entries",
+          "Step back through earlier months"
+        ],
+        "note": ""
+      },
+      {
+        "id": "assets",
+        "eyebrow": "Beyond spending",
+        "title": "Investments and rentals",
+        "body": "Keep the rest of your money next to your spending.",
+        "points": [
+          "Investments, with entries you can edit",
+          "Rentals and tenants, with rent received",
+          "Works offline, and stays private to you"
+        ],
+        "note": ""
       }
     ],
     "plansTitle": "What is free and what is Pro",
@@ -1748,6 +1787,10 @@
       {
         "title": "Receipts are yours alone",
         "body": "Receipt photos live in a private bucket where only you are given access, and are deleted with the entry."
+      },
+      {
+        "title": "Only me, inside a shared home",
+        "body": "In a couple or family group, mark an entry Only me. Your partner will not see it, and it is saved to your Personal."
       }
     ],
     "privacyLink": "Read the full privacy page",
@@ -1775,10 +1818,10 @@
         "href": "#download"
       },
       {
-        "title": "Families and your own money",
-        "body": "Run a household in a shared group, and keep spending, budgets and loans private beside it.",
-        "cta": "See Waves for your own money",
-        "href": "/personal"
+        "title": "Families, couples and your own money",
+        "body": "Run a home in one shared pot with a budget and bills, and keep your own spending, budgets and loans private beside it.",
+        "cta": "See Waves for your home",
+        "href": "/home"
       },
       {
         "title": "Shops, contractors and site teams",
@@ -1812,5 +1855,83 @@
     ],
     "cta": "View the code on GitHub",
     "license": "Read the license"
+  },
+  "homeBand": {
+    "eyebrow": "Waves for couples and families",
+    "title": "One pot for the whole home.",
+    "body": "Make a Home or Couple group and it works like a shared Personal space. Bills, a budget and income are kept together, and nobody owes anybody.",
+    "points": [
+      "Share it: one pot, no IOUs. Or split it, if you prefer",
+      "A household budget and what is left this month",
+      "Upcoming bills, with who pays and when",
+      "Mark an entry Only me and your partner never sees it"
+    ],
+    "cta": "See Waves for your home",
+    "availability": "In the phone app. Android today, iPhone coming soon."
+  },
+  "homePage": {
+    "metaTitle": "Waves for couples and families | Shared home money",
+    "metaDescription": "Run your home's money together. A shared pot, household budget, upcoming bills and income in one place, with Only me entries kept private. Free on Android.",
+    "eyebrow": "Couples and families",
+    "titleStart": "Your home's money,",
+    "titleAccent": "shared like a chat.",
+    "subtitle": "A Home or Couple group that works like a shared Personal space: one pot, a household budget, bills that come round and income, all in one ledger.",
+    "ctaPrimary": "Get Waves",
+    "ctaSecondary": "See what it does",
+    "modesTitle": "Split it, or share it",
+    "modesLead": "When you make a Home, Couple or other group, Waves asks one question. You can change it later in settings.",
+    "modes": [
+      {
+        "title": "Split it",
+        "body": "Track who paid and who owes. Best for flatmates and trips.",
+        "points": ["Balances between people", "Settle up with a payment app you already use"]
+      },
+      {
+        "title": "Share it",
+        "body": "One pot for the home. Nobody owes anybody.",
+        "points": ["Add bills and a budget together", "A couple's group starts here"]
+      }
+    ],
+    "featuresTitle": "What a household gets",
+    "features": [
+      {
+        "title": "A household budget",
+        "body": "Set what the home plans to spend each month and see what is left, or how far over you are."
+      },
+      {
+        "title": "Upcoming bills",
+        "body": "Rent, utilities and subscriptions that repeat. Each shows who pays and when, and you can mark it paid."
+      },
+      {
+        "title": "Income plans",
+        "body": "Add each person's income, so the month's plan is in the same place as its bills."
+      },
+      {
+        "title": "Who paid",
+        "body": "See what each person put in, month by month."
+      },
+      {
+        "title": "Only me",
+        "body": "Keep an entry private. Your partner will not see it, and it is saved to your own Personal."
+      },
+      {
+        "title": "Move to family",
+        "body": "Spent something from your Personal? Move it into the home. Your Personal stays private."
+      },
+      {
+        "title": "Any currency, offline",
+        "body": "Entries are saved on your phone first and sync when you are back online."
+      },
+      {
+        "title": "Reminders",
+        "body": "A nudge three days before a bill is due, and again on the day."
+      }
+    ],
+    "availTitle": "Where it works",
+    "availText": "In the Waves phone app, on Android today. The iPhone app is coming soon. Everyone in the home needs a free account.",
+    "privacyTitle": "Private where it should be",
+    "privacyBody": "A shared home is not a shared life. Your own Personal money, budgets and loans stay yours, and you choose what goes into the pot.",
+    "privacyLink": "Read how Waves handles privacy",
+    "personalLink": "See Waves for your own money"
   }
 }
