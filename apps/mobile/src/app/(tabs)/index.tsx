@@ -1,3 +1,4 @@
+import { DEMO_GROUP_ID } from '@/demo/ids';
 import { otherCurrencyChips } from '@/data/totals';
 import { useQueryClient } from '@tanstack/react-query';
 import { withScenic } from '@/components/ScenicScope';
@@ -445,15 +446,17 @@ function HomeScreen() {
   const liveOwingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
   const owedGroups = showStale && stored ? stored.headline.owedGroups : liveOwedGroups;
   const owingGroups = showStale && stored ? stored.headline.owingGroups : liveOwingGroups;
+  // The demo group's sample debts are nobody's: they must not offer Remind or Settle up.
+  const real = list.filter((g) => g.id !== DEMO_GROUP_ID);
   // Any currency, not only the headline one: the action is about people, not a total.
   const canRemind =
     showStale && stored
       ? stored.headline.owedGroups > 0
-      : list.some((g) => summary.balanceFor(g.id) > 0n);
+      : real.some((g) => summary.balanceFor(g.id) > 0n);
   const canSettle =
     showStale && stored
       ? stored.headline.owingGroups > 0
-      : list.some((g) => summary.balanceFor(g.id) < 0n);
+      : real.some((g) => summary.balanceFor(g.id) < 0n);
 
   // Home's feed: the personal ledger (for Personal's tile and the bills that
   // need paying), the pooled groups' figures, and whether there is anything yet.

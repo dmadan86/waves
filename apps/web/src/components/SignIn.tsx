@@ -163,6 +163,8 @@ export function SignIn({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [sent, setSent] = useState(false);
+  // The address the code went to: the code is checked against it, not the input box.
+  const [sentTo, setSentTo] = useState('');
   // The code on screen confirms a new password account, not a sign-in mail.
   const [signupCode, setSignupCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -261,6 +263,7 @@ export function SignIn({
       const { confirmEmail } = await withPassword(address, password, mode);
       if (confirmEmail) {
         setSignupCode(true);
+        setSentTo(address);
         setSent(true);
       }
     } catch (caught) {
@@ -293,7 +296,7 @@ export function SignIn({
     setBusy('code');
     setError(null);
     try {
-      await verifyEmailCode(email.trim(), digits, signupCode ? 'signup' : 'email');
+      await verifyEmailCode(sentTo, digits, signupCode ? 'signup' : 'email');
       // No navigation: `onAuthChange` swaps this card out.
     } catch (caught) {
       setBusy(null);
@@ -317,6 +320,7 @@ export function SignIn({
     setError(null);
     try {
       await signInWithEmail(address);
+      setSentTo(address);
       setSent(true);
     } catch (caught) {
       setError(
@@ -408,7 +412,7 @@ export function SignIn({
           {sent ? (
             <>
               <h1 className="door-head">{t.dash.linkSentTitle}</h1>
-              <p className="door-sub">{fill(t.dash.linkSentBody, { email: email.trim() })}</p>
+              <p className="door-sub">{fill(t.dash.linkSentBody, { email: sentTo })}</p>
 
               <form onSubmit={onCode} className="door-fields">
                 <label className="door-label" htmlFor="door-code">
