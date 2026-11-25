@@ -9108,7 +9108,8 @@ const en: UiStrings = {
     leaveTypeName: 'Name',
     leaveAccrual: 'Days earned per month (0 to 5, halves ok)',
     leaveCarry: 'Carry forward to next year',
-    leaveCarryHint: 'Unused days move into the next year. Off: they reset on 1 January.',
+    leaveCarryHint:
+      'Unused days move into the next year. Off: they reset when the new leave year starts.',
     leaveCarryCap: 'Carry forward at most (days)',
     leaveAnnualCap: 'Earn at most per year (days)',
     leaveNoLimit: 'No limit',
@@ -17291,7 +17292,7 @@ const ta: UiStrings = {
     leaveAccrual: 'மாதம் பெறும் நாட்கள் (0 முதல் 5, அரை நாள் சரி)',
     leaveCarry: 'அடுத்த ஆண்டுக்கு எடுத்துச் செல்',
     leaveCarryHint:
-      'பயன்படுத்தாத நாட்கள் அடுத்த ஆண்டுக்குச் செல்லும். அணைத்தால் ஜனவரி 1 அன்று மீட்டமையும்.',
+      'பயன்படுத்தாத நாட்கள் அடுத்த ஆண்டுக்குச் செல்லும். அணைத்தால் புதிய விடுப்பு ஆண்டு தொடங்கும்போது மீட்டமையும்.',
     leaveCarryCap: 'அதிகபட்சம் எடுத்துச் செல்லும் நாட்கள்',
     leaveAnnualCap: 'ஆண்டுக்கு அதிகபட்சம் பெறும் நாட்கள்',
     leaveNoLimit: 'வரம்பு இல்லை',
@@ -25694,7 +25695,8 @@ const hi: UiStrings = {
     leaveTypeName: 'नाम',
     leaveAccrual: 'प्रति माह दिन (0 से 5, आधा दिन ठीक)',
     leaveCarry: 'अगले साल में ले जाएँ',
-    leaveCarryHint: 'बचे हुए दिन अगले साल में जाते हैं। बंद होने पर 1 जनवरी को शून्य हो जाते हैं।',
+    leaveCarryHint:
+      'बचे हुए दिन अगले साल में जाते हैं। बंद होने पर नया छुट्टी वर्ष शुरू होते ही शून्य हो जाते हैं।',
     leaveCarryCap: 'अधिकतम आगे ले जाने वाले दिन',
     leaveAnnualCap: 'साल में अधिकतम मिलने वाले दिन',
     leaveNoLimit: 'कोई सीमा नहीं',
@@ -33882,7 +33884,8 @@ const ar: UiStrings = {
     leaveTypeName: 'الاسم',
     leaveAccrual: 'الأيام المكتسبة شهريًا (من 0 إلى 5، ونصف يوم مقبول)',
     leaveCarry: 'ترحيل إلى العام التالي',
-    leaveCarryHint: 'الأيام غير المستخدمة تنتقل إلى العام التالي. عند الإيقاف تُصفَّر في 1 يناير.',
+    leaveCarryHint:
+      'الأيام غير المستخدمة تنتقل إلى العام التالي. عند الإيقاف تُصفَّر عند بدء سنة الإجازة الجديدة.',
     leaveCarryCap: 'الحد الأقصى للأيام المرحّلة',
     leaveAnnualCap: 'الحد الأقصى للأيام المكتسبة سنويًا',
     leaveNoLimit: 'بلا حد',

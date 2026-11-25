@@ -21,6 +21,7 @@ import { DashBody, DashHeader, useMoney } from '@/components/company/dashboard/p
 import { CompanyStatementView } from '@/components/company/CompanyStatementView';
 import { ListRow, StandardCard } from '@/components/standard';
 import { useCompanyEntries, useCompanyPeople, useCompanySuspended } from '@/data/companyEntries';
+import { advanceLeft } from '@/lib/advanceLeftPure';
 import { todayIso } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
@@ -49,9 +50,7 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
     return {
       advances: st?.totals.advances ?? 0n,
       advanceLeft: st
-        ? st.totals.advances > st.totals.wageRecovery
-          ? st.totals.advances - st.totals.wageRecovery
-          : 0n
+        ? advanceLeft(st.totals.advances, st.totals.wageRecovery, st.totals.returned)
         : 0n,
       spent: (st?.totals.expenses ?? 0n) + (st?.totals.allowance ?? 0n),
       wages: mine
