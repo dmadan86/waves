@@ -1582,6 +1582,9 @@ export interface UiStrings {
     sectionPreferences: string;
     sectionSecurity: string;
     sectionData: string;
+    sectionBackup: string;
+    contactUs: string;
+    proHint: string;
     aiKeysRow: string;
     aiKeysHint: string;
     planRow: string;
@@ -5410,6 +5413,10 @@ export interface UiStrings {
     emptyBody: string;
     /** Phrases inside `emptyBody` drawn heavier. Missing from the text, nothing is emphasised. */
     emptyEmphasisLead: string;
+    heroSubtitle: string;
+    savedPersonal: string;
+    savedReview: string;
+    openSaved: string;
     emptyEmphasisPhoto: string;
     amount: string;
     description: string;
@@ -10315,6 +10322,9 @@ const en: UiStrings = {
     sectionPreferences: 'Preferences',
     sectionSecurity: 'Security',
     sectionData: 'Privacy & security',
+    sectionBackup: 'Data & backup',
+    contactUs: 'Contact us',
+    proHint: 'Pro plan',
     aiKeysRow: 'Your AI keys',
     aiKeysHint: 'Bring your own OpenAI, Claude or Kimi key',
     planRow: 'Plan',
@@ -13893,6 +13903,10 @@ const en: UiStrings = {
     emptyBody:
       'Catch a spend the moment it happens — the amount, a note, a photo of the bill — and choose which group it belongs to later.',
     emptyEmphasisLead: 'Catch a spend the moment it happens',
+    heroSubtitle: 'Saved expenses waiting for a group',
+    savedPersonal: 'Saved to Personal',
+    savedReview: 'Saved to Review',
+    openSaved: 'Open',
     emptyEmphasisPhoto: 'a photo of the bill',
     amount: 'Amount',
     description: 'What was it?',
@@ -18530,6 +18544,9 @@ const ta: UiStrings = {
     sectionPreferences: 'விருப்பங்கள்',
     sectionSecurity: 'பாதுகாப்பு',
     sectionData: 'தனியுரிமை & பாதுகாப்பு',
+    sectionBackup: 'தரவு & காப்புப்பிரதி',
+    contactUs: 'எங்களைத் தொடர்பு கொள்ள',
+    proHint: 'ப்ரோ திட்டம்',
     aiKeysRow: 'உங்கள் AI விசைகள்',
     aiKeysHint: 'உங்கள் சொந்த OpenAI, Claude அல்லது Kimi விசையைச் சேர்',
     planRow: 'திட்டம்',
@@ -22168,6 +22185,10 @@ const ta: UiStrings = {
     emptyBody:
       'செலவு நடந்த அந்த நொடியிலேயே பிடித்து வையுங்கள் — தொகை, ஒரு குறிப்பு, ரசீதின் படம் — எந்தக் குழுவுக்கு உரியது என்பதைப் பிறகு தீர்மானியுங்கள்.',
     emptyEmphasisLead: 'செலவு நடந்த அந்த நொடியிலேயே பிடித்து வையுங்கள்',
+    heroSubtitle: 'குழுவுக்காகக் காத்திருக்கும் சேமித்த செலவுகள்',
+    savedPersonal: 'தனிப்பட்டதில் சேமிக்கப்பட்டது',
+    savedReview: 'மறுபார்வையில் சேமிக்கப்பட்டது',
+    openSaved: 'திற',
     emptyEmphasisPhoto: 'ரசீதின் படம்',
     amount: 'தொகை',
     description: 'இது என்ன?',
@@ -26915,6 +26936,9 @@ const hi: UiStrings = {
     sectionPreferences: 'प्राथमिकताएँ',
     sectionSecurity: 'सुरक्षा',
     sectionData: 'गोपनीयता और सुरक्षा',
+    sectionBackup: 'डेटा और बैकअप',
+    contactUs: 'हमसे संपर्क करें',
+    proHint: 'प्रो प्लान',
     aiKeysRow: 'आपकी AI कुंजियाँ',
     aiKeysHint: 'अपनी OpenAI, Claude या Kimi कुंजी जोड़ें',
     planRow: 'प्लान',
@@ -30498,6 +30522,10 @@ const hi: UiStrings = {
     emptyBody:
       'खर्च होते ही उसे पकड़ लें — रकम, एक नोट, बिल की तस्वीर — और बाद में तय करें कि यह किस समूह का है।',
     emptyEmphasisLead: 'खर्च होते ही उसे पकड़ लें',
+    heroSubtitle: 'ग्रुप के इंतज़ार में सेव किए खर्च',
+    savedPersonal: 'पर्सनल में सेव हुआ',
+    savedReview: 'रिव्यू में सेव हुआ',
+    openSaved: 'खोलें',
     emptyEmphasisPhoto: 'बिल की तस्वीर',
     amount: 'रकम',
     description: 'यह क्या था?',
@@ -35222,6 +35250,9 @@ const ar: UiStrings = {
     sectionPreferences: 'التفضيلات',
     sectionSecurity: 'الأمان',
     sectionData: 'الخصوصية والأمان',
+    sectionBackup: 'البيانات والنسخ الاحتياطي',
+    contactUs: 'اتصل بنا',
+    proHint: 'خطة برو',
     aiKeysRow: 'مفاتيح الذكاء الاصطناعي',
     aiKeysHint: 'أضف مفتاح OpenAI أو Claude أو Kimi الخاص بك',
     planRow: 'الخطة',
@@ -38979,6 +39010,10 @@ const ar: UiStrings = {
     emptyBody:
       'التقط المصروف لحظة حدوثه — المبلغ، ملاحظة، صورة الفاتورة — وقرّر لاحقًا إلى أي مجموعة ينتمي.',
     emptyEmphasisLead: 'التقط المصروف لحظة حدوثه',
+    heroSubtitle: 'مصروفات محفوظة تنتظر مجموعة',
+    savedPersonal: 'تم الحفظ في الشخصي',
+    savedReview: 'تم الحفظ في المراجعة',
+    openSaved: 'فتح',
     emptyEmphasisPhoto: 'صورة الفاتورة',
     amount: 'المبلغ',
     description: 'ما هذا؟',

@@ -72,6 +72,7 @@ import { usePersonalOffered } from '@/lib/guestGuard';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { plural, useStrings, type UiStrings } from '@/i18n';
+import { useToast } from '@/lib/toast';
 import { assignCaptureHref, captureDraftFields } from '@/lib/captureAssign';
 import { planPersonalPlacement } from '@/lib/personalPlacement';
 import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
@@ -362,6 +363,7 @@ export default function CaptureScreen() {
   // bar, from the helper every scrolling screen uses for the same question.
   const clearance = useScreenClearance(theme.spacing.md);
   const { t, locale } = useStrings();
+  const toast = useToast();
   const createCapture = useCreateCapture();
   const updateCapture = useUpdateCapture();
   // `scan` fires the camera on entry; `editId` opens an existing draft to fix
@@ -707,6 +709,10 @@ export default function CaptureScreen() {
         // record is queued: a draft closed before its record exists is a spend
         // that quietly disappeared.
         if (isEditing) await deleteCapture.mutateAsync(captureId);
+        toast.show(t.captures.savedPersonal, 'positive', {
+          label: t.captures.openSaved,
+          onPress: () => router.navigate('/(tabs)/me'),
+        });
         router.back();
         return;
       }
@@ -771,6 +777,10 @@ export default function CaptureScreen() {
         setError(t.storage.full);
         return;
       }
+      toast.show(t.captures.savedReview, 'positive', {
+        label: t.captures.openSaved,
+        onPress: () => router.navigate('/captures'),
+      });
       router.back();
     } catch (caught) {
       setError(friendlyError(caught, t.captures.couldNotSave, 'capture.save'));

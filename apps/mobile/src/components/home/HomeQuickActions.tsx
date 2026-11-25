@@ -37,6 +37,7 @@ export function HomeQuickActions({
   onScan,
   onRemind,
   onJoin,
+  canSettle = true,
   radius,
 }: {
   onAddExpense: () => void;
@@ -49,6 +50,8 @@ export function HomeQuickActions({
   onRemind: () => void;
   /** All groups: Join group takes Remind's place (join by code or QR). */
   onJoin?: () => void;
+  /** False when you owe nobody: Settle up would open an empty list. */
+  canSettle?: boolean;
   /** The card's corner radius, which the strip's bottom corners follow. */
   radius: number;
 }) {
@@ -70,64 +73,69 @@ export function HomeQuickActions({
   const balance = credits.data?.credits;
   const creditAction = homeCreditsAction(balance, credits.data?.costs.voice);
 
-  const actions: QuickAction[] = [
-    {
-      key: 'scan',
-      label: t.scanBill,
-      glyph: (color) => <Ionicons name="scan-outline" size={28} color={color} />,
-      onPress: onScan,
-    },
-    onJoin
-      ? {
-          key: 'join',
-          label: t.homeToday.joinGroupShort,
-          glyph: (color) => <Ionicons name="people-outline" size={28} color={color} />,
-          onPress: onJoin,
-        }
-      : {
-          key: 'remind',
-          label: t.people.remind,
-          glyph: (color) => <Ionicons name="alarm-outline" size={28} color={color} />,
-          onPress: onRemind,
-        },
-    isReview
-      ? {
-          key: 'review',
-          label: t.review,
-          badge: reviewBadge,
-          badgeColor: theme.color.negative,
-          glyph: (color) => <Ionicons name="file-tray-full-outline" size={28} color={color} />,
-          onPress: onReview,
-        }
-      : {
-          key: 'settle',
-          label: t.homeDash.settleUp,
-          glyph: (color) => <Ionicons name="cash-outline" size={28} color={color} />,
-          onPress: onSettleUp,
-        },
-    ...(viewerId && !isPaid
-      ? [
-          {
-            key: 'credits',
-            label: fill(t.homeDash[creditAction.labelKey], { n: balance ?? 0 }),
-            badge: creditAction.badge,
-            badgeColor: theme.color.brand,
-            accessibilityLabel: `${fill(t.credits.balance, { n: balance ?? 0 })}. ${t.homeDash.getCredits}`,
-            glyph: () => <Ionicons name="flash" size={28} color={theme.color.warning} />,
-            onPress: () => void adOffer.offer('voice', { userInitiated: true, homeCredits: true }),
+  const actions = (
+    [
+      {
+        key: 'scan',
+        label: t.scanBill,
+        glyph: (color) => <Ionicons name="scan-outline" size={28} color={color} />,
+        onPress: onScan,
+      },
+      onJoin
+        ? {
+            key: 'join',
+            label: t.homeToday.joinGroupShort,
+            glyph: (color) => <Ionicons name="people-outline" size={28} color={color} />,
+            onPress: onJoin,
+          }
+        : {
+            key: 'remind',
+            label: t.people.remind,
+            glyph: (color) => <Ionicons name="alarm-outline" size={28} color={color} />,
+            onPress: onRemind,
           },
-        ]
-      : []),
-    // Last, at the right-hand end: the one reached for most, under the thumb.
-    {
-      key: 'expense',
-      label: t.homeDash.addExpense,
-      glyph: (color) => <Ionicons name="add-circle-outline" size={28} color={color} />,
-      onPress: onAddExpense,
-      onLongPress: onAddExpenseLong,
-      tourId: 'addExpense',
-    },
-  ];
+      isReview
+        ? {
+            key: 'review',
+            label: t.review,
+            badge: reviewBadge,
+            badgeColor: theme.color.negative,
+            glyph: (color) => <Ionicons name="file-tray-full-outline" size={28} color={color} />,
+            onPress: onReview,
+          }
+        : canSettle
+          ? {
+              key: 'settle',
+              label: t.homeDash.settleUp,
+              glyph: (color) => <Ionicons name="cash-outline" size={28} color={color} />,
+              onPress: onSettleUp,
+            }
+          : null,
+      ...(viewerId && !isPaid
+        ? [
+            {
+              key: 'credits',
+              label: fill(t.homeDash[creditAction.labelKey], { n: balance ?? 0 }),
+              badge: creditAction.badge,
+              badgeColor: theme.color.brand,
+              accessibilityLabel: `${fill(t.credits.balance, { n: balance ?? 0 })}. ${t.homeDash.getCredits}`,
+              glyph: () => <Ionicons name="flash" size={28} color={theme.color.warning} />,
+              onPress: () =>
+                void adOffer.offer('voice', { userInitiated: true, homeCredits: true }),
+            },
+          ]
+        : []),
+      // Last, at the right-hand end: the one reached for most, under the thumb.
+      {
+        key: 'expense',
+        label: t.homeDash.addExpense,
+        glyph: (color) => <Ionicons name="add-circle-outline" size={28} color={color} />,
+        onPress: onAddExpense,
+        onLongPress: onAddExpenseLong,
+        tourId: 'addExpense',
+      },
+    ] as (QuickAction | null)[]
+  ).filter((a): a is QuickAction => a !== null);
 
   return (
     <>
