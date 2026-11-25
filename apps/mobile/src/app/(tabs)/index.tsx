@@ -1,4 +1,5 @@
 import { DEMO_GROUP_ID } from '@/demo/ids';
+import { headlineGroupCounts } from '@/lib/homeDashboard';
 import { otherCurrencyChips } from '@/data/totals';
 import { useQueryClient } from '@tanstack/react-query';
 import { withScenic } from '@/components/ScenicScope';
@@ -436,18 +437,20 @@ function HomeScreen() {
 
   // Settle up opens its own screen (`/settle-up`), which works out the groups.
   // How many groups each side of the balance card comes from — in the
-  // headline's currency, the one those sides are totalled in.
-  const inHeadline = list.filter(
-    // The same fallback the totals key a group by, so a group with no
-    // currency set is counted where its balance was summed.
-    (group) => (group.default_currency ?? fallbackCurrency()) === headline.currency,
+  // headline's currency, the one those sides are totalled in. The demo group is
+  // in no total, so it is no count either (and offers no Remind or Settle up).
+  const real = list.filter((g) => g.id !== DEMO_GROUP_ID);
+  const counts = headlineGroupCounts(
+    list,
+    headline.currency,
+    fallbackCurrency(),
+    summary.balanceFor,
+    DEMO_GROUP_ID,
   );
-  const liveOwedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
-  const liveOwingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
+  const liveOwedGroups = counts.owed;
+  const liveOwingGroups = counts.owing;
   const owedGroups = showStale && stored ? stored.headline.owedGroups : liveOwedGroups;
   const owingGroups = showStale && stored ? stored.headline.owingGroups : liveOwingGroups;
-  // The demo group's sample debts are nobody's: they must not offer Remind or Settle up.
-  const real = list.filter((g) => g.id !== DEMO_GROUP_ID);
   // Any currency, not only the headline one: the action is about people, not a total.
   const canRemind =
     showStale && stored

@@ -113,6 +113,20 @@ function RecurringScreenBody() {
             {t.personal.recurringSub}
           </Text>
         </View>
+        <ChipRow<'recurring' | 'budgets' | 'loans'>
+          value="recurring"
+          onChange={(v) => {
+            if (v !== 'recurring')
+              router.push(v === 'budgets' ? '/personal/budgets' : '/personal/loans');
+          }}
+          variant="brand"
+          onCard
+          options={[
+            { value: 'recurring', label: t.personal.recurring },
+            { value: 'budgets', label: t.personal.budgets },
+            { value: 'loans', label: t.personal.loans },
+          ]}
+        />
         <View accessibilityLabel={t.personal.recurringFilterLabel}>
           <ChipRow<RecurringFilter>
             value={filter}
