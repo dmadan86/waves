@@ -1979,6 +1979,10 @@ function LedgerGroupScreen() {
         <>
           <AnimatedFlashList
             ref={listRef}
+            // Constrain list children to the same 18dp page gutters as the
+            // header. FlashList's content padding alone doesn't constrain its
+            // full-width header and cell children on Android.
+            style={{ marginHorizontal: theme.spacing.lg }}
             // Bounce stays on: on iOS it is what pull-to-refresh pulls.
             bounces
             overScrollMode={emptyExpenses ? 'never' : 'auto'}
@@ -2006,8 +2010,6 @@ function LedgerGroupScreen() {
             // 1500 was still being outrun by a hard fling on a long ledger.
             drawDistance={2500}
             contentContainerStyle={{
-              // The same side margin as Home's group list and this screen's tabs.
-              paddingHorizontal: theme.spacing.lg,
               paddingBottom: clearance,
             }}
             showsVerticalScrollIndicator={false}
@@ -2025,7 +2027,9 @@ function LedgerGroupScreen() {
                 {/* The list pads its rows; the hero pads itself — cancel one so the
                           card is Home's width. */}
                 <View style={{ marginHorizontal: -theme.spacing.lg }}>{top}</View>
-                {!classic ? tabsBlock : null}
+                {!classic ? (
+                  <View style={{ marginHorizontal: -theme.spacing.lg }}>{tabsBlock}</View>
+                ) : null}
                 {filterBlock}
                 {/* Alerts, shared receipts and pending settlements — everything that
                   is about the group rather than about one tab. Sections use the same
