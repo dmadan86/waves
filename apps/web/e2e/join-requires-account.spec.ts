@@ -102,7 +102,7 @@ test.describe('invite link needs an account', () => {
     const server = await mockServer(page);
     await page.goto('/join#tok-123');
 
-    await expect(page.getByRole('heading', { name: /added to Goa trip/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /invited to Goa trip/i })).toBeVisible();
     await expect(page.getByTestId('join-account-why')).toContainText(
       'Create a free account to join Goa trip so your expenses stay yours on every device.',
     );

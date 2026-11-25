@@ -74,7 +74,7 @@ test('a link opened signed out needs sign up or log in, and logging in joins the
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.goto(`/join#${token}`);
-  await expect(page.getByRole('heading', { name: /added to E2E join group/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /invited to E2E join group/i })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Sign up to join' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible();
   await expect(page.getByRole('button', { name: /guest/i })).toHaveCount(0);
