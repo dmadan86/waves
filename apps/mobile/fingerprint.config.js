@@ -8,5 +8,8 @@ module.exports = {
   sourceSkips:
     SourceSkips.ExpoConfigVersions |
     SourceSkips.ExpoConfigRuntimeVersionIfString |
+    // `extra` is read by JS only, and carries the build's git commit, which would
+    // otherwise change the fingerprint on every commit and refuse every OTA.
+    SourceSkips.ExpoConfigExtraSection |
     SourceSkips.PackageJsonAndroidAndIosScriptsIfNotContainRun,
 };
