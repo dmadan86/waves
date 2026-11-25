@@ -103,7 +103,7 @@ function Invite() {
    */
   const share = async () => {
     if (!link) return;
-    const text = fill(t.join.addedTo, { group: groupName });
+    const text = fill(t.join.invitedTo, { group: groupName });
     if (typeof navigator.share === 'function') {
       try {
         await navigator.share({ title: groupName, text, url: link });
