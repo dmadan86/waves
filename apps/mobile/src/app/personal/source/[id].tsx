@@ -28,7 +28,6 @@ import {
   format,
   frequencyOf,
   money,
-  monthKey,
   recurringOccurrenceId,
   stepOccurrence,
   type Occurrence,
@@ -348,12 +347,16 @@ function PeriodRow({
           />
           <View style={{ flex: 1 }}>
             <Text variant="body" style={{ fontWeight: '600' }}>
-              {monthKey(occurrence.dueDate)}
+              {dateTimeFormat(locale, { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(
+                new Date(`${occurrence.periodKey}-01T00:00:00Z`),
+              )}
             </Text>
             <Text variant="micro" tone="muted">
               {occurrence.txn
-                ? fill(t.personal.receivedOn, { date: occurrence.txn.date })
-                : fill(t.personal.expectedOn, { date: occurrence.dueDate })}
+                ? fill(income ? t.personal.receivedOn : t.personal.paidOn, {
+                    date: longDate(occurrence.txn.date, locale),
+                  })
+                : fill(t.personal.expectedOn, { date: longDate(occurrence.dueDate, locale) })}
             </Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>

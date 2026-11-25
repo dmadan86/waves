@@ -8953,6 +8953,8 @@ export interface UiStrings {
     history: string;
     historySub: string;
     noHistory: string;
+    paid: string;
+    paidOn: string;
     receivedOn: string;
     expectedOn: string;
     openEntry: string;
@@ -17190,6 +17192,8 @@ const en: UiStrings = {
     history: 'Every month',
     historySub: 'Tap a month to record it, or to open what was recorded.',
     noHistory: 'Nothing scheduled yet. Set a start date to see the months.',
+    paid: 'Paid',
+    paidOn: 'Paid {date}',
     receivedOn: 'Received {date}',
     expectedOn: 'Expected {date}',
     openEntry: 'Open this entry',
@@ -25498,6 +25502,8 @@ const ta: UiStrings = {
     history: 'ஒவ்வொரு மாதமும்',
     historySub: 'பதிவு செய்ய அல்லது பதிவைத் திறக்க ஒரு மாதத்தைத் தட்டவும்.',
     noHistory: 'இன்னும் எதுவும் திட்டமிடப்படவில்லை. மாதங்களைப் பார்க்கத் தொடக்க நாளை அமைக்கவும்.',
+    paid: 'செலுத்தப்பட்டது',
+    paidOn: '{date} அன்று செலுத்தப்பட்டது',
     receivedOn: '{date} அன்று கிடைத்தது',
     expectedOn: '{date} அன்று எதிர்பார்ப்பு',
     openEntry: 'இந்தப் பதிவைத் திற',
@@ -33626,6 +33632,8 @@ const hi: UiStrings = {
     history: 'हर महीना',
     historySub: 'दर्ज करने या दर्ज की गई प्रविष्टि खोलने के लिए महीने पर टैप करें।',
     noHistory: 'अभी कुछ तय नहीं है। महीने देखने के लिए शुरू होने की तारीख़ चुनें।',
+    paid: 'भुगतान किया',
+    paidOn: '{date} को भुगतान किया',
     receivedOn: '{date} को मिला',
     expectedOn: '{date} को अपेक्षित',
     openEntry: 'यह प्रविष्टि खोलें',
@@ -42688,6 +42696,8 @@ const ar: UiStrings = {
     history: 'كل شهر',
     historySub: 'اضغط على شهر لتسجيله أو لفتح ما سُجّل فيه.',
     noHistory: 'لا شيء مجدول بعد. حدّد تاريخ البداية لتظهر الأشهر.',
+    paid: 'مدفوع',
+    paidOn: 'دُفع في {date}',
     receivedOn: 'وصل في {date}',
     expectedOn: 'متوقَّع في {date}',
     openEntry: 'افتح هذا القيد',
