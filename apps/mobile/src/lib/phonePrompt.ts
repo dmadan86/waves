@@ -4,13 +4,12 @@
  * A number on the account is how friends find you (`waves_find_person` reads
  * `auth.users.phone`), so an account without one is an account nobody can add
  * by the thing they actually know about you. The ask after sign-in is the fix,
- * and it escalates: a popup that can be put off for the day, three times, and
- * then one that can only be answered — add a number, or sign out.
+ * and it stays optional: a popup put off daily at first, then less often.
  *
  * Not a hard wall from the first launch, on purpose. Waves works without a
  * number, App Review rejects apps that demand personal data they do not need,
  * and some people cannot receive an SMS on the day they install. Three days of
- * "Later" is room for all of that; it is not room to ignore it for good.
+ * "Later" is room for all of that, with a longer pause after repeated asks.
  *
  * The answer lives on the device, one slot per account, the same as the tour
  * (`lib/onboardingSeen`): a second account signed in on the same phone starts
@@ -19,16 +18,15 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-/** How many "Later"s an account gets before the ask stops being skippable. */
+/** After this many "Later"s, wait 30 local days between asks. */
 export const PHONE_PROMPT_LATER_LIMIT = 3;
+export const PHONE_PROMPT_LATER_BACKOFF_DAYS = 30;
 
 export enum PhonePromptMode {
   /** Nothing to show: a number is linked, it was put off today, or it does not apply. */
   Hidden = 'hidden',
   /** The ask, with a "Later" that hides it until tomorrow. */
   Soft = 'soft',
-  /** The ask with no way past it but adding a number or signing out. */
-  Required = 'required',
 }
 
 export interface PhonePromptState {
@@ -66,13 +64,22 @@ export function phonePromptMode(
   if (!facts.enabled || !facts.canVerify || facts.hasPhone || facts.isGuest) {
     return PhonePromptMode.Hidden;
   }
-  // Put off today is put off today, whichever ask it was: the third "Later"
-  // still buys the rest of that day, and a required ask can be put off only
-  // after an attempt to link failed (a number already on another account, the
-  // daily code limit) — never by somebody who simply would rather not.
-  if (state.lastLaterOn === today) return PhonePromptMode.Hidden;
-  if (state.laterCount >= PHONE_PROMPT_LATER_LIMIT) return PhonePromptMode.Required;
+  if (state.lastLaterOn && daysBetween(state.lastLaterOn, today) < cooldownDays(state.laterCount)) {
+    return PhonePromptMode.Hidden;
+  }
   return PhonePromptMode.Soft;
+}
+
+function cooldownDays(laterCount: number): number {
+  return laterCount > PHONE_PROMPT_LATER_LIMIT ? PHONE_PROMPT_LATER_BACKOFF_DAYS : 1;
+}
+
+function daysBetween(from: string, to: string): number {
+  const parse = (day: string): number => {
+    const [year, month, date] = day.split('-').map(Number);
+    return Date.UTC(year, month - 1, date);
+  };
+  return Math.floor((parse(to) - parse(from)) / 86_400_000);
 }
 
 /** The state after one more "Later" today. */

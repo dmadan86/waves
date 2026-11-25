@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   EMPTY_PHONE_PROMPT_STATE,
   PHONE_PROMPT_LATER_LIMIT,
+  PHONE_PROMPT_LATER_BACKOFF_DAYS,
   PhonePromptMode,
   phonePromptMode,
   readPhonePromptState,
@@ -65,21 +66,28 @@ describe('"Later"', () => {
     expect(phonePromptMode(ASKABLE, once, TODAY)).toBe(PhonePromptMode.Soft);
   });
 
-  it(`stops being offered after ${PHONE_PROMPT_LATER_LIMIT} times`, () => {
+  it('never becomes required', () => {
     let state = EMPTY_PHONE_PROMPT_STATE;
     for (let day = 0; day < PHONE_PROMPT_LATER_LIMIT; day += 1) {
       state = withLater(state, YESTERDAY);
     }
-    expect(phonePromptMode(ASKABLE, state, TODAY)).toBe(PhonePromptMode.Required);
+    expect(phonePromptMode(ASKABLE, state, TODAY)).toBe(PhonePromptMode.Soft);
   });
 
-  it('still lets the last "Later" buy the rest of its day', () => {
+  it('uses the daily pause before the limit and a 30-day pause after', () => {
     let state = EMPTY_PHONE_PROMPT_STATE;
-    for (let day = 0; day < PHONE_PROMPT_LATER_LIMIT; day += 1) {
+    state = withLater(state, TODAY);
+    expect(phonePromptMode(ASKABLE, state, TODAY)).toBe(PhonePromptMode.Hidden);
+    expect(phonePromptMode(ASKABLE, state, '2026-10-02')).toBe(PhonePromptMode.Soft);
+
+    for (let count = 1; count < PHONE_PROMPT_LATER_LIMIT; count += 1) {
       state = withLater(state, TODAY);
     }
-    expect(phonePromptMode(ASKABLE, state, TODAY)).toBe(PhonePromptMode.Hidden);
-    expect(phonePromptMode(ASKABLE, state, '2026-10-02')).toBe(PhonePromptMode.Required);
+    expect(phonePromptMode(ASKABLE, state, '2026-10-02')).toBe(PhonePromptMode.Soft);
+    state = withLater(state, '2026-10-02');
+    expect(phonePromptMode(ASKABLE, state, '2026-10-31')).toBe(PhonePromptMode.Hidden);
+    expect(phonePromptMode(ASKABLE, state, '2026-11-01')).toBe(PhonePromptMode.Soft);
+    expect(PHONE_PROMPT_LATER_BACKOFF_DAYS).toBe(30);
   });
 });
 
