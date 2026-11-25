@@ -42,7 +42,8 @@ import {
 
 import { useGroup } from '@/data/hooks';
 import { isViewer, type MemberRow } from '@/data/types';
-import { useViewerId } from '@/lib/auth';
+import { useAuth, useViewerId } from '@/lib/auth';
+import { canQueryCompanyPeople, shouldRetryCompanyPeople } from '@/data/companyPeopleQuery';
 import { backend } from '@/lib/backend';
 import { pickAlbumPhoto, captureReceipt, type PickedImage } from '@/lib/image';
 import { putImage, removeRestrictedImage } from '@/lib/storage';
@@ -160,7 +161,7 @@ export function useCompanyEntries(groupId: string): CompanyView {
   // owner's (or whose employee moved teams) may still hold more: show only own + own team.
   // The server's directory is authoritative for a manager: after a reassignment their phone
   // still holds the old row, so the team is whoever the directory says they may see in detail.
-  const directory = useCompanyPeople(groupId).data;
+  const directory = useCompanyPeople(groupId, group.data?.type).data;
   const visibleIds = useMemo(() => {
     const ids = new Set<string>();
     if (me?.role === 'manager') {
@@ -699,12 +700,15 @@ export function usePoolBalance(groupId: string, managerId: string | null): bigin
 }
 
 /** Names-only directory (owners, my manager, my team, me) from the server; empty until it answers. */
-export function useCompanyPeople(groupId: string) {
+export function useCompanyPeople(groupId: string, groupType: string | undefined) {
+  const { session } = useAuth();
   return useQuery({
     queryKey: ['company-people', groupId],
+    enabled: canQueryCompanyPeople({ session, groupId, groupType }),
     staleTime: 0,
-    refetchInterval: 30_000,
+    refetchInterval: 5 * 60_000,
     refetchOnMount: 'always',
+    retry: shouldRetryCompanyPeople,
     queryFn: async () => {
       const { data, error } = await backend.rpc('waves_company_people', { p_group_id: groupId });
       if (error) throw new Error(error.message);
