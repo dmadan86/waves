@@ -33,6 +33,7 @@
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
+  ActivityIndicator,
   Image,
   Keyboard,
   KeyboardAvoidingView,
@@ -232,7 +233,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
     switch (codeRouteFor(identifier, phoneCodeOffered)) {
       case CodeRoute.Email:
         void run(async () => {
-          await sendEmailOtp(identifier, isSignup);
+          await sendEmailOtp(identifier, isSignup, askName ? name : undefined);
           setCode('');
           setStage(Stage.Code);
           startResendTimer();
@@ -259,6 +260,23 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
       }
     })();
   };
+
+  const submitCode = (): void => void run(() => verifyEmailOtp(identifier.trim(), code.trim()));
+
+  // Six digits, however they arrived (typed, pasted, autofill): submit once per
+  // distinct code, so a refused code is not hammered until it is edited.
+  const submittedCode = useRef('');
+  useEffect(() => {
+    const digits = code.trim();
+    if (digits.length !== 6) {
+      submittedCode.current = '';
+      return;
+    }
+    if (stage !== Stage.Code || busy || submittedCode.current === digits) return;
+    submittedCode.current = digits;
+    submitCode();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, stage, busy]);
 
   // Each field its own rounded box with a leading glyph, as the design draws
   // them. Fixed height so a box does not breathe when the platform's text
@@ -430,6 +448,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
           <PrimaryPill
             testID="auth-submit"
             label={submitLabel}
+            busy={busy}
             disabled={busy || !identifier.trim() || password.length < 8}
             onPress={submitPassword}
           />
@@ -451,6 +470,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
             testID="auth-code"
             value={code}
             onChangeText={setCode}
+            onSubmitEditing={() => code.trim().length >= 6 && !busy && submitCode()}
             keyboardType="number-pad"
             autoComplete="one-time-code"
             accessibilityLabel={t.contact.verificationCode}
@@ -470,7 +490,8 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
           testID="auth-verify"
           label={t.signIn.verify}
           disabled={busy || code.trim().length < 6}
-          onPress={() => void run(() => verifyEmailOtp(identifier.trim(), code.trim()))}
+          busy={busy}
+          onPress={submitCode}
         />
         <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <TextLink
@@ -781,11 +802,14 @@ function PrimaryPill({
   label,
   onPress,
   disabled,
+  busy,
   testID,
 }: {
   label: string;
   onPress: () => void;
   disabled: boolean;
+  /** Shows a spinner in place of the arrow, the moment the tap lands. */
+  busy?: boolean;
   testID?: string;
 }) {
   const theme = useTheme();
@@ -803,11 +827,15 @@ function PrimaryPill({
       >
         {label}
       </Text>
-      <Ionicons
-        name={directionalIcon('arrow-forward')}
-        size={18}
-        color={disabled ? 'rgba(255,255,255,0.92)' : '#FFFFFF'}
-      />
+      {busy ? (
+        <ActivityIndicator size="small" color="#FFFFFF" />
+      ) : (
+        <Ionicons
+          name={directionalIcon('arrow-forward')}
+          size={18}
+          color={disabled ? 'rgba(255,255,255,0.92)' : '#FFFFFF'}
+        />
+      )}
     </>
   );
   const shape = {

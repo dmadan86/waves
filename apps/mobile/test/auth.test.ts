@@ -611,6 +611,15 @@ describe('codes and the guest door', () => {
     });
   });
 
+  it('carries the typed name into the new account when mailing a sign-up code', async () => {
+    const auth = await mount();
+    await auth.value.sendEmailOtp('a@b.co', true, '  Asha ');
+    expect(world.auth.signInWithOtp).toHaveBeenCalledWith({
+      email: 'a@b.co',
+      options: { shouldCreateUser: true, data: { display_name: 'Asha' } },
+    });
+  });
+
   it('surfaces every refusal from the code and guest calls', async () => {
     const auth = await mount();
     world.auth.signInWithOtp!.mockResolvedValueOnce({ error: new Error('rate limited') });

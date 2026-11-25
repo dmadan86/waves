@@ -5,6 +5,7 @@ import {
   isInviteRoute,
   nameForField,
   routeForIntents,
+  shouldShowIntro,
   summariseHeard,
   type IntentNames,
 } from '@/lib/firstRunFlow';
@@ -78,5 +79,23 @@ describe('isInviteRoute', () => {
     expect(isInviteRoute('/r/ABC123')).toBe(true);
     expect(isInviteRoute('/')).toBe(false);
     expect(isInviteRoute('/joined')).toBe(false);
+  });
+});
+
+describe('shouldShowIntro', () => {
+  const base = { signedIn: true, introSeen: false, flow: 'mark-existing' as const, path: '/' };
+  it('shows to a signed-in account that has not seen it', () => {
+    expect(shouldShowIntro(base)).toBe(true);
+    expect(shouldShowIntro({ ...base, introSeen: null })).toBe(true);
+  });
+  it('stays away once seen, signed out, or while the first-run flow shows', () => {
+    expect(shouldShowIntro({ ...base, introSeen: true })).toBe(false);
+    expect(shouldShowIntro({ ...base, signedIn: false })).toBe(false);
+    expect(shouldShowIntro({ ...base, flow: 'show' })).toBe(false);
+  });
+  it('never covers the join screen or a short invite link', () => {
+    expect(shouldShowIntro({ ...base, path: '/join' })).toBe(false);
+    expect(shouldShowIntro({ ...base, path: '/r/ABC123' })).toBe(false);
+    expect(shouldShowIntro({ ...base, path: '/group/1' })).toBe(true);
   });
 });

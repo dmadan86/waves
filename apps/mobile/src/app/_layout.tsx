@@ -45,6 +45,7 @@ import { setOverlayBusy } from '@/lib/firstRun';
 import {
   decideFirstRun,
   isInviteRoute,
+  shouldShowIntro,
   firstRunSeen,
   rememberFirstRunSeen,
   useFirstRunSeen,
@@ -815,7 +816,12 @@ function AuthGate() {
     if (flow === 'show' && !isInviteRoute(here))
       void pendingInvite.has().then((invited) => !invited && router.replace('/start'));
   }, [flow, here, ownerId, router]);
-  const showIntro = Boolean(session && ownerId && tourSeen !== true && flow !== 'show');
+  const showIntro = shouldShowIntro({
+    signedIn: Boolean(session && ownerId),
+    introSeen: tourSeen,
+    flow,
+    path: here,
+  });
   // Home is mounted under the intro; the tour must not start behind (or over) it.
   useEffect(() => {
     setOverlayBusy('intro', showIntro);
@@ -1079,7 +1085,8 @@ function AuthGate() {
           screen — behind the `upload_progress` flag, so it renders nothing until
           the flag is on. */}
       <TransferProgressBar />
-      {((showIntro && ownerId) || (flow === 'show' && segments[0] !== 'start')) && (
+      {((showIntro && ownerId) ||
+        (flow === 'show' && segments[0] !== 'start' && !isInviteRoute(here))) && (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.bg }]}>
           {tourSeen === null || flow === 'wait' || flow === 'show' || !ownerId ? (
             <ActivityIndicator style={{ flex: 1 }} color={theme.color.brand} />

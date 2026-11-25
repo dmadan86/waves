@@ -41,6 +41,21 @@ export function decideFirstRun(input: {
 export const isInviteRoute = (path: string): boolean =>
   path === '/join' || path.startsWith('/join?') || path.startsWith('/r/');
 
+/**
+ * Whether the device-level intro cards cover the app right now. Never on the
+ * join screen or a short invite link: the cards used to pop up as the session
+ * landed, swallowing the first Join tap. They wait until the person has left
+ * the invite (joining takes them to the group), and are still shown then.
+ */
+export const shouldShowIntro = (input: {
+  signedIn: boolean;
+  /** The intro's flag for this account; null until storage has answered. */
+  introSeen: boolean | null;
+  flow: FirstRunDecision;
+  path: string;
+}): boolean =>
+  input.signedIn && input.introSeen !== true && input.flow !== 'show' && !isInviteRoute(input.path);
+
 /** Suggested group names, already in the person's language. */
 export interface IntentNames {
   trip: string;
