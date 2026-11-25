@@ -1098,7 +1098,13 @@ function PersonTile({
               disabled={disabled}
               onPress={onPress}
               style={(state) => [
-                { flexDirection: 'row', alignItems: 'flex-start', gap: theme.spacing.sm },
+                {
+                  flex: 1,
+                  minWidth: 0,
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
+                  gap: theme.spacing.sm,
+                },
                 dim(state),
               ]}
             >
