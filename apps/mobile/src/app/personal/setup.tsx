@@ -31,6 +31,7 @@ import { deviceCountry, fill, plural, useStrings, type UiStrings } from '@/i18n'
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { router } from '@/lib/navigation';
+import { setOverlayBusy } from '@/lib/firstRun';
 import { dismissPersonalIntro } from '@/lib/onboardingSeen';
 import {
   answersToRecords,
@@ -720,6 +721,11 @@ function SetupBody() {
   const params = useLocalSearchParams<{ step?: string }>();
   const [today] = useState(() => todayIso());
   useEffect(() => dismissPersonalIntro(ownerId), [ownerId]);
+  // A question-by-question flow: no launch prompt may open over it.
+  useEffect(() => {
+    setOverlayBusy('personal-setup', true);
+    return () => setOverlayBusy('personal-setup', false);
+  }, []);
   // From a "finish" row the flow starts at that question; otherwise at the top.
   const [order] = useState<readonly SetupStep[]>(() => {
     const at = SETUP_STEPS.findIndex((x) => x === params.step);

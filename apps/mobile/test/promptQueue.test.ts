@@ -7,6 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PromptQueueProvider, usePromptQueueClear, usePromptSlot } from '../src/lib/promptQueue';
+import { resetOverlayBusy, setOverlayBusy } from '../src/lib/firstRun';
 import { firstProvider, renderHook, type FakeContext } from './support/fakeReact';
 
 vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
@@ -44,8 +45,30 @@ beforeEach(() => {
   vi.useFakeTimers();
 });
 afterEach(() => vi.useRealTimers());
+afterEach(() => resetOverlayBusy());
 
 describe('the queue', () => {
+  it('grants no slot while an overlay is busy, then grants it when the overlay clears', () => {
+    const { value, ctx, consumerValue } = mountQueue();
+    setOverlayBusy('intro', true);
+    const phone = renderHook(
+      (active: boolean) => usePromptSlot({ id: 'phone', priority: 80, active }),
+      { props: true, contexts: [[ctx, consumerValue]] },
+    );
+    phone.rerender();
+    vi.advanceTimersByTime(0);
+    phone.rerender();
+    expect(value().winnerId).toBeNull();
+    expect(phone.result.current).toBe(false);
+
+    setOverlayBusy('intro', false);
+    phone.rerender();
+    vi.advanceTimersByTime(0);
+    phone.rerender();
+    expect(value().winnerId).toBe('phone');
+    expect(phone.result.current).toBe(true);
+  });
+
   it('names the highest live claim as the winner, and the next one when it releases', () => {
     const { value } = mountQueue();
     expect(value().winnerId).toBeNull();

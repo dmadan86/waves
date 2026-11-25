@@ -44,7 +44,10 @@ import { PermissionHost } from '@/components/PermissionHost';
 import { setOverlayBusy } from '@/lib/firstRun';
 import {
   decideFirstRun,
+  firstRunDisplayDecision,
+  FIRST_RUN_WAIT_TIMEOUT_MS,
   isInviteRoute,
+  shouldRouteToFirstRun,
   shouldShowIntro,
   firstRunSeen,
   rememberFirstRunSeen,
@@ -806,6 +809,14 @@ function AuthGate() {
     groupsReady: !groups.isLoading && hasSynced,
     groupCount: groups.data.filter((g) => !isDemoGroupId(g.id)).length,
   });
+  const [firstRunTimedOutOwner, setFirstRunTimedOutOwner] = useState<string | null>(null);
+  useEffect(() => {
+    if (!ownerId || flow !== 'wait') return undefined;
+    const timer = setTimeout(() => setFirstRunTimedOutOwner(ownerId), FIRST_RUN_WAIT_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [ownerId, flow]);
+  const firstRunWaitTimedOut = firstRunTimedOutOwner === ownerId;
+  const displayFlow = firstRunDisplayDecision(flow, firstRunWaitTimedOut);
   useEffect(() => {
     if (!ownerId) return;
     if (flow === 'mark-existing') void rememberFirstRunSeen(ownerId);
@@ -813,13 +824,13 @@ function AuthGate() {
     // Somebody who arrived through an invite goes to that group, not the questions.
     // Somebody arriving through an invite (link waiting, or already on the join
     // screen) goes to that group; joining it marks them existing.
-    if (flow === 'show' && !isInviteRoute(here))
+    if (shouldRouteToFirstRun(flow, here))
       void pendingInvite.has().then((invited) => !invited && router.replace('/start'));
   }, [flow, here, ownerId, router]);
   const showIntro = shouldShowIntro({
     signedIn: Boolean(session && ownerId),
     introSeen: tourSeen,
-    flow,
+    flow: displayFlow,
     path: here,
   });
   // Home is mounted under the intro; the tour must not start behind (or over) it.
@@ -832,7 +843,9 @@ function AuthGate() {
   // what renders, so the launch splash may lift onto it. Until then it holds,
   // which is what keeps that spinner off a cold start.
   const showingScreen =
-    !loading && !needsRedirect && !(session && ownerId && (tourSeen === null || flow === 'wait'));
+    !loading &&
+    !needsRedirect &&
+    !(session && ownerId && (tourSeen === null || displayFlow === 'wait'));
   useEffect(() => {
     if (showingScreen) markLaunchReady();
   }, [showingScreen]);
@@ -1086,9 +1099,9 @@ function AuthGate() {
           the flag is on. */}
       <TransferProgressBar />
       {((showIntro && ownerId) ||
-        (flow === 'show' && segments[0] !== 'start' && !isInviteRoute(here))) && (
+        (displayFlow === 'show' && segments[0] !== 'start' && !isInviteRoute(here))) && (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.bg }]}>
-          {tourSeen === null || flow === 'wait' || flow === 'show' || !ownerId ? (
+          {tourSeen === null || displayFlow === 'wait' || displayFlow === 'show' || !ownerId ? (
             <ActivityIndicator style={{ flex: 1 }} color={theme.color.brand} />
           ) : (
             <Onboarding
