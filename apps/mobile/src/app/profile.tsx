@@ -291,7 +291,7 @@ function ProfileForm() {
             {
               icon: 'rocket-outline',
               label: t.account.planRow,
-              hint: t.account.upgradeHint,
+              hint: isPaid ? t.account.proHint : t.account.upgradeHint,
               route: '/settings/upgrade',
             },
             // The first company is free; the create flow shows the paywall for an extra one.
@@ -333,7 +333,7 @@ function ProfileForm() {
             ...(r2Enabled()
               ? [
                   {
-                    icon: 'cloud-outline' as const,
+                    icon: 'folder-open-outline' as const,
                     label: t.storage.row,
                     route: '/settings/storage',
                   },
@@ -358,6 +358,12 @@ function ProfileForm() {
         <SettingsSection
           title={t.account.sectionPreferences}
           rows={[
+            {
+              icon: 'language-outline',
+              label: t.language,
+              hint: languageSummary,
+              route: '/settings/language',
+            },
             ...(showCreditsRow(isPaid, credits.data)
               ? [
                   {
@@ -367,12 +373,6 @@ function ProfileForm() {
                   },
                 ]
               : []),
-            {
-              icon: 'language-outline',
-              label: t.language,
-              hint: languageSummary,
-              route: '/settings/language',
-            },
             // Hidden with THEME_HIDDEN — see lib/theme.
             ...(THEME_HIDDEN
               ? []
@@ -427,6 +427,17 @@ function ProfileForm() {
               route: '/settings/lock',
             },
             {
+              icon: 'shield-checkmark-outline',
+              label: t.privacy.row,
+              route: '/settings/privacy',
+            },
+          ]}
+        />
+
+        <SettingsSection
+          title={t.account.sectionBackup}
+          rows={[
+            {
               icon: 'calendar-outline',
               label: t.dates.title,
               route: '/dates',
@@ -458,11 +469,6 @@ function ProfileForm() {
               icon: 'archive-outline',
               label: t.group.archivedTitle,
               route: '/settings/archived',
-            },
-            {
-              icon: 'shield-checkmark-outline',
-              label: t.privacy.row,
-              route: '/settings/privacy',
             },
           ]}
         />
