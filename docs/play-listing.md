@@ -25,79 +25,71 @@ search actually matches.
 ### Short description (80 characters max)
 
 ```
-Split bills, see who owes what, settle up. Works offline. Free is ad-supported.
+Split bills, run family money, track your own. Works offline. Free with ads.
 ```
 
-73 characters. Offline is the differentiator against Splitwise, so it earns the
-second sentence.
+76 characters. Families and your own money are now as much the app as splitting.
 
 ### Full description (4000 characters max)
 
 ```
-Waves splits a bill any way you need, keeps the balance in every currency you
-spent, and hands the settlement to the payment app you already use.
+Waves is money with friends, family and your team, as easy as sending a message. Split a trip with friends, share a household budget with your partner, keep your own spending private, and run a small team's wages, all in one app that works with the network off.
 
-It works with the network off.
+SPLIT WITH FRIENDS AND TRIPS
+Equal, exact amounts, shares or percentages. More than one person can pay for a single bill. The split always adds back to the bill, to the last cent or paisa.
 
-EVERY KIND OF SPLIT, NONE OF THE ARITHMETIC
-Equal, exact amounts, shares, percentages, or one person covering someone else.
-The split always adds back to the bill, to the last paisa — amounts are stored
-as whole minor units, never as decimals that drift.
+• Waves works out the fewest payments that settle everyone
+• Settle up in one tap: Waves opens your payment app (UPI and others) with the amount filled in
+• One trip, several currencies: set the rate you actually got, once
+• A full edit history, comments and Undo, so nothing changes quietly
 
-• Equal, exact, shares and percentage splits
-• Split one bill between two groups of people
-• Comment on any expense when the memory gets fuzzy
-• A full edit history, so nothing changes quietly
+COUPLES AND FAMILIES: ONE POT FOR THE HOME
+A couple or family group works like a shared personal space, not a list of debts.
 
-ADD AN EXPENSE WITH NO NETWORK AT ALL
-Waves writes to your phone first and syncs later. A restaurant with no signal, a
-flight, a mountain road — none of it stops the ledger.
+• This month's spending, upcoming bills and budgets for the household
+• See who paid, without keeping score
+• "Only me" entries stay private, even inside a shared home
 
-• Everything works with the network off
-• Conflict-safe sync when you come back
-• The copy on your device is encrypted at rest
-• Sign out and that local copy becomes unreadable
+YOUR OWN MONEY, PRIVATE
+A separate Personal space for your income, spending, budgets and loans. Nothing there is shared with your groups unless you choose to.
 
-ONE TRIP, FOUR CURRENCIES, NO SPREADSHEET
-Set the rate you actually got, once, and every expense on the trip converts the
-same way — so the total at the end matches the total you really paid.
+• A monthly view: what came in, what went out, bills, loan EMIs and spending by category
+• Recurring bills and income with reminders, and a history of every payment for each one
+• Budgets by month and category, linked to the transactions behind them
+• Loans with their payments, plus investments and rental income
 
-• Fix a rate per bill, per person, or per trip
-• Trip and per-category budgets that warn before they break
-• Attach a place to any expense
-• A shared album for the trip's receipts and photos
+SMALL TEAMS AND BUSINESSES
+Companies mode puts what shops, clinics and workshops keep in notebooks on one phone.
+
+• Attendance, tasks and leave
+• Wages, advances and daily allowance, with a pay history for each person
+• Bills, invoices, estimates, clients and vendors
+• Employees see only their own entries
 
 SCAN IT, OR JUST SAY IT
-Point the camera at a receipt and Waves reads the line items for you: the photo is
-uploaded and read by an AI service, then shown for you to check. Or hold the microphone and say it — "twelve fifty for coffee, split with
-Nadia" — and the expense arrives filled in, ready to check before it is saved.
+Say "twelve fifty for coffee, split with Nadia" and the expense arrives filled in, ready to check before it is saved. Voice works in English, Hindi, Tamil, Arabic and Hinglish. Or point the camera at a receipt: the photo is uploaded and read by an AI service, then shown for you to check.
 
-• Receipt scanning that itemises the bill
-• Voice capture, several expenses in one breath
-• Capture now with no group, file it later
-• Keep the photo on your own device if you prefer
+WORKS OFFLINE
+Waves writes to your phone first and syncs later. A restaurant with no signal, a flight, a mountain road: none of it stops the ledger.
 
-SETTLE UP FOR REAL
-Waves works out the fewest payments that clear the group, then hands the amount
-to your payment app. It never takes custody of your money — the payment happens
-between you and your provider.
+• The copy on your device is encrypted at rest
+• Sign out and that local copy becomes unreadable
+• Home-screen widgets for a quick look or a quick add
 
 IN YOUR LANGUAGE
 English, Tamil, Hindi and Arabic, with full right-to-left layout.
 
+FREE, WITH AN OPTIONAL PRO
+People, expenses, currencies, splits and settling up are free. Free is supported by ads: small ads marked "Ad" on some screens, an occasional full-screen ad after you save a group expense, and short video ads you can watch for credits. Ads are never personalized and never on the settle-up screen. Pro removes ads and adds more scans and advanced voice.
+
 PRIVATE BY DEFAULT
-Waves Free is supported by ads: small ads marked "Ad" on some screens, an occasional
-full-screen ad after you save a group expense, and short video ads you can watch for
-credits. Ads are never personalized and never on the settle-up screen. Pro has no
-ads. We never sell your data and never share your expenses, groups or balances with
-advertisers. Your private ledger can be backed up, encrypted, to your own Google
-Drive. You can export everything, and delete your account, from inside the app.
+Waves never takes custody of your money: payments happen between you and your provider. We never sell your data and never share your expenses, groups or balances with advertisers. Back up your private ledger, encrypted, to your own Google Drive. Export everything, or delete your account, from inside the app.
 
 Privacy policy: https://wavs.co.in/en/privacy
 Delete your account: https://wavs.co.in/en/delete-account
 ```
 
-Roughly 2,100 characters, inside the limit with room to grow.
+About 3,339 characters (from 1.3.3), inside the limit.
 
 ### URLs
 
