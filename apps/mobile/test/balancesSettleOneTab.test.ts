@@ -72,7 +72,7 @@ describe('settle deep links map to Balances', () => {
 describe('settling keeps you in the group', () => {
   it('passes onRecorded so recording does not router.back() out of the group', () => {
     expect(read('app/group/[id]/index.tsx')).toMatch(
-      /useSettleFlow\(\s*groupId,\s*lensLedger,\s*\(\) => setTab\(Tab\.Balances\),/,
+      /useSettleFlow\(\s*groupId,\s*lensLedger,\s*\(\) => \{?\s*setTab\(Tab\.Balances\)/,
     );
   });
 
