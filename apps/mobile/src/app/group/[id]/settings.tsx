@@ -70,6 +70,7 @@ import { normaliseGroupDescription } from '@/lib/groupDescription';
 import { pickGroupPhoto, type PickedImage } from '@/lib/image';
 import { requestContacts } from '@/lib/contactPickerBridge';
 import { router } from '@/lib/navigation';
+import { useToast } from '@/lib/toast';
 import { isPhoneCountryError } from '@/lib/phone';
 import { GroupCoverSheet } from '@/components/CoverEmojiPicker';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
@@ -173,6 +174,7 @@ function GroupSettingsScreen() {
   const ledger = useGroupLedger(groupId, viewerId);
   const updateGroup = useUpdateGroup(groupId);
   const removeDemo = useRemoveDemo(() => router.dismissTo('/'));
+  const toast = useToast();
   const leaveGroup = useLeaveGroup(groupId, () => router.dismissTo('/'));
   const deleteGroup = useDeleteGroup(groupId, () => router.dismissTo('/'));
   const { isFavorite, toggle: toggleFavorite } = useFavorites();
@@ -560,6 +562,9 @@ function GroupSettingsScreen() {
     setStatus(null);
     try {
       await leaveGroup.mutateAsync(ledger.myMemberId);
+      toast.show(
+        fill(t.group.leftToast, { name: groupLabel(group.data, members.data ?? [], viewerId) }),
+      );
       return true;
     } catch (caught) {
       setStatus(friendlyError(caught, t.couldNotSave, 'settings.leaveGroup'));
@@ -597,7 +602,19 @@ function GroupSettingsScreen() {
     if (ok) {
       updateGroup.mutate(
         { archived_at: new Date().toISOString() },
-        { onSuccess: () => router.replace('/') },
+        {
+          onSuccess: () => {
+            router.replace('/');
+            // Putting it away is one tap to take back.
+            toast.show(
+              fill(t.group.archivedToast, {
+                name: groupLabel(group.data, members.data ?? [], viewerId),
+              }),
+              'positive',
+              { label: t.common.undo, onPress: () => updateGroup.mutate({ archived_at: null }) },
+            );
+          },
+        },
       );
     }
   };
@@ -812,6 +829,7 @@ function GroupSettingsScreen() {
         setStatus(null);
         try {
           await removeFromGroup.mutateAsync(member.id);
+          toast.show(fill(t.people.removedToast, { name: realName }));
           const { equal, custom } = classifyDepartedExpenses(expenses.rows, member.id);
           if (!equal.length && !custom.some((c) => !c.noneRemaining)) return true;
           // The member list comes from the mirror; pull the successful removal before opening it.

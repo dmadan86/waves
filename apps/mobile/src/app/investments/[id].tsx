@@ -11,12 +11,13 @@ import { Button, IconButton, iconSize, Row, Screen, Text, useTheme } from '@wave
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { ListRow, PlainHeader, SectionHeader, StandardCard } from '@/components/standard';
-import { AmountSheet, useWealthMoney } from '@/components/wealth/parts';
+import { AmountSheet, RenameSheet, useWealthMoney } from '@/components/wealth/parts';
 import { todayIso, useDeletePersonalRecord, usePersonalLedger } from '@/data/personal';
 import { usePersonalWealth, useWealthWrites } from '@/data/personalWealth';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
+import { useDialog } from '@/lib/dialog';
 import { router } from '@/lib/navigation';
 
 type Sheet = 'in' | 'out' | 'value' | null;
@@ -25,6 +26,7 @@ function DetailBody() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
+  const { confirm } = useDialog();
   const w = t.wealth;
   const fmt = useWealthMoney();
   const dc = useDefaultCurrency();
@@ -35,6 +37,7 @@ function DetailBody() {
   const del = useDeletePersonalRecord();
   const [sheet, setSheet] = useState<Sheet>(null);
   const [menu, setMenu] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const [today] = useState(() => todayIso());
 
   const inv = investments.find((i) => i.id === id);
@@ -121,6 +124,7 @@ function DetailBody() {
                   subtitle={day(e.date)}
                   amount={`${e.kind === 'income' ? '−' : ''}${fmt(e.amount, cur)}`}
                   divider={i < entries.length - 1}
+                  onPress={() => router.push({ pathname: '/personal/entry', params: { id: e.id } })}
                 />
               ))
             )}
@@ -152,10 +156,26 @@ function DetailBody() {
           setSheet(null);
         }}
       />
+      <RenameSheet
+        visible={renaming}
+        title={t.personal.editDetails}
+        placeholder={w.invNamePlaceholder}
+        initial={inv.name}
+        onClose={() => setRenaming(false)}
+        onSave={(name) => {
+          saveInv({ name });
+          setRenaming(false);
+        }}
+      />
       <OverflowMenu
         visible={menu}
         onClose={() => setMenu(false)}
         items={[
+          {
+            icon: 'create-outline' as const,
+            label: t.personal.editDetails,
+            onPress: () => setRenaming(true),
+          },
           ...(rule
             ? [
                 {
@@ -178,8 +198,17 @@ function DetailBody() {
             label: t.common.delete,
             tone: 'danger' as const,
             onPress: () => {
-              if (rule) void del.mutateAsync(rule.id);
-              void del.mutateAsync(inv.id).then(() => router.back());
+              void (async () => {
+                const ok = await confirm({
+                  title: t.common.delete,
+                  body: t.personal.deleteInvestment,
+                  confirmLabel: t.common.delete,
+                  tone: 'danger',
+                });
+                if (!ok) return;
+                if (rule) void del.mutateAsync(rule.id);
+                void del.mutateAsync(inv.id).then(() => router.back());
+              })();
             },
           },
         ]}

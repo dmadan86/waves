@@ -1,4 +1,4 @@
-import type { PersonalRecurring } from '@waves/core';
+import type { PersonalRecurring, PersonalTxn } from '@waves/core';
 
 import { monthlyEquivalent } from './personalSetup';
 
@@ -59,5 +59,34 @@ export function sectionRecurrings<T extends PersonalRecurring>(rules: readonly T
     expenseTotal: expense
       .filter((rule) => rule.active)
       .reduce((sum, rule) => sum + monthlyEquivalent(rule), 0n),
+  };
+}
+
+/**
+ * What a rule has posted so far, newest first, plus this year's total.
+ * Posts carry `recurringId`; older ones do not, so those are matched by kind,
+ * note and amount. shortcut: the fallback can claim a look-alike one-off entry,
+ * drop it once every old post has been relinked.
+ */
+export function rulePayments(
+  rule: Pick<PersonalRecurring, 'id' | 'txnKind' | 'note' | 'amount'>,
+  txns: readonly PersonalTxn[],
+  today: string,
+): { count: number; yearCount: number; yearTotal: bigint } {
+  const note = rule.note?.trim().toLowerCase() ?? '';
+  const mine = txns.filter(
+    (txn) =>
+      txn.recurringId === rule.id ||
+      (!txn.recurringId &&
+        note !== '' &&
+        txn.kind === rule.txnKind &&
+        txn.amount === rule.amount &&
+        txn.note?.trim().toLowerCase() === note),
+  );
+  const year = mine.filter((txn) => txn.date.slice(0, 4) === today.slice(0, 4));
+  return {
+    count: mine.length,
+    yearCount: year.length,
+    yearTotal: year.reduce((sum, txn) => sum + txn.amount, 0n),
   };
 }

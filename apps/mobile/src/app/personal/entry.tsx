@@ -288,7 +288,10 @@ function EntryForm({
           for (const stale of staleReceiptKeys(ownerId, savedReceipt, receiptKey)) {
             void removePersonalReceipt(ownerId, stale);
           }
-          router.back();
+          // A new repeating item lands on the list that shows it, even when
+          // the form was opened from somewhere else.
+          if (repeat && !editingRule && !startRepeating) router.replace('/personal/recurring');
+          else router.back();
         },
       },
     );
@@ -420,6 +423,12 @@ function EntryForm({
                   }
                   onPress={() => setPicking('repeat')}
                 />
+              ) : null}
+
+              {repeat && !editingRule ? (
+                <Text variant="micro" tone="muted" style={{ paddingBottom: theme.spacing.sm }}>
+                  {t.personal.startsOnHint}
+                </Text>
               ) : null}
 
               {/* How it was paid belongs to a single entry; a repeating rule and

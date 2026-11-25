@@ -391,6 +391,9 @@ export function useSettleFlow(
     split,
     t,
     loading,
+    // "Nothing to settle" and "nothing added yet" are different answers.
+    hasActivity:
+      expenses.rows.some((row) => !row.deleted_at) || (settlements.data ?? []).length > 0,
   };
 }
 
@@ -418,6 +421,7 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
     nameOf,
     otherMembers,
     owedPeople,
+    hasActivity,
     owingPeople,
     pay,
     personFor,
@@ -491,7 +495,7 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
     <>
       {nothingToSettle ? (
         <Text variant="body" tone="muted">
-          {t.allSettled}
+          {hasActivity ? t.allSettled : t.group.noBalancesYet}
         </Text>
       ) : null}
       {error ? <Callout tone="negative">{error}</Callout> : null}

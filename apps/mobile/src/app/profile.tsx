@@ -6,7 +6,7 @@ import { showCreditsRow } from '@/lib/adCreditsPure';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { AppState, ScrollView, View } from 'react-native';
+import { AppState, Linking, ScrollView, View } from 'react-native';
 
 import {
   Badge,
@@ -75,6 +75,8 @@ function updateSource(s: { builtIn: string; overTheAir: string }): string | unde
   if (!updates?.isEnabled) return undefined;
   return updates.isEmbeddedLaunch === false ? s.overTheAir : s.builtIn;
 }
+
+const SUPPORT_EMAIL = 'hello@wavs.co.in';
 
 export default function ProfileScreen() {
   const { profile, profileSettled, reloadProfile } = useAuth();
@@ -291,7 +293,7 @@ function ProfileForm() {
             {
               icon: 'rocket-outline',
               label: t.account.planRow,
-              hint: t.account.upgradeHint,
+              hint: isPaid ? t.account.proHint : t.account.upgradeHint,
               route: '/settings/upgrade',
             },
             // The first company is free; the create flow shows the paywall for an extra one.
@@ -333,7 +335,7 @@ function ProfileForm() {
             ...(r2Enabled()
               ? [
                   {
-                    icon: 'cloud-outline' as const,
+                    icon: 'folder-open-outline' as const,
                     label: t.storage.row,
                     route: '/settings/storage',
                   },
@@ -358,6 +360,12 @@ function ProfileForm() {
         <SettingsSection
           title={t.account.sectionPreferences}
           rows={[
+            {
+              icon: 'language-outline',
+              label: t.language,
+              hint: languageSummary,
+              route: '/settings/language',
+            },
             ...(showCreditsRow(isPaid, credits.data)
               ? [
                   {
@@ -367,12 +375,6 @@ function ProfileForm() {
                   },
                 ]
               : []),
-            {
-              icon: 'language-outline',
-              label: t.language,
-              hint: languageSummary,
-              route: '/settings/language',
-            },
             // Hidden with THEME_HIDDEN — see lib/theme.
             ...(THEME_HIDDEN
               ? []
@@ -404,6 +406,7 @@ function ProfileForm() {
             {
               icon: 'watch-outline',
               label: t.recent.title,
+              hint: t.recent.watchHint,
               route: '/settings/recent',
             },
           ]}
@@ -426,6 +429,17 @@ function ProfileForm() {
               hint: lockSummary,
               route: '/settings/lock',
             },
+            {
+              icon: 'shield-checkmark-outline',
+              label: t.privacy.row,
+              route: '/settings/privacy',
+            },
+          ]}
+        />
+
+        <SettingsSection
+          title={t.account.sectionBackup}
+          rows={[
             {
               icon: 'calendar-outline',
               label: t.dates.title,
@@ -459,11 +473,6 @@ function ProfileForm() {
               label: t.group.archivedTitle,
               route: '/settings/archived',
             },
-            {
-              icon: 'shield-checkmark-outline',
-              label: t.privacy.row,
-              route: '/settings/privacy',
-            },
           ]}
         />
 
@@ -478,6 +487,12 @@ function ProfileForm() {
               icon: 'chatbubble-ellipses-outline',
               label: t.privacy.feedbackRow,
               route: '/settings/feedback',
+            },
+            {
+              icon: 'mail-outline',
+              label: t.account.contactUs,
+              hint: SUPPORT_EMAIL,
+              onPress: () => void Linking.openURL(`mailto:${SUPPORT_EMAIL}`).catch(() => undefined),
             },
             {
               icon: 'document-text-outline',

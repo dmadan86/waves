@@ -46,6 +46,7 @@ import { expectGroup } from '@/lib/groupArrival';
 import { useRememberSpace } from '@/lib/useSpaces';
 import { requestJoinPushPrompt } from '@/lib/pushPromptStore';
 import { router, useGoBack } from '@/lib/navigation';
+import { useToast } from '@/lib/toast';
 import { useSync } from '@/sync';
 import { TranslucentBackButton } from '@/components/ContactPickerScene';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -60,6 +61,7 @@ import { PersonAvatar } from '@/components/PersonAvatar';
 export default function JoinScreen() {
   const theme = useTheme();
   const { t, locale } = useStrings();
+  const toast = useToast();
   const remember = useRememberSpace();
   // `from` says how the link was opened. The scanner sends `scan`, because a
   // link that turns out to be dead has a different next step there: point the
@@ -181,6 +183,7 @@ export default function JoinScreen() {
       if (result.group.type === 'company' && !result.vendor) {
         router.push(`/group/${result.group.id}/company-entry?intro=1`);
       }
+      if (result.group.name) toast.show(fill(t.misc.joinedToast, { name: result.group.name }));
       // A good moment to offer notifications, if the phone is not yet set up.
       requestJoinPushPrompt(result.group.name);
     } catch (caught) {

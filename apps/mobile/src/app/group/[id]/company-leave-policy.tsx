@@ -252,6 +252,11 @@ export default function CompanyLeavePolicyScreen() {
           {t.calendar.leavePolicyHint}
         </Text>
         <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 8 }}>
+          {types.length === 0 ? (
+            <Text variant="caption" tone="muted" style={{ paddingVertical: 8 }}>
+              {t.calendar.leaveNone}
+            </Text>
+          ) : null}
           {types.map((x, i) => (
             <ListRow
               key={x.id}
