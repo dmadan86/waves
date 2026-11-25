@@ -446,8 +446,14 @@ function HomeScreen() {
   const owedGroups = showStale && stored ? stored.headline.owedGroups : liveOwedGroups;
   const owingGroups = showStale && stored ? stored.headline.owingGroups : liveOwingGroups;
   // Any currency, not only the headline one: the action is about people, not a total.
-  const canRemind = showStale && stored ? stored.headline.owedGroups > 0 : list.some((g) => summary.balanceFor(g.id) > 0n);
-  const canSettle = showStale && stored ? stored.headline.owingGroups > 0 : list.some((g) => summary.balanceFor(g.id) < 0n);
+  const canRemind =
+    showStale && stored
+      ? stored.headline.owedGroups > 0
+      : list.some((g) => summary.balanceFor(g.id) > 0n);
+  const canSettle =
+    showStale && stored
+      ? stored.headline.owingGroups > 0
+      : list.some((g) => summary.balanceFor(g.id) < 0n);
 
   // Home's feed: the personal ledger (for Personal's tile and the bills that
   // need paying), the pooled groups' figures, and whether there is anything yet.
