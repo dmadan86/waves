@@ -27,9 +27,16 @@ EAS Update: same client (`expo-updates`), our own server and storage.
    so stolen R2 credentials, or a compromised function, cannot get code signed:
    devices reject anything not signed with that key.
 
-**Runtime version** is `appVersion` (`app.json`): updates only reach binaries
-with the same `version`. Bump `version` whenever native code, a native
-dependency or a config plugin changes. **Channel** comes from the build:
+**Runtime version** is a fixed label in `app.json` (`"runtimeVersion": "native-1"`):
+an update reaches every installed binary with the same label, whatever its
+`version` or `versionCode`, so several store releases share one OTA stream.
+`apps/mobile/native-fingerprint.json` records the native fingerprint that label
+stands for, computed on CI (`fingerprint.config.js` ignores the version name and
+code). The OTA workflow recomputes it and **refuses to publish** if native code,
+a native dependency or a config plugin changed: then bump the label
+(`native-2`), record the new fingerprint, and ship a store build. The
+fingerprint is only ever computed on CI, because it depends on the
+`node_modules` layout (this machine is isolated, CI is hoisted). **Channel** comes from the build:
 EAS profile `production` / `preview` (or `OTA_CHANNEL`); a preview build never
 sees a production update. The channel header is baked into the native manifest,
 so a **local** Gradle build gets `production` unless `EAS_BUILD_PROFILE=preview`

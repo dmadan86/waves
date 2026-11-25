@@ -2,15 +2,13 @@
   "expo": {
     "name": "Waves",
     "slug": "waves",
-    "version": "1.3.2",
+    "version": "1.3.3",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "waves",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#F3F1FB",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "native-1",
     "updates": {
       "url": "https://ywojpnfyxxltvihqmcni.supabase.co/functions/v1/ota",
       "fallbackToCacheTimeout": 0,
@@ -40,7 +38,7 @@
     "android": {
       "package": "app.waves.mobile",
       "allowBackup": false,
-      "versionCode": 23,
+      "versionCode": 24,
       "permissions": [],
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",

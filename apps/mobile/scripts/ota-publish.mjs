@@ -128,18 +128,40 @@ if (!args.prepare && existsSync(inputsPath)) {
   );
 
   /** The same runtime version the installed app computes from app.json. */
+  const fingerprint = (platform) => {
+    const out = execFileSync(
+      'npx',
+      ['expo-updates', 'fingerprint:generate', '--platform', platform],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
+    );
+    return JSON.parse(out.slice(out.indexOf('{'))).hash;
+  };
+  // A fixed runtime string ("native-1") is guarded by native-fingerprint.json:
+  // the native fingerprint recorded on CI for that runtime. If this commit's
+  // native side differs, its JS may call native code the installed binary lacks,
+  // so refuse: bump runtimeVersion and ship a store build instead. Computed on
+  // CI only, because the fingerprint depends on the node_modules layout.
+  const guardPath = new URL('../native-fingerprint.json', import.meta.url);
+  const guard = existsSync(guardPath) ? JSON.parse(readFileSync(guardPath, 'utf8')) : null;
   const runtimeFor = (platform) => {
     const rv = config.runtimeVersion;
-    if (typeof rv === 'string') return rv;
-    if (rv?.policy === 'appVersion') return config.version;
-    if (rv?.policy === 'fingerprint') {
-      const out = execFileSync(
-        'npx',
-        ['expo-updates', 'fingerprint:generate', '--platform', platform],
-        { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
-      );
-      return JSON.parse(out.slice(out.indexOf('{'))).hash;
+    if (typeof rv === 'string') {
+      if (guard) {
+        const now = fingerprint(platform);
+        if (guard.runtime !== rv || guard[platform] !== now)
+          fail(
+            `native code changed since runtime ${rv} (fingerprint ${platform} ${now}, recorded ` +
+              `${guard.runtime}/${guard[platform]}). Bump runtimeVersion in app.json, ship a store ` +
+              `build, and record the new fingerprint in native-fingerprint.json.`,
+          );
+      } else {
+        // First publish for a new runtime: print the value to record.
+        console.log(`native fingerprint ${rv} ${platform} ${fingerprint(platform)}`);
+      }
+      return rv;
     }
+    if (rv?.policy === 'appVersion') return config.version;
+    if (rv?.policy === 'fingerprint') return fingerprint(platform);
     return fail(`unsupported runtimeVersion ${JSON.stringify(rv)}`);
   };
   runtimes = Object.fromEntries(platforms.map((p) => [p, runtimeFor(p)]));
