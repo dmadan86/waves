@@ -59,4 +59,23 @@ describe('verifyEmailCode', () => {
       type: 'signup',
     });
   });
+
+  it('accepts a sign-up code at the sign-in step (unconfirmed account)', async () => {
+    const { waves, verifyOtp } = clientFor(null);
+    verifyOtp
+      .mockResolvedValueOnce({ error: { message: 'Token has expired or is invalid' } })
+      .mockResolvedValueOnce({ error: null });
+    await expect(waves.verifyEmailCode('new@example.com', '123456')).resolves.toBeUndefined();
+    expect(verifyOtp).toHaveBeenLastCalledWith({
+      email: 'new@example.com',
+      token: '123456',
+      type: 'signup',
+    });
+  });
+
+  it('still fails when neither kind of code matches', async () => {
+    const { waves, verifyOtp } = clientFor(null);
+    verifyOtp.mockResolvedValue({ error: { message: 'Token has expired or is invalid' } });
+    await expect(waves.verifyEmailCode('new@example.com', '000000')).rejects.toThrow();
+  });
 });

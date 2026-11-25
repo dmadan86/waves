@@ -370,7 +370,14 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
     ): Promise<void> {
       // A password sign-up is confirmed with a 'signup' code, a sign-in mail with 'email'.
       const { error } = await supabase.auth.verifyOtp({ email, token, type: kind });
-      if (error) throw new WavesApiError(error.message);
+      if (!error) return;
+      // An account that was never confirmed is mailed a sign-up code even when it
+      // asked to sign in, so a rejected 'email' code gets one try as 'signup'.
+      if (kind === 'email') {
+        const retry = await supabase.auth.verifyOtp({ email, token, type: 'signup' });
+        if (!retry.error) return;
+      }
+      throw new WavesApiError(error.message);
     },
 
     /**
