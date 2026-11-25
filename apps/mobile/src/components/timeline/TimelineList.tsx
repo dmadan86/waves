@@ -312,7 +312,7 @@ function EntryRow({
           marginVertical: 3,
           paddingVertical: theme.spacing.sm,
           paddingStart: theme.spacing.sm + 2,
-          paddingEnd: theme.spacing.xs,
+          paddingEnd: theme.spacing.sm + 2,
           borderRadius: 12,
           backgroundColor: focused ? theme.color.brandSoft : theme.color.surface,
           borderWidth: focused ? 1.5 : 0,
