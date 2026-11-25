@@ -583,6 +583,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
               alignItems: 'center',
               paddingVertical: ROW_PAD,
               paddingStart: theme.spacing.md,
+              paddingEnd: theme.spacing.md,
             }}
           >
             <CategoryBadge
