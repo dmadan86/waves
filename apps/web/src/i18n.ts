@@ -138,7 +138,7 @@ export interface WebStrings {
     linkBrokenBody: string;
     opening: string;
     aGroup: string;
-    addedTo: string;
+    invitedTo: string;
     splittingHere: PluralForms;
     whichOneAreYou: string;
     claimNote: string;
@@ -1362,6 +1362,11 @@ export interface WebStrings {
   account: {
     title: string;
     you: string;
+    nameTitle: string;
+    nameHint: string;
+    namePlaceholder: string;
+    nameSave: string;
+    nameSkip: string;
     yourAccount: string;
     yourAccountHint: string;
     guestTitle: string;
@@ -1458,7 +1463,7 @@ const en: WebStrings = {
     linkBrokenBody: 'Links expire, and whoever shared it can turn it off. Ask them for a new one.',
     opening: 'Opening the link…',
     aGroup: 'a group',
-    addedTo: 'You have been added to {group}',
+    invitedTo: "You're invited to {group}",
     splittingHere: {
       one: '{n} person is splitting costs here.',
       other: '{n} people are splitting costs here.',
@@ -2470,6 +2475,11 @@ const en: WebStrings = {
   account: {
     title: 'Your account',
     you: 'You',
+    nameTitle: 'What should friends call you?',
+    nameHint: 'Shown on every bill you share.',
+    namePlaceholder: 'Your name',
+    nameSave: 'Save',
+    nameSkip: 'Skip for now',
     yourAccount: 'Your account',
     yourAccountHint: 'Your name, where you are, and the ways in',
     guestTitle: 'Guest account',
@@ -2563,7 +2573,7 @@ const ta: WebStrings = {
     linkBrokenBody: 'சுட்டிகள் காலாவதியாகும், பகிர்ந்தவர் அதை நிறுத்தவும் முடியும். புதிய ஒன்றைக் கேளுங்கள்.',
     opening: 'சுட்டியைத் திறக்கிறது…',
     aGroup: 'ஒரு குழு',
-    addedTo: '{group} இல் நீங்கள் சேர்க்கப்பட்டுள்ளீர்கள்',
+    invitedTo: '{group} க்கு உங்களுக்கு அழைப்பு வந்துள்ளது',
     splittingHere: {
       one: '{n} நபர் இங்கே செலவுகளைப் பிரிக்கிறார்.',
       other: '{n} பேர் இங்கே செலவுகளைப் பிரிக்கிறார்கள்.',
@@ -3584,6 +3594,11 @@ const ta: WebStrings = {
   account: {
     title: 'உங்கள் கணக்கு',
     you: 'நீங்கள்',
+    nameTitle: 'நண்பர்கள் உங்களை எப்படி அழைக்க வேண்டும்?',
+    nameHint: 'நீங்கள் பகிரும் ஒவ்வொரு பில்லிலும் காட்டப்படும்.',
+    namePlaceholder: 'உங்கள் பெயர்',
+    nameSave: 'சேமி',
+    nameSkip: 'இப்போது வேண்டாம்',
     yourAccount: 'உங்கள் கணக்கு',
     yourAccountHint: 'உங்கள் பெயர், நீங்கள் இருக்கும் இடம், உள்ளே வரும் வழிகள்',
     guestTitle: 'விருந்தினர் கணக்கு',
@@ -3679,7 +3694,7 @@ const hi: WebStrings = {
       'लिंक की मियाद ख़त्म हो जाती है, और जिसने साझा किया वह उसे बंद भी कर सकता है। उनसे नया माँगें।',
     opening: 'लिंक खुल रहा है…',
     aGroup: 'एक समूह',
-    addedTo: 'आपको {group} में जोड़ा गया है',
+    invitedTo: 'आपको {group} में आमंत्रित किया गया है',
     splittingHere: {
       one: '{n} व्यक्ति यहाँ खर्च बाँट रहा है।',
       other: '{n} लोग यहाँ खर्च बाँट रहे हैं।',
@@ -4672,6 +4687,11 @@ const hi: WebStrings = {
   account: {
     title: 'आपका खाता',
     you: 'आप',
+    nameTitle: 'दोस्त आपको क्या कहकर बुलाएँ?',
+    nameHint: 'आपके हर साझा बिल पर दिखेगा।',
+    namePlaceholder: 'आपका नाम',
+    nameSave: 'सहेजें',
+    nameSkip: 'अभी छोड़ें',
     yourAccount: 'आपका खाता',
     yourAccountHint: 'आपका नाम, आप कहाँ हैं, और अंदर आने के रास्ते',
     guestTitle: 'मेहमान खाता',
@@ -4763,7 +4783,7 @@ const ar: WebStrings = {
     linkBrokenBody: 'تنتهي صلاحية الروابط، ويمكن لمن شاركها أن يوقفها. اطلب منه رابطًا جديدًا.',
     opening: 'جارٍ فتح الرابط…',
     aGroup: 'مجموعة',
-    addedTo: 'تمت إضافتك إلى {group}',
+    invitedTo: 'تمت دعوتك إلى {group}',
     splittingHere: {
       zero: 'لا أحد يقسّم التكاليف هنا بعد.',
       one: 'شخص واحد يقسّم التكاليف هنا.',
@@ -5836,6 +5856,11 @@ const ar: WebStrings = {
   account: {
     title: 'حسابك',
     you: 'أنت',
+    nameTitle: 'بماذا يناديك أصدقاؤك؟',
+    nameHint: 'يظهر على كل فاتورة تشاركها.',
+    namePlaceholder: 'اسمك',
+    nameSave: 'حفظ',
+    nameSkip: 'تخطَّ الآن',
     yourAccount: 'حسابك',
     yourAccountHint: 'اسمك، وأين أنت، والطرق إلى حسابك',
     guestTitle: 'حساب ضيف',

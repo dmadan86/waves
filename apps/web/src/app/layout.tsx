@@ -9,6 +9,7 @@ import { ThemeProvider, THEME_BOOT_SCRIPT } from '@/lib/theme';
 import { isRtlLanguage, localeFor, stringsFor } from '@/i18n';
 import { chooseLanguage, rememberedLanguage } from '@/lib/language';
 import { AfterSignIn } from '@/components/AfterSignIn';
+import { NamePrompt } from '@/components/NamePrompt';
 
 import './globals.css';
 
@@ -82,6 +83,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <ThemeProvider>
             <AuthProvider>
               <AfterSignIn />
+              <NamePrompt />
               <SyncProvider>{children}</SyncProvider>
             </AuthProvider>
           </ThemeProvider>
