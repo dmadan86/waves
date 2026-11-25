@@ -129,6 +129,11 @@ function NewCompanyScreenBody() {
                 placeholderTextColor={theme.color.textFaint}
                 accessibilityLabel={t.company.nameLabel}
                 autoFocus
+                maxLength={60}
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  if (trimmed && !createGroup.isPending) void submit();
+                }}
                 style={{ fontSize: 16, color: theme.color.text, paddingVertical: 0 }}
               />
             </View>

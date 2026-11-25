@@ -138,6 +138,7 @@ function CompanyWagesScreenInner() {
   );
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [done, setDone] = useState(false);
+  const [paidTotal, setPaidTotal] = useState(0n);
   const [filter, setFilter] = useState<Filter>('all');
   const [open, setOpen] = useState<Set<string>>(new Set());
   const glass = useGlass();
@@ -229,6 +230,7 @@ function CompanyWagesScreenInner() {
       {
         onSuccess: () => {
           runId.current = randomUUID();
+          setPaidTotal(totals.net);
           setDone(true);
         },
       },
@@ -434,9 +436,17 @@ function CompanyWagesScreenInner() {
             </Text>
           </View>
           {people.length === 0 ? (
-            <Text variant="body" tone="muted">
-              {t.company.wagesNoTeam}
-            </Text>
+            <View style={{ gap: theme.spacing.sm, alignItems: 'flex-start' }}>
+              <Text variant="body" tone="muted">
+                {t.company.wagesNoTeam}
+              </Text>
+              {view.isOwner ? (
+                <Button
+                  label={t.company.qaInvite}
+                  onPress={() => router.push(`/group/${groupId}/invite`)}
+                />
+              ) : null}
+            </View>
           ) : (
             <>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -541,8 +551,11 @@ function CompanyWagesScreenInner() {
                           accessibilityRole="button"
                           accessibilityState={{ expanded: isOpen }}
                           accessibilityLabel={name}
-                          disabled={paid}
-                          onPress={() => setOpen((cur) => toggle(cur, m.id))}
+                          onPress={() =>
+                            paid
+                              ? router.push(`/group/${groupId}/company-statement?member=${m.id}`)
+                              : setOpen((cur) => toggle(cur, m.id))
+                          }
                           style={{
                             flex: 1,
                             flexDirection: 'row',
@@ -612,7 +625,11 @@ function CompanyWagesScreenInner() {
                           </View>
                           <View style={{ alignItems: 'flex-end' }}>
                             <Text variant="body" style={{ fontWeight: '800' }}>
-                              {line ? fmt(line.net) : '—'}
+                              {line
+                                ? fmt(line.net)
+                                : paid
+                                  ? t.company.wagesPaidTag
+                                  : t.company.wagesSetPay}
                             </Text>
                             {line ? (
                               <Text variant="micro" tone="muted" numberOfLines={1}>
@@ -830,7 +847,17 @@ function CompanyWagesScreenInner() {
         }}
       >
         {done ? (
-          <Button label={t.company.wagesDone} onPress={() => router.back()} fullWidth />
+          <>
+            <View style={{ flex: 1 }}>
+              <Text variant="caption" style={{ fontWeight: '700' }}>
+                {t.company.wagesDone}
+              </Text>
+              <Text variant="micro" tone="muted" numberOfLines={1}>
+                {fmt(paidTotal)}
+              </Text>
+            </View>
+            <Button label={t.common.done} onPress={() => router.back()} />
+          </>
         ) : (
           <>
             <View>
