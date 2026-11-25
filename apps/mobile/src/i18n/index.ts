@@ -4449,10 +4449,9 @@ export interface UiStrings {
   phonePrompt: {
     title: string;
     body: string;
-    requiredBody: string;
+    discoveryHint: string;
     add: string;
     later: string;
-    signOut: string;
     sendCode: string;
     codeSent: string;
     didntReceive: string;
@@ -13171,11 +13170,9 @@ const en: UiStrings = {
   phonePrompt: {
     title: 'Add your phone number',
     body: 'Friends find you on Waves by your number, so adding it is the quickest way into their groups. It is only used to find you and to sign in, and it is never shown to anyone.',
-    requiredBody:
-      'Add your phone number to keep using Waves. Friends find you by it, and it is never shown to anyone.',
+    discoveryHint: 'So friends can find you on Waves',
     add: 'Add phone number',
     later: 'Later',
-    signOut: 'Sign out',
     sendCode: 'Send code',
     codeSent: 'Enter the six-digit code we texted to {phone}',
     didntReceive: 'Didn’t receive the code?',
@@ -21400,11 +21397,9 @@ const ta: UiStrings = {
   phonePrompt: {
     title: 'உங்கள் தொலைபேசி எண்ணைச் சேர்க்கவும்',
     body: 'நண்பர்கள் உங்கள் எண்ணைக் கொண்டு Waves இல் உங்களைக் கண்டுபிடிப்பார்கள், எனவே அவர்களின் குழுக்களில் சேர இதுவே எளிய வழி. இது உங்களைக் கண்டுபிடிக்கவும் உள்நுழையவும் மட்டுமே பயன்படும், யாருக்கும் காட்டப்படாது.',
-    requiredBody:
-      'Waves ஐத் தொடர்ந்து பயன்படுத்த உங்கள் தொலைபேசி எண்ணைச் சேர்க்கவும். நண்பர்கள் இதைக் கொண்டு உங்களைக் கண்டுபிடிப்பார்கள், இது யாருக்கும் காட்டப்படாது.',
+    discoveryHint: 'நண்பர்கள் உங்களை Waves இல் கண்டுபிடிக்க',
     add: 'தொலைபேசி எண்ணைச் சேர்',
     later: 'பிறகு',
-    signOut: 'வெளியேறு',
     sendCode: 'குறியீட்டை அனுப்பு',
     codeSent: '{phone} க்கு அனுப்பிய ஆறு இலக்கக் குறியீட்டை உள்ளிடவும்',
     didntReceive: 'குறியீடு வரவில்லையா?',
@@ -29661,11 +29656,9 @@ const hi: UiStrings = {
   phonePrompt: {
     title: 'अपना फ़ोन नंबर जोड़ें',
     body: 'दोस्त आपके नंबर से Waves पर आपको ढूँढते हैं, इसलिए उनके ग्रुप में जुड़ने का यही सबसे आसान तरीका है। यह सिर्फ़ आपको ढूँढने और साइन इन के लिए है, और किसी को दिखाया नहीं जाता।',
-    requiredBody:
-      'Waves इस्तेमाल करते रहने के लिए अपना फ़ोन नंबर जोड़ें। दोस्त आपको इसी से ढूँढते हैं, और यह किसी को दिखाया नहीं जाता।',
+    discoveryHint: 'ताकि दोस्त आपको Waves पर ढूँढ सकें',
     add: 'फ़ोन नंबर जोड़ें',
     later: 'बाद में',
-    signOut: 'साइन आउट',
     sendCode: 'कोड भेजें',
     codeSent: '{phone} पर भेजा गया छह अंकों का कोड डालें',
     didntReceive: 'कोड नहीं मिला?',
@@ -38010,10 +38003,9 @@ const ar: UiStrings = {
   phonePrompt: {
     title: 'أضف رقم هاتفك',
     body: 'يجدك أصدقاؤك على Waves برقمك، لذا إضافته أسرع طريق للانضمام إلى مجموعاتهم. يُستخدم فقط للعثور عليك ولتسجيل الدخول، ولا يُعرض لأحد.',
-    requiredBody: 'أضف رقم هاتفك لمتابعة استخدام Waves. يجدك أصدقاؤك به، ولا يُعرض لأحد.',
+    discoveryHint: 'ليتمكن أصدقاؤك من العثور عليك على Waves',
     add: 'أضف رقم الهاتف',
     later: 'لاحقًا',
-    signOut: 'تسجيل الخروج',
     sendCode: 'أرسل الرمز',
     codeSent: 'أدخل الرمز المكوّن من ستة أرقام الذي أرسلناه إلى {phone}',
     didntReceive: 'لم يصلك الرمز؟',

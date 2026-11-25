@@ -664,6 +664,11 @@ function AccountForm() {
                       ? t.contact.emailAddress
                       : t.contact.phoneNumber}
                   </Text>
+                  {channel === ContactChannel.Phone ? (
+                    <Text style={{ fontSize: 12, color: muted }}>
+                      {t.phonePrompt.discoveryHint}
+                    </Text>
+                  ) : null}
                 </View>
               </Row>
 

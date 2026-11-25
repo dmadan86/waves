@@ -6,9 +6,8 @@
  * whole verification happens in the card, number then code, so saying yes never
  * means a trip into settings to hunt for the right row.
  *
- * How firmly it asks is `lib/phonePrompt`'s decision: "Later" puts it off for
- * the day, three times, and after that the card has no close — add a number or
- * sign out. The proving is the same Firebase-then-`phone-verify` path the
+ * How often it asks is `lib/phonePrompt`'s decision. It always stays optional.
+ * The proving is the same Firebase-then-`phone-verify` path the
  * account screen uses (`startAddingContact` / `confirmContact`), so the two can
  * never disagree about what counts as a linked number.
  */
@@ -65,7 +64,7 @@ export function PhoneLinkPrompt() {
   const theme = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const { t } = useStrings();
-  const { session, profile, isGuest, refresh, signOut } = useAuth();
+  const { session, profile, isGuest, refresh } = useAuth();
   const enabled = useFlagEnabled(FLAG);
 
   const ownerId = session?.user.id ?? null;
@@ -92,10 +91,6 @@ export function PhoneLinkPrompt() {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // A link attempt that failed — the number is already on another account, or
-  // the day's codes are spent. A required ask must not trap somebody who tried:
-  // after a failure it can be put off for the day like the soft one.
-  const [failed, setFailed] = useState(false);
   const [codeFocused, setCodeFocused] = useState(true);
   // Seconds until a new code may be asked for; 0 means "tap to resend".
   const [retryLeft, setRetryLeft] = useState(0);
@@ -120,32 +115,25 @@ export function PhoneLinkPrompt() {
   // Above the push ask: being findable is the reason the app works between
   // friends, and the push ask will still be there after. Below the restore
   // prompt, which is about data already on the account.
-  // The required ask is the one prompt that still shows after another has had
-  // this launch's turn: it cannot be put off, so it cannot wait for tomorrow.
   const granted = usePromptSlot({
     id: 'phonePrompt',
     priority: 85,
     active: wants,
     delayMs: 400,
-    essential: mode === PhonePromptMode.Required,
   });
 
-  const required = mode === PhonePromptMode.Required;
   const number = `${dialingCodeForCountry(country) ?? ''}${local.replace(/[^\d]/g, '')}`;
   const looksValid = /^\+?[0-9]{8,15}$/.test(number);
 
-  const canPutOff = !required || failed;
-
   const later = useCallback((): void => {
-    if (!ownerId || !state || !canPutOff) return;
+    if (!ownerId || !state) return;
     const next = withLater(state, localDay());
     setStage(Stage.Ask);
     setLocal('');
     setError(null);
-    setFailed(false);
     setAnswer({ owner: ownerId, state: next });
     void writePhonePromptState(ownerId, next);
-  }, [ownerId, state, canPutOff]);
+  }, [ownerId, state]);
 
   const send = async (): Promise<void> => {
     setError(null);
@@ -156,7 +144,6 @@ export function PhoneLinkPrompt() {
       setRetryLeft(RETRY_SECONDS);
       setStage(Stage.Code);
     } catch (caught) {
-      setFailed(true);
       setError(friendlyError(caught, t.couldNotSave, 'phonePrompt.send'));
     } finally {
       setBusy(false);
@@ -173,7 +160,6 @@ export function PhoneLinkPrompt() {
       // render before the "you're set" card claimed it back.
       setStage(Stage.Done);
     } catch (caught) {
-      setFailed(true);
       setError(friendlyError(caught, t.couldNotSave, 'phonePrompt.confirm'));
       return;
     } finally {
@@ -187,9 +173,7 @@ export function PhoneLinkPrompt() {
 
   if (!wants || !granted) return null;
 
-  // The close does what "Later" does. A required ask has nothing to close to
-  // until an attempt has failed, so until then the scrim and the back button
-  // both do nothing.
+  // The close does what "Later" does.
   const onClose = (): void => {
     if (stage === Stage.Done) {
       setStage(Stage.Ask);
@@ -236,7 +220,7 @@ export function PhoneLinkPrompt() {
     <Popup
       visible
       onClose={onClose}
-      dismissable={canPutOff && stage !== Stage.Code}
+      dismissable
       closeLabel={t.phonePrompt.later}
       style={{
         maxWidth: 380,
@@ -297,7 +281,7 @@ export function PhoneLinkPrompt() {
               </Text>
             ) : (
               <Text variant="body" tone="muted" align="center">
-                {required ? t.phonePrompt.requiredBody : t.phonePrompt.body}
+                {t.phonePrompt.body}
               </Text>
             )}
           </View>
@@ -487,10 +471,7 @@ export function PhoneLinkPrompt() {
                 )}
               </>
             ) : null}
-            {stage !== Stage.Code && canPutOff ? linkLabel(t.phonePrompt.later, later, busy) : null}
-            {stage !== Stage.Code && required
-              ? linkLabel(t.phonePrompt.signOut, () => void signOut(), busy)
-              : null}
+            {stage !== Stage.Code ? linkLabel(t.phonePrompt.later, later, busy) : null}
           </View>
         </>
       )}
