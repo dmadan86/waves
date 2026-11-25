@@ -44,7 +44,7 @@ export function SiteFooter({
           { label: t.links.features, href: `${anchorBase}#features`, kind: 'anchor' },
           { label: t.links.how, href: `${anchorBase}#how`, kind: 'anchor' },
           { label: t.links.personal, href: `/${locale}/personal`, kind: 'route' },
-          { label: t.links.home, href: `/${locale}/home`, kind: 'route' },
+          { label: t.links.home, href: `/${locale}/family`, kind: 'route' },
           { label: t.links.companies, href: `/${locale}/companies`, kind: 'route' },
           { label: t.links.offline, href: `${anchorBase}#offline`, kind: 'anchor' },
           { label: t.links.voice, href: `${anchorBase}#voice`, kind: 'anchor' },

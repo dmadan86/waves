@@ -3,7 +3,7 @@ import type { Dictionary } from '@/i18n/dictionaries';
 import { Check } from './icons';
 import { Button, Kicker } from './ui';
 
-/** "Couples and families": the home page's pointer to /home. Stated in full there. */
+/** "Couples and families": the home page's pointer to /family. Stated in full there. */
 export function HomeBand({ t, locale }: { t: Dictionary['homeBand']; locale: Locale }) {
   return (
     <section id="family" aria-labelledby="family-title" className="scroll-mt-20 py-6 lg:py-8">
@@ -27,7 +27,7 @@ export function HomeBand({ t, locale }: { t: Dictionary['homeBand']; locale: Loc
               ))}
             </ul>
             <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
-              <Button href={`/${locale}/home`} size="lg">
+              <Button href={`/${locale}/family`} size="lg">
                 {t.cta}
               </Button>
               <p className="text-[0.8rem] text-ink-3">{t.availability}</p>

@@ -33,10 +33,10 @@ export async function generateMetadata({
     title: p.metaTitle,
     description: p.metaDescription,
     alternates: {
-      canonical: absoluteUrl(`/${locale}/home`),
+      canonical: absoluteUrl(`/${locale}/family`),
       languages: {
-        ...Object.fromEntries(locales.map((l) => [htmlLang[l], absoluteUrl(`/${l}/home`)])),
-        'x-default': absoluteUrl('/en/home'),
+        ...Object.fromEntries(locales.map((l) => [htmlLang[l], absoluteUrl(`/${l}/family`)])),
+        'x-default': absoluteUrl('/en/family'),
       },
     },
   };

@@ -22,7 +22,7 @@ const paths = [
   '/mcp',
   '/companies',
   '/personal',
-  '/home',
+  '/family',
   '/compare',
   ...competitors.map((c) => `/compare/${compareSlug(c)}`),
   '/alternatives/splitwise-alternative',
