@@ -69,6 +69,7 @@ export function SiteFooter({
           en('Waves vs Splitwise', '/compare/waves-vs-splitwise'),
           en('Waves vs Splitkaro', '/compare/waves-vs-splitkaro'),
           en('Waves vs Tricount', '/compare/waves-vs-tricount'),
+          en('Waves vs Settle Up', '/compare/waves-vs-settle-up'),
           en('Waves vs Google Pay split', '/compare/waves-vs-google-pay'),
           en('All comparisons', '/compare'),
         ],
@@ -78,6 +79,8 @@ export function SiteFooter({
       {
         heading: 'Use cases',
         links: [
+          en('Split expenses with friends', '/use-cases/split-expenses-with-friends'),
+          en('Couple expense tracker', '/use-cases/couple-expense-tracker'),
           en('Split bills with roommates', '/use-cases/split-bills-with-roommates'),
           en('Trip expense splitter', '/use-cases/trip-expense-splitter'),
           en('Split rent in India', '/use-cases/split-rent-india'),

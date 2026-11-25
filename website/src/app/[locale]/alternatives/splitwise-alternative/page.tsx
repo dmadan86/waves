@@ -14,7 +14,7 @@ export function generateStaticParams() {
 }
 
 const path = '/alternatives/splitwise-alternative';
-const title = 'A Splitwise alternative with no daily expense limit';
+const title = 'Free Splitwise alternative, no daily expense limit | Waves';
 const description =
   'Looking for a Splitwise alternative? Waves keeps expenses, people and currencies unlimited on Free, works offline and imports your Splitwise export.';
 
