@@ -942,6 +942,7 @@ export interface UiStrings {
     skip: string;
     /** Generic 'Loading…' — the spoken label a skeleton screen carries. */
     loading: string;
+    undo: string;
     close: string;
     cancel: string;
     cancelled: string;
@@ -5938,6 +5939,8 @@ export interface UiStrings {
     deleteHint: string;
     settleFirst: string;
     settleFirstBody: string;
+    /** Toast after leaving a group; {name} = group name. */
+    leftToast: string;
     leaveQuestion: string;
     leaveBody: string;
     settleFirstBalance: string;
@@ -5946,6 +5949,8 @@ export interface UiStrings {
     settleFirstBalanceLabel: string;
     settleFirstClose: string;
     leave: string;
+    /** Toast after archiving a group, with Undo; {name} = group name. */
+    archivedToast: string;
     archiveQuestion: string;
     archiveBody: string;
     archive: string;
@@ -5989,8 +5994,12 @@ export interface UiStrings {
     rejectBody: string;
     rejectConfirm: string;
     /** Payer's action to withdraw a payment they recorded, and its prompt. */
+    /** Toast after confirming a payment you received. */
+    paymentConfirmedToast: string;
     cancelSettlement: string;
     /** Section label above the suggested repayments on the Balances tab. */
+    /** Balances tab of a group with no expenses and no payments yet. */
+    noBalancesYet: string;
     paymentsToSettle: string;
     /** Section label above the member balance rows. */
     everyonesBalance: string;
@@ -6035,6 +6044,8 @@ export interface UiStrings {
     /** That row's subtitle. */
     removeFromGroupHint: string;
     /** Confirm sheet title; `{name}` is the person. */
+    /** Toast after removing someone from a group. */
+    removedToast: string;
     removeConfirmTitle: string;
     /** Confirm sheet body; `{name}` is the person. */
     removeConfirmBody: string;
@@ -6327,6 +6338,12 @@ export interface UiStrings {
     deleteBody: string;
     deleted: string;
     /** An expense nobody described, shown when it has no category to fall back on. */
+    /** Toast after deleting an expense, with Undo. */
+    deletedToast: string;
+    /** Toast after restoring a deleted expense. */
+    restoredToast: string;
+    /** Under How to split, when you are the only member. */
+    aloneInvite: string;
     untitled: string;
     /** "Asha paid" under a row. The name comes first in English and may not elsewhere. */
     paidByName: string;
@@ -6559,6 +6576,10 @@ export interface UiStrings {
     settleTapReceived: string;
     settleLeftOwes: string;
     settleTapPaid: string;
+    /** Toast after a payment is recorded from the Balances tab. */
+    paymentRecordedToast: string;
+    /** Toast on landing in a group just joined by invite; {name} = group name. */
+    joinedToast: string;
     settlePendingTitle: string;
     settlePendingBody: string;
     settleFilterAll: string;
@@ -9584,6 +9605,7 @@ const en: UiStrings = {
     back: 'Back',
     skip: 'Skip',
     loading: 'Loading…',
+    undo: 'Undo',
     close: 'Close',
     cancel: 'Cancel',
     cancelled: 'Cancelled',
@@ -14326,6 +14348,7 @@ const en: UiStrings = {
     settleFirst: 'Settle up first',
     settleFirstBody:
       'You still have a balance in this group. Leaving now would strand it — settle up, then leave.',
+    leftToast: 'You left {name}',
     leaveQuestion: 'Leave this group?',
     leaveBody: 'Your past expenses stay in the group history.',
     settleFirstBalance: 'Your balance',
@@ -14334,6 +14357,7 @@ const en: UiStrings = {
     settleFirstBalanceLabel: 'Your balance is {amount}. Opens settle up.',
     settleFirstClose: 'Close',
     leave: 'Leave',
+    archivedToast: '{name} archived',
     archiveQuestion: 'Archive this group?',
     archiveBody:
       'It will be removed from your group list, but nothing is deleted. All expenses, payments and members are safely kept, and anyone can unarchive it later.',
@@ -14366,7 +14390,9 @@ const en: UiStrings = {
     rejectBody:
       '{name} recorded paying you. This clears the pending payment and doesn’t change any balance.',
     rejectConfirm: 'Reject',
+    paymentConfirmedToast: 'Payment confirmed',
     cancelSettlement: 'Cancel payment',
+    noBalancesYet: 'Nothing to settle yet. Add an expense and the balances show up here.',
     paymentsToSettle: 'Payments to settle',
     everyonesBalance: 'Group totals',
     cancelTitle: 'Cancel this payment?',
@@ -14396,6 +14422,7 @@ const en: UiStrings = {
     currentRoleMember: 'Current role: Member',
     removeFromGroup: 'Remove from group',
     removeFromGroupHint: 'They lose access. Their expenses stay in the history.',
+    removedToast: '{name} removed',
     removeConfirmTitle: 'Remove {name}?',
     removeConfirmBody:
       '{name} will lose access to this group. Their expenses and balance stay in the group history. A new invite can bring them back.',
@@ -14628,6 +14655,9 @@ const en: UiStrings = {
     deleteBody:
       'It stops counting towards balances but stays in the activity feed, and anyone in the group can restore it for 30 days.',
     deleted: 'deleted',
+    deletedToast: 'Expense deleted',
+    restoredToast: 'Expense restored',
+    aloneInvite: 'Nobody else is in this group yet. Invite friends to split with them.',
     untitled: 'Untitled',
     paidByName: '{name} paid',
     paidByNameAmount: '{name} paid {amount}',
@@ -14798,6 +14828,8 @@ const en: UiStrings = {
     settleTapReceived: 'Tap to mark received',
     settleLeftOwes: 'Left the group · still owes you',
     settleTapPaid: 'Tap to mark paid',
+    paymentRecordedToast: 'Payment recorded',
+    joinedToast: 'You joined {name}',
     settlePendingTitle: 'Payment pending',
     settlePendingBody: 'This payment is already marked and waiting to be confirmed.',
     settleFilterAll: 'All',
@@ -17753,6 +17785,7 @@ const ta: UiStrings = {
     back: 'பின்',
     skip: 'தவிர்',
     loading: 'ஏற்றுகிறது…',
+    undo: 'செயல்தவிர்',
     close: 'மூடு',
     cancel: 'ரத்து',
     cancelled: 'ரத்து செய்யப்பட்டது',
@@ -22524,6 +22557,7 @@ const ta: UiStrings = {
     settleFirst: 'முதலில் தீர்த்துக்கொள்ளுங்கள்',
     settleFirstBody:
       'இந்தக் குழுவில் உங்களுக்கு இன்னும் இருப்பு உள்ளது. இப்போது விலகினால் அது தொங்கிவிடும் — தீர்த்துவிட்டு விலகுங்கள்.',
+    leftToast: 'நீங்கள் {name} குழுவிலிருந்து வெளியேறினீர்கள்',
     leaveQuestion: 'இந்தக் குழுவிலிருந்து விலகவா?',
     leaveBody: 'உங்கள் பழைய செலவுகள் குழு வரலாற்றில் இருக்கும்.',
     settleFirstBalance: 'உங்கள் இருப்பு',
@@ -22532,6 +22566,7 @@ const ta: UiStrings = {
     settleFirstBalanceLabel: 'உங்கள் இருப்பு {amount}. கணக்கு தீர்க்கும் திரையைத் திறக்கும்.',
     settleFirstClose: 'மூடு',
     leave: 'விலகு',
+    archivedToast: '{name} காப்பகத்தில் சேர்க்கப்பட்டது',
     archiveQuestion: 'இந்தக் குழுவைக் காப்பகப்படுத்தவா?',
     archiveBody:
       'இது உங்கள் குழுப் பட்டியலிலிருந்து நீக்கப்படும், ஆனால் எதுவும் அழிக்கப்படாது. அனைத்து செலவுகள், கட்டணங்கள், உறுப்பினர்கள் பாதுகாப்பாக இருக்கும், யார் வேண்டுமானாலும் பின்னர் மீண்டும் கொண்டுவரலாம்.',
@@ -22565,7 +22600,9 @@ const ta: UiStrings = {
     rejectBody:
       '{name} உங்களுக்குப் பணம் கொடுத்ததாகப் பதிவு செய்தார். இது நிலுவைப் பணத்தை நீக்கும்; எந்த இருப்பும் மாறாது.',
     rejectConfirm: 'நிராகரி',
+    paymentConfirmedToast: 'பணம் உறுதியானது',
     cancelSettlement: 'பணத்தை ரத்து செய்',
+    noBalancesYet: 'இன்னும் தீர்க்க எதுவும் இல்லை. செலவைச் சேர்த்தால் இருப்புகள் இங்கே தெரியும்.',
     paymentsToSettle: 'தீர்க்க வேண்டிய கொடுப்பனவுகள்',
     everyonesBalance: 'குழு மொத்தம்',
     cancelTitle: 'இந்தப் பணத்தை ரத்து செய்யவா?',
@@ -22595,6 +22632,7 @@ const ta: UiStrings = {
     currentRoleMember: 'தற்போதைய பங்கு: உறுப்பினர்',
     removeFromGroup: 'குழுவிலிருந்து நீக்கு',
     removeFromGroupHint: 'அவர்களுக்கு அணுகல் போய்விடும். அவர்களின் செலவுகள் வரலாற்றில் இருக்கும்.',
+    removedToast: '{name} நீக்கப்பட்டார்',
     removeConfirmTitle: '{name} ஐ நீக்கவா?',
     removeConfirmBody:
       '{name} இந்தக் குழுவை அணுக முடியாது. அவர்களின் செலவுகளும் இருப்பும் குழுவின் வரலாற்றில் இருக்கும். புதிய அழைப்பு மூலம் மீண்டும் சேர்க்கலாம்.',
@@ -22834,6 +22872,9 @@ const ta: UiStrings = {
     deleteBody:
       'இது இருப்புக் கணக்கில் சேராது, ஆனால் செயல்பாட்டுப் பட்டியலில் இருக்கும், 30 நாட்களுக்குள் குழுவில் யார் வேண்டுமானாலும் மீட்கலாம்.',
     deleted: 'நீக்கப்பட்டது',
+    deletedToast: 'செலவு நீக்கப்பட்டது',
+    restoredToast: 'செலவு மீட்கப்பட்டது',
+    aloneInvite: 'இந்தக் குழுவில் வேறு யாரும் இல்லை. பிரித்துக்கொள்ள நண்பர்களை அழைக்கவும்.',
     untitled: 'பெயரிடப்படாதது',
     paidByName: '{name} கொடுத்தார்',
     paidByNameAmount: '{name} {amount} கொடுத்தார்',
@@ -23006,6 +23047,8 @@ const ta: UiStrings = {
     settleTapReceived: 'தட்டி: பெற்றது',
     settleLeftOwes: 'குழுவிலிருந்து வெளியேறினார் · இன்னும் தர வேண்டும்',
     settleTapPaid: 'தட்டி: செலுத்தியது',
+    paymentRecordedToast: 'பணம் செலுத்தியது பதிவானது',
+    joinedToast: 'நீங்கள் {name} குழுவில் சேர்ந்தீர்கள்',
     settlePendingTitle: 'கட்டணம் நிலுவையில்',
     settlePendingBody: 'இந்தக் கட்டணம் ஏற்கெனவே குறிக்கப்பட்டு உறுதிப்படுத்தலுக்காகக் காத்திருக்கிறது.',
     settleFilterAll: 'அனைத்தும்',
@@ -25994,6 +26037,7 @@ const hi: UiStrings = {
     back: 'वापस',
     skip: 'छोड़ें',
     loading: 'लोड हो रहा है…',
+    undo: 'पूर्ववत करें',
     close: 'बंद करें',
     cancel: 'रद्द करें',
     cancelled: 'रद्द किया गया',
@@ -30694,6 +30738,7 @@ const hi: UiStrings = {
     settleFirst: 'पहले हिसाब चुकाएँ',
     settleFirstBody:
       'इस समूह में अभी आपका हिसाब बाकी है। अभी छोड़ने पर वह अधर में रह जाएगा — पहले चुकाएँ, फिर छोड़ें।',
+    leftToast: 'आपने {name} छोड़ दिया',
     leaveQuestion: 'यह समूह छोड़ें?',
     leaveBody: 'आपके पुराने खर्च समूह के इतिहास में बने रहेंगे।',
     settleFirstBalance: 'आपका बकाया',
@@ -30702,6 +30747,7 @@ const hi: UiStrings = {
     settleFirstBalanceLabel: 'आपका बकाया {amount} है। हिसाब चुकाने की स्क्रीन खुलती है।',
     settleFirstClose: 'बंद करें',
     leave: 'छोड़ें',
+    archivedToast: '{name} संग्रहित हुआ',
     archiveQuestion: 'यह समूह संग्रहित करें?',
     archiveBody:
       'यह आपकी समूह सूची से हट जाएगा, पर कुछ भी मिटेगा नहीं। सभी खर्च, भुगतान और सदस्य सुरक्षित रहेंगे, और कोई भी इसे बाद में वापस ला सकता है।',
@@ -30732,7 +30778,9 @@ const hi: UiStrings = {
     rejectTitle: 'कहें कि आपको यह नहीं मिला?',
     rejectBody: '{name} ने आपको भुगतान करना दर्ज किया। इससे लंबित भुगतान हट जाएगा और कोई बैलेंस नहीं बदलेगा।',
     rejectConfirm: 'अस्वीकारें',
+    paymentConfirmedToast: 'भुगतान की पुष्टि हुई',
     cancelSettlement: 'भुगतान रद्द करें',
+    noBalancesYet: 'अभी चुकाने को कुछ नहीं है। खर्च जोड़ें, हिसाब यहीं दिखेगा।',
     paymentsToSettle: 'चुकाने वाले भुगतान',
     everyonesBalance: 'ग्रुप टोटल',
     cancelTitle: 'यह भुगतान रद्द करें?',
@@ -30761,6 +30809,7 @@ const hi: UiStrings = {
     currentRoleMember: 'मौजूदा भूमिका: सदस्य',
     removeFromGroup: 'ग्रुप से हटाएँ',
     removeFromGroupHint: 'इनका एक्सेस खत्म हो जाएगा. इनके खर्च इतिहास में रहेंगे.',
+    removedToast: '{name} को हटाया गया',
     removeConfirmTitle: '{name} को हटाएँ?',
     removeConfirmBody:
       '{name} इस ग्रुप को नहीं देख पाएँगे. इनके खर्च और बकाया ग्रुप के इतिहास में बने रहेंगे. नया इनवाइट इन्हें वापस ला सकता है.',
@@ -30994,6 +31043,9 @@ const hi: UiStrings = {
     deleteBody:
       'यह हिसाब में गिनना बंद कर देगा पर गतिविधि में बना रहेगा, और समूह का कोई भी 30 दिन तक इसे वापस ला सकता है।',
     deleted: 'हटाया गया',
+    deletedToast: 'खर्च हटाया गया',
+    restoredToast: 'खर्च वापस आ गया',
+    aloneInvite: 'इस समूह में अभी कोई और नहीं है। बाँटने के लिए दोस्तों को बुलाएँ।',
     untitled: 'बिना नाम',
     paidByName: '{name} ने भुगतान किया',
     paidByNameAmount: '{name} ने {amount} दिए',
@@ -31162,6 +31214,8 @@ const hi: UiStrings = {
     settleTapReceived: 'टैप करें: मिला',
     settleLeftOwes: 'ग्रुप छोड़ा · अब भी आपको देना है',
     settleTapPaid: 'टैप करें: चुकाया',
+    paymentRecordedToast: 'भुगतान दर्ज हुआ',
+    joinedToast: 'आप {name} में शामिल हो गए',
     settlePendingTitle: 'भुगतान लंबित है',
     settlePendingBody: 'यह भुगतान पहले ही दर्ज हो चुका है और पुष्टि की प्रतीक्षा में है।',
     settleFilterAll: 'सभी',
@@ -34106,6 +34160,7 @@ const ar: UiStrings = {
     back: 'رجوع',
     skip: 'تخطي',
     loading: 'جارٍ التحميل…',
+    undo: 'تراجع',
     close: 'إغلاق',
     cancel: 'إلغاء',
     cancelled: 'تم الإلغاء',
@@ -39157,6 +39212,7 @@ const ar: UiStrings = {
     settleFirst: 'سوِّ حسابك أولًا',
     settleFirstBody:
       'ما زال لك رصيد في هذه المجموعة. المغادرة الآن تتركه معلّقًا — سوِّ الحساب ثم غادر.',
+    leftToast: 'غادرت {name}',
     leaveQuestion: 'مغادرة هذه المجموعة؟',
     leaveBody: 'تبقى مصروفاتك السابقة في سجل المجموعة.',
     settleFirstBalance: 'رصيدك',
@@ -39165,6 +39221,7 @@ const ar: UiStrings = {
     settleFirstBalanceLabel: 'رصيدك {amount}. يفتح تسوية الحساب.',
     settleFirstClose: 'إغلاق',
     leave: 'مغادرة',
+    archivedToast: 'تمت أرشفة {name}',
     archiveQuestion: 'أرشفة هذه المجموعة؟',
     archiveBody:
       'ستُزال من قائمة مجموعاتك دون حذف أي شيء. تبقى كل المصروفات والمدفوعات والأعضاء محفوظة، ويمكن لأي أحد إعادتها لاحقًا.',
@@ -39201,7 +39258,9 @@ const ar: UiStrings = {
     rejectTitle: 'هل تقول إنك لم تستلم هذا؟',
     rejectBody: 'سجّل {name} أنه دفع لك. هذا يمسح الدفعة المعلّقة ولا يغيّر أي رصيد.',
     rejectConfirm: 'رفض',
+    paymentConfirmedToast: 'تم تأكيد الدفعة',
     cancelSettlement: 'إلغاء الدفعة',
+    noBalancesYet: 'لا شيء للتسوية بعد. أضف مصروفًا وستظهر الأرصدة هنا.',
     paymentsToSettle: 'دفعات للتسوية',
     everyonesBalance: 'إجماليات المجموعة',
     cancelTitle: 'إلغاء هذه الدفعة؟',
@@ -39238,6 +39297,7 @@ const ar: UiStrings = {
     currentRoleMember: 'الدور الحالي: عضو',
     removeFromGroup: 'إزالة من المجموعة',
     removeFromGroupHint: 'سيفقد وصوله إلى المجموعة. تبقى مصروفاته في السجل.',
+    removedToast: 'تمت إزالة {name}',
     removeConfirmTitle: 'إزالة {name}؟',
     removeConfirmBody:
       'سيفقد {name} الوصول إلى هذه المجموعة. تبقى مصروفاته ورصيده في سجل المجموعة. يمكن لدعوة جديدة إعادته.',
@@ -39499,6 +39559,9 @@ const ar: UiStrings = {
     deleteBody:
       'سيتوقف احتسابه في الأرصدة لكنه يبقى في سجل النشاط، ويمكن لأي عضو استرجاعه خلال 30 يومًا.',
     deleted: 'محذوف',
+    deletedToast: 'تم حذف المصروف',
+    restoredToast: 'تمت استعادة المصروف',
+    aloneInvite: 'لا أحد آخر في هذه المجموعة بعد. ادعُ أصدقاءك لتقاسم المصروف.',
     untitled: 'بلا عنوان',
     paidByName: 'دفع {name}',
     paidByNameAmount: 'دفع {name} {amount}',
@@ -39694,6 +39757,8 @@ const ar: UiStrings = {
     settleTapReceived: 'اضغط: تم الاستلام',
     settleLeftOwes: 'غادر المجموعة · لا يزال مدينًا لك',
     settleTapPaid: 'اضغط: تم الدفع',
+    paymentRecordedToast: 'تم تسجيل الدفعة',
+    joinedToast: 'انضممت إلى {name}',
     settlePendingTitle: 'الدفع قيد الانتظار',
     settlePendingBody: 'تم تحديد هذا الدفع بالفعل وهو بانتظار التأكيد.',
     settleFilterAll: 'الكل',

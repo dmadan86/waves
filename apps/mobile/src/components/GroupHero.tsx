@@ -40,6 +40,7 @@ import { router, useGoBack } from '@/lib/navigation';
 import { convertedCaption } from '@/lib/settleCurrency';
 import { formatShortDateRange } from '@/lib/tripDateRange';
 import { useDialog } from '@/lib/dialog';
+import { useToast } from '@/lib/toast';
 
 /**
  * Which hero slide a paging scroll has landed on, correct in both directions.
@@ -140,6 +141,7 @@ export function GroupHero({
       : myBalance < 0n
         ? theme.gradient.negative
         : theme.gradient.brand;
+  const toast = useToast();
   const confirmSettlement = useConfirmSettlement(groupId);
   const disputeSettlement = useDisputeSettlement(groupId);
 
@@ -540,7 +542,11 @@ export function GroupHero({
                     gradient={heroGradient}
                     disabled={busy}
                     style={{ flex: 1 }}
-                    onPress={() => confirmSettlement.mutate(settlement.id)}
+                    onPress={() =>
+                      confirmSettlement.mutate(settlement.id, {
+                        onSuccess: () => toast.show(t.group.paymentConfirmedToast),
+                      })
+                    }
                   />
                   <Pressable
                     accessibilityRole="button"
