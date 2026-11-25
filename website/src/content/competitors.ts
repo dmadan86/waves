@@ -53,18 +53,18 @@ const W = {
   price:
     'Free forever. Pro is ₹79/month or ₹699/year in India; other countries priced in the app store',
   limits:
-    'No limit on people, expenses, currencies or splits. First group free; extra groups cost 6 credits on Free',
+    'No limit on people, expenses, currencies or splits. The first 2 groups are free; each extra group costs 6 credits on Free',
   ads: 'Free is ad-supported: banner ads on some screens, and short ads you can watch for credits. Pro: no ads',
   offline: 'Yes, every expense is saved on the phone first and syncs later',
   currency: 'Every ISO 4217 currency, free. Fix the rate per bill, person or trip',
   receipts: 'Yes: 20 scans a month on Free, then 2 credits a scan; 300 a month on Pro',
   voice:
-    'English, Hindi, Tamil, Arabic and Hinglish: 1 credit per AI command on Free, 100 a month on Pro',
+    'English, Hindi, Tamil, Arabic and Hinglish: 10 AI commands a month on Free, then 1 credit each; 100 a month on Pro',
   upi: 'Opens your UPI app with the exact amount. For PayPal it opens a payment link; for Venmo, PayNow, Pix and others it shows the payee details to copy. Waves never holds money',
   export: 'JSON, CSV and PDF. On Free an export costs 6 credits',
   signup: 'Join a group from a link in a browser or the app; joining needs a free account',
   languages: 'English, Hindi, Tamil and Arabic (right to left)',
-  platforms: 'Android, iOS and web, plus Apple Watch and home-screen widgets',
+  platforms: 'Android and web; iPhone is coming soon',
   privacy: 'Never sold. The shared ledger is on our server and is not end-to-end encrypted',
   families: 'Yes: split by family with per-family amounts',
 } as const;
@@ -173,7 +173,7 @@ export const competitors: Competitor[] = [
       },
       {
         q: 'Does Waves have a daily expense limit?',
-        a: 'No. People, expenses and currencies are unlimited on Free. Credits cover AI voice (1), receipt scans after the first 20 a month (2), exports (6) and extra groups (6; the first group is free). Pro is ad-free with 100 AI voice commands and 300 scans a month.',
+        a: 'No. People, expenses and currencies are unlimited on Free. Credits cover AI voice after the first 10 a month (1), receipt scans after the first 20 a month (2), exports (6) and extra groups after the first 2 (6). Pro is ad-free with 100 AI voice commands and 300 scans a month.',
       },
       {
         q: 'Does everyone in my group have to switch?',
