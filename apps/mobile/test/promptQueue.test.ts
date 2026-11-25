@@ -15,7 +15,7 @@ let pathname = '/';
 vi.mock('expo-router', () => ({ usePathname: () => pathname }));
 
 type Queue = {
-  claim: (id: string, p: number, essential?: boolean) => void;
+  claim: (id: string, p: number, essential?: boolean, allowAfterPrompt?: boolean) => void;
   release: (id: string) => void;
   hold: (id: string) => void;
   winnerId: string | null;
@@ -28,7 +28,8 @@ function mountQueue() {
   // Consumers read the provider's latest value through this view, so a
   // re-render of a consumer sees what the provider holds now.
   const consumerValue: Queue = {
-    claim: (id, p, essential) => value().claim(id, p, essential),
+    claim: (id, p, essential, allowAfterPrompt) =>
+      value().claim(id, p, essential, allowAfterPrompt),
     release: (id) => value().release(id),
     hold: (id) => value().hold(id),
     get winnerId() {
@@ -79,16 +80,34 @@ describe('one prompt at a time, one per launch', () => {
     expect(value().winnerId).toBeNull();
   });
 
-  it('still lets an essential prompt through after the launch has had its prompt', () => {
+  it('allows only the Home tour to follow onboarding, then spends the launch allowance', () => {
     const { value } = mountQueue();
     value().claim('tip', 10);
     value().hold('tip');
     value().release('tip');
 
+    value().claim('tour', 100, false, true);
+    value().claim('lock', 90);
+    value().claim('phone', 80);
     value().claim('backup', 70);
-    value().claim('phone', 85, true);
-    expect(value().winnerId).toBe('phone');
-    value().release('phone');
+    value().claim('tip-next', 60);
+    value().claim('push', 50);
+    expect(value().winnerId).toBe('tour');
+    value().hold('tour');
+    value().release('tour');
+    expect(value().winnerId).toBeNull();
+  });
+
+  it('chooses lock, phone, backup, tip, then push when no Home tour is due', () => {
+    const { value } = mountQueue();
+    value().claim('push', 50);
+    value().claim('tip', 60);
+    value().claim('backup', 70);
+    value().claim('phone', 80);
+    value().claim('lock', 90);
+    expect(value().winnerId).toBe('lock');
+    value().hold('lock');
+    value().release('lock');
     expect(value().winnerId).toBeNull();
   });
 

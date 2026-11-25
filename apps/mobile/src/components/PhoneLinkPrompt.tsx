@@ -117,7 +117,7 @@ export function PhoneLinkPrompt() {
   // prompt, which is about data already on the account.
   const granted = usePromptSlot({
     id: 'phonePrompt',
-    priority: 85,
+    priority: 80,
     active: wants,
     delayMs: 400,
   });
