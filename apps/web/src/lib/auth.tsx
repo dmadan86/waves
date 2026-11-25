@@ -39,8 +39,12 @@ interface AuthValue {
   signInWithApple: () => Promise<void>;
   signInWithEmail: (email: string) => Promise<void>;
   /** The six digits from the sign-in mail. */
-  verifyEmailCode: (email: string, code: string) => Promise<void>;
-  withPassword: (email: string, password: string, intent: 'sign_in' | 'sign_up') => Promise<void>;
+  verifyEmailCode: (email: string, code: string, kind?: 'email' | 'signup') => Promise<void>;
+  withPassword: (
+    email: string,
+    password: string,
+    intent: 'sign_in' | 'sign_up',
+  ) => Promise<{ confirmEmail: boolean }>;
   signOut: () => Promise<void>;
 }
 
@@ -100,15 +104,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await waves.signInWithEmail(email, `${window.location.origin}/auth/callback`);
   }, []);
 
-  const verifyEmailCode = useCallback(async (email: string, code: string) => {
-    await waves.verifyEmailCode(email, code);
-  }, []);
+  const verifyEmailCode = useCallback(
+    async (email: string, code: string, kind: 'email' | 'signup' = 'email') => {
+      await waves.verifyEmailCode(email, code, kind);
+    },
+    [],
+  );
 
   const withPassword = useCallback(
     async (email: string, password: string, intent: 'sign_in' | 'sign_up') => {
       // The one correct call (sign up, sign in, or upgrade-in-place) is chosen
       // by @waves/core inside the client — never guessed here.
-      await waves.withPassword(email, password, intent);
+      return waves.withPassword(email, password, intent);
     },
     [],
   );

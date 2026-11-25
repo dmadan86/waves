@@ -363,8 +363,13 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
     },
 
     /** The code from that mail, typed back in: on success there is a session. */
-    async verifyEmailCode(email: string, token: string): Promise<void> {
-      const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+    async verifyEmailCode(
+      email: string,
+      token: string,
+      kind: 'email' | 'signup' = 'email',
+    ): Promise<void> {
+      // A password sign-up is confirmed with a 'signup' code, a sign-in mail with 'email'.
+      const { error } = await supabase.auth.verifyOtp({ email, token, type: kind });
       if (error) throw new WavesApiError(error.message);
     },
 
@@ -384,7 +389,7 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
       identifier: string,
       password: string,
       intent: 'sign_in' | 'sign_up',
-    ): Promise<void> {
+    ): Promise<{ confirmEmail: boolean }> {
       const who = readIdentifier(identifier);
       checkPassword(password);
       const method = who.kind === 'email' ? AuthMethod.EmailPassword : AuthMethod.PhonePassword;
@@ -396,14 +401,16 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
         // The upgrade: same user id, so the groups stay put (ADR-006).
         const { error } = await supabase.auth.updateUser({ ...credential, password });
         if (error) throw new WavesApiError(error.message);
-        return;
+        return { confirmEmail: false };
       }
 
-      const { error } =
+      const { data, error } =
         action.call === 'signUp'
           ? await supabase.auth.signUp({ ...credential, password })
           : await supabase.auth.signInWithPassword({ ...credential, password });
       if (error) throw new WavesApiError(error.message);
+      // A new email account with confirmation on gets no session: a code was mailed.
+      return { confirmEmail: action.call === 'signUp' && !data.session };
     },
 
     async signOut(): Promise<void> {
