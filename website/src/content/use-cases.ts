@@ -172,6 +172,110 @@ export const useCases: UseCase[] = [
       },
     ],
   },
+  {
+    slug: 'split-expenses-with-friends',
+    title: 'Split expenses with friends: free group tracker | Waves',
+    description:
+      'Split expenses with friends and keep a group expense tracker everyone can see. Unlimited people and expenses on Free, offline entry, any currency, any payment app.',
+    eyebrow: 'Friends and groups',
+    h1: 'Split expenses with friends and keep everyone square',
+    intro:
+      'Dinners, weekends away, a shared gift. Put it in one group, let everyone add what they paid, and Waves keeps the running balance so nobody has to remember who covered what.',
+    steps: [
+      {
+        title: 'Start a group and invite friends',
+        body: 'Share a link or QR code. Friends join in a browser or the app with a free account.',
+      },
+      {
+        title: 'Add what you paid',
+        body: 'Type it, scan the receipt or say it. Choose who shared it and how it splits.',
+      },
+      {
+        title: 'Settle up when it suits you',
+        body: 'Waves suggests the fewest payments, then hands the amount to your payment app. Waves never holds your money.',
+      },
+    ],
+    points: [
+      {
+        title: 'Unlimited on Free',
+        body: 'People, expenses, currencies and splits are unlimited on the Free plan.',
+      },
+      {
+        title: 'Splits that match real life',
+        body: 'Equally, by exact amounts, shares, percentages or itemised, so a friend who skipped the starter does not pay for it.',
+      },
+      {
+        title: 'Works with no signal',
+        body: 'Expenses are saved on your phone first and sync when you are back online.',
+      },
+    ],
+    faq: [
+      {
+        q: 'Is there a free app to split expenses with friends?',
+        a: 'Yes. Waves is free to start, with no limit on people, expenses or currencies. Free is ad-supported; Pro removes ads.',
+      },
+      {
+        q: 'Do my friends need to install Waves?',
+        a: 'They can open the invite link in a browser. Joining needs a free account.',
+      },
+      {
+        q: 'Can I move a group over from Splitwise?',
+        a: 'Yes. Export the group as CSV from Splitwise and use Import from Splitwise under Settings, Your data.',
+      },
+    ],
+  },
+  {
+    slug: 'couple-expense-tracker',
+    title: 'Couple expense tracker: share bills and budgets | Waves',
+    description:
+      'A couple expense tracker for two: add shared bills, see who paid what and keep it fair. Free with no limit on expenses, works offline, private to the two of you.',
+    eyebrow: 'Couples',
+    h1: 'A couple expense tracker for sharing money without keeping score',
+    intro:
+      'Rent, groceries, trips, the gift for your parents. Make a group for the two of you, add costs as they happen, and see the balance whenever you want it.',
+    steps: [
+      {
+        title: 'Make a couple group',
+        body: 'Pick Couple when you create the group and invite your partner by link.',
+      },
+      {
+        title: 'Add costs as they happen',
+        body: 'Type, scan or speak each expense. Choose who paid and how it is shared.',
+      },
+      {
+        title: 'Check in or settle',
+        body: 'See who is ahead, and settle with any payment app when you like.',
+      },
+    ],
+    points: [
+      {
+        title: 'Unlimited and free',
+        body: 'People, expenses and currencies are unlimited on the Free plan.',
+      },
+      {
+        title: 'Any split you agree on',
+        body: 'Fifty-fifty, by income share or by exact amounts, per expense.',
+      },
+      {
+        title: 'Your own money stays yours',
+        body: 'Personal spending, budgets and loans live in a separate area that other people in your groups cannot see.',
+      },
+    ],
+    faq: [
+      {
+        q: 'Is Waves a good household budget app for two?',
+        a: 'Waves tracks shared costs between you and keeps your own spending and budgets separately. It is not a bank and has no bank feed.',
+      },
+      {
+        q: 'Does my partner need an account?',
+        a: 'Yes, a free one, made with Google, Apple or email. They can join from your invite link.',
+      },
+      {
+        q: 'Is it free?',
+        a: 'Yes. The Free plan never expires and has no limit on expenses. Free is ad-supported; Pro removes ads.',
+      },
+    ],
+  },
 ];
 
 export const findUseCase = (slug: string) => useCases.find((u) => u.slug === slug);

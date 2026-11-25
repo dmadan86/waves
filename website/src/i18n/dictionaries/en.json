@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "Waves — split, track and settle together",
-    "description": "Waves helps you split, track and settle shared expenses with friends, family and roommates. Scan receipts, add expenses by voice and keep going offline. Free to get started, no credit card required.",
+    "title": "Waves: free split bills app, a Splitwise alternative",
+    "description": "Split bills and group expenses with friends, family and roommates. Free with no expense limit, works offline, any currency. A free Splitwise alternative.",
     "ogAlt": "Waves — split, track and settle together",
     "priceCurrency": "INR"
   },
@@ -987,7 +987,7 @@
     }
   },
   "companiesPage": {
-    "metaTitle": "Waves for companies — expenses, wages and bills for your team",
+    "metaTitle": "Employee expense tracker for small teams",
     "metaDescription": "Employees add expenses with a photo and you approve in a tap. Advances, daily allowance, wages, attendance, tasks, vendors, clients and bills in one simple app. On Android and the web; iPhone coming soon.",
     "eyebrow": "For companies",
     "titleStart": "Your team's money,",
@@ -1511,7 +1511,7 @@
     }
   },
   "personalPage": {
-    "metaTitle": "Waves for your own money — spending, budgets, loans and bills",
+    "metaTitle": "Personal expense tracker and household budget app",
     "metaDescription": "Track your own spending by category, set monthly budgets, keep loans you lent or borrowed, and see repeating bills. Add by typing, voice, a pasted bank message or a statement import. Private to you.",
     "eyebrow": "Your own money",
     "titleStart": "Everything you spend,",
