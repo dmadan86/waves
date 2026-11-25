@@ -445,6 +445,57 @@ const GROUP_TABLES = [
   ['expense_image_events', '*'],
 ] as const;
 
+// Only these child tables can be skipped when the group high-water mark is
+// unchanged: their updated_seq is stamped by waves_stamp_seq(), which also
+// advances groups.updated_seq. Keep this explicit and in sync with the DB
+// trigger inventory; tables absent from this set are still polled every sync.
+const GROUP_SEQ_STAMPED_TABLES = new Set([
+  'group_members',
+  'expenses',
+  'settlements',
+  'activity_log',
+  'trip_plan_items',
+  'trip_member_budgets',
+  'group_recurring_expenses',
+  'group_income_plans',
+  'company_entries',
+  'company_entry_attachments',
+  'company_projects',
+  'company_project_members',
+  'company_project_budgets',
+  'company_wage_splits',
+  'company_vendors',
+  'company_vendor_entries',
+  'company_vendor_entry_attachments',
+  'company_work_task_attachments',
+  'company_details',
+  'company_details_secure',
+  'company_vendor_details',
+  'company_vendor_orders',
+  'company_vendor_order_items',
+  'company_vendor_order_events',
+  'company_documents',
+  'company_clients',
+  'company_client_notes',
+  'company_inquiries',
+  'company_client_assignees',
+  'company_tickets',
+  'company_ticket_events',
+  'company_attendance',
+  'company_work_tasks',
+  'company_file_folders',
+  'company_files',
+  'company_holidays',
+  'company_leave',
+  'company_leave_types',
+  'company_events',
+  'company_member_dates',
+  'settlement_proofs',
+  'expense_attachments',
+  'expense_comments',
+  'expense_image_events',
+]);
+
 serveWithCors(async (request) => {
   try {
     if (request.method !== 'POST') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Use POST');
@@ -2694,15 +2745,19 @@ export async function pull(
     // `since` had its overflow skipped for good — worst case, a fresh device
     // joining a group with >500 expenses synced only the first page and lost the
     // rest. Starts at highWater and is dragged down by any truncated table.
-    let groupCursor = highWater;
+    let groupCursor = Math.max(highWater, since);
     let truncated = false;
 
     if (highWater > since) {
       groupChanges.push({ table: 'groups', groupId, seq: highWater, row: group });
     }
 
+    const tablesToRead = GROUP_TABLES.filter(([table]) => {
+      if (table.startsWith('company_') && group.type !== 'company') return false;
+      return highWater > since || !GROUP_SEQ_STAMPED_TABLES.has(table);
+    });
     const pages = await Promise.all(
-      GROUP_TABLES.map(async ([table, select]) => {
+      tablesToRead.map(async ([table, select]) => {
         const { data, error } = await caller
           .from(table)
           .select(select)
