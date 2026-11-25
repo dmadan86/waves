@@ -513,6 +513,7 @@ function ExpenseDetailScreen() {
     });
     if (ok)
       deleteExpense.mutate(expense.id, {
+        onError: () => toast.show(t.expense.deleteFailed, 'negative'),
         onSuccess: () => {
           router.back();
           toast.show(t.expense.deletedToast, 'positive', {
@@ -562,6 +563,7 @@ function ExpenseDetailScreen() {
           onPress: () => {
             if (!restoreExpense.isPending)
               restoreExpense.mutate(expense.id, {
+                onError: () => toast.show(t.expense.restoreFailed, 'negative'),
                 onSuccess: () => toast.show(t.expense.restoredToast),
               });
           },

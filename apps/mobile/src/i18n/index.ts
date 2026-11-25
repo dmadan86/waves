@@ -6344,6 +6344,10 @@ export interface UiStrings {
     restoredToast: string;
     /** Under How to split, when you are the only member. */
     aloneInvite: string;
+    /** Toast when deleting fails. */
+    deleteFailed: string;
+    /** Toast when restoring fails. */
+    restoreFailed: string;
     untitled: string;
     /** "Asha paid" under a row. The name comes first in English and may not elsewhere. */
     paidByName: string;
@@ -14658,6 +14662,8 @@ const en: UiStrings = {
     deletedToast: 'Expense deleted',
     restoredToast: 'Expense restored',
     aloneInvite: 'Nobody else is in this group yet. Invite friends to split with them.',
+    deleteFailed: 'Could not delete the expense. Try again.',
+    restoreFailed: 'Could not restore the expense. Try again.',
     untitled: 'Untitled',
     paidByName: '{name} paid',
     paidByNameAmount: '{name} paid {amount}',
@@ -22875,6 +22881,8 @@ const ta: UiStrings = {
     deletedToast: 'செலவு நீக்கப்பட்டது',
     restoredToast: 'செலவு மீட்கப்பட்டது',
     aloneInvite: 'இந்தக் குழுவில் வேறு யாரும் இல்லை. பிரித்துக்கொள்ள நண்பர்களை அழைக்கவும்.',
+    deleteFailed: 'செலவை நீக்க முடியவில்லை. மீண்டும் முயலவும்.',
+    restoreFailed: 'செலவை மீட்க முடியவில்லை. மீண்டும் முயலவும்.',
     untitled: 'பெயரிடப்படாதது',
     paidByName: '{name} கொடுத்தார்',
     paidByNameAmount: '{name} {amount} கொடுத்தார்',
@@ -31046,6 +31054,8 @@ const hi: UiStrings = {
     deletedToast: 'खर्च हटाया गया',
     restoredToast: 'खर्च वापस आ गया',
     aloneInvite: 'इस समूह में अभी कोई और नहीं है। बाँटने के लिए दोस्तों को बुलाएँ।',
+    deleteFailed: 'खर्च हटाया नहीं जा सका। फिर कोशिश करें।',
+    restoreFailed: 'खर्च वापस नहीं आ सका। फिर कोशिश करें।',
     untitled: 'बिना नाम',
     paidByName: '{name} ने भुगतान किया',
     paidByNameAmount: '{name} ने {amount} दिए',
@@ -39562,6 +39572,8 @@ const ar: UiStrings = {
     deletedToast: 'تم حذف المصروف',
     restoredToast: 'تمت استعادة المصروف',
     aloneInvite: 'لا أحد آخر في هذه المجموعة بعد. ادعُ أصدقاءك لتقاسم المصروف.',
+    deleteFailed: 'تعذّر حذف المصروف. حاول مرة أخرى.',
+    restoreFailed: 'تعذّرت استعادة المصروف. حاول مرة أخرى.',
     untitled: 'بلا عنوان',
     paidByName: 'دفع {name}',
     paidByNameAmount: 'دفع {name} {amount}',
