@@ -81,7 +81,11 @@ import {
 import { monthLabel, monthShort, monthShortYear, monthsBetween, shiftMonth } from '@/lib/monthNav';
 import { hasDue } from '@/lib/personalUpcoming';
 import { monthBreakdown, type MonthBreakdown } from '@/lib/personalMonthBreakdown';
-import { personalIntroSeen, rememberPersonalIntroSeen } from '@/lib/onboardingSeen';
+import {
+  onPersonalIntroDismissed,
+  personalIntroSeen,
+  rememberPersonalIntroSeen,
+} from '@/lib/onboardingSeen';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { useSpaceSwitchItems } from '@/lib/useSpaceSwitchItems';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
@@ -300,6 +304,8 @@ function MeLedger() {
       live = false;
     };
   }, [ownerId]);
+  // Setup started (it sits above this tab): never open the tour on top of it.
+  useEffect(() => onPersonalIntroDismissed(() => setIntroFor(null)), []);
   const closeIntro = useCallback(() => {
     setIntroFor(null);
     if (ownerId) void rememberPersonalIntroSeen(ownerId);
