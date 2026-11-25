@@ -16,10 +16,10 @@
  * hardcoded, since it never reaches a release build.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Callout, directionalIcon, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
@@ -93,6 +93,20 @@ export default function VerifyEmailScreen() {
       }
     })();
 
+  // Six digits, however they arrived (typed, pasted, autofill): submit once per
+  // distinct code, so a refused code is not hammered until it is edited.
+  const submitted = useRef('');
+  useEffect(() => {
+    if (code.length !== OTP_LEN) {
+      submitted.current = '';
+      return;
+    }
+    if (busy || submitted.current === code) return;
+    submitted.current = code;
+    onVerify();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, busy]);
+
   const canResend = seconds <= 0 && resends < MAX_RESENDS && !busy && Boolean(email);
 
   const onResend = (): void =>
@@ -114,126 +128,134 @@ export default function VerifyEmailScreen() {
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <View
-        style={{
-          flex: 1,
-          paddingHorizontal: theme.spacing.xl,
-          paddingBottom: insets.bottom + theme.spacing.xl,
-          gap: theme.spacing.xl,
-        }}
-      >
-        <Row style={{ paddingTop: theme.spacing.md }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.common.back}
-            hitSlop={12}
-            onPress={onBack}
-            style={({ pressed }) => ({
-              width: 44,
-              height: 44,
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Ionicons
-              name={directionalIcon('chevron-back')}
-              size={iconSize.lg}
-              color={theme.color.text}
-            />
-          </Pressable>
-        </Row>
-
-        <View style={{ alignItems: 'center', gap: theme.spacing.md, paddingTop: theme.spacing.md }}>
-          <View
-            style={{
-              width: 96,
-              height: 96,
-              borderRadius: 48,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.color.buttonPrimary,
-            }}
-          >
-            <Ionicons name="mail-unread-outline" size={44} color={theme.color.onBrand} />
-          </View>
-          <Text
-            align="center"
-            style={{
-              fontSize: 30,
-              lineHeight: 38,
-              fontWeight: '800',
-              letterSpacing: -0.5,
-              color: theme.color.text,
-            }}
-          >
-            {t.entry.emailCodeTitle}
-          </Text>
-          <Text variant="body" tone="muted" align="center">
-            {email
-              ? t.entry.emailCodeBody.replace('{email}', email)
-              : t.entry.checkInboxBodyNoEmail}
-          </Text>
-        </View>
-
-        <OtpInput
-          value={code}
-          onChangeText={setCode}
-          length={OTP_LEN}
-          accessibilityLabel={t.contact.verificationCode}
-          autoFocus
-        />
-
-        {/* Resend: a countdown, then a live link, then — after three — a note
-            that the road runs out, gently. */}
-        <View style={{ alignItems: 'center', minHeight: 24 }}>
-          {seconds > 0 ? (
-            <Text variant="caption" tone="muted">
-              {t.entry.resendIn.replace('{seconds}', String(seconds))}
-            </Text>
-          ) : resends < MAX_RESENDS ? (
+      {/* 'padding' on both platforms: Android 15 draws edge to edge, so the
+          window no longer shrinks for the keyboard by itself. */}
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingHorizontal: theme.spacing.xl,
+            paddingBottom: insets.bottom + theme.spacing.xl,
+            gap: theme.spacing.xl,
+          }}
+        >
+          <Row style={{ paddingTop: theme.spacing.md }}>
             <Pressable
               accessibilityRole="button"
-              disabled={!canResend}
-              hitSlop={8}
-              onPress={onResend}
+              accessibilityLabel={t.common.back}
+              hitSlop={12}
+              onPress={onBack}
               style={({ pressed }) => ({
-                flexDirection: 'row',
+                width: 44,
+                height: 44,
                 alignItems: 'center',
-                gap: theme.spacing.xs,
+                justifyContent: 'center',
                 opacity: pressed ? 0.6 : 1,
               })}
             >
-              <Ionicons name="refresh" size={iconSize.md} color={theme.color.brand} />
-              <Text style={{ fontWeight: '700', color: theme.color.brand }}>
-                {t.entry.resendCode}
-              </Text>
+              <Ionicons
+                name={directionalIcon('chevron-back')}
+                size={iconSize.lg}
+                color={theme.color.text}
+              />
             </Pressable>
-          ) : (
-            <Text variant="caption" tone="muted" align="center">
-              {t.entry.resendLimit}
+          </Row>
+
+          <View
+            style={{ alignItems: 'center', gap: theme.spacing.md, paddingTop: theme.spacing.md }}
+          >
+            <View
+              style={{
+                width: 96,
+                height: 96,
+                borderRadius: 48,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.buttonPrimary,
+              }}
+            >
+              <Ionicons name="mail-unread-outline" size={44} color={theme.color.onBrand} />
+            </View>
+            <Text
+              align="center"
+              style={{
+                fontSize: 30,
+                lineHeight: 38,
+                fontWeight: '800',
+                letterSpacing: -0.5,
+                color: theme.color.text,
+              }}
+            >
+              {t.entry.emailCodeTitle}
             </Text>
-          )}
-          {devStub ? (
-            <Text variant="micro" tone="muted" style={{ marginTop: theme.spacing.xs }}>
-              Dev build — enter {DEV_OTP} to continue.
+            <Text variant="body" tone="muted" align="center">
+              {email
+                ? t.entry.emailCodeBody.replace('{email}', email)
+                : t.entry.checkInboxBodyNoEmail}
             </Text>
-          ) : null}
-        </View>
+          </View>
 
-        {error ? <Callout tone="negative">{error}</Callout> : null}
+          <OtpInput
+            value={code}
+            onChangeText={setCode}
+            length={OTP_LEN}
+            accessibilityLabel={t.contact.verificationCode}
+            autoFocus
+          />
 
-        <View style={{ flex: 1 }} />
+          {/* Resend: a countdown, then a live link, then — after three — a note
+            that the road runs out, gently. */}
+          <View style={{ alignItems: 'center', minHeight: 24 }}>
+            {seconds > 0 ? (
+              <Text variant="caption" tone="muted">
+                {t.entry.resendIn.replace('{seconds}', String(seconds))}
+              </Text>
+            ) : resends < MAX_RESENDS ? (
+              <Pressable
+                accessibilityRole="button"
+                disabled={!canResend}
+                hitSlop={8}
+                onPress={onResend}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.spacing.xs,
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <Ionicons name="refresh" size={iconSize.md} color={theme.color.brand} />
+                <Text style={{ fontWeight: '700', color: theme.color.brand }}>
+                  {t.entry.resendCode}
+                </Text>
+              </Pressable>
+            ) : (
+              <Text variant="caption" tone="muted" align="center">
+                {t.entry.resendLimit}
+              </Text>
+            )}
+            {devStub ? (
+              <Text variant="micro" tone="muted" style={{ marginTop: theme.spacing.xs }}>
+                Dev build — enter {DEV_OTP} to continue.
+              </Text>
+            ) : null}
+          </View>
 
-        <Button
-          label={t.signIn.verify}
-          size="lg"
-          fullWidth
-          disabled={busy || code.length !== OTP_LEN}
-          onPress={onVerify}
-        />
-        {busy ? <ActivityIndicator color={theme.color.brand} /> : null}
-      </View>
+          {error ? <Callout tone="negative">{error}</Callout> : null}
+
+          <View style={{ flex: 1 }} />
+
+          <Button
+            label={t.signIn.verify}
+            size="lg"
+            fullWidth
+            disabled={busy || code.length !== OTP_LEN}
+            onPress={onVerify}
+          />
+          {busy ? <ActivityIndicator color={theme.color.brand} /> : null}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }

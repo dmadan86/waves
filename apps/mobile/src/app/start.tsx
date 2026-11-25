@@ -9,11 +9,12 @@
  * fixed overlays the Home hero uses over its photographs.
  */
 
-import { useRef, useState, type ComponentType } from 'react';
+import { useEffect, useRef, useState, type ComponentType } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -134,6 +135,17 @@ export default function StartScreen() {
   usePromptSlot({ id: 'first-run', priority: 1000, active: true });
 
   const [step, setStep] = useState<Step>(1);
+  // With the keyboard up the photo gives its room to the sheet, so Continue
+  // stays above the keys. `Did` events: the `Will` ones do not fire on Android.
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   // The field shows the profile's name until the person types; the profile can land a beat late.
   const [typed, setTyped] = useState<string | null>(null);
   const name = typed ?? nameForField(profile?.display_name);
@@ -394,12 +406,16 @@ export default function StartScreen() {
     );
   }
 
-  const photoH = step === 1 ? Math.round(height * 0.4) : Math.round(height * 0.3);
+  const photoH = keyboardOpen
+    ? insets.top + 56
+    : step === 1
+      ? Math.round(height * 0.4)
+      : Math.round(height * 0.3);
   const first = trimmed.split(/\s+/)[0] ?? '';
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: theme.color.surface }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
     >
       <View
         style={{ height: photoH + SHEET_RADIUS, position: 'absolute', top: 0, left: 0, right: 0 }}
@@ -419,7 +435,7 @@ export default function StartScreen() {
         step === 1 ? fill(s.stepOf, { n: 1 }) : s.skip,
         step === 1 ? null : () => void finish([]),
       )}
-      {step === 1 ? (
+      {keyboardOpen ? null : step === 1 ? (
         <View
           style={{
             position: 'absolute',
@@ -494,6 +510,7 @@ export default function StartScreen() {
             autoComplete="name"
             maxLength={60}
             returnKeyType="done"
+            onSubmitEditing={() => !saving && (isGuest || trimmed !== '') && void saveName()}
             style={{
               marginTop: 16,
               height: 52,

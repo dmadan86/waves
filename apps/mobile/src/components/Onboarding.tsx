@@ -100,7 +100,12 @@ export function IntroCards({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useStrings();
-  const { width, height } = useWindowDimensions();
+  const { width, height: windowHeight } = useWindowDimensions();
+  // The cards take the pager's measured height, not the window's: the dots sit
+  // against the container's bottom, and on Android the two differ (system bars),
+  // which pushed the subtitle's last line under them.
+  const [boxHeight, setBoxHeight] = useState(0);
+  const height = boxHeight || windowHeight;
   const pager = useRef<TourPagerHandle>(null);
   // The card the pager has settled on: it decides the button's label.
   const [index, setIndex] = useState(0);
@@ -161,7 +166,7 @@ export function IntroCards({
   );
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1 }} onLayout={(event) => setBoxHeight(event.nativeEvent.layout.height)}>
       <TourPager
         ref={pager}
         rtl={rtl}

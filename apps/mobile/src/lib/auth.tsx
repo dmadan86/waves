@@ -344,7 +344,7 @@ interface AuthValue {
    * recovery path behind "Forgot password". `createUser` is false on the login
    * door (a typo must not mint an empty account) and true on sign-up.
    */
-  sendEmailOtp: (email: string, createUser: boolean) => Promise<void>;
+  sendEmailOtp: (email: string, createUser: boolean, name?: string) => Promise<void>;
   verifyEmailOtp: (email: string, token: string) => Promise<void>;
   continueAsGuest: () => Promise<void>;
   /**
@@ -652,7 +652,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await confirmPhoneCode(phone, token);
       },
 
-      async sendEmailOtp(email, createUser) {
+      async sendEmailOtp(email, createUser, name) {
         track('signup_started', { method: 'email' });
         // A one-time code mailed to the address, the passwordless way in. On the
         // login door `shouldCreateUser` is false so a typo cannot silently mint
@@ -661,7 +661,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // magic link) as long as the email template carries `{{ .Token }}`.
         const { error } = await backend.auth.signInWithOtp({
           email: email.trim(),
-          options: { shouldCreateUser: createUser },
+          // The name rides in the metadata the new-user trigger reads, as on
+          // the password path; blank is the same as not asked.
+          options: {
+            shouldCreateUser: createUser,
+            ...(name?.trim() ? { data: { display_name: name.trim() } } : {}),
+          },
         });
         if (error) throw error;
       },
