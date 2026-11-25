@@ -234,7 +234,7 @@ export function JoinFlow({ token, resume = false }: { token: string; resume?: bo
         <div className="card">
           <h1>
             {preview.group?.cover_emoji ? `${preview.group.cover_emoji} ` : ''}
-            {fill(t.join.addedTo, { group: groupName })}
+            {fill(t.join.invitedTo, { group: groupName })}
           </h1>
           <p>{plural(locale, preview.memberCount, t.join.splittingHere)}</p>
           <p className="faint" data-testid="join-account-why">
@@ -258,7 +258,7 @@ export function JoinFlow({ token, resume = false }: { token: string; resume?: bo
       <div className="card">
         <h1>
           {preview.group?.cover_emoji ? `${preview.group.cover_emoji} ` : ''}
-          {fill(t.join.addedTo, { group: groupName })}
+          {fill(t.join.invitedTo, { group: groupName })}
         </h1>
         <p>{plural(locale, preview.memberCount, t.join.splittingHere)}</p>
       </div>
