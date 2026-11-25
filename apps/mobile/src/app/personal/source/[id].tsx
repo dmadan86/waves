@@ -23,6 +23,7 @@ import { FlashList } from '@shopify/flash-list';
 import { Platform, Pressable, View } from 'react-native';
 
 import {
+  encodeRecurring,
   encodeTxn,
   format,
   frequencyOf,
@@ -30,12 +31,14 @@ import {
   monthKey,
   occurrences,
   recurringOccurrenceId,
+  stepOccurrence,
   type Occurrence,
   type OccurrenceStatus,
   type PersonalRecurring,
 } from '@waves/core';
 import {
   AmountField,
+  Badge,
   Button,
   Card,
   directionalIcon,
@@ -57,7 +60,10 @@ import {
   usePersonalLedger,
   useUpsertPersonalRecord,
 } from '@/data/personal';
-import { fill, useStrings } from '@/i18n';
+import { usePostRecurring } from '@/data/postRecurring';
+import { fill, plural, useStrings } from '@/i18n';
+import { nextDateLabel, rulePayments } from '@/lib/recurringList';
+import { useToast } from '@/lib/toast';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
@@ -81,6 +87,9 @@ function SourceTimelineScreenBody() {
 
   const [today] = useState(() => todayIso());
   const [recording, setRecording] = useState<Occurrence | null>(null);
+  const upsert = useUpsertPersonalRecord();
+  const { post, isPending: posting } = usePostRecurring();
+  const toast = useToast();
 
   const rule = recurrings.find((candidate) => candidate.id === id) ?? null;
 
@@ -105,6 +114,16 @@ function SourceTimelineScreenBody() {
 
   const income = rule.txnKind === 'income';
   const title = rule.note?.trim() || sourceLabel(rule.category) || t.personal.recurring;
+  const paid = rulePayments(rule, txns, today);
+  const inDays = Math.round((Date.parse(rule.nextDate) - Date.parse(today)) / 86_400_000);
+  const h = t.personalHome;
+  const status = !rule.active
+    ? t.personal.paused
+    : inDays < 0
+      ? h.overdue
+      : inDays === 0
+        ? h.today
+        : plural(locale, inDays, h.inDays);
 
   return (
     <Screen>
@@ -144,6 +163,66 @@ function SourceTimelineScreenBody() {
                 </Text>
               </Row>
             </Card>
+            <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text variant="caption" tone="muted" style={{ flex: 1 }}>
+                {income ? h.expected : h.due} {nextDateLabel(rule.nextDate, locale, today)}
+              </Text>
+              <Badge
+                label={status}
+                tone={!rule.active ? 'neutral' : inDays < 0 ? 'negative' : 'brand'}
+              />
+            </Row>
+            <Text variant="caption" style={{ fontWeight: '600' }}>
+              {fill(t.personal.yearSummary, {
+                amount: format(money(paid.yearTotal, rule.currency), { locale, trimZeros: true }),
+                n: String(paid.yearCount),
+              })}
+            </Text>
+            <Row style={{ gap: theme.spacing.sm }}>
+              {rule.active ? (
+                <View style={{ flex: 1 }}>
+                  <Button
+                    size="sm"
+                    label={income ? t.personal.postNow : h.markPaid}
+                    disabled={posting}
+                    onPress={() => {
+                      void post(rule).then(() =>
+                        toast.show(
+                          fill(t.personal.markedDone, {
+                            date: nextDateLabel(stepOccurrence(rule, rule.nextDate), locale, today),
+                          }),
+                        ),
+                      );
+                    }}
+                  />
+                </View>
+              ) : null}
+              <View style={{ flex: 1 }}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  label={h.editBill}
+                  onPress={() =>
+                    router.push({ pathname: '/personal/entry', params: { recurringId: rule.id } })
+                  }
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  label={rule.active ? t.personal.pauseRecurring : t.personal.resumeRecurring}
+                  disabled={upsert.isPending}
+                  onPress={() =>
+                    upsert.mutate({
+                      recordId: rule.id,
+                      recordKind: 'recurring',
+                      data: encodeRecurring({ ...rule, active: !rule.active }),
+                    })
+                  }
+                />
+              </View>
+            </Row>
             <Text variant="caption" tone="muted">
               {t.personal.historySub}
             </Text>

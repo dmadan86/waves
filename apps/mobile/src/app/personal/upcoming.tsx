@@ -299,6 +299,16 @@ export default function PersonalUpcomingScreen() {
                 router.push({ pathname: '/personal/entry', params: { recurringId: id } });
               }}
             />
+            <Button
+              variant="secondary"
+              icon={<Ionicons name="time-outline" size={iconSize.md} color={theme.color.brand} />}
+              label={t.personal.seeHistory}
+              onPress={() => {
+                const id = acting.rule.id;
+                setActing(null);
+                router.push(`/personal/source/${id}`);
+              }}
+            />
           </View>
         ) : null}
       </Sheet>

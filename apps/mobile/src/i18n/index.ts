@@ -8897,6 +8897,10 @@ export interface UiStrings {
     openEntry: string;
     ofExpected: string;
     everySince: string;
+    seeHistory: string;
+    yearSummary: string;
+    markedDone: string;
+    startsOnHint: string;
     /**
      * The Spending screen: one month split three ways, over a six-month chart.
      * `everyday` is the third row — what was actually decided this month, once
@@ -17077,6 +17081,10 @@ const en: UiStrings = {
     openEntry: 'Open this entry',
     ofExpected: 'of {amount}',
     everySince: 'Since {date}',
+    seeHistory: 'History',
+    yearSummary: '{amount} this year · {n} entries',
+    markedDone: 'Done. Next one: {date}.',
+    startsOnHint: 'The first one is due on this date. Pick an earlier date to see past months.',
     spendingSub:
       'A month taken apart: what came in, what was always going out, and what you chose.',
     spendingEmpty: 'Nothing here yet',
@@ -25328,6 +25336,10 @@ const ta: UiStrings = {
     openEntry: 'இந்தப் பதிவைத் திற',
     ofExpected: '{amount} இல்',
     everySince: '{date} முதல்',
+    seeHistory: 'வரலாறு',
+    yearSummary: 'இந்த ஆண்டு {amount} · {n} பதிவுகள்',
+    markedDone: 'முடிந்தது. அடுத்தது: {date}.',
+    startsOnHint: 'முதலாவது இந்த நாளில் வரும். கடந்த மாதங்களைப் பார்க்க முந்தைய நாளைத் தேர்ந்தெடுக்கவும்.',
     spendingSub:
       'A month taken apart: what came in, what was always going out, and what you chose.',
     spendingEmpty: 'Nothing here yet',
@@ -33401,6 +33413,10 @@ const hi: UiStrings = {
     openEntry: 'यह प्रविष्टि खोलें',
     ofExpected: '{amount} में से',
     everySince: '{date} से',
+    seeHistory: 'इतिहास',
+    yearSummary: 'इस साल {amount} · {n} प्रविष्टियाँ',
+    markedDone: 'हो गया। अगला: {date}।',
+    startsOnHint: 'पहला इसी तारीख़ को देय है। पिछले महीने देखने के लिए पहले की तारीख़ चुनें।',
     spendingSub:
       'A month taken apart: what came in, what was always going out, and what you chose.',
     spendingEmpty: 'Nothing here yet',
@@ -42386,6 +42402,10 @@ const ar: UiStrings = {
     openEntry: 'افتح هذا القيد',
     ofExpected: 'من {amount}',
     everySince: 'منذ {date}',
+    seeHistory: 'السجل',
+    yearSummary: '{amount} هذه السنة · {n} إدخالات',
+    markedDone: 'تم. التالي: {date}.',
+    startsOnHint: 'الأول يستحق في هذا التاريخ. اختر تاريخًا أسبق لترى الأشهر الماضية.',
     spendingSub:
       'A month taken apart: what came in, what was always going out, and what you chose.',
     spendingEmpty: 'Nothing here yet',
