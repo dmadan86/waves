@@ -1,5 +1,6 @@
 import { getDictionary } from '@/i18n/dictionaries';
 import { pageAsMarkdown } from '@/lib/markdown';
+import { factsMarkdown } from '@/lib/ai-facts';
 import { mcpEndpoint, mcpTools } from '@/lib/mcp-tools';
 import { site } from '@/lib/site';
 
@@ -18,6 +19,8 @@ export async function GET() {
 
   const body = [
     await pageAsMarkdown('en'),
+    '',
+    factsMarkdown(),
     '',
     '## MCP tools',
     '',

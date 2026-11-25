@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { PersonalBand } from '@/components/personal-band';
@@ -121,6 +122,15 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <PrivacyBand t={t.privacy} locale={locale} />
         <OpenSourceBand t={t.openSource} />
         <Faq t={t.faq} />
+        {locale === 'en' && (
+          <p className="mx-auto w-full max-w-[73rem] px-5 pb-6 text-[0.9rem] sm:px-8">
+            Coming from Splitwise?{' '}
+            <Link href="/en/alternatives/splitwise-alternative" className="font-semibold underline">
+              See Waves as a free Splitwise alternative
+            </Link>
+            .
+          </p>
+        )}
         <DownloadBanner t={t.cta} stores={t.stores} result={t.hero.split.result} />
       </main>
 

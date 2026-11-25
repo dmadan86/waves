@@ -12,6 +12,10 @@ import { absoluteUrl } from '@/lib/site';
 // `/mcp` is listed for the same reason as the line above it, minus the
 // obligation: somebody whose assistant refuses to connect goes looking for the
 // page, and a help page nobody can find is a support email instead.
+const compareChecked = new Date('2026-10-25');
+const isSeoLanding = (p: string) =>
+  p.startsWith('/compare') || p.startsWith('/alternatives') || p.startsWith('/use-cases');
+
 const paths = [
   '',
   '/privacy',
@@ -30,8 +34,9 @@ const paths = [
   ...useCases.map((u) => `/use-cases/${u.slug}`),
 ];
 
-// No lastModified: nothing here tracks real content dates, and a blanket
-// `new Date()` would claim every page changed on every build.
+// lastModified is set only where a real date exists: the compare pages carry the
+// date their competitor facts were checked. A blanket `new Date()` would claim
+// every page changed on every build.
 // English-only routes are listed once with no hreflang alternates.
 export default function sitemap(): MetadataRoute.Sitemap {
   return paths.flatMap((path) => {
@@ -39,7 +44,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
     return pathLocales.map((locale) => ({
       url: absoluteUrl(`/${locale}${path}`),
       changeFrequency: path === '' ? ('weekly' as const) : ('monthly' as const),
-      priority: path === '' ? 1 : 0.4,
+      priority:
+        path === ''
+          ? 1
+          : isSeoLanding(path)
+            ? 0.8
+            : ['/personal', '/companies'].includes(path)
+              ? 0.7
+              : 0.4,
+      ...(path.startsWith('/compare/') || path.startsWith('/alternatives')
+        ? { lastModified: compareChecked }
+        : {}),
       ...(pathLocales.length > 1
         ? {
             alternates: {
