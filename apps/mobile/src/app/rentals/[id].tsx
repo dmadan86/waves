@@ -30,6 +30,7 @@ import { fill, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
+import { useDialog } from '@/lib/dialog';
 import { router } from '@/lib/navigation';
 import { useEntitlement } from '@/lib/useEntitlement';
 import {
@@ -53,6 +54,7 @@ function DetailBody() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
+  const { confirm } = useDialog();
   const w = t.wealth;
   const fmt = useWealthMoney();
   const dc = useDefaultCurrency();
@@ -152,6 +154,15 @@ function DetailBody() {
           tone: 'danger',
           onPress: () => {
             void (async () => {
+              if (
+                !(await confirm({
+                  title: t.common.delete,
+                  body: t.personal.deleteConfirm,
+                  confirmLabel: t.common.delete,
+                  tone: 'danger',
+                }))
+              )
+                return;
               await writes.deleteTenancy(tn);
               for (const r of v.rules) await del.mutateAsync(r.id);
               await del.mutateAsync(prop.id);
@@ -165,7 +176,20 @@ function DetailBody() {
           icon: 'trash-outline',
           label: t.common.delete,
           tone: 'danger',
-          onPress: () => void del.mutateAsync(prop.id).then(() => router.back()),
+          onPress: () =>
+            void (async () => {
+              if (
+                !(await confirm({
+                  title: t.common.delete,
+                  body: t.personal.deleteConfirm,
+                  confirmLabel: t.common.delete,
+                  tone: 'danger',
+                }))
+              )
+                return;
+              await del.mutateAsync(prop.id);
+              router.back();
+            })(),
         },
       ];
 

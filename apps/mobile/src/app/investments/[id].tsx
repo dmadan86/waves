@@ -17,6 +17,7 @@ import { usePersonalWealth, useWealthWrites } from '@/data/personalWealth';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
+import { useDialog } from '@/lib/dialog';
 import { router } from '@/lib/navigation';
 
 type Sheet = 'in' | 'out' | 'value' | null;
@@ -25,6 +26,7 @@ function DetailBody() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
+  const { confirm } = useDialog();
   const w = t.wealth;
   const fmt = useWealthMoney();
   const dc = useDefaultCurrency();
@@ -121,6 +123,7 @@ function DetailBody() {
                   subtitle={day(e.date)}
                   amount={`${e.kind === 'income' ? '−' : ''}${fmt(e.amount, cur)}`}
                   divider={i < entries.length - 1}
+                  onPress={() => router.push({ pathname: '/personal/entry', params: { id: e.id } })}
                 />
               ))
             )}
@@ -178,8 +181,17 @@ function DetailBody() {
             label: t.common.delete,
             tone: 'danger' as const,
             onPress: () => {
-              if (rule) void del.mutateAsync(rule.id);
-              void del.mutateAsync(inv.id).then(() => router.back());
+              void (async () => {
+                const ok = await confirm({
+                  title: t.common.delete,
+                  body: t.personal.deleteConfirm,
+                  confirmLabel: t.common.delete,
+                  tone: 'danger',
+                });
+                if (!ok) return;
+                if (rule) void del.mutateAsync(rule.id);
+                void del.mutateAsync(inv.id).then(() => router.back());
+              })();
             },
           },
         ]}

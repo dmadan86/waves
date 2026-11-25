@@ -83,6 +83,7 @@ function PersonalTransactionsScreenBody() {
     method?: string;
     currency?: string;
     uncategorized?: string;
+    loan?: string;
     from?: string;
     to?: string;
   }>();
@@ -102,6 +103,8 @@ function PersonalTransactionsScreenBody() {
   const toDate = dateParam(params.to);
 
   // Extra narrowings from the dashboard, each dismissed by its own chip.
+  const [dropLoan, setDropLoan] = useState(false);
+  const loanId = typeof params.loan === 'string' && !dropLoan ? params.loan : null;
   const [dropCredit, setDropCredit] = useState(false);
   const [dropUncategorized, setDropUncategorized] = useState(false);
   const currencyParam =
@@ -125,6 +128,7 @@ function PersonalTransactionsScreenBody() {
     params.month,
     params.method,
     params.uncategorized,
+    params.loan,
     params.from,
     params.to,
   ].some((value) => value !== undefined);
@@ -151,7 +155,7 @@ function PersonalTransactionsScreenBody() {
         (bucketed && picked === undefined
           ? (resolveCategory(category ?? null, null).builtinId ?? 'other') === filter
           : category === filter));
-    const shown = filterTxns(txns, {
+    const shown = filterTxns(loanId ? txns.filter((x) => x.loanId === loanId) : txns, {
       tab,
       needle: debouncedQuery,
       locale,
@@ -187,6 +191,7 @@ function PersonalTransactionsScreenBody() {
     creditOnly,
     currencyParam,
     uncategorizedOnly,
+    loanId,
     month,
     fromDate,
     toDate,
@@ -400,8 +405,15 @@ function PersonalTransactionsScreenBody() {
           })}
         </Row>
 
-        {creditOnly || uncategorizedOnly ? (
+        {creditOnly || uncategorizedOnly || loanId ? (
           <Row style={{ gap: 6, flexWrap: 'wrap' }}>
+            {loanId ? (
+              <FilterChip
+                label={t.personal.loanPayments}
+                clearLabel={t.entry.clear}
+                onClear={() => setDropLoan(true)}
+              />
+            ) : null}
             {creditOnly ? (
               <FilterChip
                 label={t.personalHome.creditCard}

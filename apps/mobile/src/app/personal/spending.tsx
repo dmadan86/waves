@@ -49,20 +49,14 @@ import {
   spentInMonth,
   type PersonalMonthSplit,
 } from '@waves/core';
-import {
-  directionalIcon,
-  EmptyState,
-  iconSize,
-  Row,
-  Screen,
-  Text,
-  Toggle,
-  useTheme,
-} from '@waves/ui';
+import { directionalIcon, Row, Screen, Text, Toggle, useTheme } from '@waves/ui';
 
 import { todayIso, usePersonalLedger } from '@/data/personal';
 import { useDefaultCurrency } from '@/lib/currency';
 import { fill, useStrings } from '@/i18n';
+import { EmptyStateCta } from '@/components/EmptyStateCta';
+import { router } from '@/lib/navigation';
+import { PlainHeader } from '@/components/standard';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
@@ -111,6 +105,7 @@ function SpendingScreenBody() {
 
   return (
     <Screen>
+      <PlainHeader title={t.personal.nav.spending} />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
@@ -123,12 +118,6 @@ function SpendingScreenBody() {
             and the picture beside them. */}
         <View style={{ paddingTop: theme.spacing.sm, minHeight: 104 }}>
           <SpendingArt />
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <Ionicons name="pie-chart-outline" size={iconSize.lg} color={ink} />
-            <Text style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: ink }}>
-              {t.personal.nav.spending}
-            </Text>
-          </Row>
           <Text
             style={{
               marginTop: 2,
@@ -147,10 +136,13 @@ function SpendingScreenBody() {
           // reading nought look like a screen that failed to load; they also ask
           // for work without saying what the work is for.
           <View style={{ paddingTop: theme.spacing.xxl }}>
-            <EmptyState
+            <EmptyStateCta
               title={t.personal.spendingEmpty}
               body={t.personal.spendingEmptyBody}
-              icon={<Ionicons name="stats-chart" size={iconSize.jumbo} color={theme.color.brand} />}
+              action={t.personal.add}
+              onAdd={() =>
+                router.push({ pathname: '/personal/entry', params: { kind: 'expense' } })
+              }
             />
           </View>
         ) : (

@@ -155,6 +155,7 @@ function LoansScreenBody() {
             >
               {t.personal.noLoansBody}
             </Text>
+            <Button label={t.personal.addLoan} onPress={() => setCreating(true)} />
           </View>
         ) : (
           <>
@@ -380,6 +381,26 @@ function LoansScreenBody() {
                         {hidden ? '' : `${done.percent}%`}
                       </Text>
                     </Row>
+                    {done.amount > 0n ? (
+                      <Pressable
+                        accessibilityRole="link"
+                        accessibilityLabel={t.personal.seePayments}
+                        hitSlop={8}
+                        onPress={() =>
+                          router.push({
+                            pathname: '/personal/transactions',
+                            params: { loan: loan.id },
+                          })
+                        }
+                      >
+                        <Text
+                          variant="caption"
+                          style={{ color: theme.color.brand, fontWeight: '600' }}
+                        >
+                          {t.personal.seePayments}
+                        </Text>
+                      </Pressable>
+                    ) : null}
                     <View
                       accessible
                       accessibilityRole="progressbar"

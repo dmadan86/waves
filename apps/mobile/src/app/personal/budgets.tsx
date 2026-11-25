@@ -147,6 +147,7 @@ function BudgetsScreenBody() {
             >
               {t.personal.noBudgetsBody}
             </Text>
+            <Button label={t.personal.addBudget} onPress={() => setCreating(true)} />
           </View>
         ) : (
           budgets.map((budget) => {
@@ -199,6 +200,25 @@ function BudgetsScreenBody() {
                       ? `${format(money(-progress.remaining, budget.currency), { locale, trimZeros: true })} ${t.personal.over}`
                       : `${format(money(progress.remaining, budget.currency), { locale, trimZeros: true })} ${t.personal.left}`}
                   </Text>
+                  <Pressable
+                    accessibilityRole="link"
+                    accessibilityLabel={t.personal.viewMonthSpending}
+                    hitSlop={8}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/personal/transactions',
+                        params: {
+                          kind: 'expense',
+                          month,
+                          ...(budget.category ? { category: budget.category } : {}),
+                        },
+                      })
+                    }
+                  >
+                    <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+                      {t.personal.viewMonthSpending}
+                    </Text>
+                  </Pressable>
                 </Card>
               </Pressable>
             );
