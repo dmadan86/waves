@@ -50,6 +50,7 @@ import { paymentMethodLabel } from '@/lib/paymentMethodLabel';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
+import { loanScope } from '@/lib/personalLoanScope';
 import { router } from '@/lib/navigation';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
@@ -84,6 +85,7 @@ function PersonalTransactionsScreenBody() {
     currency?: string;
     uncategorized?: string;
     loan?: string;
+    loans?: string;
     from?: string;
     to?: string;
   }>();
@@ -155,7 +157,7 @@ function PersonalTransactionsScreenBody() {
         (bucketed && picked === undefined
           ? (resolveCategory(category ?? null, null).builtinId ?? 'other') === filter
           : category === filter));
-    const shown = filterTxns(loanId ? txns.filter((x) => x.loanId === loanId) : txns, {
+    const shown = filterTxns(loanScope(txns, { loanId, excludeLoans: params.loans === 'none' }), {
       tab,
       needle: debouncedQuery,
       locale,
@@ -192,6 +194,7 @@ function PersonalTransactionsScreenBody() {
     currencyParam,
     uncategorizedOnly,
     loanId,
+    params.loans,
     month,
     fromDate,
     toDate,

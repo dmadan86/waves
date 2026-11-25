@@ -23,7 +23,13 @@ import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { PlainHeader, SectionHeader, StandardCard } from '@/components/standard';
 import { RaiseCard, useRaisePrompts } from '@/components/wealth/RaiseCard';
-import { AmountSheet, StatusPill, useWealthMoney, type PillTone } from '@/components/wealth/parts';
+import {
+  AmountSheet,
+  RenameSheet,
+  StatusPill,
+  useWealthMoney,
+  type PillTone,
+} from '@/components/wealth/parts';
 import { todayIso, useDeletePersonalRecord, usePersonalLedger } from '@/data/personal';
 import { usePersonalWealth, useWealthWrites } from '@/data/personalWealth';
 import { fill, useStrings } from '@/i18n';
@@ -55,6 +61,7 @@ function DetailBody() {
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { confirm } = useDialog();
+  const [renaming, setRenaming] = useState(false);
   const w = t.wealth;
   const fmt = useWealthMoney();
   const dc = useDefaultCurrency();
@@ -137,8 +144,14 @@ function DetailBody() {
     }
   };
 
+  const editItem: OverflowMenuItem = {
+    icon: 'create-outline',
+    label: t.personal.editDetails,
+    onPress: () => setRenaming(true),
+  };
   const items: OverflowMenuItem[] = tn
     ? [
+        editItem,
         {
           icon: 'document-text-outline',
           label: w.shareReceipt,
@@ -157,7 +170,7 @@ function DetailBody() {
               if (
                 !(await confirm({
                   title: t.common.delete,
-                  body: t.personal.deleteConfirm,
+                  body: t.personal.deleteRental,
                   confirmLabel: t.common.delete,
                   tone: 'danger',
                 }))
@@ -172,6 +185,7 @@ function DetailBody() {
         },
       ]
     : [
+        editItem,
         {
           icon: 'trash-outline',
           label: t.common.delete,
@@ -181,7 +195,7 @@ function DetailBody() {
               if (
                 !(await confirm({
                   title: t.common.delete,
-                  body: t.personal.deleteConfirm,
+                  body: t.personal.deleteRental,
                   confirmLabel: t.common.delete,
                   tone: 'danger',
                 }))
@@ -441,6 +455,17 @@ function DetailBody() {
           </View>
         </Sheet>
       ) : null}
+      <RenameSheet
+        visible={renaming}
+        title={t.personal.editDetails}
+        placeholder={w.propNamePlaceholder}
+        initial={prop.name}
+        onClose={() => setRenaming(false)}
+        onSave={(name) => {
+          void writes.saveProperty({ ...prop, name });
+          setRenaming(false);
+        }}
+      />
       <OverflowMenu visible={menu} onClose={() => setMenu(false)} items={items} />
     </Screen>
   );

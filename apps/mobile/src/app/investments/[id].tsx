@@ -11,7 +11,7 @@ import { Button, IconButton, iconSize, Row, Screen, Text, useTheme } from '@wave
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { ListRow, PlainHeader, SectionHeader, StandardCard } from '@/components/standard';
-import { AmountSheet, useWealthMoney } from '@/components/wealth/parts';
+import { AmountSheet, RenameSheet, useWealthMoney } from '@/components/wealth/parts';
 import { todayIso, useDeletePersonalRecord, usePersonalLedger } from '@/data/personal';
 import { usePersonalWealth, useWealthWrites } from '@/data/personalWealth';
 import { fill, useStrings } from '@/i18n';
@@ -37,6 +37,7 @@ function DetailBody() {
   const del = useDeletePersonalRecord();
   const [sheet, setSheet] = useState<Sheet>(null);
   const [menu, setMenu] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const [today] = useState(() => todayIso());
 
   const inv = investments.find((i) => i.id === id);
@@ -155,10 +156,26 @@ function DetailBody() {
           setSheet(null);
         }}
       />
+      <RenameSheet
+        visible={renaming}
+        title={t.personal.editDetails}
+        placeholder={w.invNamePlaceholder}
+        initial={inv.name}
+        onClose={() => setRenaming(false)}
+        onSave={(name) => {
+          saveInv({ name });
+          setRenaming(false);
+        }}
+      />
       <OverflowMenu
         visible={menu}
         onClose={() => setMenu(false)}
         items={[
+          {
+            icon: 'create-outline' as const,
+            label: t.personal.editDetails,
+            onPress: () => setRenaming(true),
+          },
           ...(rule
             ? [
                 {
@@ -184,7 +201,7 @@ function DetailBody() {
               void (async () => {
                 const ok = await confirm({
                   title: t.common.delete,
-                  body: t.personal.deleteConfirm,
+                  body: t.personal.deleteInvestment,
                   confirmLabel: t.common.delete,
                   tone: 'danger',
                 });

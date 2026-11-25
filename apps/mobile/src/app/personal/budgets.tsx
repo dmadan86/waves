@@ -65,6 +65,7 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
+import { monthLabel, shiftMonth } from '@/lib/monthNav';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
@@ -76,7 +77,9 @@ function BudgetsScreenBody() {
   const dc = useDefaultCurrency();
   const { budgets, txns } = usePersonalLedger();
 
-  const [month] = useState(() => todayIso().slice(0, 7));
+  const [currentMonth] = useState(() => todayIso().slice(0, 7));
+  const [month, setMonth] = useState(currentMonth);
+  const earliest = shiftMonth(currentMonth, -12);
   // A link from a save tip names a category (and a suggested cap): open that
   // category's budget, or a new one pre-filled with it.
   const link = useLocalSearchParams<{ category?: string; limit?: string }>();
@@ -129,6 +132,34 @@ function BudgetsScreenBody() {
         >
           {t.personal.budgetsSub}
         </Text>
+
+        {budgets.length > 0 ? (
+          <Row style={{ alignItems: 'center', justifyContent: 'center', gap: theme.spacing.md }}>
+            <IconButton
+              label={t.personal.prevMonth}
+              onPress={month > earliest ? () => setMonth(shiftMonth(month, -1)) : undefined}
+            >
+              <Ionicons
+                name={directionalIcon('chevron-back')}
+                size={iconSize.lg}
+                color={month > earliest ? theme.color.text : theme.color.textFaint}
+              />
+            </IconButton>
+            <Text variant="body" style={{ fontWeight: '700', minWidth: 120, textAlign: 'center' }}>
+              {monthLabel(month, locale)}
+            </Text>
+            <IconButton
+              label={t.personal.nextMonth}
+              onPress={month < currentMonth ? () => setMonth(shiftMonth(month, 1)) : undefined}
+            >
+              <Ionicons
+                name={directionalIcon('chevron-forward')}
+                size={iconSize.lg}
+                color={month < currentMonth ? theme.color.text : theme.color.textFaint}
+              />
+            </IconButton>
+          </Row>
+        ) : null}
 
         {budgets.length === 0 ? (
           <View style={{ paddingTop: theme.spacing.lg, alignItems: 'center', gap: 8 }}>
@@ -210,7 +241,7 @@ function BudgetsScreenBody() {
                         params: {
                           kind: 'expense',
                           month,
-                          ...(budget.category ? { category: budget.category } : {}),
+                          ...(budget.category ? { category: budget.category } : { loans: 'none' }),
                         },
                       })
                     }
@@ -346,8 +377,14 @@ function BudgetEditor({
     onClose();
     router.push(
       chosenCategory
-        ? { pathname: '/personal/transactions', params: { category: chosenCategory } }
-        : { pathname: '/personal/transactions' },
+        ? {
+            pathname: '/personal/transactions',
+            params: { category: chosenCategory, kind: 'expense', month },
+          }
+        : {
+            pathname: '/personal/transactions',
+            params: { kind: 'expense', month, loans: 'none' },
+          },
     );
   };
 

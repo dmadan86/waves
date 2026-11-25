@@ -95,6 +95,11 @@ function SpendingScreenBody() {
     [txns, dc],
   );
 
+  const openMonth = (kind: 'income' | 'expense'): void =>
+    router.push({
+      pathname: '/personal/transactions',
+      params: { kind, month, currency: dc, ...(kind === 'expense' ? { loans: 'none' } : {}) },
+    });
   const index = months.indexOf(month);
   const fmt = (amount: bigint): string => format(money(amount, dc), { locale, trimZeros: true });
   const dcScale = minorUnitScale(dc);
@@ -232,6 +237,7 @@ function SpendingScreenBody() {
                 label={t.personal.income}
                 sub={t.personal.incomeSub}
                 amount={fmt(split.income)}
+                onPress={() => openMonth('income')}
               />
               <SplitRow
                 icon="document-text"
@@ -239,6 +245,7 @@ function SpendingScreenBody() {
                 label={t.personal.billsAndSubs}
                 sub={split.bills === 0n ? t.personal.noBillsMarked : t.personal.billsSub}
                 amount={fmt(split.bills)}
+                onPress={() => openMonth('expense')}
               />
               <SplitRow
                 icon="cart"
@@ -246,6 +253,7 @@ function SpendingScreenBody() {
                 label={t.personal.everyday}
                 sub={t.personal.everydaySub}
                 amount={fmt(split.spending)}
+                onPress={() => openMonth('expense')}
               />
 
               <View style={{ height: 1, backgroundColor: theme.color.border }} />
@@ -620,9 +628,7 @@ function IconDisc({
  * One line of the split: its glyph on a tinted disc, the name over a line on
  * what it is, and the money.
  *
- * Not tappable, and the chevron is left off rather than drawn dead: the entries
- * list has no filter to push into, and an affordance that does nothing is worse
- * than none at all.
+ * Tappable (with a chevron) when it has somewhere to go: the month's entries.
  */
 function SplitRow({
   icon,
@@ -630,17 +636,25 @@ function SplitRow({
   label,
   sub,
   amount,
+  onPress,
 }: {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   tint: { bg: string; ink: string };
   label: string;
   sub: string;
   amount: string;
+  onPress?: () => void;
 }) {
   const theme = useTheme();
   const dark = theme.scheme === 'dark';
   return (
-    <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+    <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={`${label}, ${amount}`}
+      disabled={!onPress}
+      onPress={onPress}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}
+    >
       <IconDisc icon={icon} color={tint.ink} soft={tint.bg} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
@@ -667,7 +681,14 @@ function SplitRow({
       >
         {amount}
       </Text>
-    </Row>
+      {onPress ? (
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={16}
+          color={dark ? theme.color.textMuted : SPEC_MUTED}
+        />
+      ) : null}
+    </Pressable>
   );
 }
 

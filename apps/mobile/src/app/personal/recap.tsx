@@ -27,7 +27,9 @@ import { todayIso, usePersonalLedger } from '@/data/personal';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
+import { monthShort } from '@/lib/monthNav';
 import { router } from '@/lib/navigation';
+import { EmptyStateCta } from '@/components/EmptyStateCta';
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { fill, plural, useStrings } from '@/i18n';
 
@@ -135,9 +137,27 @@ function RecapBody() {
       {
         eyebrow: p.recap.trend,
         headline: '',
-        bars: r.trend.map((x) => ({ label: monthName(x.month), value: x.spent })),
+        bars: r.trend.map((x) => ({ label: monthShort(x.month, locale), value: x.spent })),
       },
     ];
+  }
+
+  if (ledger.txns.length === 0) {
+    return (
+      <Screen>
+        <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
+          <IconButton label={p.recap.close} onPress={() => router.back()}>
+            <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
+          </IconButton>
+        </Row>
+        <EmptyStateCta
+          title={t.personal.empty}
+          body={t.personal.transactionsSubtitle}
+          action={t.personal.add}
+          onAdd={() => router.replace({ pathname: '/personal/entry', params: { kind: 'expense' } })}
+        />
+      </Screen>
+    );
   }
 
   const current = pages[page]!;
@@ -222,8 +242,22 @@ function RecapBody() {
         ) : null}
       </Pressable>
 
-      <View style={{ paddingHorizontal: theme.spacing.xl, paddingBottom: theme.spacing.xl }}>
+      <View
+        style={{
+          paddingHorizontal: theme.spacing.xl,
+          paddingBottom: theme.spacing.xl,
+          gap: theme.spacing.sm,
+        }}
+      >
         <Button label={last ? p.recap.done : p.recap.next} fullWidth onPress={advance} />
+        {page > 0 ? (
+          <Button
+            label={t.common.back}
+            variant="ghost"
+            fullWidth
+            onPress={() => setPage(page - 1)}
+          />
+        ) : null}
       </View>
     </Screen>
   );

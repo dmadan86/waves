@@ -4,7 +4,7 @@
  * so leaving midway loses nothing, and every step can be skipped. The last
  * thing on the screen is the reveal: what comes in, what is fixed, what is free.
  */
-import { useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
@@ -15,6 +15,7 @@ import {
   Button,
   Card,
   ChipRow,
+  directionalIcon,
   iconSize,
   Row,
   Screen,
@@ -53,6 +54,9 @@ import {
 
 type S = UiStrings['personalSetup'];
 type PlainKey = { [K in keyof S]: S[K] extends string ? K : never }[keyof S];
+/** Goes back one question; null on the first. Read by `Shell` so no step has to pass it on. */
+const BackContext = createContext<(() => void) | null>(null);
+
 type Save = (step: SetupStep, answers: SetupAnswers, savings?: SavingsBand) => Promise<void>;
 
 interface StepProps {
@@ -85,10 +89,25 @@ function Shell({
 }) {
   const theme = useTheme();
   const { t } = useStrings();
+  const back = useContext(BackContext);
   return (
     <Screen>
       <View style={{ paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md, flex: 1 }}>
         <Row style={{ alignItems: 'center', gap: theme.spacing.md, paddingTop: theme.spacing.sm }}>
+          {back ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.common.back}
+              hitSlop={10}
+              onPress={back}
+            >
+              <Ionicons
+                name={directionalIcon('arrow-back')}
+                size={iconSize.md}
+                color={theme.color.textMuted}
+              />
+            </Pressable>
+          ) : null}
           <View
             accessible
             accessibilityRole="progressbar"
@@ -749,19 +768,21 @@ function SetupBody() {
   }
   const step = order[index]!;
   return (
-    <View style={{ flex: 1 }} key={step}>
-      {STEP_VIEW[step]({
-        s,
-        region,
-        currency,
-        locale,
-        save,
-        skip,
-        free: setupSummary(ledger.recurrings, today, currency).free,
-        index,
-        total: order.length,
-      })}
-    </View>
+    <BackContext.Provider value={index > 0 ? () => setIndex((i) => i - 1) : null}>
+      <View style={{ flex: 1 }} key={step}>
+        {STEP_VIEW[step]({
+          s,
+          region,
+          currency,
+          locale,
+          save,
+          skip,
+          free: setupSummary(ledger.recurrings, today, currency).free,
+          index,
+          total: order.length,
+        })}
+      </View>
+    </BackContext.Provider>
   );
 }
 

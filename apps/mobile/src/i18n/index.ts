@@ -8822,6 +8822,9 @@ export interface UiStrings {
     viewTransactions: string;
     viewMonthSpending: string;
     seePayments: string;
+    payments: string;
+    deleteInvestment: string;
+    deleteRental: string;
     loanPayments: string;
     /** The − / + buttons beside the amount; the step is in the label,
      *  because a button that says only "lower" does not say by how much. */
@@ -17012,6 +17015,9 @@ const en: UiStrings = {
     viewTransactions: 'View transactions',
     viewMonthSpending: 'Spending this month',
     seePayments: 'See payments',
+    payments: 'Payments',
+    deleteInvestment: 'Delete this investment and its entries?',
+    deleteRental: 'Delete this rental and its tenant and rent records?',
     loanPayments: 'Loan payments',
     lowerLimit: 'Lower by {amount}',
     raiseLimit: 'Raise by {amount}',
@@ -25413,6 +25419,9 @@ const ta: UiStrings = {
     viewTransactions: 'View transactions',
     viewMonthSpending: 'இந்த மாத செலவுகள்',
     seePayments: 'செலுத்தியவற்றைப் பார்',
+    payments: 'செலுத்தியவை',
+    deleteInvestment: 'இந்த முதலீட்டையும் அதன் பதிவுகளையும் நீக்கவா?',
+    deleteRental: 'இந்த வாடகை சொத்தையும் அதன் குத்தகைதாரர், வாடகைப் பதிவுகளையும் நீக்கவா?',
     loanPayments: 'கடன் தவணைகள்',
     lowerLimit: 'Lower by {amount}',
     raiseLimit: 'Raise by {amount}',
@@ -33580,6 +33589,9 @@ const hi: UiStrings = {
     viewTransactions: 'View transactions',
     viewMonthSpending: 'इस महीने का खर्च',
     seePayments: 'भुगतान देखें',
+    payments: 'भुगतान',
+    deleteInvestment: 'इस निवेश और उसकी प्रविष्टियों को हटाएँ?',
+    deleteRental: 'इस किराये की संपत्ति और उसके किरायेदार व किराये के रिकॉर्ड हटाएँ?',
     loanPayments: 'कर्ज़ के भुगतान',
     lowerLimit: 'Lower by {amount}',
     raiseLimit: 'Raise by {amount}',
@@ -42593,6 +42605,9 @@ const ar: UiStrings = {
     viewTransactions: 'View transactions',
     viewMonthSpending: 'إنفاق هذا الشهر',
     seePayments: 'عرض الدفعات',
+    payments: 'الدفعات',
+    deleteInvestment: 'حذف هذا الاستثمار وسجلاته؟',
+    deleteRental: 'حذف هذا العقار المؤجَّر وسجلات المستأجر والإيجار؟',
     loanPayments: 'دفعات القرض',
     lowerLimit: 'Lower by {amount}',
     raiseLimit: 'Raise by {amount}',

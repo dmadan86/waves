@@ -324,3 +324,36 @@ export function AmountSheet({
     </Sheet>
   );
 }
+
+/** A one-field sheet for renaming a record, on the screen that shows it. */
+export function RenameSheet({
+  visible,
+  title,
+  placeholder,
+  initial,
+  onSave,
+  onClose,
+}: {
+  visible: boolean;
+  title: string;
+  placeholder: string;
+  initial: string;
+  onSave: (name: string) => void;
+  onClose: () => void;
+}) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const [name, setName] = useState(initial);
+  return (
+    <Sheet visible={visible} onClose={onClose} title={title} closeLabel={t.common.close}>
+      <View style={{ gap: theme.spacing.lg }}>
+        <TextAnswer value={name} onChange={setName} placeholder={placeholder} label={placeholder} />
+        <Button
+          label={t.common.save}
+          disabled={name.trim() === ''}
+          onPress={() => onSave(name.trim())}
+        />
+      </View>
+    </Sheet>
+  );
+}
