@@ -8,6 +8,17 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Guessed short compare URLs (/en/compare/splitwise) go to the real page.
+  async redirects() {
+    return [
+      {
+        source:
+          '/:locale/compare/:slug(splitwise|tricount|settle-up|splid|spliit|kittysplit|splitkaro|google-pay|phonepe|venmo|spreadsheets)',
+        destination: '/:locale/compare/waves-vs-:slug',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

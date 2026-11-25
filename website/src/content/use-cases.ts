@@ -254,7 +254,7 @@ export const useCases: UseCase[] = [
       },
       {
         title: 'Any split you agree on',
-        body: 'Fifty-fifty, by income share or by exact amounts, per expense.',
+        body: 'Equally, by percentage or by exact amounts, chosen per expense.',
       },
       {
         title: 'Your own money stays yours',
