@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { percentChange, previousMonthPrefix } from '@/lib/homeDashboard';
+import { headlineGroupCounts, percentChange, previousMonthPrefix } from '@/lib/homeDashboard';
 
 describe('previousMonthPrefix', () => {
   it('steps back one month, across a year', () => {
@@ -23,5 +23,27 @@ describe('percentChange', () => {
 
   it('has nothing to say without a last month', () => {
     expect(percentChange(500n, 0n)).toBeNull();
+  });
+});
+
+describe('headlineGroupCounts', () => {
+  const bal: Record<string, bigint> = { demo: 270000n, a: 500n, b: -500n, c: 900n };
+  const groups = [
+    { id: 'demo', default_currency: 'INR' },
+    { id: 'a', default_currency: 'INR' },
+    { id: 'b' },
+    { id: 'c', default_currency: 'USD' },
+  ];
+  it('never counts the demo group and keeps to the headline currency', () => {
+    expect(headlineGroupCounts(groups, 'INR', 'INR', (id) => bal[id] ?? 0n, 'demo')).toEqual({
+      owed: 1,
+      owing: 1,
+    });
+  });
+  it('is zero for a new user whose only group is the demo', () => {
+    expect(headlineGroupCounts([groups[0]!], 'INR', 'INR', (id) => bal[id]!, 'demo')).toEqual({
+      owed: 0,
+      owing: 0,
+    });
   });
 });

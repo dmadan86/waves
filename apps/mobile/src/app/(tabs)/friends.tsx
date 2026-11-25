@@ -50,12 +50,7 @@ import {
   MODAL_ORIENTATIONS,
 } from '@waves/ui';
 
-import {
-  balanceDirection,
-  copyFor,
-  fallbackCurrency as deviceFallbackCurrency,
-  moneyAccessibilityLabel,
-} from '@waves/core';
+import { balanceDirection, copyFor, moneyAccessibilityLabel } from '@waves/core';
 
 import { type PersonBalanceRow } from '@/data/api';
 import { sendNudge } from '@/lib/nudge';
@@ -85,6 +80,7 @@ import { SortMenu } from '@/components/SortMenu';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useBalanceHidden } from '@/lib/balanceHidden';
+import { useDefaultCurrency } from '@/lib/currency';
 import { useHeroScene } from '@/lib/heroScenePreference';
 import { usePullRefresh } from '@/lib/pullRefresh';
 
@@ -732,7 +728,9 @@ function FriendsBalanceCard({
   // Same two sides Home draws ("You lent" / "You owe"), counted per person:
   // each is its direction's biggest currency large, the rest as chips.
   const { owed, owing } = personDirectionTotals(rows);
-  const net = totals[0] ?? { currency: deviceFallbackCurrency(), net: 0n };
+  // No balances yet: show the viewer's own default currency, same as Home.
+  const defaultCurrency = useDefaultCurrency();
+  const net = totals[0] ?? { currency: defaultCurrency, net: 0n };
   const [owedHead] = owed;
   const [owingHead] = owing;
   const owedCurrency = owedHead?.currency ?? net.currency;
