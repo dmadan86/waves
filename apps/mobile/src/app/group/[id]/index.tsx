@@ -108,6 +108,7 @@ import { UNREAD_GREEN } from '@/components/UnreadDot';
 import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
 import { leftWithBalance } from '@/lib/settleRow';
 import { router, runBarMove } from '@/lib/navigation';
+import { useToast } from '@/lib/toast';
 
 import { CategoryBadge } from '@/components/Category';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
@@ -816,6 +817,7 @@ function LedgerGroupScreen() {
   // the header glyph is paired with the one banner that carries buttons; the
   // ambient offline / syncing states are the header glyph's job now (below).
   const { queue, rejected, twoStepRequired } = useSync();
+  const toast = useToast();
 
   const { group, members, everyone, expenses, settlements, activity } = useGroup(groupId);
   const [a11yRemindId, setA11yRemindId] = useState<string | null>(null);
@@ -852,7 +854,10 @@ function LedgerGroupScreen() {
   const settleFlow = useSettleFlow(
     groupId,
     lensLedger,
-    () => setTab(Tab.Balances),
+    () => {
+      setTab(Tab.Balances);
+      toast.show(t.misc.paymentRecordedToast);
+    },
     familyLens ? (memberId, name) => familyLabel(units, memberId, name) : undefined,
     familyLens ? (memberId) => unitOf(units, memberId) ?? memberId : undefined,
   );
@@ -2249,12 +2254,18 @@ function LedgerGroupScreen() {
                   action={t.addExpense}
                   onAdd={() => router.push(`/group/${groupId}/add-expense`)}
                   secondary={
-                    canImport
+                    // Alone in the group, the next step is people, not a file.
+                    canImport && (members.data ?? []).filter((m) => !m.left_at).length <= 1
                       ? {
-                          label: t.groupImport.emptyLink,
-                          onPress: () => router.push(`/group/${groupId}/import`),
+                          label: t.people.inviteTitle,
+                          onPress: () => router.push(`/group/${groupId}/invite`),
                         }
-                      : undefined
+                      : canImport
+                        ? {
+                            label: t.groupImport.emptyLink,
+                            onPress: () => router.push(`/group/${groupId}/import`),
+                          }
+                        : undefined
                   }
                 />
               ) : null

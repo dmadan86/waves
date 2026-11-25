@@ -2498,6 +2498,17 @@ function AddExpenseScreen() {
                   </Pressable>
                 ) : null}
               </Row>
+              {!editing && (members.data ?? []).filter((m) => !m.left_at).length <= 1 ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => router.push(`/group/${groupId}/invite`)}
+                  hitSlop={LINK_HIT_SLOP}
+                >
+                  <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+                    {t.expense.aloneInvite}
+                  </Text>
+                </Pressable>
+              ) : null}
               <SplitKindSegments
                 value={splitKind}
                 onChange={(next) => {

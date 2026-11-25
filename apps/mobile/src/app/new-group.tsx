@@ -739,12 +739,16 @@ function NewGroupScreen() {
       // offered on a trip, so rates left over from switching the kind away from
       // Trip are not applied.
       for (const row of type === GroupType.Trip ? liveRates : []) {
-        await mutate(MutationKind.GroupFxRateSet, groupId, {
-          from: row.from,
-          num: row.num.toString(),
-          den: row.den.toString(),
-          source: row.source,
-        });
+        try {
+          await mutate(MutationKind.GroupFxRateSet, groupId, {
+            from: row.from,
+            num: row.num.toString(),
+            den: row.den.toString(),
+            source: row.source,
+          });
+        } catch {
+          // The group exists; a failed rate must not invite a second Create. Set it inside the group.
+        }
       }
 
       // Said on the screen the person lands on (the toast lives above the stack),

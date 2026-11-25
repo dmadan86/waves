@@ -68,6 +68,7 @@ import { useAuth, useViewerId } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { linkReasonText, membersAsPeople, type LinkPerson } from '@/lib/linkMember';
 import { router } from '@/lib/navigation';
+import { useToast } from '@/lib/toast';
 import { useDialog } from '@/lib/dialog';
 import { familyOf } from '@/lib/families';
 import { useFlagEnabled } from '@/lib/flags';
@@ -261,6 +262,7 @@ function MemberScreen() {
   const ledger = useGroupLedger(groupId, viewerId);
   const updateMember = useUpdateMember(groupId);
   const setRole = useSetMemberRole(groupId);
+  const toast = useToast();
   const removeFromGroup = useRemoveMember(groupId);
   const [removing, setRemoving] = useState(false);
   const claimAsMe = useClaimMemberAsMe(groupId);
@@ -536,6 +538,7 @@ function MemberScreen() {
         setStatus(null);
         try {
           await removeFromGroup.mutateAsync(member.id);
+          toast.show(fill(t.people.removedToast, { name: realName }));
           const { equal, custom } = classifyDepartedExpenses(expenses.rows, member.id);
           if (equal.length || custom.some((c) => !c.noneRemaining)) {
             await syncEngine.flush({ groupIds: [groupId] }).catch(() => undefined);

@@ -78,6 +78,7 @@ import { NewPill } from '@/components/NewMark';
 import { UNREAD_GREEN } from '@/components/UnreadDot';
 import { expenseMemberHref } from '@/lib/expenseMemberRows';
 import { router, useGoBack } from '@/lib/navigation';
+import { useToast } from '@/lib/toast';
 import { useDialog } from '@/lib/dialog';
 import { useSync } from '@/sync';
 import { amountEditsInline, canEditInline } from '@/lib/expenseEdit';
@@ -191,6 +192,7 @@ function ExpenseDetailScreen() {
   const [mapOpen, setMapOpen] = useState(false);
   // The fact being changed in a pop-up, if one is open (ExpenseFieldSheet).
   const [editingField, setEditingField] = useState<ExpenseField | null>(null);
+  const toast = useToast();
   const deleteExpense = useDeleteExpense(groupId);
   // "Move to…" is for what was spoken in: a voice-added bill with no other attachments.
   const [moveOpen, setMoveOpen] = useState(false);
@@ -509,7 +511,17 @@ function ExpenseDetailScreen() {
       confirmLabel: t.common.delete,
       tone: 'danger',
     });
-    if (ok) deleteExpense.mutate(expense.id, { onSuccess: () => router.back() });
+    if (ok)
+      deleteExpense.mutate(expense.id, {
+        onError: () => toast.show(t.expense.deleteFailed, 'negative'),
+        onSuccess: () => {
+          router.back();
+          toast.show(t.expense.deletedToast, 'positive', {
+            label: t.common.undo,
+            onPress: () => restoreExpense.mutate(expense.id),
+          });
+        },
+      });
   };
 
   // A fact on this screen is its own door to changing it: a tap opens a small
@@ -549,7 +561,11 @@ function ExpenseDetailScreen() {
           icon: 'refresh',
           label: t.expense.restore,
           onPress: () => {
-            if (!restoreExpense.isPending) restoreExpense.mutate(expense.id);
+            if (!restoreExpense.isPending)
+              restoreExpense.mutate(expense.id, {
+                onError: () => toast.show(t.expense.restoreFailed, 'negative'),
+                onSuccess: () => toast.show(t.expense.restoredToast),
+              });
           },
         },
       ]

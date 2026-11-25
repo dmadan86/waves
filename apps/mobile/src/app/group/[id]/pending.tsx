@@ -33,6 +33,7 @@ import { useAuth } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { formatPaidDay, paidDay } from '@/lib/paymentProof';
 import { router } from '@/lib/navigation';
+import { useToast } from '@/lib/toast';
 import { useDialog } from '@/lib/dialog';
 import { memberNameById } from '@/lib/memberName';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -72,6 +73,7 @@ function PendingConfirmationsScreen() {
 
   const { group, everyone, settlements } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, profile?.id ?? null);
+  const toast = useToast();
   const confirmSettlement = useConfirmSettlement(groupId);
   const disputeSettlement = useDisputeSettlement(groupId);
   const { blockedIds } = useBlockedUsers();
@@ -190,7 +192,11 @@ function PendingConfirmationsScreen() {
                       label={t.group.confirmReceived}
                       fullWidth
                       disabled={busy}
-                      onPress={() => confirmSettlement.mutate(settlement.id)}
+                      onPress={() =>
+                        confirmSettlement.mutate(settlement.id, {
+                          onSuccess: () => toast.show(t.group.paymentConfirmedToast),
+                        })
+                      }
                     />
                   </View>
                   <View style={{ flex: 1 }}>
