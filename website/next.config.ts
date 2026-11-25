@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
         destination: '/:locale/compare/waves-vs-:slug',
         permanent: true,
       },
+      { source: '/:locale/home', destination: '/:locale/family', permanent: true },
     ];
   },
   async headers() {

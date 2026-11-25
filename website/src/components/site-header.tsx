@@ -20,6 +20,7 @@ type Nav = {
   wearables: string;
   companies: string;
   personal: string;
+  home: string;
   agents: string;
   pricing: string;
   faq: string;
@@ -118,6 +119,7 @@ export function SiteHeader({
     { href: `${anchorBase}#wearables`, label: nav.wearables, mobileOnly: true },
     { href: `${anchorBase}#agents`, label: nav.agents },
     { href: `/${locale}/personal`, label: nav.personal },
+    { href: `/${locale}/family`, label: nav.home },
     { href: `/${locale}/companies`, label: nav.companies },
     { href: `${anchorBase}#pricing`, label: nav.pricing },
     { href: `${anchorBase}#security`, label: nav.security, mobileOnly: true },
