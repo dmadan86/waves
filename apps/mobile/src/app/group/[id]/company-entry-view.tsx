@@ -382,6 +382,25 @@ export default function CompanyEntryViewScreen() {
                   </Text>
                 </Pressable>
               ) : null}
+              {frozen && (view.isAdmin || mine) ? (
+                <Text variant="caption" tone="muted" align="center">
+                  {t.company.frozenNote}
+                </Text>
+              ) : null}
+              {frozen && view.isOwner && entry.kind === 'wage_payment' ? (
+                <Button
+                  label={t.company.correctThis}
+                  variant="secondary"
+                  fullWidth
+                  onPress={() =>
+                    router.push(
+                      `/group/${groupId}/company-entry?member=${entry.memberId}&kind=wages&note=${encodeURIComponent(
+                        fill(t.company.correctionNote, { date: entry.occurredOn }),
+                      )}`,
+                    )
+                  }
+                />
+              ) : null}
               {view.isAdmin && flags.some((f) => f.effect === 'block') ? (
                 <Text variant="caption" tone="negative">
                   {fill(t.company.policyBlocked, {

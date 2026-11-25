@@ -95,6 +95,11 @@ function CompaniesScreenBody() {
           </View>
         </ScenicHeader>
         <ScenicBody>
+          {companies.length === 0 ? (
+            <Text variant="body" tone="muted" align="center">
+              {t.company.companiesEmpty}
+            </Text>
+          ) : null}
           {companies.map((group) => (
             <Card key={group.id} group={group} current={group.id === currentId} />
           ))}

@@ -312,6 +312,7 @@ export interface UiStrings {
     leaveOverdrawHint: string;
     leaveActive: string;
     leaveParked: string;
+    leaveNone: string;
     leavePerMonth: string;
     leaveCarries: string;
     leaveResets: string;
@@ -2426,6 +2427,15 @@ export interface UiStrings {
     wagesRecord: string;
     wagesDone: string;
     wagesNoTeam: string;
+    correctThis: string;
+    correctionNote: string;
+    wagesHistory: string;
+    tilesHint: string;
+    advanceLeft: string;
+    frozenNote: string;
+    companiesEmpty: string;
+    wagesPaidTag: string;
+    wagesSetPay: string;
     wagesSubtitle: string;
     wagesTeam: string;
     wagesWorkingDays: string;
@@ -9128,7 +9138,8 @@ const en: UiStrings = {
     leaveTypeName: 'Name',
     leaveAccrual: 'Days earned per month (0 to 5, halves ok)',
     leaveCarry: 'Carry forward to next year',
-    leaveCarryHint: 'Unused days move into the next year. Off: they reset on 1 January.',
+    leaveCarryHint:
+      'Unused days move into the next year. Off: they reset when the new leave year starts.',
     leaveCarryCap: 'Carry forward at most (days)',
     leaveAnnualCap: 'Earn at most per year (days)',
     leaveNoLimit: 'No limit',
@@ -9138,6 +9149,7 @@ const en: UiStrings = {
     leaveOverdrawHint: 'Off: a request beyond the balance cannot be approved.',
     leaveActive: 'In use',
     leaveParked: 'Not in use',
+    leaveNone: 'No leave types yet. The owner can add them here.',
     leavePerMonth: '{n} a month',
     leaveCarries: 'carries forward',
     leaveResets: 'resets every year',
@@ -11191,6 +11203,17 @@ const en: UiStrings = {
     wagesRecord: 'Pay {n} · {amount}',
     wagesDone: 'Wages recorded',
     wagesNoTeam: 'Add people first.',
+    correctThis: 'Correct this',
+    correctionNote: 'Correction for wages paid on {date}',
+    wagesHistory: 'Pay history',
+    tilesHint: 'Advances: money given to you. Spent: what you paid for work and bata.',
+    advanceLeft: 'Advance left to recover: {amount}',
+    frozenNote:
+      'This is already paid, so it cannot be removed. To fix it, add a new entry for the difference.',
+    companiesEmpty:
+      "You are not in a company yet. Create one to keep your team's attendance, wages and bills in one place.",
+    wagesPaidTag: 'Paid',
+    wagesSetPay: 'Set pay',
     wagesSubtitle: 'Calculate and pay your team',
     wagesTeam: 'Team',
     wagesWorkingDays: 'Working days',
@@ -11993,7 +12016,7 @@ const en: UiStrings = {
     filterToPay: 'To pay',
     filterToReview: 'To review',
     search: 'Search vendors',
-    emptyList: 'Your vendors will appear here.',
+    emptyList: 'No vendors yet.',
     noMatch: 'No vendors match.',
     statusOverdue: 'Overdue',
     statusToReview: 'To review',
@@ -17329,7 +17352,7 @@ const ta: UiStrings = {
     leaveAccrual: 'மாதம் பெறும் நாட்கள் (0 முதல் 5, அரை நாள் சரி)',
     leaveCarry: 'அடுத்த ஆண்டுக்கு எடுத்துச் செல்',
     leaveCarryHint:
-      'பயன்படுத்தாத நாட்கள் அடுத்த ஆண்டுக்குச் செல்லும். அணைத்தால் ஜனவரி 1 அன்று மீட்டமையும்.',
+      'பயன்படுத்தாத நாட்கள் அடுத்த ஆண்டுக்குச் செல்லும். அணைத்தால் புதிய விடுப்பு ஆண்டு தொடங்கும்போது மீட்டமையும்.',
     leaveCarryCap: 'அதிகபட்சம் எடுத்துச் செல்லும் நாட்கள்',
     leaveAnnualCap: 'ஆண்டுக்கு அதிகபட்சம் பெறும் நாட்கள்',
     leaveNoLimit: 'வரம்பு இல்லை',
@@ -17339,6 +17362,7 @@ const ta: UiStrings = {
     leaveOverdrawHint: 'அணைத்தால்: இருப்புக்கு மேல் கேட்கும் கோரிக்கையை ஏற்க முடியாது.',
     leaveActive: 'பயன்பாட்டில்',
     leaveParked: 'பயன்பாட்டில் இல்லை',
+    leaveNone: 'இன்னும் விடுப்பு வகைகள் இல்லை. உரிமையாளர் இங்கே சேர்க்கலாம்.',
     leavePerMonth: 'மாதம் {n}',
     leaveCarries: 'எடுத்துச் செல்லும்',
     leaveResets: 'ஆண்டுதோறும் மீட்டமையும்',
@@ -19421,6 +19445,17 @@ const ta: UiStrings = {
     wagesRecord: '{n} பேருக்கு · {amount}',
     wagesDone: 'சம்பளம் பதிவானது',
     wagesNoTeam: 'முதலில் ஆட்களைச் சேர்க்கவும்.',
+    correctThis: 'சரிசெய்',
+    correctionNote: '{date} அன்று கொடுத்த சம்பளத்திற்கான திருத்தம்',
+    wagesHistory: 'கொடுத்த வரலாறு',
+    tilesHint: 'முன்பணம்: உங்களுக்குக் கொடுத்த பணம். செலவு: வேலைக்காக நீங்கள் கொடுத்தது, பத்தா.',
+    advanceLeft: 'மீட்க வேண்டிய முன்பணம்: {amount}',
+    frozenNote:
+      'இது ஏற்கனவே செலுத்தப்பட்டது, எனவே நீக்க முடியாது. சரிசெய்ய, வித்தியாசத்திற்கு புதிய பதிவைச் சேர்க்கவும்.',
+    companiesEmpty:
+      'நீங்கள் இன்னும் எந்த நிறுவனத்திலும் இல்லை. உங்கள் குழுவின் வருகை, சம்பளம், பில்களை ஒரே இடத்தில் வைக்க ஒன்றை உருவாக்குங்கள்.',
+    wagesPaidTag: 'கொடுத்தாயிற்று',
+    wagesSetPay: 'தொகை அமை',
     wagesSubtitle: 'உங்கள் குழுவுக்கு கணக்கிட்டு சம்பளம் கொடுங்கள்',
     wagesTeam: 'குழு',
     wagesWorkingDays: 'வேலை நாட்கள்',
@@ -20227,7 +20262,7 @@ const ta: UiStrings = {
     filterToPay: 'செலுத்த',
     filterToReview: 'சரிபார்க்க',
     search: 'விற்பனையாளரைத் தேடு',
-    emptyList: 'உங்கள் விற்பனையாளர்கள் இங்கே தோன்றுவர்.',
+    emptyList: 'இன்னும் விற்பனையாளர்கள் இல்லை.',
     noMatch: 'பொருந்தும் விற்பனையாளர் இல்லை.',
     statusOverdue: 'தாமதம்',
     statusToReview: 'சரிபார்க்க',
@@ -25750,7 +25785,8 @@ const hi: UiStrings = {
     leaveTypeName: 'नाम',
     leaveAccrual: 'प्रति माह दिन (0 से 5, आधा दिन ठीक)',
     leaveCarry: 'अगले साल में ले जाएँ',
-    leaveCarryHint: 'बचे हुए दिन अगले साल में जाते हैं। बंद होने पर 1 जनवरी को शून्य हो जाते हैं।',
+    leaveCarryHint:
+      'बचे हुए दिन अगले साल में जाते हैं। बंद होने पर नया छुट्टी वर्ष शुरू होते ही शून्य हो जाते हैं।',
     leaveCarryCap: 'अधिकतम आगे ले जाने वाले दिन',
     leaveAnnualCap: 'साल में अधिकतम मिलने वाले दिन',
     leaveNoLimit: 'कोई सीमा नहीं',
@@ -25760,6 +25796,7 @@ const hi: UiStrings = {
     leaveOverdrawHint: 'बंद: बैलेंस से ज़्यादा का अनुरोध मंज़ूर नहीं हो सकता।',
     leaveActive: 'उपयोग में',
     leaveParked: 'उपयोग में नहीं',
+    leaveNone: 'अभी कोई छुट्टी का प्रकार नहीं। मालिक यहाँ जोड़ सकते हैं।',
     leavePerMonth: '{n} प्रति माह',
     leaveCarries: 'आगे बढ़ती है',
     leaveResets: 'हर साल शून्य होती है',
@@ -27805,6 +27842,17 @@ const hi: UiStrings = {
     wagesRecord: '{n} को दें · {amount}',
     wagesDone: 'वेतन दर्ज हुआ',
     wagesNoTeam: 'पहले लोगों को जोड़ें।',
+    correctThis: 'सुधारें',
+    correctionNote: '{date} को दिए वेतन का सुधार',
+    wagesHistory: 'भुगतान इतिहास',
+    tilesHint: 'अग्रिम: आपको दिया गया पैसा। खर्च: काम के लिए आपने जो दिया, भत्ता।',
+    advanceLeft: 'वसूलना बाकी अग्रिम: {amount}',
+    frozenNote:
+      'यह पहले ही चुकाया जा चुका है, इसलिए हटाया नहीं जा सकता। सुधारने के लिए अंतर की नई एंट्री जोड़ें।',
+    companiesEmpty:
+      'आप अभी किसी कंपनी में नहीं हैं। टीम की हाज़िरी, वेतन और बिल एक जगह रखने के लिए एक बनाएँ।',
+    wagesPaidTag: 'दिया गया',
+    wagesSetPay: 'वेतन तय करें',
     wagesSubtitle: 'अपनी टीम का हिसाब करें और वेतन दें',
     wagesTeam: 'टीम',
     wagesWorkingDays: 'कार्य दिवस',
@@ -28607,7 +28655,7 @@ const hi: UiStrings = {
     filterToPay: 'चुकाना है',
     filterToReview: 'जांचना है',
     search: 'विक्रेता खोजें',
-    emptyList: 'आपके विक्रेता यहाँ दिखेंगे।',
+    emptyList: 'अभी कोई विक्रेता नहीं।',
     noMatch: 'कोई विक्रेता नहीं मिला।',
     statusOverdue: 'अतिदेय',
     statusToReview: 'जांचना है',
@@ -33956,7 +34004,8 @@ const ar: UiStrings = {
     leaveTypeName: 'الاسم',
     leaveAccrual: 'الأيام المكتسبة شهريًا (من 0 إلى 5، ونصف يوم مقبول)',
     leaveCarry: 'ترحيل إلى العام التالي',
-    leaveCarryHint: 'الأيام غير المستخدمة تنتقل إلى العام التالي. عند الإيقاف تُصفَّر في 1 يناير.',
+    leaveCarryHint:
+      'الأيام غير المستخدمة تنتقل إلى العام التالي. عند الإيقاف تُصفَّر عند بدء سنة الإجازة الجديدة.',
     leaveCarryCap: 'الحد الأقصى للأيام المرحّلة',
     leaveAnnualCap: 'الحد الأقصى للأيام المكتسبة سنويًا',
     leaveNoLimit: 'بلا حد',
@@ -33966,6 +34015,7 @@ const ar: UiStrings = {
     leaveOverdrawHint: 'متوقف: لا يمكن قبول طلب يتجاوز الرصيد.',
     leaveActive: 'قيد الاستخدام',
     leaveParked: 'غير مستخدم',
+    leaveNone: 'لا توجد أنواع إجازة بعد. يمكن للمالك إضافتها هنا.',
     leavePerMonth: '{n} في الشهر',
     leaveCarries: 'تُرحَّل',
     leaveResets: 'تُصفَّر كل عام',
@@ -36174,6 +36224,16 @@ const ar: UiStrings = {
     wagesRecord: 'ادفع لـ {n} · {amount}',
     wagesDone: 'تم تسجيل الأجور',
     wagesNoTeam: 'أضف أشخاصاً أولاً.',
+    correctThis: 'صحّح هذا',
+    correctionNote: 'تصحيح للأجر المدفوع في {date}',
+    wagesHistory: 'سجل الدفع',
+    tilesHint: 'السلف: مال أُعطي لك. المصروف: ما دفعته للعمل والبدل.',
+    advanceLeft: 'سلفة متبقية للاسترداد: {amount}',
+    frozenNote: 'تم دفع هذا بالفعل فلا يمكن حذفه. للتصحيح، أضف قيداً جديداً بالفرق.',
+    companiesEmpty:
+      'أنت لست في شركة بعد. أنشئ واحدة لتجمع حضور فريقك وأجوره وفواتيره في مكان واحد.',
+    wagesPaidTag: 'تم الدفع',
+    wagesSetPay: 'حدّد الأجر',
     wagesSubtitle: 'احسب وادفع لفريقك',
     wagesTeam: 'الفريق',
     wagesWorkingDays: 'أيام العمل',
@@ -36979,7 +37039,7 @@ const ar: UiStrings = {
     filterToPay: 'للدفع',
     filterToReview: 'للمراجعة',
     search: 'ابحث عن مورد',
-    emptyList: 'سيظهر مورّدوك هنا.',
+    emptyList: 'لا يوجد مورّدون بعد.',
     noMatch: 'لا يوجد مورّد مطابق.',
     statusOverdue: 'متأخر',
     statusToReview: 'للمراجعة',

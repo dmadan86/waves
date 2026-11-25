@@ -83,7 +83,14 @@ function CompanyEntryScreenInner() {
     member: memberParam,
     intro,
     kind: kindParam,
-  } = useLocalSearchParams<{ id: string; member?: string; intro?: string; kind?: string }>();
+    note: noteParam,
+  } = useLocalSearchParams<{
+    id: string;
+    member?: string;
+    intro?: string;
+    kind?: string;
+    note?: string;
+  }>();
   const groupId = id ?? '';
   const theme = useTheme();
   const clearance = useBottomClearance();
@@ -113,10 +120,11 @@ function CompanyEntryScreenInner() {
       : ['expense', 'allowance', 'advance', 'reimbursement']
     : ['expense', 'allowance'];
   // Inside a person's thread the first verb is giving money; anywhere else it is spending.
+  const fromParam = moneyKinds ? kinds.find((k) => k === kindParam) : undefined;
   const kind: CompanyEntryKind =
     (paidByCompany ? 'expense' : null) ??
     pickedKind ??
-    (moneyKinds && kindParam === 'advance' ? 'advance' : null) ??
+    fromParam ??
     (moneyKinds && memberParam && memberParam !== view.me?.id ? 'advance' : 'expense');
   const tags = useCompanyTags(groupId, view);
   // Nothing tapped yet: the tag this person uses most is already chosen.
@@ -135,7 +143,7 @@ function CompanyEntryScreenInner() {
   const [direction, setDirection] = useState<Direction>('company_to_employee');
   const [date, setDate] = useState(todayIso());
   const [pickingDate, setPickingDate] = useState(false);
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState(noteParam ?? '');
   const [error, setError] = useState<string | null>(null);
   const [photos, setPhotos] = useState<PickedImage[]>([]);
   const [mileage, setMileage] = useState(false);

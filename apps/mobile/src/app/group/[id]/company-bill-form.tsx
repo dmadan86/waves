@@ -781,12 +781,17 @@ function DocumentForm({
             ) : null}
           </View>
         ) : null}
-        {error ? (
-          <Text tone="negative" variant="caption">
-            {error}
-          </Text>
-        ) : null}
       </ScrollView>
+      {/* Pinned above the buttons so a failed Save is never hidden below the fold. */}
+      {error ? (
+        <Text
+          tone="negative"
+          variant="caption"
+          style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.xs }}
+        >
+          {error}
+        </Text>
+      ) : null}
       <View
         style={{
           flexDirection: 'row',
