@@ -13,13 +13,13 @@
  */
 
 import { useState } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from '@/lib/navigation';
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { format, money } from '@waves/core';
-import { Button, Callout, Card, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
+import { Button, Callout, Card, Row, Screen, Text, useTheme } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { todayIso } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
@@ -96,6 +96,7 @@ function AskScreenBody() {
 
   return (
     <Screen>
+      <PlainHeader title={s.title} />
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
@@ -106,15 +107,6 @@ function AskScreenBody() {
         showsVerticalScrollIndicator={false}
       >
         <View style={{ paddingTop: theme.spacing.sm, gap: theme.spacing.xs }}>
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <Ionicons name="sparkles-outline" size={iconSize.lg} color={theme.color.brand} />
-            <Text
-              accessibilityRole="header"
-              style={{ fontSize: 26, lineHeight: 32, fontWeight: '800' }}
-            >
-              {s.title}
-            </Text>
-          </Row>
           <Text tone="muted">{s.sub}</Text>
           <Text variant="caption" tone="muted">
             {fill(s.period, { from, to: today })}

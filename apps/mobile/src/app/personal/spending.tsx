@@ -35,6 +35,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import {
@@ -48,20 +49,14 @@ import {
   spentInMonth,
   type PersonalMonthSplit,
 } from '@waves/core';
-import {
-  directionalIcon,
-  EmptyState,
-  iconSize,
-  Row,
-  Screen,
-  Text,
-  Toggle,
-  useTheme,
-} from '@waves/ui';
+import { directionalIcon, Row, Screen, Text, Toggle, useTheme } from '@waves/ui';
 
 import { todayIso, usePersonalLedger } from '@/data/personal';
 import { useDefaultCurrency } from '@/lib/currency';
 import { fill, useStrings } from '@/i18n';
+import { EmptyStateCta } from '@/components/EmptyStateCta';
+import { router } from '@/lib/navigation';
+import { PlainHeader } from '@/components/standard';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
@@ -82,7 +77,11 @@ function SpendingScreenBody() {
   // columns harder to compare, which is the only thing a chart is for.
   const [thisMonth] = useState(() => todayIso().slice(0, 7));
   const months = useMemo(() => recentMonths(thisMonth, WINDOW), [thisMonth]);
-  const [month, setMonth] = useState(thisMonth);
+  // The dashboard's "See all" opens on the month its card showed, if it is in the window.
+  const { month: monthParam } = useLocalSearchParams<{ month?: string }>();
+  const [month, setMonth] = useState(() =>
+    typeof monthParam === 'string' && months.includes(monthParam) ? monthParam : thisMonth,
+  );
   const [includeBills, setIncludeBills] = useState(true);
 
   // No classifier yet: the recurring rules cannot say which of them are bills,
@@ -96,6 +95,11 @@ function SpendingScreenBody() {
     [txns, dc],
   );
 
+  const openMonth = (kind: 'income' | 'expense'): void =>
+    router.push({
+      pathname: '/personal/transactions',
+      params: { kind, month, currency: dc, ...(kind === 'expense' ? { loans: 'none' } : {}) },
+    });
   const index = months.indexOf(month);
   const fmt = (amount: bigint): string => format(money(amount, dc), { locale, trimZeros: true });
   const dcScale = minorUnitScale(dc);
@@ -106,6 +110,7 @@ function SpendingScreenBody() {
 
   return (
     <Screen>
+      <PlainHeader title={t.personal.nav.spending} />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
@@ -118,12 +123,6 @@ function SpendingScreenBody() {
             and the picture beside them. */}
         <View style={{ paddingTop: theme.spacing.sm, minHeight: 104 }}>
           <SpendingArt />
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <Ionicons name="pie-chart-outline" size={iconSize.lg} color={ink} />
-            <Text style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: ink }}>
-              {t.personal.nav.spending}
-            </Text>
-          </Row>
           <Text
             style={{
               marginTop: 2,
@@ -142,10 +141,13 @@ function SpendingScreenBody() {
           // reading nought look like a screen that failed to load; they also ask
           // for work without saying what the work is for.
           <View style={{ paddingTop: theme.spacing.xxl }}>
-            <EmptyState
+            <EmptyStateCta
               title={t.personal.spendingEmpty}
               body={t.personal.spendingEmptyBody}
-              icon={<Ionicons name="stats-chart" size={iconSize.jumbo} color={theme.color.brand} />}
+              action={t.personal.add}
+              onAdd={() =>
+                router.push({ pathname: '/personal/entry', params: { kind: 'expense' } })
+              }
             />
           </View>
         ) : (
@@ -235,6 +237,7 @@ function SpendingScreenBody() {
                 label={t.personal.income}
                 sub={t.personal.incomeSub}
                 amount={fmt(split.income)}
+                onPress={() => openMonth('income')}
               />
               <SplitRow
                 icon="document-text"
@@ -242,6 +245,7 @@ function SpendingScreenBody() {
                 label={t.personal.billsAndSubs}
                 sub={split.bills === 0n ? t.personal.noBillsMarked : t.personal.billsSub}
                 amount={fmt(split.bills)}
+                onPress={() => openMonth('expense')}
               />
               <SplitRow
                 icon="cart"
@@ -249,6 +253,7 @@ function SpendingScreenBody() {
                 label={t.personal.everyday}
                 sub={t.personal.everydaySub}
                 amount={fmt(split.spending)}
+                onPress={() => openMonth('expense')}
               />
 
               <View style={{ height: 1, backgroundColor: theme.color.border }} />
@@ -623,9 +628,7 @@ function IconDisc({
  * One line of the split: its glyph on a tinted disc, the name over a line on
  * what it is, and the money.
  *
- * Not tappable, and the chevron is left off rather than drawn dead: the entries
- * list has no filter to push into, and an affordance that does nothing is worse
- * than none at all.
+ * Tappable (with a chevron) when it has somewhere to go: the month's entries.
  */
 function SplitRow({
   icon,
@@ -633,17 +636,25 @@ function SplitRow({
   label,
   sub,
   amount,
+  onPress,
 }: {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   tint: { bg: string; ink: string };
   label: string;
   sub: string;
   amount: string;
+  onPress?: () => void;
 }) {
   const theme = useTheme();
   const dark = theme.scheme === 'dark';
   return (
-    <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+    <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={`${label}, ${amount}`}
+      disabled={!onPress}
+      onPress={onPress}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}
+    >
       <IconDisc icon={icon} color={tint.ink} soft={tint.bg} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
@@ -670,7 +681,14 @@ function SplitRow({
       >
         {amount}
       </Text>
-    </Row>
+      {onPress ? (
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={16}
+          color={dark ? theme.color.textMuted : SPEC_MUTED}
+        />
+      ) : null}
+    </Pressable>
   );
 }
 

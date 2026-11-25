@@ -155,6 +155,7 @@ function LoansScreenBody() {
             >
               {t.personal.noLoansBody}
             </Text>
+            <Button label={t.personal.addLoan} onPress={() => setCreating(true)} />
           </View>
         ) : (
           <>
@@ -380,6 +381,26 @@ function LoansScreenBody() {
                         {hidden ? '' : `${done.percent}%`}
                       </Text>
                     </Row>
+                    {done.amount > 0n ? (
+                      <Pressable
+                        accessibilityRole="link"
+                        accessibilityLabel={t.personal.seePayments}
+                        hitSlop={8}
+                        onPress={() =>
+                          router.push({
+                            pathname: '/personal/transactions',
+                            params: { loan: loan.id },
+                          })
+                        }
+                      >
+                        <Text
+                          variant="caption"
+                          style={{ color: theme.color.brand, fontWeight: '600' }}
+                        >
+                          {t.personal.seePayments}
+                        </Text>
+                      </Pressable>
+                    ) : null}
                     <View
                       accessible
                       accessibilityRole="progressbar"
@@ -554,6 +575,8 @@ function LoanEditor({
   const { confirm } = useDialog();
   const upsert = useUpsertPersonalRecord();
   const remove = useDeletePersonalRecord();
+  const { txns } = usePersonalLedger();
+  const payments = loan ? txns.filter((x) => x.loanId === loan.id).slice(0, 5) : [];
   const shareLoan = useShareLoan(loans);
   const unshare = useUnshareLoan();
   const [alsoShare, setAlsoShare] = useState(false);
@@ -914,6 +937,37 @@ function LoanEditor({
             {t.personal.save}
           </Text>
         </Pressable>
+
+        {payments.length > 0 ? (
+          <View style={{ gap: 2 }}>
+            <Text variant="caption" tone="muted">
+              {t.personal.payments}
+            </Text>
+            {payments.map((p) => (
+              <Pressable
+                key={p.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${p.date} ${format(money(p.amount, p.currency), { locale })}`}
+                onPress={() => {
+                  // Leave first: a sheet left over the pushed screen has to be dismissed twice.
+                  onClose();
+                  router.push({ pathname: '/personal/entry', params: { id: p.id } });
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  minHeight: 44,
+                }}
+              >
+                <Text variant="body">{p.date}</Text>
+                <Text variant="body" style={{ fontWeight: '700' }}>
+                  {format(money(p.amount, p.currency), { locale, trimZeros: true })}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
 
         {error ? (
           <Text variant="caption" style={{ color: theme.color.negative }}>

@@ -268,6 +268,11 @@ export function useWealthWrites() {
       return put('investment', id, encodeInvestment(rest));
     },
 
+    saveProperty: (prop: PersonalProperty) => {
+      const { id, ...rest } = prop;
+      return put('property', id, encodeProperty(rest));
+    },
+
     /** Money in (an expense entry) or out (an income entry) of one investment. */
     addEntry: (
       inv: PersonalInvestment,
