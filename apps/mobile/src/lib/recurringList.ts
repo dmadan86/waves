@@ -1,4 +1,9 @@
-import type { PersonalRecurring, PersonalTxn } from '@waves/core';
+import {
+  occurrences,
+  type Occurrence,
+  type PersonalRecurring,
+  type PersonalTxn,
+} from '@waves/core';
 
 import { monthlyEquivalent } from './personalSetup';
 
@@ -89,4 +94,21 @@ export function rulePayments(
     yearCount: year.length,
     yearTotal: year.reduce((sum, txn) => sum + txn.amount, 0n),
   };
+}
+
+/**
+ * Every period of a rule, oldest first: back `lookbackYears`, forward to the next
+ * due date. The end is not just today: a start date in the future, or a bill paid
+ * ahead of time, has its payment dated after today and must still show.
+ */
+export function ruleTimeline(
+  rule: PersonalRecurring,
+  txns: readonly PersonalTxn[],
+  today: string,
+  lookbackYears: number,
+): Occurrence[] {
+  const from = `${Number(today.slice(0, 4)) - lookbackYears}${today.slice(4, 7)}-01`;
+  let to = rule.nextDate > today ? rule.nextDate : today;
+  for (const txn of txns) if (txn.recurringId === rule.id && txn.date > to) to = txn.date;
+  return occurrences(rule, txns, { from, to }, today);
 }

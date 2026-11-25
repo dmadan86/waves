@@ -8960,6 +8960,7 @@ export interface UiStrings {
     everySince: string;
     seeHistory: string;
     yearSummary: string;
+    yearEntries: PluralForms;
     markedDone: string;
     startsOnHint: string;
     /**
@@ -17195,7 +17196,8 @@ const en: UiStrings = {
     ofExpected: 'of {amount}',
     everySince: 'Since {date}',
     seeHistory: 'History',
-    yearSummary: '{amount} this year · {n} entries',
+    yearSummary: '{amount} this year · {entries}',
+    yearEntries: { one: '{n} entry', other: '{n} entries' },
     markedDone: 'Done. Next one: {date}.',
     startsOnHint: 'The first one is due on this date. Pick an earlier date to see past months.',
     spendingSub:
@@ -25502,7 +25504,8 @@ const ta: UiStrings = {
     ofExpected: '{amount} இல்',
     everySince: '{date} முதல்',
     seeHistory: 'வரலாறு',
-    yearSummary: 'இந்த ஆண்டு {amount} · {n} பதிவுகள்',
+    yearSummary: 'இந்த ஆண்டு {amount} · {entries}',
+    yearEntries: { one: '{n} பதிவு', other: '{n} பதிவுகள்' },
     markedDone: 'முடிந்தது. அடுத்தது: {date}.',
     startsOnHint: 'முதலாவது இந்த நாளில் வரும். கடந்த மாதங்களைப் பார்க்க முந்தைய நாளைத் தேர்ந்தெடுக்கவும்.',
     spendingSub:
@@ -33629,7 +33632,8 @@ const hi: UiStrings = {
     ofExpected: '{amount} में से',
     everySince: '{date} से',
     seeHistory: 'इतिहास',
-    yearSummary: 'इस साल {amount} · {n} प्रविष्टियाँ',
+    yearSummary: 'इस साल {amount} · {entries}',
+    yearEntries: { one: '{n} प्रविष्टि', other: '{n} प्रविष्टियाँ' },
     markedDone: 'हो गया। अगला: {date}।',
     startsOnHint: 'पहला इसी तारीख़ को देय है। पिछले महीने देखने के लिए पहले की तारीख़ चुनें।',
     spendingSub:
@@ -42690,7 +42694,15 @@ const ar: UiStrings = {
     ofExpected: 'من {amount}',
     everySince: 'منذ {date}',
     seeHistory: 'السجل',
-    yearSummary: '{amount} هذه السنة · {n} إدخالات',
+    yearSummary: '{amount} هذه السنة · {entries}',
+    yearEntries: {
+      zero: 'لا إدخالات',
+      one: 'إدخال واحد',
+      two: 'إدخالان',
+      few: '{n} إدخالات',
+      many: '{n} إدخالًا',
+      other: '{n} إدخال',
+    },
     markedDone: 'تم. التالي: {date}.',
     startsOnHint: 'الأول يستحق في هذا التاريخ. اختر تاريخًا أسبق لترى الأشهر الماضية.',
     spendingSub:

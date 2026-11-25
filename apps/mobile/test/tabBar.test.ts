@@ -175,7 +175,7 @@ it.each([
   ['budgets', 'planning'],
   ['loans', 'planning'],
   ['entry', 'transactions'],
-  ['source', 'transactions'],
+  ['source', 'planning'],
 ])('highlights %s as %s', (screen, key) => {
   expect(personalActiveKey(['personal', screen, 'id'])).toBe(key);
 });
