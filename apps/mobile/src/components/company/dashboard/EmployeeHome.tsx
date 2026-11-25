@@ -34,7 +34,7 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
   const suspended = useCompanySuspended(groupId);
   const [leaveForm, setLeaveForm] = useState(false);
   const [dates, setDates] = useState(false);
-  const people = useCompanyPeople(groupId).data ?? [];
+  const people = useCompanyPeople(groupId, 'company').data ?? [];
   const fmt = useMoney(view.currency);
   const me = view.me;
   const boss =
