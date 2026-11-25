@@ -445,6 +445,9 @@ function HomeScreen() {
   const liveOwingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
   const owedGroups = showStale && stored ? stored.headline.owedGroups : liveOwedGroups;
   const owingGroups = showStale && stored ? stored.headline.owingGroups : liveOwingGroups;
+  // Any currency, not only the headline one: the action is about people, not a total.
+  const canRemind = showStale && stored ? stored.headline.owedGroups > 0 : list.some((g) => summary.balanceFor(g.id) > 0n);
+  const canSettle = showStale && stored ? stored.headline.owingGroups > 0 : list.some((g) => summary.balanceFor(g.id) < 0n);
 
   // Home's feed: the personal ledger (for Personal's tile and the bills that
   // need paying), the pooled groups' figures, and whether there is anything yet.
@@ -650,6 +653,10 @@ function HomeScreen() {
                   onReview={() => router.navigate('/captures')}
                   onScan={() => router.push(`/capture?scan=${Date.now()}`)}
                   onRemind={() => switchTab('/(tabs)/friends')}
+                  // Remind only makes sense when somebody owes you; otherwise
+                  // the slot offers joining a group, which a new person can use.
+                  onJoin={canRemind ? undefined : () => router.push('/scan?mode=paste')}
+                  canSettle={canSettle}
                   radius={theme.radius.xl}
                 />
               }

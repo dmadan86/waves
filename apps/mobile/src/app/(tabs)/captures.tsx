@@ -2208,14 +2208,14 @@ function CapturesScreen() {
       <ReviewHero>
         <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
           <Ionicons name="file-tray-full-outline" size={iconSize.xl} color={theme.color.onBrand} />
-          <Text
-            variant="title"
-            tone="onBrand"
-            numberOfLines={1}
-            style={{ flex: 1, fontWeight: '800' }}
-          >
-            {t.captures.title}
-          </Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text variant="title" tone="onBrand" numberOfLines={1} style={{ fontWeight: '800' }}>
+              {t.captures.title}
+            </Text>
+            <Text variant="caption" tone="onBrand" numberOfLines={1} style={{ opacity: 0.85 }}>
+              {t.captures.heroSubtitle}
+            </Text>
+          </View>
           {/* The hero's two round buttons, where a phone reads its own
               messages: search goes straight to Bank messages, which is
               where this screen's real search field already lives

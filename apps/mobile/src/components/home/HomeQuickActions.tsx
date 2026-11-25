@@ -37,6 +37,7 @@ export function HomeQuickActions({
   onScan,
   onRemind,
   onJoin,
+  canSettle = true,
   radius,
 }: {
   onAddExpense: () => void;
@@ -49,6 +50,8 @@ export function HomeQuickActions({
   onRemind: () => void;
   /** All groups: Join group takes Remind's place (join by code or QR). */
   onJoin?: () => void;
+  /** False when you owe nobody: Settle up would open an empty list. */
+  canSettle?: boolean;
   /** The card's corner radius, which the strip's bottom corners follow. */
   radius: number;
 }) {
@@ -70,7 +73,7 @@ export function HomeQuickActions({
   const balance = credits.data?.credits;
   const creditAction = homeCreditsAction(balance, credits.data?.costs.voice);
 
-  const actions: QuickAction[] = [
+  const actions = ([
     {
       key: 'scan',
       label: t.scanBill,
@@ -99,12 +102,14 @@ export function HomeQuickActions({
           glyph: (color) => <Ionicons name="file-tray-full-outline" size={28} color={color} />,
           onPress: onReview,
         }
-      : {
-          key: 'settle',
-          label: t.homeDash.settleUp,
-          glyph: (color) => <Ionicons name="cash-outline" size={28} color={color} />,
-          onPress: onSettleUp,
-        },
+      : canSettle
+        ? {
+            key: 'settle',
+            label: t.homeDash.settleUp,
+            glyph: (color) => <Ionicons name="cash-outline" size={28} color={color} />,
+            onPress: onSettleUp,
+          }
+        : null,
     ...(viewerId && !isPaid
       ? [
           {
@@ -127,7 +132,7 @@ export function HomeQuickActions({
       onLongPress: onAddExpenseLong,
       tourId: 'addExpense',
     },
-  ];
+  ] as (QuickAction | null)[]).filter((a): a is QuickAction => a !== null);
 
   return (
     <>

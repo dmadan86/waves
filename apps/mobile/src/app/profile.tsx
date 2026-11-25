@@ -6,7 +6,7 @@ import { showCreditsRow } from '@/lib/adCreditsPure';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { AppState, ScrollView, View } from 'react-native';
+import { AppState, Linking, ScrollView, View } from 'react-native';
 
 import {
   Badge,
@@ -75,6 +75,8 @@ function updateSource(s: { builtIn: string; overTheAir: string }): string | unde
   if (!updates?.isEnabled) return undefined;
   return updates.isEmbeddedLaunch === false ? s.overTheAir : s.builtIn;
 }
+
+const SUPPORT_EMAIL = 'hello@wavs.co.in';
 
 export default function ProfileScreen() {
   const { profile, profileSettled, reloadProfile } = useAuth();
@@ -404,6 +406,7 @@ function ProfileForm() {
             {
               icon: 'watch-outline',
               label: t.recent.title,
+              hint: t.recent.watchHint,
               route: '/settings/recent',
             },
           ]}
@@ -484,6 +487,12 @@ function ProfileForm() {
               icon: 'chatbubble-ellipses-outline',
               label: t.privacy.feedbackRow,
               route: '/settings/feedback',
+            },
+            {
+              icon: 'mail-outline',
+              label: t.account.contactUs,
+              hint: SUPPORT_EMAIL,
+              onPress: () => void Linking.openURL(`mailto:${SUPPORT_EMAIL}`).catch(() => undefined),
             },
             {
               icon: 'document-text-outline',
