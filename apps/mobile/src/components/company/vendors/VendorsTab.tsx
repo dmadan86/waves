@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { TextInput, View } from 'react-native';
 
 import { filterVendorRows, vendorDashboard, type VendorFilter, type VendorRow } from '@waves/core';
-import { Text, useTheme } from '@waves/ui';
+import { Button, Text, useTheme } from '@waves/ui';
 
 import { RowMenu, StatTiles } from '@/components/company/listParts';
 import { useVendorFormat } from '@/components/company/vendors/parts';
@@ -114,7 +114,15 @@ export function VendorsTab({ groupId }: { groupId: string }) {
       </View>
       <StandardCard>
         {rows.length === 0 ? (
-          <Text tone="muted">{dash.rows.length === 0 ? s.emptyList : s.noMatch}</Text>
+          <View style={{ gap: theme.spacing.sm, alignItems: 'flex-start' }}>
+            <Text tone="muted">{dash.rows.length === 0 ? s.emptyList : s.noMatch}</Text>
+            {dash.rows.length === 0 && raw.canManage ? (
+              <Button
+                label={s.addVendor.replace(/^\+\s*/, '')}
+                onPress={() => router.push(`/group/${groupId}/company-vendor-add`)}
+              />
+            ) : null}
+          </View>
         ) : (
           rows.map((row, index) => (
             <VendorRowView

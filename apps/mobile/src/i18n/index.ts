@@ -312,6 +312,7 @@ export interface UiStrings {
     leaveOverdrawHint: string;
     leaveActive: string;
     leaveParked: string;
+    leaveNone: string;
     leavePerMonth: string;
     leaveCarries: string;
     leaveResets: string;
@@ -2423,6 +2424,11 @@ export interface UiStrings {
     wagesRecord: string;
     wagesDone: string;
     wagesNoTeam: string;
+    correctThis: string;
+    correctionNote: string;
+    wagesHistory: string;
+    tilesHint: string;
+    advanceLeft: string;
     frozenNote: string;
     companiesEmpty: string;
     wagesPaidTag: string;
@@ -9112,6 +9118,7 @@ const en: UiStrings = {
     leaveOverdrawHint: 'Off: a request beyond the balance cannot be approved.',
     leaveActive: 'In use',
     leaveParked: 'Not in use',
+    leaveNone: 'No leave types yet. The owner can add them here.',
     leavePerMonth: '{n} a month',
     leaveCarries: 'carries forward',
     leaveResets: 'resets every year',
@@ -11162,6 +11169,11 @@ const en: UiStrings = {
     wagesRecord: 'Pay {n} · {amount}',
     wagesDone: 'Wages recorded',
     wagesNoTeam: 'Add people first.',
+    correctThis: 'Correct this',
+    correctionNote: 'Correction for wages paid on {date}',
+    wagesHistory: 'Pay history',
+    tilesHint: 'Advances: money given to you. Spent: what you paid for work and bata.',
+    advanceLeft: 'Advance left to recover: {amount}',
     frozenNote:
       'This is already paid, so it cannot be removed. To fix it, add a new entry for the difference.',
     companiesEmpty:
@@ -11970,7 +11982,7 @@ const en: UiStrings = {
     filterToPay: 'To pay',
     filterToReview: 'To review',
     search: 'Search vendors',
-    emptyList: 'No vendors yet. Use the ⋮ menu to add your first one.',
+    emptyList: 'No vendors yet.',
     noMatch: 'No vendors match.',
     statusOverdue: 'Overdue',
     statusToReview: 'To review',
@@ -17289,6 +17301,7 @@ const ta: UiStrings = {
     leaveOverdrawHint: 'அணைத்தால்: இருப்புக்கு மேல் கேட்கும் கோரிக்கையை ஏற்க முடியாது.',
     leaveActive: 'பயன்பாட்டில்',
     leaveParked: 'பயன்பாட்டில் இல்லை',
+    leaveNone: 'இன்னும் விடுப்பு வகைகள் இல்லை. உரிமையாளர் இங்கே சேர்க்கலாம்.',
     leavePerMonth: 'மாதம் {n}',
     leaveCarries: 'எடுத்துச் செல்லும்',
     leaveResets: 'ஆண்டுதோறும் மீட்டமையும்',
@@ -19368,6 +19381,11 @@ const ta: UiStrings = {
     wagesRecord: '{n} பேருக்கு · {amount}',
     wagesDone: 'சம்பளம் பதிவானது',
     wagesNoTeam: 'முதலில் ஆட்களைச் சேர்க்கவும்.',
+    correctThis: 'சரிசெய்',
+    correctionNote: '{date} அன்று கொடுத்த சம்பளத்திற்கான திருத்தம்',
+    wagesHistory: 'கொடுத்த வரலாறு',
+    tilesHint: 'முன்பணம்: உங்களுக்குக் கொடுத்த பணம். செலவு: வேலைக்காக நீங்கள் கொடுத்தது, பத்தா.',
+    advanceLeft: 'மீட்க வேண்டிய முன்பணம்: {amount}',
     frozenNote:
       'இது ஏற்கனவே செலுத்தப்பட்டது, எனவே நீக்க முடியாது. சரிசெய்ய, வித்தியாசத்திற்கு புதிய பதிவைச் சேர்க்கவும்.',
     companiesEmpty:
@@ -20180,7 +20198,7 @@ const ta: UiStrings = {
     filterToPay: 'செலுத்த',
     filterToReview: 'சரிபார்க்க',
     search: 'விற்பனையாளரைத் தேடு',
-    emptyList: 'இன்னும் விற்பனையாளர்கள் இல்லை. ⋮ மெனுவில் முதல் நபரைச் சேர்க்கவும்.',
+    emptyList: 'இன்னும் விற்பனையாளர்கள் இல்லை.',
     noMatch: 'பொருந்தும் விற்பனையாளர் இல்லை.',
     statusOverdue: 'தாமதம்',
     statusToReview: 'சரிபார்க்க',
@@ -25686,6 +25704,7 @@ const hi: UiStrings = {
     leaveOverdrawHint: 'बंद: बैलेंस से ज़्यादा का अनुरोध मंज़ूर नहीं हो सकता।',
     leaveActive: 'उपयोग में',
     leaveParked: 'उपयोग में नहीं',
+    leaveNone: 'अभी कोई छुट्टी का प्रकार नहीं। मालिक यहाँ जोड़ सकते हैं।',
     leavePerMonth: '{n} प्रति माह',
     leaveCarries: 'आगे बढ़ती है',
     leaveResets: 'हर साल शून्य होती है',
@@ -27728,6 +27747,11 @@ const hi: UiStrings = {
     wagesRecord: '{n} को दें · {amount}',
     wagesDone: 'वेतन दर्ज हुआ',
     wagesNoTeam: 'पहले लोगों को जोड़ें।',
+    correctThis: 'सुधारें',
+    correctionNote: '{date} को दिए वेतन का सुधार',
+    wagesHistory: 'भुगतान इतिहास',
+    tilesHint: 'अग्रिम: आपको दिया गया पैसा। खर्च: काम के लिए आपने जो दिया, भत्ता।',
+    advanceLeft: 'वसूलना बाकी अग्रिम: {amount}',
     frozenNote:
       'यह पहले ही चुकाया जा चुका है, इसलिए हटाया नहीं जा सकता। सुधारने के लिए अंतर की नई एंट्री जोड़ें।',
     companiesEmpty:
@@ -28536,7 +28560,7 @@ const hi: UiStrings = {
     filterToPay: 'चुकाना है',
     filterToReview: 'जांचना है',
     search: 'विक्रेता खोजें',
-    emptyList: 'अभी कोई विक्रेता नहीं। ⋮ मेन्यू से पहला जोड़ें।',
+    emptyList: 'अभी कोई विक्रेता नहीं।',
     noMatch: 'कोई विक्रेता नहीं मिला।',
     statusOverdue: 'अतिदेय',
     statusToReview: 'जांचना है',
@@ -33868,6 +33892,7 @@ const ar: UiStrings = {
     leaveOverdrawHint: 'متوقف: لا يمكن قبول طلب يتجاوز الرصيد.',
     leaveActive: 'قيد الاستخدام',
     leaveParked: 'غير مستخدم',
+    leaveNone: 'لا توجد أنواع إجازة بعد. يمكن للمالك إضافتها هنا.',
     leavePerMonth: '{n} في الشهر',
     leaveCarries: 'تُرحَّل',
     leaveResets: 'تُصفَّر كل عام',
@@ -36073,6 +36098,11 @@ const ar: UiStrings = {
     wagesRecord: 'ادفع لـ {n} · {amount}',
     wagesDone: 'تم تسجيل الأجور',
     wagesNoTeam: 'أضف أشخاصاً أولاً.',
+    correctThis: 'صحّح هذا',
+    correctionNote: 'تصحيح للأجر المدفوع في {date}',
+    wagesHistory: 'سجل الدفع',
+    tilesHint: 'السلف: مال أُعطي لك. المصروف: ما دفعته للعمل والبدل.',
+    advanceLeft: 'سلفة متبقية للاسترداد: {amount}',
     frozenNote: 'تم دفع هذا بالفعل فلا يمكن حذفه. للتصحيح، أضف قيداً جديداً بالفرق.',
     companiesEmpty:
       'أنت لست في شركة بعد. أنشئ واحدة لتجمع حضور فريقك وأجوره وفواتيره في مكان واحد.',
@@ -36883,7 +36913,7 @@ const ar: UiStrings = {
     filterToPay: 'للدفع',
     filterToReview: 'للمراجعة',
     search: 'ابحث عن مورد',
-    emptyList: 'لا يوجد مورّدون بعد. أضف أول مورّد من قائمة ⋮.',
+    emptyList: 'لا يوجد مورّدون بعد.',
     noMatch: 'لا يوجد مورّد مطابق.',
     statusOverdue: 'متأخر',
     statusToReview: 'للمراجعة',

@@ -48,6 +48,11 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
       : null;
     return {
       advances: st?.totals.advances ?? 0n,
+      advanceLeft: st
+        ? st.totals.advances > st.totals.wageRecovery
+          ? st.totals.advances - st.totals.wageRecovery
+          : 0n
+        : 0n,
       spent: (st?.totals.expenses ?? 0n) + (st?.totals.allowance ?? 0n),
       wages: mine
         .filter(
@@ -81,28 +86,40 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
               {t.company.welcomeEmployee}
             </Text>
           ) : null}
-          <StandardCard style={{ flexDirection: 'row', gap: theme.spacing.md }}>
-            {(
-              [
-                [t.company.advancesLabel, sums.advances],
-                [t.company.spentLabel, sums.spent],
-                [t.company.wagesThisMonth, sums.wages],
-              ] as const
-            ).map(([label, value]) => (
-              <View key={label} style={{ flex: 1 }}>
-                <Text variant="micro" tone="muted" numberOfLines={2}>
-                  {label}
+          <StandardCard style={{ gap: theme.spacing.sm }}>
+            <View style={{ flexDirection: 'row', gap: theme.spacing.md }}>
+              {(
+                [
+                  [t.company.advancesLabel, sums.advances],
+                  [t.company.spentLabel, sums.spent],
+                  [t.company.wagesThisMonth, sums.wages],
+                ] as const
+              ).map(([label, value]) => (
+                <View key={label} style={{ flex: 1 }}>
+                  <Text variant="micro" tone="muted" numberOfLines={2}>
+                    {label}
+                  </Text>
+                  <Text
+                    variant="body"
+                    style={{ fontWeight: '700' }}
+                    adjustsFontSizeToFit
+                    numberOfLines={1}
+                  >
+                    {fmt(value)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <View style={{ gap: 2 }}>
+              <Text variant="micro" tone="muted">
+                {t.company.tilesHint}
+              </Text>
+              {sums.advanceLeft > 0n ? (
+                <Text variant="caption" style={{ fontWeight: '600' }}>
+                  {fill(t.company.advanceLeft, { amount: fmt(sums.advanceLeft) })}
                 </Text>
-                <Text
-                  variant="body"
-                  style={{ fontWeight: '700' }}
-                  adjustsFontSizeToFit
-                  numberOfLines={1}
-                >
-                  {fmt(value)}
-                </Text>
-              </View>
-            ))}
+              ) : null}
+            </View>
           </StandardCard>
           <MyWorkTodayCard groupId={groupId} />
           <LeaveBalanceCard groupId={groupId} memberId={me?.id ?? null} />

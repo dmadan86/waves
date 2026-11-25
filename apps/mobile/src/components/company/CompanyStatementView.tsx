@@ -253,9 +253,16 @@ export function CompanyStatementView({
   const history = (
     <View style={{ gap: theme.spacing.sm }}>
       {bubbles.length === 0 ? (
-        <Text variant="caption" tone="muted" align="center">
-          {t.company.threadEmpty}
-        </Text>
+        <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          <Text variant="caption" tone="muted" align="center">
+            {t.company.threadEmpty}
+          </Text>
+          <Button
+            label={t.company.addEntry}
+            variant="secondary"
+            onPress={() => router.push(`/group/${groupId}/company-entry?member=${member.id}`)}
+          />
+        </View>
       ) : (
         bubbles.map(({ entry, running }) => (
           <Bubble
@@ -566,9 +573,16 @@ export function CompanyStatementView({
       ) : null}
 
       {bubbles.length === 0 ? (
-        <Text variant="caption" tone="muted" align="center">
-          {t.company.threadEmpty}
-        </Text>
+        <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          <Text variant="caption" tone="muted" align="center">
+            {t.company.threadEmpty}
+          </Text>
+          <Button
+            label={t.company.addEntry}
+            variant="secondary"
+            onPress={() => router.push(`/group/${groupId}/company-entry?member=${member.id}`)}
+          />
+        </View>
       ) : (
         <View style={{ gap: theme.spacing.sm }}>
           {bubbles.map(({ entry, running }) => (

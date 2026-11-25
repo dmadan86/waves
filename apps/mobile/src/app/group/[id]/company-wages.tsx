@@ -146,7 +146,10 @@ function CompanyWagesScreenInner() {
   const runId = useRef(randomUUID());
 
   const people = view.members.filter(
-    (m) => !m.left_at && view.manageableIds.has(m.id) && m.role === 'member',
+    (m) =>
+      !m.left_at &&
+      view.manageableIds.has(m.id) &&
+      (m.role === 'member' || (m.role === 'manager' && !!m.daily_rate_minor)),
   );
   const rateOf = (memberId: string): bigint => {
     const m = people.find((p) => p.id === memberId);
@@ -654,6 +657,19 @@ function CompanyWagesScreenInner() {
                       </View>
                       {isOpen ? (
                         <View style={{ gap: theme.spacing.sm, paddingTop: theme.spacing.sm }}>
+                          <Pressable
+                            accessibilityRole="link"
+                            onPress={() =>
+                              router.push(`/group/${groupId}/company-statement?member=${m.id}`)
+                            }
+                          >
+                            <Text
+                              variant="caption"
+                              style={{ color: theme.color.brand, fontWeight: '600' }}
+                            >
+                              {t.company.wagesHistory}
+                            </Text>
+                          </Pressable>
                           {line ? (
                             <Text variant="caption" tone="muted" numberOfLines={2}>
                               {[
