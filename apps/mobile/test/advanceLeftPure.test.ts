@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { advanceLeft } from './advanceLeftPure';
+import { advanceLeft } from '../src/lib/advanceLeftPure';
 
 describe('advanceLeft', () => {
   it('subtracts wage recovery and returned cash', () => {
