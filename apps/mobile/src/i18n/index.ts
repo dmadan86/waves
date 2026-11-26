@@ -6477,6 +6477,8 @@ export interface UiStrings {
     /** "Created by Asha" / "Edited by Ravi" — the head of one audit entry. */
     createdByName: string;
     editedByName: string;
+    /** Calm notice to the person whose offline edit was replaced by a later one. */
+    replacedEdit: string;
     /** What others did since the reader last opened the group (highlighted rows). */
     fresh: {
       new: string;
@@ -14815,6 +14817,7 @@ const en: UiStrings = {
     note: 'Note',
     createdByName: 'Created by {name}',
     editedByName: 'Edited by {name}',
+    replacedEdit: '{name} changed this bill after your edit. Your version is saved in its history.',
     fresh: {
       new: 'New',
       edited: 'Edited',
@@ -23096,6 +23099,7 @@ const ta: UiStrings = {
     note: 'குறிப்பு',
     createdByName: '{name} உருவாக்கியது',
     editedByName: '{name} திருத்தியது',
+    replacedEdit: 'உங்கள் திருத்தத்திற்குப் பிறகு {name} இந்தக் கணக்கை மாற்றினார். உங்கள் பதிப்பு வரலாற்றில் உள்ளது.',
     fresh: {
       new: 'புதியது',
       edited: 'திருத்தியது',
@@ -31330,6 +31334,7 @@ const hi: UiStrings = {
     note: 'नोट',
     createdByName: '{name} ने बनाया',
     editedByName: '{name} ने बदला',
+    replacedEdit: 'आपके बदलाव के बाद {name} ने यह बिल बदला। आपका संस्करण इतिहास में सहेजा है।',
     fresh: {
       new: 'नया',
       edited: 'बदला',
@@ -39933,6 +39938,7 @@ const ar: UiStrings = {
     note: 'ملاحظة',
     createdByName: 'أنشأها {name}',
     editedByName: 'عدّلها {name}',
+    replacedEdit: 'غيّر {name} هذه الفاتورة بعد تعديلك. نسختك محفوظة في السجل.',
     fresh: {
       new: 'جديد',
       edited: 'معدّل',

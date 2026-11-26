@@ -65,3 +65,30 @@ export function newMarksSince(
   }
   return out;
 }
+
+/** The slice of an activity row {@link replacedEditNotice} reads. */
+export interface ReplacedLogRow extends NewLogRow {
+  payload?: Record<string, unknown> | null;
+}
+
+/**
+ * Two phones edited the same bill offline: the later one wins and the earlier
+ * one stays in the history (ADR-005), logged as a `superseded` row naming whose
+ * edit it replaced. The person who lost has to be told — otherwise their change
+ * just vanishes. Returns who replaced it, or null when the reader's edit stands.
+ */
+export function replacedEditNotice(
+  rows: readonly ReplacedLogRow[],
+  expenseId: string,
+  isMine: (memberId: string) => boolean,
+): { byMemberId: string | null } | null {
+  let latest: ReplacedLogRow | null = null;
+  for (const row of rows) {
+    if (row.verb !== 'superseded' || row.object_id !== expenseId) continue;
+    const loser = row.payload?.supersededAuthorMemberId;
+    if (typeof loser !== 'string' || !isMine(loser)) continue;
+    if (row.actor_member_id && isMine(row.actor_member_id)) continue; // my own other phone
+    if (!latest || Date.parse(row.created_at) > Date.parse(latest.created_at)) latest = row;
+  }
+  return latest ? { byMemberId: latest.actor_member_id } : null;
+}

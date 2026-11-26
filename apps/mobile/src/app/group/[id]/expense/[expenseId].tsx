@@ -72,7 +72,7 @@ import { useViewerId } from '@/lib/auth';
 import { expenseReceiptPath, expenseReceiptUrl } from '@/data/api';
 import { mapsUrl } from '@/lib/location';
 import { useBottomClearance } from '@/lib/clearance';
-import { newMarksSince, type NewMark } from '@/lib/groupNew';
+import { newMarksSince, replacedEditNotice, type NewMark } from '@/lib/groupNew';
 import { useGroupBaseline } from '@/lib/useGroupUnread';
 import { NewPill } from '@/components/NewMark';
 import { UNREAD_GREEN } from '@/components/UnreadDot';
@@ -360,6 +360,12 @@ function ExpenseDetailScreen() {
     if (!current || !before || before === current) return new Set();
     return new Set(diffExpenseVersions(before, current, myMemberId).map((c) => c.field));
   }, [mark?.kind, lastSeenAt, versions.data, myMemberId]);
+  const replaced = useMemo(() => {
+    const mine = new Set(
+      (everyone.data ?? []).filter((m) => isViewer(m, viewerId)).map((m) => String(m.id)),
+    );
+    return replacedEditNotice(activity.data ?? [], expenseId ?? '', (mid) => mine.has(mid));
+  }, [activity.data, everyone.data, viewerId, expenseId]);
   const markLabel = !mark
     ? null
     : mark.byMemberId
@@ -705,6 +711,13 @@ function ExpenseDetailScreen() {
               {deleted ? <Badge label={t.expense.deleted} tone="negative" /> : null}
             </Row>
             {markLabel ? <NewPill label={markLabel} onDark /> : null}
+            {replaced ? (
+              <Text variant="micro" tone="onBrand">
+                {fill(t.expense.replacedEdit, {
+                  name: replaced.byMemberId ? nameOf(replaced.byMemberId) : t.misc.someone,
+                })}
+              </Text>
+            ) : null}
             <View
               style={{
                 flexDirection: 'row',
