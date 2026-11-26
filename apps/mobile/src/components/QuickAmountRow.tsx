@@ -28,6 +28,7 @@ import { AmountField, Row, Text, useTheme } from '@waves/ui';
 
 import { flagFor } from '@/components/expense/AmountHeader';
 import { useStrings } from '@/i18n';
+import { quickChipLabel } from '@/lib/quickExpense';
 import { quickAdds } from '@/lib/amountStep';
 
 export function QuickAmountRow({
@@ -45,7 +46,7 @@ export function QuickAmountRow({
   const theme = useTheme();
   const soft = theme.color.brandSoft;
   const accent = theme.color.brand;
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const flag = flagFor(currency);
 
   return (
@@ -132,7 +133,7 @@ export function QuickAmountRow({
               adjustsFontSizeToFit
               minimumFontScale={0.7}
             >
-              {`+${formatMinorInput(add, currency)}`}
+              {quickChipLabel(add, currency, locale)}
             </Text>
           </Pressable>
         ))}

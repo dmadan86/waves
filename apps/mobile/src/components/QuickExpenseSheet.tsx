@@ -394,35 +394,40 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
             <Ionicons name="wallet-outline" size={22} color={accent} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text variant="title">{t.quickExpense.title}</Text>
-            <Text variant="caption" tone="muted">
+            <Row style={{ alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <Text variant="title" numberOfLines={1} style={{ flexShrink: 1 }}>
+                {t.quickExpense.title}
+              </Text>
+              {/* The escape hatch, a pill rather than a text link — it carries the
+                same weight as the destination and category pills beside it now
+                that the sheet has more than one row of them. */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.quickExpense.advancedLong}
+                onPress={handOff}
+                hitSlop={8}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 2,
+                  minHeight: 34,
+                  paddingHorizontal: 14,
+                  borderRadius: theme.radius.sm,
+                  backgroundColor: soft,
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '700', color: accent }}>
+                  {t.quickExpense.advanced}
+                </Text>
+                <Ionicons name="chevron-forward" size={14} color={accent} />
+              </Pressable>
+            </Row>
+            {/* Under the title and the pill both, so it has the sheet's width. */}
+            <Text variant="caption" tone="muted" numberOfLines={1}>
               {t.quickExpense.subtitle}
             </Text>
           </View>
-          {/* The escape hatch, a pill rather than a text link — it carries the
-              same weight as the destination and category pills beside it now
-              that the sheet has more than one row of them. */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.quickExpense.advancedLong}
-            onPress={handOff}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 2,
-              minHeight: 34,
-              paddingHorizontal: 14,
-              borderRadius: theme.radius.sm,
-              backgroundColor: soft,
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Text style={{ fontSize: 13, fontWeight: '700', color: accent }}>
-              {t.quickExpense.advanced}
-            </Text>
-            <Ionicons name="chevron-forward" size={14} color={accent} />
-          </Pressable>
         </Row>
 
         <QuickAmountRow

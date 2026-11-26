@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { defaultDestination, quickSummary } from '../src/lib/quickExpense';
+import { defaultDestination, quickChipLabel, quickSummary } from '../src/lib/quickExpense';
 import { quickAdds } from '../src/lib/amountStep';
 
 describe('quick expense rules', () => {
@@ -19,5 +19,15 @@ describe('quick expense rules', () => {
   it('scales the chips to the currency', () => {
     expect(quickAdds(0n, 'INR')).toEqual([500n, 1000n, 5000n, 10000n]);
     expect(quickAdds(0n, 'JPY').every((add) => add > 0n)).toBe(true);
+  });
+});
+
+describe('quickChipLabel', () => {
+  it('prints symbol first with no decimals on whole amounts', () => {
+    expect(quickChipLabel(500n, 'INR', 'en-IN')).toBe('+₹5');
+    expect(quickChipLabel(10000n, 'INR', 'en-IN')).toBe('+₹100');
+    expect(quickChipLabel(500n, 'USD', 'en-US')).toBe('+$5');
+    expect(quickChipLabel(50n, 'JPY', 'en-US')).toMatch(/^\+.*50$/);
+    expect(quickChipLabel(50n, 'JPY', 'en-US')).not.toContain('.');
   });
 });
