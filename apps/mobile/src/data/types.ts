@@ -392,6 +392,20 @@ export interface ActivityRow {
  * Matched on profile id rather than member id: the cross-group feed spans
  * groups, and the same person holds a different member id in each one.
  */
+/**
+ * What the viewer is called to themselves, in the language on screen. A module
+ * value because `displayName` and `actorName` are called from well over a
+ * hundred places that have no strings in hand; `LanguageProvider` is its one
+ * writer.
+ */
+let youLabel = 'You';
+export function setYouLabel(label: string): void {
+  youLabel = label;
+}
+export function getYouLabel(): string {
+  return youLabel;
+}
+
 export function actorName(
   actor: ActivityActor | null | undefined,
   myProfileId: string | null,
@@ -399,7 +413,7 @@ export function actorName(
   someoneLabel = 'Someone',
 ): string {
   if (!actor) return someoneLabel;
-  if (myProfileId && actor.profile_id === myProfileId) return 'You';
+  if (myProfileId && actor.profile_id === myProfileId) return youLabel;
   // A blocked person is shown as the anonymous ghost everywhere they surface —
   // the feed included — never their real name. Never applied to yourself.
   if (actor.profile_id && blocked?.has(actor.profile_id)) return someoneLabel;
@@ -429,7 +443,7 @@ export function displayName(
   blocked?: ReadonlySet<string> | null,
   someoneLabel = 'Someone',
 ): string {
-  if (member.profile_id && member.profile_id === myProfileId) return 'You';
+  if (member.profile_id && member.profile_id === myProfileId) return youLabel;
   if (member.profile_id && blocked?.has(member.profile_id)) return someoneLabel;
   const name = (member.profile?.display_name ?? member.ghost_name ?? '')
     // Private-use glyphs (e.g. U+F8FF from iOS contacts) render as junk on Android.

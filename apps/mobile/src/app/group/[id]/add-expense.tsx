@@ -37,6 +37,7 @@ import {
   unitsFromSnapshot,
   subEventsForTemplate,
   validatePayers,
+  isAmountWithinLimit,
   type CategoryMeta,
   type CurrencyCode,
   type ExpenseLocation,
@@ -110,7 +111,7 @@ import { useCreateGroupRecurring } from '@/data/groupRecurring';
 import { frequencyLabel } from '@/lib/frequencyLabel';
 import { reportHandled } from '@/lib/observability';
 import { useAssignCapture, useGroup, useGroupFxRates, useSetGroupFxRate } from '@/data/hooks';
-import { displayName, groupLabel, isViewer } from '@/data/types';
+import { displayName, getYouLabel, groupLabel, isViewer } from '@/data/types';
 import { GroupNotFound } from '@/components/GroupNotFound';
 import { fill, plural, useStrings } from '@/i18n';
 import { isQueuedOffline, saveToastText } from '@/lib/saveToast';
@@ -613,7 +614,7 @@ function AddExpenseScreen() {
     () =>
       (members.data ?? [])
         .map((member) => displayName(member, viewerId))
-        .filter((name) => name !== 'You' && name !== 'Someone'),
+        .filter((name) => name !== getYouLabel() && name !== 'Someone'),
     [members.data, viewerId],
   );
   /** Every payee on this group's live expenses, newest first, for suggestions. */
@@ -1993,7 +1994,7 @@ function AddExpenseScreen() {
   const payerMessage = payerIssueFor({ amount, payers, currency }, t.expense, locale);
 
   const saveHint =
-    amount === 0n
+    amount === 0n || !isAmountWithinLimit(amount)
       ? t.expense.saveNeedsAmount
       : participants.length === 0
         ? t.expense.saveNeedsWho
@@ -2002,6 +2003,7 @@ function AddExpenseScreen() {
           payerMessage;
   const canSave =
     amount > 0n &&
+    isAmountWithinLimit(amount) &&
     participants.length > 0 &&
     preview !== null &&
     splitIssue === null &&
@@ -2224,14 +2226,16 @@ function AddExpenseScreen() {
                     <Ionicons name="camera-outline" size={iconSize.lg} color={theme.color.brand} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text variant="subheading" numberOfLines={1}>
+                    {/* No line limit: a long Tamil title was cut mid-glyph; the row
+                        simply grows a line. */}
+                    <Text variant="subheading">
                       {capLocked
                         ? t.expense.addPhoto
                         : scanning
                           ? t.expense.reading
                           : t.expense.scanReceipt}
                     </Text>
-                    <Text variant="caption" tone="muted" numberOfLines={1}>
+                    <Text variant="caption" tone="muted">
                       {capLocked ? t.expense.capReachedBody : t.captureForm.receiptSub}
                     </Text>
                   </View>

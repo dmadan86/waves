@@ -97,3 +97,30 @@ export function formatMinorInput(minor: bigint, currency: CurrencyCode): string 
   if (exponent === 0) return whole;
   return `${whole}.${(abs % scale).toString().padStart(exponent, '0')}`;
 }
+
+/**
+ * The largest amount any one money field accepts, in minor units (1,000,000,000
+ * rupees; the voice agent has always refused more than this). A figure past it
+ * is a slip of the thumb, and a 14-digit bill wrecks every balance it touches.
+ */
+export const MAX_AMOUNT_MINOR = 100_000_000_000n;
+
+export function isAmountWithinLimit(minor: bigint): boolean {
+  return minor >= 0n && minor <= MAX_AMOUNT_MINOR;
+}
+
+/**
+ * A field that reports each keystroke to a parent gets its own values handed
+ * back a render or more later. Typing fast, the echo of "9" arrives after "99"
+ * was already sent, and treating it as news from elsewhere rewrote the field
+ * to "9.00" mid-word. `pending` is what the field has sent and not yet seen
+ * come back (oldest first); an echo that is in it is the field's own, and
+ * everything up to it is settled. Anything else came from somewhere else.
+ */
+export function reconcileAmountEcho(
+  pending: readonly bigint[],
+  value: bigint,
+): { echo: boolean; pending: bigint[] } {
+  const at = pending.indexOf(value);
+  return at === -1 ? { echo: false, pending: [] } : { echo: true, pending: pending.slice(at + 1) };
+}

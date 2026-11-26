@@ -128,10 +128,12 @@ export async function watchGate(
   running = true;
   try {
     const current = await readGateStatus(profileId).catch(() => null);
-    if (!current?.enabled) {
-      if (!current) logAdEvent(profileId, placement, 'offline_allowed', 'status');
-      return 'bypass' as const;
+    // No answer is not "no ads": a gate that cannot read its status stays shut.
+    if (!current) {
+      logAdEvent(profileId, placement, 'failed');
+      return 'failed' as const;
     }
+    if (!current.enabled) return 'bypass' as const;
     if (!canShow()) return 'bypass' as const;
     const deps = defaultRewardedAdDeps();
     const result = await runGateAd(

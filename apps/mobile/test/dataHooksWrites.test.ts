@@ -16,6 +16,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MutationKind, SyncTable, categoryTagsScope } from '@waves/core';
 
 import {
+  memberRow,
   mirrorOf,
   query,
   render,
@@ -151,6 +152,7 @@ describe('groups', () => {
         country: null,
         creatorMemberId: 'uuid-2',
         creatorProfileId: 'p-me',
+        creatorName: null,
       },
     ]);
   });
@@ -403,6 +405,16 @@ describe('expenses', () => {
   });
 });
 
+describe('invalidateGroup', () => {
+  it('also refreshes expense histories once the flush is done', async () => {
+    hooks.invalidateGroup(query.client as never, 'g-1');
+    await vi.waitFor(() =>
+      expect(query.client.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['expense'] }),
+    );
+    expect(query.client.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['group', 'g-1'] });
+  });
+});
+
 describe('settlements', () => {
   it('useRecordSettlement queues decimal strings and a stable settlement id', async () => {
     const record = mutation<Record<string, unknown>>(() => hooks.useRecordSettlement('g-1'));
@@ -452,6 +464,45 @@ describe('settlements', () => {
       note: null,
       allocations: [],
     });
+  });
+
+  it('a payment recorded by the person receiving it is confirmed straight away', async () => {
+    sync.mirror = mirrorOf({
+      [SyncTable.GroupMembers]: [
+        memberRow('m-me', 'g-1', 'p-me'),
+        memberRow('m-bob', 'g-1', 'p-bob'),
+      ],
+    });
+    const record = mutation<Record<string, unknown>>(() => hooks.useRecordSettlement('g-1'));
+    await record.mutationFn({
+      groupId: 'g-1',
+      fromMemberId: 'm-bob',
+      toMemberId: 'm-me',
+      amount: 100n,
+      rail: 'cash',
+    });
+    expect(sync.mutate.mock.calls.map((call) => [call[0], call[2]])).toEqual([
+      [MutationKind.SettlementCreate, expect.objectContaining({ settlementId: 'uuid-1' })],
+      [MutationKind.SettlementTransition, { settlementId: 'uuid-1', to: 'confirmed' }],
+    ]);
+  });
+
+  it('a payment recorded by the payer waits for the receiver', async () => {
+    sync.mirror = mirrorOf({
+      [SyncTable.GroupMembers]: [
+        memberRow('m-me', 'g-1', 'p-me'),
+        memberRow('m-bob', 'g-1', 'p-bob'),
+      ],
+    });
+    const record = mutation<Record<string, unknown>>(() => hooks.useRecordSettlement('g-1'));
+    await record.mutationFn({
+      groupId: 'g-1',
+      fromMemberId: 'm-me',
+      toMemberId: 'm-bob',
+      amount: 100n,
+      rail: 'cash',
+    });
+    expect(onlyMutate()[0]).toBe(MutationKind.SettlementCreate);
   });
 
   it('confirm, cancel and dispute are one transition each', async () => {

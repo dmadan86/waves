@@ -66,13 +66,14 @@ export function decideGate(i: {
   localGroups: number;
   credits: number;
   cost?: number;
-  passesUsed: number;
-}): 'allow' | 'use_credit' | 'offline_pass' | 'offline_capped' | 'ask' {
+}): 'allow' | 'use_credit' | 'ask' | 'offline_capped' {
   if (i.paid) return 'allow';
-  if (i.online)
+  if (i.online && i.required !== null)
     return i.required !== true ? 'allow' : i.credits >= (i.cost ?? 6) ? 'use_credit' : 'ask';
+  // Fail closed: past the free groups, an unreadable status or no network never
+  // lets the action through; the only way on is a watched ad.
   if (i.placement === 'group_create_rewarded' && i.localGroups < FREE_GROUPS) return 'allow';
-  return i.passesUsed < PASS_CAP ? 'offline_pass' : 'offline_capped';
+  return i.online ? 'ask' : 'offline_capped';
 }
 export function declineOffer(l: AdLedger, now: number): AdLedger {
   const hw = effectiveNow(l, now);
@@ -90,8 +91,7 @@ export function shouldOfferCredit(
     return 'none';
   return !i.online || i.offeredThisSession || i.busy ? 'wait' : 'offer';
 }
-export type FailureClass = 'offline' | 'blocked' | 'nofill_allow' | 'retry';
-export const NOFILL_ALLOW_AFTER = 3;
+export type FailureClass = 'offline' | 'blocked' | 'retry';
 export const isNoFill = (failure: string) => /no-fill|timeout|mediation-no-fill/i.test(failure);
 const sinkhole = (s: string) =>
   /(?:^|[^\d.])(?:0\.0\.0\.0|127\.0\.0\.1)(?=$|[^\d.])|\[::\]|(?:^|[^\w:])::(?=$|[^\w:])|unable to resolve host/i.test(
@@ -112,7 +112,7 @@ export function classifyFailure(i: {
     i.adHostReachable !== true
   )
     return 'blocked';
-  return isNoFill(i.failure) && i.noFillStreak >= NOFILL_ALLOW_AFTER ? 'nofill_allow' : 'retry';
+  return 'retry';
 }
 export function shouldProbeAdHost(i: {
   online: boolean;

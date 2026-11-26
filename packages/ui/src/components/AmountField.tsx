@@ -4,8 +4,10 @@ import { Pressable, TextInput } from 'react-native';
 import {
   currencySymbol,
   formatMinorInput,
+  isAmountWithinLimit,
   minorUnitExponent,
   parseMinorInput,
+  reconcileAmountEcho,
   sanitiseMinorInput,
   type CurrencyCode,
 } from '@waves/core';
@@ -124,13 +126,21 @@ export function AmountField({
   // saying the other thing.
   const emitted = useRef<{ value: bigint; currency: CurrencyCode }>({ value, currency });
 
+  // What this field has sent up and not yet seen come back. A fast typist's
+  // "9" echoes after "99" was sent; that is still our own, not an outside change.
+  const pending = useRef<bigint[]>([]);
+
   useEffect(() => {
-    if (value !== emitted.current.value || currency !== emitted.current.currency) {
-      emitted.current = { value, currency };
-      // Called rather than `format`, which is rebuilt every render and would
-      // put the effect's own identity in its dependency list.
-      setText(formatMinorInput(value, currency));
+    const echo = reconcileAmountEcho(pending.current, value);
+    if (currency === emitted.current.currency && (echo.echo || value === emitted.current.value)) {
+      pending.current = echo.pending;
+      return;
     }
+    pending.current = [];
+    emitted.current = { value, currency };
+    // Called rather than `format`, which is rebuilt every render and would
+    // put the effect's own identity in its dependency list.
+    setText(formatMinorInput(value, currency));
   }, [value, currency]);
 
   /**
@@ -157,8 +167,11 @@ export function AmountField({
 
   const onType = (raw: string): void => {
     const cleaned = sanitiseMinorInput(raw, currency);
-    setText(cleaned);
     const minor = toMinor(cleaned);
+    // Past the limit the keystroke is refused: the field keeps what it had.
+    if (!isAmountWithinLimit(minor)) return;
+    setText(cleaned);
+    pending.current.push(minor);
     emitted.current = { value: minor, currency };
     onChange(minor);
   };

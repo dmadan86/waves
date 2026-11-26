@@ -1,3 +1,5 @@
+import { balanceDirection, type BalanceDirection } from '@waves/core';
+
 import type { PersonDebts } from './debtsByPerson';
 import type { PlanTransfer } from './settlePlan';
 
@@ -27,4 +29,13 @@ export function memberBalanceStatus(balance: bigint, viewer: boolean, owesViewer
   if (balance === 0n) return 'balanceSettled' as const;
   if (balance > 0n) return 'balanceIsOwed' as const;
   return owesViewer && !viewer ? ('balanceOwesYou' as const) : ('balanceOwes' as const);
+}
+
+/**
+ * Which way a member's balance runs for the person looking. A member's balance
+ * is theirs (positive = they are owed), but `BalanceDirection` is the viewer's
+ * ("owed to you"), so another person's row is read flipped.
+ */
+export function directionForViewer(balance: bigint, isViewerRow: boolean): BalanceDirection {
+  return balanceDirection(isViewerRow ? balance : -balance);
 }

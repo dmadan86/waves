@@ -35,8 +35,7 @@ it('orders paid, free action, online wallet, then ad; offline never spends', () 
   expect(decideGate({ ...gate, required: false, credits: 6 })).toBe('allow');
   expect(decideGate({ ...gate, credits: 6 })).toBe('use_credit');
   expect(decideGate({ ...gate, credits: 5 })).toBe('ask');
-  expect(decideGate({ ...gate, credits: 30, online: false })).toBe('offline_pass');
-  expect(decideGate({ ...gate, credits: 30, online: false, passesUsed: 2 })).toBe('offline_capped');
+  expect(decideGate({ ...gate, credits: 30, online: false })).toBe('offline_capped');
   expect(decideGate({ ...gate, credits: 2, cost: 2 })).toBe('use_credit');
 });
 it('missing or malformed spend RPC results fail open without throwing', () => {

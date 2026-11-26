@@ -46,7 +46,6 @@ it.each(['error', 'null', 'throw'])(
         placement: 'export_rewarded',
         localGroups: 1,
         credits: status?.credits ?? 0,
-        passesUsed: 0,
       }),
     ).toBe('ask');
     expect(await spendCredits('export')).toBeNull();

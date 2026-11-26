@@ -35,7 +35,13 @@ import { DetailRow } from '@/components/DetailRows';
 import { DescriptionField } from '@/components/expense/DescriptionField';
 import { ChoiceRow } from '@/components/expense/SheetOverlay';
 import { SplitKindChips, SplitParticipants } from '@/components/expense/SplitEditor';
-import { displayName, isGhost, type ExpenseVersionRow, type MemberRow } from '@/data/types';
+import {
+  displayName,
+  getYouLabel,
+  isGhost,
+  type ExpenseVersionRow,
+  type MemberRow,
+} from '@/data/types';
 import { plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import {
@@ -286,7 +292,7 @@ export function ExpenseFieldSheet({
 
   const nameHints = members
     .map((member) => displayName(member, viewerId))
-    .filter((name) => name !== 'You' && name !== 'Someone');
+    .filter((name) => name !== getYouLabel() && name !== 'Someone');
 
   const title =
     field === 'amount'

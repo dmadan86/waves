@@ -64,6 +64,7 @@ import { addPickedBatch } from '@/lib/addPickedBatch';
 import { classifyDepartedExpenses } from '@/lib/departedExpenses';
 import { syncEngine } from '@/sync';
 import { friendlyError } from '@/lib/errors';
+import { isLastMember } from '@/lib/leaveGroup';
 import { removeMemberBody } from '@/data/removeMemberConfirm';
 import { groupDeleteWarning, orderDebtsForWarning } from '@/lib/groupDeleteWarning';
 import { normaliseGroupDescription } from '@/lib/groupDescription';
@@ -557,6 +558,8 @@ function GroupSettingsScreen() {
     (row) => row.status !== SettlementStatus.Cancelled,
   ).length;
 
+  const lastMember = isLastMember(members.data ?? []);
+
   const leaveNow = async (): Promise<boolean> => {
     if (!ledger.myMemberId || leaveGroup.isPending) return false;
     setStatus(null);
@@ -581,7 +584,7 @@ function GroupSettingsScreen() {
     }
     await confirm({
       title: t.group.leaveQuestion,
-      body: t.group.leaveBody,
+      body: lastMember ? t.group.leaveLastBody : t.group.leaveBody,
       confirmLabel: t.group.leave,
       tone: 'danger',
       onConfirm: leaveNow,
