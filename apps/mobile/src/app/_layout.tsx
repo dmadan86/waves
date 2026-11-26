@@ -94,6 +94,7 @@ import { RecentCountProvider } from '@/lib/recentCount';
 import { WatchBridgeProvider } from '@/lib/watch/bridge';
 import { QuickShortcutRouting, QuickShortcutsMenu } from '@/components/QuickShortcuts';
 import { DemoGateHost } from '@/components/demo/DemoGateHost';
+import { GroupRemovedNotice } from '@/lib/GroupRemovedNotice';
 import { PendingInviteResume } from '@/lib/PendingInviteResume';
 import { PendingReferralClaim } from '@/lib/PendingReferralClaim';
 import { TourProvider } from '@/lib/tour';
@@ -319,6 +320,8 @@ function RootLayout() {
                                       invite before they had an account back to it once
                                       they have one, and the join finishes there. */}
                                         <PendingInviteResume />
+                                        {/* Renders nothing: tells a person an admin removed, and leaves that group. */}
+                                        <GroupRemovedNotice />
                                         {/* Renders nothing: claims a friend's referral code once
                                       there is a real account to claim it for. */}
                                         <PendingReferralClaim />

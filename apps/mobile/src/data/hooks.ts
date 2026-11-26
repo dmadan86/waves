@@ -97,6 +97,7 @@ import {
 } from '@/lib/smsDraftRouting';
 import { mergeCaptureLists } from '@/lib/smsLocalDrafts';
 import { syncEngine, useLastSyncedAt, useSync } from '@/sync';
+import { GROUP_REALTIME_TABLES } from '@/lib/groupRealtimeTables';
 import {
   createGroup,
   deleteGroup,
@@ -1788,31 +1789,17 @@ export function useGroupRealtime(groupId: string): void {
     // The demo group has no server rows to watch.
     if (!groupId || isDemoGroupId(groupId)) return;
 
-    const channel = backend
-      .channel(`group:${groupId}:${++realtimeChannelSeq}`)
-      .on(
+    let channel = backend.channel(`group:${groupId}:${++realtimeChannelSeq}`);
+    // expense_versions/payers/shares have no group_id column to filter on;
+    // the rows below always change alongside them, so this stays cheap.
+    for (const table of GROUP_REALTIME_TABLES) {
+      channel = channel.on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'expenses', filter: `group_id=eq.${groupId}` },
+        { event: '*', schema: 'public', table, filter: `group_id=eq.${groupId}` },
         () => invalidateGroup(queryClient, groupId),
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'settlements', filter: `group_id=eq.${groupId}` },
-        () => invalidateGroup(queryClient, groupId),
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'group_members', filter: `group_id=eq.${groupId}` },
-        () => invalidateGroup(queryClient, groupId),
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'activity_log', filter: `group_id=eq.${groupId}` },
-        () => invalidateGroup(queryClient, groupId),
-      )
-      // expense_versions/payers/shares have no group_id column to filter on;
-      // the rows above always change alongside them, so this stays cheap.
-      .subscribe();
+      );
+    }
+    channel.subscribe();
 
     return () => {
       void backend.removeChannel(channel);

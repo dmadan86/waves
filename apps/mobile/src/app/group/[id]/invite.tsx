@@ -31,14 +31,16 @@ import {
   useScreenClearance,
 } from '@waves/ui';
 
-import { ensureGroupJoinToken, groupJoinLink } from '@/data/api';
+import { ensureGroupJoinToken, groupJoinLink, resetGroupJoinToken } from '@/data/api';
+import { offerNewInviteLink } from '@/lib/inviteLink';
+import { useDialog } from '@/lib/dialog';
 import { requestDemoGate } from '@/demo/gateStore';
 import { isDemoGroupId } from '@/demo/ids';
 import { friendlyError } from '@/lib/errors';
 import { useGroup } from '@/data/hooks';
 import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
-import { displayName, groupLabel, isGhost } from '@/data/types';
+import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
 import { useAuth } from '@/lib/auth';
 import { fill, plural, useStrings } from '@/i18n';
 import { InviteQr } from '@/components/invite/InviteQr';
@@ -96,6 +98,7 @@ function InviteScreenInner() {
   const { group, members } = useGroup(groupId);
   const { profile } = useAuth();
   const { flush } = useSync();
+  const { confirm } = useDialog();
 
   // The token from the mirror is authoritative; `ensured` is the value ensure/
   // reset just returned, held so the QR appears the instant the RPC replies
@@ -147,6 +150,24 @@ function InviteScreenInner() {
     void Promise.resolve().then(() => ensure());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group.isLoading, group.data, groupId]);
+
+  const iAmAdmin = (members.data ?? []).some(
+    (member) => isViewer(member, profile?.id) && member.role === 'admin' && !member.left_at,
+  );
+  const newLink = async (): Promise<void> => {
+    if (!(await confirm({ title: t.people.newLinkConfirm, confirmLabel: t.people.newLink })))
+      return;
+    setBusy(true);
+    setError(null);
+    try {
+      setEnsured(await resetGroupJoinToken(groupId));
+      void flush();
+    } catch (caught) {
+      setError(friendlyError(caught, t.couldNotSave, 'invite.reset'));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const label = groupLabel(group.data, members.data ?? [], profile?.id);
   const message = t.people.shareMessage.replace('{group}', label).replace('{link}', link ?? '');
@@ -556,6 +577,15 @@ function InviteScreenInner() {
             <Text variant="micro" tone="muted" align="center" numberOfLines={2}>
               {fill(t.people.inviteTrust, { group: label })}
             </Text>
+            {offerNewInviteLink(members.data ?? [], iAmAdmin) ? (
+              <Button
+                label={t.people.newLink}
+                variant="ghost"
+                fullWidth
+                disabled={busy}
+                onPress={() => void newLink()}
+              />
+            ) : null}
           </>
         ) : error ? (
           // Minting failed — a retry, not a first step.

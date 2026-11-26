@@ -959,6 +959,7 @@ describe('useGroupRealtime', () => {
       'settlements',
       'group_members',
       'activity_log',
+      'expense_comments',
     ]);
     expect(new Set(channel.handlers.map((h) => h.filter.filter))).toEqual(
       new Set(['group_id=eq.g-1']),

@@ -2292,12 +2292,28 @@ const keepDaysAgo = (_span: unknown, after: string): boolean => /^\s*days?\s+ago
  * expense goes, not what it was for, even when the sentence did not settle on
  * that group. Whole multi-word names only: a one-word group may be a real note.
  */
-function withoutGroupNames(note: string, groups: readonly VoiceGroupRef[]): string {
+function withoutGroupNames(
+  note: string,
+  groups: readonly VoiceGroupRef[],
+  digitNamesOnly = false,
+): string {
   let out = note;
   for (const group of groups) {
     const words = tokenize(group.name ?? '');
-    if (words.length < 2) continue;
-    const name = words.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+');
+    // Said glued, the intent reader already routes it by name.
+    if (digitNamesOnly && out.toLowerCase().includes((group.name ?? '').toLowerCase())) continue;
+    // A name with digits ("QA2dev26NovB") is never a note, and its digits must not be read as money.
+    if (
+      digitNamesOnly
+        ? !/\d/.test(group.name ?? '')
+        : words.length < 2 && !/\d/.test(group.name ?? '')
+    )
+      continue;
+    // A name with digits may be heard with spaces anywhere ("QA 2 dev 26 Nov B").
+    const esc = (part: string): string => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const name = /\d/.test(group.name ?? '')
+      ? Array.from(words.join('')).map(esc).join('\\s*')
+      : words.map(esc).join('\\s+');
     out = out.replace(new RegExp(`(?<![\\p{L}\\p{N}])${name}(?![\\p{L}\\p{N}])`, 'giu'), ' ');
   }
   return out === note ? note : out.replace(/\s{2,}/g, ' ').trim();
@@ -2360,7 +2376,8 @@ export function parseVoiceExpenses(
 
   // The date is read before the non-money numbers are hidden; everything after
   // reads the masked sentence, so "on the 5th" or "at 7" is never an amount.
-  const unmasked = normalizeTranscript(transcript);
+  // A group's own digits ("QA 2 dev 26 Nov B") are not money or a date: lifted before masking.
+  const unmasked = withoutGroupNames(normalizeTranscript(transcript), groups, true);
   const normalized = maskNonMoneyNumbers(unmasked, keepDaysAgo);
   const created = detectCreateGroup(normalized);
 
@@ -2453,7 +2470,7 @@ export function parseVoiceExpenses(
   // explicit group beats it. When it does apply, the marker is lifted from the
   // working text so it never lands in a note or gets read as a split.
   const personal = group === null && isSelfOnlyVoiceIntent(body);
-  const workBody = personal ? stripSelfOnlyPhrase(body) : body;
+  const workBody = withoutGroupNames(personal ? stripSelfOnlyPhrase(body) : body, groups);
 
   // The currency of the group this lands in — named, or the one the mic was
   // opened in — so a bare "dollars" in an Australian group is AUD.

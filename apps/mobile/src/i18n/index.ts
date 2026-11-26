@@ -6154,6 +6154,9 @@ export interface UiStrings {
     /** The clipboard item on the invite screen's share row. */
     copyLink: string;
     createLink: string;
+    /** Admin button after someone was removed: their old link no longer lets them back in. */
+    newLink: string;
+    newLinkConfirm: string;
     expires: string;
     usesBadge: string;
     shareMessage: string;
@@ -6477,6 +6480,8 @@ export interface UiStrings {
     /** "Created by Asha" / "Edited by Ravi" — the head of one audit entry. */
     createdByName: string;
     editedByName: string;
+    /** Calm notice to the person whose offline edit was replaced by a later one. */
+    replacedEdit: string;
     /** What others did since the reader last opened the group (highlighted rows). */
     fresh: {
       new: string;
@@ -6705,6 +6710,8 @@ export interface UiStrings {
     /** The server refused a guest join (an older screen, or a race). */
     joinAccountRequired: string;
     joinRemoved: string;
+    /** Calm line when an admin removed you and the group left this phone. */
+    removedFromGroup: string;
     fromYourContacts: string;
     continueWith: string;
     noAddress: string;
@@ -14568,6 +14575,9 @@ const en: UiStrings = {
     shareAnotherWay: 'Share another way',
     copyLink: 'Copy link',
     createLink: 'Create an invite link',
+    newLink: 'Create a new link',
+    newLinkConfirm:
+      'Create a new link? The old link stops working. Use it to invite back someone you removed.',
     expires: 'expires {when}',
     usesBadge: '{count} uses',
     shareMessage: 'Join {group} on Waves to split expenses together. Tap to join: {link}',
@@ -14815,6 +14825,7 @@ const en: UiStrings = {
     note: 'Note',
     createdByName: 'Created by {name}',
     editedByName: 'Edited by {name}',
+    replacedEdit: '{name} changed this bill after your edit. Your version is saved in its history.',
     fresh: {
       new: 'New',
       edited: 'Edited',
@@ -15017,6 +15028,7 @@ const en: UiStrings = {
     joinAccountRequired:
       'You need an account to join this group. Sign up or log in, then open the link again.',
     joinRemoved: 'You were removed from this group. Ask an admin for a new invite.',
+    removedFromGroup: 'You are no longer in {group}.',
     fromYourContacts: 'From your contacts',
     continueWith: 'Continue with',
     noAddress: 'No address',
@@ -22847,6 +22859,9 @@ const ta: UiStrings = {
     shareAnotherWay: 'வேறு வழியில் பகிர்',
     copyLink: 'இணைப்பை நகலெடு',
     createLink: 'அழைப்பு இணைப்பை உருவாக்கு',
+    newLink: 'புதிய இணைப்பை உருவாக்கு',
+    newLinkConfirm:
+      'புதிய இணைப்பை உருவாக்கவா? பழைய இணைப்பு வேலை செய்யாது. நீக்கிய ஒருவரை மீண்டும் அழைக்க இதைப் பயன்படுத்துங்கள்.',
     expires: '{when} க்கு காலாவதி',
     usesBadge: '{count} பயன்பாடுகள்',
     shareMessage: 'செலவுகளை ஒன்றாகப் பிரிக்க Waves-ல் {group} குழுவில் சேரவும். சேர தட்டவும்: {link}',
@@ -23096,6 +23111,8 @@ const ta: UiStrings = {
     note: 'குறிப்பு',
     createdByName: '{name} உருவாக்கியது',
     editedByName: '{name} திருத்தியது',
+    replacedEdit:
+      'உங்கள் திருத்தத்திற்குப் பிறகு {name} இந்தக் கணக்கை மாற்றினார். உங்கள் பதிப்பு வரலாற்றில் உள்ளது.',
     fresh: {
       new: 'புதியது',
       edited: 'திருத்தியது',
@@ -23453,6 +23470,7 @@ const ta: UiStrings = {
       'இந்தப் பதிப்பால் இனி Waves-உடன் தொடர்பு கொள்ள முடியாது, எனவே தவறாக இருக்கக்கூடிய எண்களைக் காட்டுவதற்குப் பதிலாக அது நிறுத்தப்பட்டுள்ளது.',
     newWavesOut: 'புதிய Waves வெளியாகிவிட்டது',
     wavesVersionOut: 'Waves {latest} கிடைக்கிறது',
+    removedFromGroup: 'நீங்கள் இனி {group} குழுவில் இல்லை.',
   },
   smsImport: {
     heroTitle: 'பணப்பரிமாற்றங்களை விரைவாகச் சேருங்கள்',
@@ -31085,6 +31103,9 @@ const hi: UiStrings = {
     shareAnotherWay: 'किसी और तरीके से साझा करें',
     copyLink: 'लिंक कॉपी करें',
     createLink: 'निमंत्रण लिंक बनाएँ',
+    newLink: 'नया लिंक बनाएँ',
+    newLinkConfirm:
+      'नया लिंक बनाएँ? पुराना लिंक काम नहीं करेगा। हटाए गए व्यक्ति को वापस बुलाने के लिए इसका इस्तेमाल करें।',
     expires: '{when} को खत्म',
     usesBadge: '{count} उपयोग',
     shareMessage: 'साथ मिलकर खर्च बाँटने के लिए Waves पर {group} में शामिल हों। जुड़ने के लिए टैप करें: {link}',
@@ -31330,6 +31351,7 @@ const hi: UiStrings = {
     note: 'नोट',
     createdByName: '{name} ने बनाया',
     editedByName: '{name} ने बदला',
+    replacedEdit: 'आपके बदलाव के बाद {name} ने यह बिल बदला। आपका संस्करण इतिहास में सहेजा है।',
     fresh: {
       new: 'नया',
       edited: 'बदला',
@@ -31669,6 +31691,7 @@ const hi: UiStrings = {
       'यह संस्करण अब Waves से बात नहीं कर सकता, इसलिए ग़लत आँकड़े दिखाने के बजाय इसे रोक दिया गया है।',
     newWavesOut: 'नया Waves आ गया है',
     wavesVersionOut: 'Waves {latest} उपलब्ध है',
+    removedFromGroup: 'आप अब {group} में नहीं हैं।',
   },
   smsImport: {
     heroTitle: 'भुगतान झटपट जोड़ें',
@@ -39648,6 +39671,8 @@ const ar: UiStrings = {
     shareAnotherWay: 'شارك بطريقة أخرى',
     copyLink: 'نسخ الرابط',
     createLink: 'أنشئ رابط دعوة',
+    newLink: 'أنشئ رابطًا جديدًا',
+    newLinkConfirm: 'إنشاء رابط جديد؟ سيتوقف الرابط القديم. استخدمه لدعوة شخص أزلته مرة أخرى.',
     expires: 'ينتهي {when}',
     usesBadge: '{count} استخدامات',
     shareMessage: 'انضم إلى {group} على Waves لتقسيم المصروفات معًا. اضغط للانضمام: {link}',
@@ -39933,6 +39958,7 @@ const ar: UiStrings = {
     note: 'ملاحظة',
     createdByName: 'أنشأها {name}',
     editedByName: 'عدّلها {name}',
+    replacedEdit: 'غيّر {name} هذه الفاتورة بعد تعديلك. نسختك محفوظة في السجل.',
     fresh: {
       new: 'جديد',
       edited: 'معدّل',
@@ -40298,6 +40324,7 @@ const ar: UiStrings = {
       'لم يعد بإمكان هذه النسخة التواصل مع Waves، لذا أُوقفت بدلًا من أن تعرض عليك أرقامًا قد تكون خاطئة.',
     newWavesOut: 'صدر إصدار جديد من Waves',
     wavesVersionOut: 'Waves {latest} متاح',
+    removedFromGroup: 'لم تعد في {group}.',
   },
   smsImport: {
     heroTitle: 'أضف المدفوعات بسرعة',
