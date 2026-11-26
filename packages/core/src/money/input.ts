@@ -28,7 +28,23 @@ import { minorUnitExponent, minorUnitScale, type CurrencyCode } from './currency
  */
 export function sanitiseMinorInput(raw: string, currency: CurrencyCode): string {
   const exponent = minorUnitExponent(currency);
-  let cleaned = raw.replace(/[^0-9.]/g, '');
+  const value = raw.replace(/[^0-9.,]/g, '');
+  const comma = value.lastIndexOf(',');
+  const dot = value.lastIndexOf('.');
+  let normalized = value;
+  if (comma >= 0 && dot >= 0) {
+    const decimal = comma > dot ? ',' : '.';
+    normalized = value.replace(/[.,]/g, (separator, index) =>
+      separator === decimal && index === (decimal === ',' ? comma : dot) ? '.' : '',
+    );
+  } else if (comma >= 0) {
+    const tail = value.length - comma - 1;
+    normalized =
+      exponent > 0 && tail >= 1 && tail <= 2
+        ? value.slice(0, comma).replace(/,/g, '') + '.' + value.slice(comma + 1)
+        : value.replace(/,/g, '');
+  }
+  let cleaned = normalized.replace(/[^0-9.]/g, '');
 
   if (exponent === 0) {
     return cleaned.replace(/\./g, '').replace(/^0+(?=\d)/, '');

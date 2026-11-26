@@ -71,6 +71,14 @@ describe('parseMinorInput', () => {
     expect(parseMinorInput('0.07', 'INR')).toBe(7n);
   });
 
+  it('accepts decimal commas and common grouped number formats', () => {
+    expect(parseMinorInput('12,50', 'INR')).toBe(1250n);
+    expect(parseMinorInput('1.234,50', 'INR')).toBe(123450n);
+    expect(parseMinorInput('1,234.50', 'INR')).toBe(123450n);
+    expect(parseMinorInput('1,23,456.50', 'INR')).toBe(12_345_650n);
+    expect(parseMinorInput('₹ 1 234', 'INR')).toBe(123400n);
+  });
+
   it('reads a currency with no minor unit as whole units', () => {
     expect(parseMinorInput('1000', 'JPY')).toBe(1000n);
   });

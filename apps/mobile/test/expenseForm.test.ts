@@ -18,6 +18,8 @@ import {
   planToggle,
   planTypedAmount,
   todayIso,
+  amountInCurrency,
+  localMonth,
 } from '@/lib/expenseForm';
 
 const TODAY = '2026-09-01';
@@ -82,8 +84,30 @@ describe('expenseDateFor', () => {
     ).toBe('2026-08-11');
   });
 
-  it('writes a plain UTC day, never a timestamp', () => {
-    expect(todayIso(new Date('2026-09-01T22:45:00.000Z'))).toBe('2026-09-01');
+  it('uses the device local calendar day for 23:30 IST', () => {
+    const instant = new Date('2026-11-30T18:00:00.000Z');
+    // The instant is 23:30 on Dec 1 in IST; model the device's local getters
+    // explicitly so this stays deterministic on CI hosts in other time zones.
+    instant.getFullYear = () => 2026;
+    instant.getMonth = () => 11;
+    instant.getDate = () => 1;
+    expect(todayIso(instant)).toBe('2026-12-01');
+  });
+});
+
+describe('personal transaction month', () => {
+  it('uses December for 23:30 IST on Nov 30 UTC', () => {
+    const instant = new Date('2026-11-30T18:00:00.000Z');
+    instant.getFullYear = () => 2026;
+    instant.getMonth = () => 11;
+    expect(localMonth(instant)).toBe('2026-12');
+  });
+});
+
+describe('currency changes', () => {
+  it('keeps 10.50 major units when converting INR minor units to JPY or KWD', () => {
+    expect(amountInCurrency(1050n, 'INR', 'JPY')).toBe(11n);
+    expect(amountInCurrency(1050n, 'INR', 'KWD')).toBe(10500n);
   });
 });
 

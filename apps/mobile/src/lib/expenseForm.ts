@@ -17,11 +17,23 @@ import {
   type PayerMap,
   parseMinorInput,
   sanitiseMinorInput,
+  minorUnitScale,
 } from '@waves/core';
 
-/** Today, as the ledger stores a date: a plain UTC day, no time. */
+/** Today, as the ledger stores a date: the device's local calendar day. */
 export function todayIso(now: Date = new Date()): string {
-  return now.toISOString().slice(0, 10);
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+export function localMonth(now: Date = new Date()): string {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** Preserve the displayed major amount when switching the field currency. */
+export function amountInCurrency(amount: bigint, from: CurrencyCode, to: CurrencyCode): bigint {
+  const fromScale = minorUnitScale(from);
+  const toScale = minorUnitScale(to);
+  return (amount * toScale + fromScale / 2n) / fromScale;
 }
 
 /**

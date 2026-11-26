@@ -137,6 +137,7 @@ import {
   planEvenly,
   planToggle,
   planTypedAmount,
+  amountInCurrency,
   todayIso,
   type PayerPlan,
 } from '@/lib/expenseForm';
@@ -1351,6 +1352,9 @@ function AddExpenseScreen() {
   // convert the wrong thing (and the server rejects it), so clear it — the same
   // reset the old in-card currency chips did.
   const chooseCurrency = (code: string): void => {
+    if (code !== currency) {
+      setAmount(amountInCurrency(amount, currency as CurrencyCode, code as CurrencyCode));
+    }
     setExpenseCurrency(code);
     setFx(null);
     setPickingCurrency(false);

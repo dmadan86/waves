@@ -36,6 +36,7 @@ import {
   resolveCategory,
   type PersonalTxn,
 } from '@waves/core';
+import { localMonth } from '@/lib/expenseForm';
 import {
   Button,
   directionalIcon,
@@ -140,7 +141,7 @@ function PersonalTransactionsScreenBody() {
   const uncategorizedOnly = params.uncategorized === '1' && !dropUncategorized;
 
   const [tab, setTab] = useState<Tab>(kindParam ?? 'all');
-  const [browseMonth, setBrowseMonth] = useState(month ?? new Date().toISOString().slice(0, 7));
+  const [browseMonth, setBrowseMonth] = useState(month ?? localMonth());
   const [monthEnabled, setMonthEnabled] = useState(true);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -165,7 +166,7 @@ function PersonalTransactionsScreenBody() {
     setPicked(null);
     setQuery('');
     setTab('all');
-    setBrowseMonth(new Date().toISOString().slice(0, 7));
+    setBrowseMonth(localMonth());
     setMonthEnabled(false);
     if (drillIn) router.replace('/personal/transactions');
   };
