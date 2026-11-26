@@ -19,7 +19,8 @@ import { AppFrame } from '@/components/AppFrame';
 import { Section } from '@/components/Shell';
 import { SkeletonRows } from '@/components/Skeleton';
 import { waves } from '@/lib/waves';
-import { describeActivity, VerbIcon } from '@/lib/activity';
+import { activityAmount, describeActivity, VerbIcon } from '@/lib/activity';
+import { money } from '@/lib/money';
 import { useStrings } from '@/i18n-context';
 import { Activity } from 'lucide-react';
 import { EmptyState } from '@/components/EmptyState';
@@ -35,7 +36,7 @@ export default function ActivityPage() {
 }
 
 function ActivityFeed({ profileId, query }: { profileId: string; query: string }) {
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const [rows, setRows] = useState<FeedRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -74,6 +75,7 @@ function ActivityFeed({ profileId, query }: { profileId: string; query: string }
           ) : (
             <div className="list">
               {shown.map((entry) => {
+                const figure = activityAmount(entry);
                 const line = (
                   <>
                     <span className="tile-emoji" aria-hidden>
@@ -85,6 +87,9 @@ function ActivityFeed({ profileId, query }: { profileId: string; query: string }
                       </span>
                       <span className="meta">{entry.group?.name?.trim() ?? ''}</span>
                     </span>
+                    {figure ? (
+                      <span className="amount">{money(figure.minor, figure.currency, locale)}</span>
+                    ) : null}
                   </>
                 );
                 // A row about an expense links to it; the rest are not clickable.

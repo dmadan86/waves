@@ -1321,7 +1321,9 @@ function AddExpenseScreen() {
     run(
       planTypedAmount({
         payers,
-        locked: effectiveLocks,
+        // An edit opens with every recorded payer locked, so nobody could absorb
+        // the difference; typing there holds only the typed figure, as Add does.
+        locked: editing && effectiveLocks.size >= payers.size ? EMPTY_LOCKS : effectiveLocks,
         memberId,
         text,
         currency: currency as CurrencyCode,

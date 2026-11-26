@@ -153,7 +153,7 @@ export function recentActivity(
   return (limit === undefined ? sorted : sorted.slice(0, limit)).map((row) => ({
     ...row,
     payload:
-      row.verb === 'edited' || row.verb === 'deleted'
+      row.verb === 'edited' || row.verb === 'deleted' || row.verb === 'restored'
         ? currentFigures(row, expenseById, newestEdit)
         : row.verb === 'resplit_undone'
           ? {
