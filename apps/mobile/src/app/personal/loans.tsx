@@ -24,7 +24,6 @@ import {
   money,
   type LoanDirection,
   type PersonalLoan,
-  fallbackCurrency,
   linkedPersonalTxnIds,
 } from '@waves/core';
 import {

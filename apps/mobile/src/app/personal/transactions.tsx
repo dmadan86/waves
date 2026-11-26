@@ -171,6 +171,11 @@ function PersonalTransactionsScreenBody() {
    * the group month screen does.
    */
   const items: LedgerItem[] = useMemo(() => {
+    // The same entries the dashboard's income total counts (one shared selector).
+    const incomeIds =
+      kindParam === 'income' && month && currencyParam
+        ? new Set(monthlyIncomeEntries(txns, month, currencyParam).map((entry) => entry.id))
+        : null;
     const matchesCategory = (category: string | null | undefined): boolean =>
       (!uncategorizedOnly || !category) &&
       (!filter ||
@@ -189,8 +194,8 @@ function PersonalTransactionsScreenBody() {
       from: fromDate,
       to: toDate,
     }).filter((txn) =>
-      kindParam === 'income' && month && currencyParam
-        ? monthlyIncomeEntries(txns, month, currencyParam).some((entry) => entry.id === txn.id)
+      incomeIds
+        ? incomeIds.has(txn.id)
         : !(kindParam === 'income' && isInvestmentCategory(txn.category)),
     );
     const list: LedgerItem[] = [];
@@ -210,6 +215,7 @@ function PersonalTransactionsScreenBody() {
     }
     return list;
   }, [
+    month,
     txns,
     filter,
     picked,
