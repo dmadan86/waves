@@ -46,7 +46,7 @@ describe('offline Personal Home identity', () => {
 
 describe('offline profile cache', () => {
   it('keeps name, currency and locale but never address or payment details', async () => {
-    const { toProfileCache, profileFromCache } = await import('../src/lib/profileCache');
+    const { toProfileCache, profileFromCache } = await import('../src/lib/profileCachePure');
     const full = {
       id: 'u1',
       display_name: 'Asha',

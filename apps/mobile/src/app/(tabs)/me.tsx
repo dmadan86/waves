@@ -99,6 +99,7 @@ import {
   useUpsertPersonalRecord,
 } from '@/data/personal';
 import { personalHomeIdentity } from '@/data/personalHomeIdentity';
+import { useProfileForDisplay } from '@/lib/profileCache';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
@@ -135,11 +136,13 @@ function MeLedger() {
   const deviceCurrency = useDefaultCurrency();
   const { hydrated } = useSync();
   const { profile } = useAuth();
+  // Name and currency survive an offline cold start (display only).
+  const displayProfile = useProfileForDisplay();
   const viewerFace = useViewerIdentity();
   const avatarUrl = useAvatarUrl(viewerFace.avatarUrl);
   const ledger = usePersonalLedger();
   const identity = personalHomeIdentity(
-    profile,
+    displayProfile,
     ledger.txns,
     ledger.budgets,
     deviceCurrency,

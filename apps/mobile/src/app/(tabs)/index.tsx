@@ -58,6 +58,7 @@ import { SpacesGrid } from '@/components/home/HomeSpaces';
 import { useHomeSpaceFigures } from '@/data/homeSpaces';
 import { todayIso, usePersonalLedger } from '@/data/personal';
 import { personalHomeIdentity } from '@/data/personalHomeIdentity';
+import { useProfileForDisplay } from '@/lib/profileCache';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { DateReminderCard } from '@/components/dates/DateReminderCard';
 import { TipSheet } from '@/components/home/TipSheet';
@@ -83,6 +84,8 @@ function HomeScreen() {
   const pull = usePullRefresh();
   const { t, locale } = useStrings();
   const { session, profile, isGuest } = useAuth();
+  // Name and currency survive an offline cold start (display only).
+  const displayProfile = useProfileForDisplay();
   /**
    * Who to compute balances as — the *session's* user id, not the profile's.
    *
@@ -130,7 +133,13 @@ function HomeScreen() {
   const defaultCurrency = useDefaultCurrency();
   // The eye toggle: hide the money on a shared screen, remembered across opens.
   const { hidden: balanceHidden, ready: balanceReady, toggle: toggleBalance } = useBalanceHidden();
-  const displayName = personalHomeIdentity(profile, [], [], defaultCurrency, t.account.you).name;
+  const displayName = personalHomeIdentity(
+    displayProfile,
+    [],
+    [],
+    defaultCurrency,
+    t.account.you,
+  ).name;
   const firstName = displayName.trim().split(/\s+/)[0];
   const h = t.personalHome;
   const [spaceSwitchOpen, setSpaceSwitchOpen] = useState(false);
@@ -466,7 +475,7 @@ function HomeScreen() {
   // need paying), the pooled groups' figures, and whether there is anything yet.
   const ledger = usePersonalLedger();
   const personalCurrency = personalHomeIdentity(
-    profile,
+    displayProfile,
     ledger.txns,
     ledger.budgets,
     defaultCurrency,
