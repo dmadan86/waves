@@ -21,7 +21,6 @@ import {
   iconSize,
   Row,
   Screen,
-  Sheet,
   Text,
   useTheme,
 } from '@waves/ui';
@@ -47,6 +46,7 @@ import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { frequencyLabel } from '@/lib/frequencyLabel';
+import { OverflowMenu } from '@/components/OverflowMenu';
 
 function RecurringScreenBody() {
   const theme = useTheme();
@@ -306,54 +306,61 @@ function RecurringScreenBody() {
             title={recurrings.length ? t.personal.noMoreRecurring : t.personal.noRecurring}
             body={t.personal.recurringEmptyBody}
             action={t.personal.addRecurringItem}
-            onAdd={() => router.push({ pathname: '/personal/entry', params: { repeats: '1' } })}
+            onAdd={() =>
+              router.push({
+                pathname: '/personal/entry',
+                params: { repeats: '1', addRecurring: '1' },
+              })
+            }
           />
         ) : null}
       </ScrollView>
-      <Sheet visible={menuRule !== null} onClose={() => setMenuRule(null)}>
-        {menuRule ? (
-          <View style={{ gap: theme.spacing.sm }}>
-            <Text variant="heading">{ruleName(menuRule)}</Text>
-            <Button
-              label={t.personal.editRecurring}
-              onPress={() => {
-                setMenuRule(null);
-                router.push({ pathname: '/personal/entry', params: { recurringId: menuRule.id } });
-              }}
-            />
-            <Button
-              label={menuRule.active ? t.personal.pauseRecurring : t.personal.resumeRecurring}
-              disabled={upsert.isPending}
-              onPress={() => {
-                upsert.mutate({
-                  recordId: menuRule.id,
-                  recordKind: 'recurring',
-                  data: encodeRecurring({ ...menuRule, active: !menuRule.active }),
-                });
-                setMenuRule(null);
-              }}
-            />
-            <Button
-              label={t.common.delete}
-              disabled={deletion.isPending}
-              onPress={() => {
-                const id = menuRule.id;
-                setMenuRule(null);
-                // eslint-disable-next-line no-restricted-syntax -- Native delete confirmation requested for this screen.
-                Alert.alert(t.personal.deleteRecurringTitle, t.personal.deleteRecurringBody, [
-                  { text: t.common.cancel, style: 'cancel' },
-                  {
-                    text: t.common.delete,
-                    style: 'destructive',
-                    onPress: () => deletion.mutate(id),
+      <OverflowMenu
+        visible={menuRule !== null}
+        onClose={() => setMenuRule(null)}
+        items={
+          menuRule
+            ? [
+                {
+                  icon: 'create-outline',
+                  label: t.personal.editRecurring,
+                  onPress: () =>
+                    router.push({
+                      pathname: '/personal/entry',
+                      params: { recurringId: menuRule.id },
+                    }),
+                },
+                {
+                  icon: menuRule.active ? 'pause-outline' : 'play-outline',
+                  label: menuRule.active ? t.personal.pauseRecurring : t.personal.resumeRecurring,
+                  onPress: () =>
+                    upsert.mutate({
+                      recordId: menuRule.id,
+                      recordKind: 'recurring',
+                      data: encodeRecurring({ ...menuRule, active: !menuRule.active }),
+                    }),
+                },
+                {
+                  icon: 'trash-outline',
+                  label: t.common.delete,
+                  tone: 'danger',
+                  onPress: () => {
+                    const id = menuRule.id;
+                    // eslint-disable-next-line no-restricted-syntax -- Native confirmation is required for recurring deletion.
+                    Alert.alert(t.personal.deleteRecurringTitle, t.personal.deleteRecurringBody, [
+                      { text: t.common.cancel, style: 'cancel' },
+                      {
+                        text: t.common.delete,
+                        style: 'destructive',
+                        onPress: () => deletion.mutate(id),
+                      },
+                    ]);
                   },
-                ]);
-              }}
-            />
-            <Button label={t.common.cancel} onPress={() => setMenuRule(null)} />
-          </View>
-        ) : null}
-      </Sheet>
+                },
+              ]
+            : []
+        }
+      />
     </Screen>
   );
 }

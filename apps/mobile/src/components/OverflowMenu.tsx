@@ -270,7 +270,8 @@ export function OverflowMenu({
             {/* A long menu (every month of a ledger) scrolls inside the card,
                 capped to the room below it; a short one never scrolls. */}
             <ScrollView
-              style={{ maxHeight: room }}
+              nestedScrollEnabled
+              style={{ maxHeight: Math.max(0, room), flexShrink: 1 }}
               bounces={false}
               showsVerticalScrollIndicator={false}
             >
