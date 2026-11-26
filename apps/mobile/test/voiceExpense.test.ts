@@ -1262,14 +1262,27 @@ describe('parseVoiceExpenses resolves a relative group to the newest', () => {
 });
 
 describe('voiceAutoAction', () => {
+  it('V01: reviews the clear "lunch fifteen" and "lunch fifty" parses before saving', () => {
+    for (const spoken of ['lunch fifteen rupees', 'lunch fifty rupees']) {
+      const result = parseVoiceExpenses(spoken, groups);
+      expect(result.items).toHaveLength(1);
+      expect(voiceAutoAction(result, { launchGroupId: 'g-goa' })).toBeNull();
+    }
+  });
+
+  it('parses an expense amount spoken in words', () => {
+    const result = parseVoiceExpenses('lunch two hundred fifty', groups);
+    expect(result.items[0]?.amountMajor).toBe(250);
+  });
+
   it('acts on a bare create-group with no expense', () => {
     const result = parseVoiceExpenses('create a group called Weekend Trip', groups);
     expect(voiceAutoAction(result)).toEqual({ kind: 'create-group', name: 'Weekend Trip' });
   });
 
-  it('acts on one plain expense aimed at an existing group', () => {
+  it('reviews one plain expense aimed at an existing group', () => {
     const result = parseVoiceExpenses('add 500 rupees to the latest group', groups);
-    expect(voiceAutoAction(result)).toEqual({ kind: 'commit-expense', groupId: 'g-goa' });
+    expect(voiceAutoAction(result)).toBeNull();
   });
 
   it('holds for review when create-group also carries an expense', () => {
@@ -1288,22 +1301,22 @@ describe('voiceAutoAction', () => {
     expect(voiceAutoAction(result)).toBeNull();
   });
 
-  it('adds a "just for me" spend at once, to the speaker alone', () => {
+  it('reviews a "just for me" spend before writing to the speaker alone', () => {
     const result = parseVoiceExpenses('add 500 rupees for coffee just for me', groups);
     expect(result.personal).toBe(true);
-    expect(voiceAutoAction(result)).toEqual({ kind: 'commit-expense', groupId: null });
+    expect(voiceAutoAction(result)).toBeNull();
   });
 
-  it('adds to the group the mic was opened in when the sentence names none', () => {
+  it('reviews expenses even when the mic was opened in a group or Personal', () => {
     const result = parseVoiceExpenses('add 500 rupees for dinner', groups);
-    expect(voiceAutoAction(result, { launchGroupId: 'g-flat' })).toEqual({
-      kind: 'commit-expense',
-      groupId: 'g-flat',
-    });
-    expect(voiceAutoAction(result, { launchPersonal: true })).toEqual({
-      kind: 'commit-expense',
-      groupId: null,
-    });
+    expect(voiceAutoAction(result, { launchGroupId: 'g-flat' })).toBeNull();
+    expect(voiceAutoAction(result, { launchPersonal: true })).toBeNull();
+  });
+
+  it('V04: a Personal launch does not auto-route "taxi home 300" into the Home group', () => {
+    const result = parseVoiceExpenses('taxi home 300', [{ id: 'g-home', name: 'Home' }]);
+    expect(result.group).toEqual({ kind: 'existing', groupId: 'g-home' });
+    expect(voiceAutoAction(result, { launchPersonal: true })).toBeNull();
   });
 
   it('holds for review when a split count would otherwise be silently ignored', () => {
@@ -1325,17 +1338,17 @@ describe('voiceAutoAction', () => {
     expect(voiceAutoAction(result)).toBeNull();
   });
 
-  it('still adds at once when a date or category was spoken (the save carries them)', () => {
+  it('reviews when a date or category was spoken (the save carries them)', () => {
     const dated = parseVoiceExpenses('add 500 rupees dinner yesterday to the latest group', groups);
     expect(dated.expenseDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(voiceAutoAction(dated)).toEqual({ kind: 'commit-expense', groupId: 'g-goa' });
+    expect(voiceAutoAction(dated)).toBeNull();
 
     const categorised = parseVoiceExpenses(
       'add 300 rupees cab category travel to the latest group',
       groups,
     );
     expect(categorised.items[0].category).toBe('travel');
-    expect(voiceAutoAction(categorised)).toEqual({ kind: 'commit-expense', groupId: 'g-goa' });
+    expect(voiceAutoAction(categorised)).toBeNull();
   });
 
   it('holds for review when there is no amount to add', () => {

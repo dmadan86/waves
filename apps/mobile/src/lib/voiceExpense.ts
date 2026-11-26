@@ -1177,7 +1177,7 @@ export interface VoiceAutoContext {
 
 export function voiceAutoAction(
   result: VoiceParseResult,
-  context: VoiceAutoContext = {},
+  _context: VoiceAutoContext = {},
 ): VoiceAutoAction | null {
   if (
     result.group?.kind === 'create' &&
@@ -1187,34 +1187,8 @@ export function voiceAutoAction(
     return { kind: 'create-group', name: result.group.name };
   }
 
-  const [item] = result.items;
-  const many = context.allowMany === true && result.items.length > 1;
-  const hasSplitInstructions =
-    result.splitCount !== null ||
-    splitParticipantClause(result.peopleText) !== null ||
-    // A named payer, people, split rule or group is a decision someone should see.
-    result.intent?.hasSocialDetail === true;
-  const clearAmount = (major: number): boolean => Number.isFinite(major) && major > 0;
-  if (
-    (result.items.length !== 1 && !many) ||
-    // A number that could be read two ways is a question, never a write. With
-    // several, each item's own amount must stand; there is no single reading.
-    (!many && !amountIsUnambiguous(result)) ||
-    hasSplitInstructions ||
-    !item ||
-    !result.items.every((each) => clearAmount(each.amountMajor))
-  ) {
-    return null;
-  }
-
-  if (result.group?.kind === 'existing' && !result.personal) {
-    return { kind: 'commit-expense', groupId: result.group.groupId };
-  }
-  if (result.group) return null;
-  const source = result.intent?.groupSource;
-  if (source === 'ambiguous' || source === 'unresolved') return null;
-  if (result.personal || context.launchPersonal) return { kind: 'commit-expense', groupId: null };
-  if (context.launchGroupId) return { kind: 'commit-expense', groupId: context.launchGroupId };
+  // Expenses always require the editable review card. The old clean-expense
+  // fast path could write a misheard amount, payer, split, or destination unseen.
   return null;
 }
 

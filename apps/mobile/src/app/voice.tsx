@@ -66,6 +66,8 @@ import {
   type VoiceNameCandidate,
   type VoiceParty,
   type VoiceSplitPlan,
+  parseMinorInput,
+  type CurrencyCode,
 } from '@waves/core';
 import {
   Button,
@@ -108,7 +110,7 @@ import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { useDefaultCurrency } from '@/lib/currency';
 import { voiceNewGroupCurrency, voiceSaveCurrency } from '@/lib/voiceCurrency';
 import { resolveVoiceSpace } from '@/lib/voiceSpace';
-import { useOpenSpaces, useVoiceAdded, useVoiceDefaultSpace } from '@/lib/voiceSpaceStore';
+import { useOpenSpaces, useVoiceAdded } from '@/lib/voiceSpaceStore';
 import {
   voiceAmountQuestion,
   voiceCurrencyQuestion,
@@ -189,6 +191,7 @@ import {
   type VoiceGroupRef,
   type VoiceParseResult,
 } from '@/lib/voiceExpense';
+import { voiceDestination, voiceSaveDecision } from '@/lib/voiceReviewDecision';
 import { logVoiceAttempt } from '@/lib/voiceLog';
 import { learnedForGroup, voiceNameHints, withAliases, withGroupHints } from '@/lib/voiceNames';
 import { rememberNamePick, useVoiceNameMemory } from '@/lib/voiceNameStore';
@@ -312,9 +315,12 @@ function today(): string {
  * currencies.)
  */
 function toMinor(amount: string, currency: string): bigint | null {
-  const value = Number.parseFloat(amount.replace(/,/g, ''));
-  if (!Number.isFinite(value) || value <= 0) return null;
-  return BigInt(Math.round(value * Number(minorUnitScale(currency))));
+  try {
+    const minor = parseMinorInput(amount, currency as CurrencyCode);
+    return minor > 0n ? minor : null;
+  } catch {
+    return null;
+  }
 }
 
 /** The reader's corrections to who paid and who shares. */
@@ -497,13 +503,10 @@ export default function VoiceScreen() {
   const launchPersonal = params.scope === 'personal' && !explicitLaunchGroupId;
   // Every open space the reader is in (companies too, which the expense groups leave out).
   const { rows: spaceRows, ids: spaceIds } = useOpenSpaces();
-  // No group named and none launched from: the reader's default space, if they are
-  // still in it. A spoken name or "just me" is decided later and still wins.
-  const { defaultId: voiceDefaultId } = useVoiceDefaultSpace();
   const voiceAdded = useVoiceAdded();
   const launchGroupId = resolveVoiceSpace({
     launchId: explicitLaunchGroupId,
-    defaultId: launchPersonal ? null : voiceDefaultId,
+    defaultId: null,
     memberIds: spaceIds,
   });
   // A transcript captured by the home-screen voice widget's own recogniser and
@@ -1046,7 +1049,7 @@ export default function VoiceScreen() {
     // A bare "make a group called X" carries no amount, so it would trip the
     // no-amount guard below. Handle it first: mint the group and auto-create it
     // after the Undo window, with no expense to write and nothing to review.
-    if (auto?.kind === 'create-group') {
+    if (auto?.kind === 'create-group' && !launchPersonal) {
       const created = { groupId: randomUUID(), memberId: randomUUID(), name: auto.name };
       resetForNewParse();
       setDrafts([]);
@@ -1078,15 +1081,22 @@ export default function VoiceScreen() {
     resetForNewParse();
     // Default the destination to what was heard: a new group to make, an
     // existing group named, else the capture inbox.
-    let landed = false;
-    if (result.group?.kind === 'create') {
+    if (result.group?.kind === 'create' && !launchPersonal) {
       const created = { groupId: randomUUID(), memberId: randomUUID(), name: result.group.name };
       setRequested(created);
       setDest({ kind: 'create', ...created });
-    } else if (result.group?.kind === 'existing') {
+    } else if (result.group?.kind === 'existing' && !launchPersonal) {
+      const destination = voiceDestination(
+        launchGroupId ? { kind: 'group', groupId: launchGroupId } : { kind: 'home' },
+        [result.group.groupId],
+        null,
+      );
       setRequested(null);
-      setDest({ kind: 'existing', groupId: result.group.groupId });
-      landed = true;
+      setDest(
+        destination.kind === 'group'
+          ? { kind: 'existing', groupId: destination.groupId }
+          : { kind: 'unassigned' },
+      );
     } else if (
       result.intent &&
       (result.intent.groupSource === 'ambiguous' || result.intent.groupSource === 'unresolved')
@@ -1095,12 +1105,22 @@ export default function VoiceScreen() {
       // not a guess: the inbox, with the question shown, until they choose.
       setRequested(null);
       setDest({ kind: 'unassigned' });
-    } else if (result.personal || launchPersonal) {
+    } else if (
+      result.personal ||
+      voiceDestination(
+        launchPersonal
+          ? { kind: 'personal' }
+          : launchGroupId
+            ? { kind: 'group', groupId: launchGroupId }
+            : { kind: 'home' },
+        [],
+        null,
+      ).kind === 'personal'
+    ) {
       // "Just for me" — a private expense on the Me ledger. This beats the
       // launch-group context below: an explicit solo marker is a clear choice.
       setRequested(null);
       setDest({ kind: 'me' });
-      landed = true;
     } else if (
       launchGroupId &&
       (groups.data == null ||
@@ -1116,21 +1136,14 @@ export default function VoiceScreen() {
       // falls through to the inbox below.
       setRequested(null);
       setDest({ kind: 'existing', groupId: launchGroupId });
-      landed = true;
     } else {
       setRequested(null);
       setDest({ kind: 'unassigned' });
     }
     setNoAmount(false);
 
-    // One clear expense with a destination that resolved: add it now. Undo is on
-    // the Added state that follows. Anything the review must decide goes there.
-    if (auto?.kind === 'commit-expense' && landed) {
-      beginAutoCommit({ label: '', fallback: 'review', instant: true });
-      return;
-    }
-
-    setPhase('review');
+    // Every parsed expense stops here for its editable review before Save.
+    setPhase(voiceSaveDecision(result.items.length > 0) === 'review' ? 'review' : 'saved');
   };
 
   // The heard batch, read by the pure heuristic — amounts, currencies, a named

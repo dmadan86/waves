@@ -167,9 +167,9 @@ describe('what stays as it was', () => {
     expect(result.items[0].note).toBe('dinner');
   });
 
-  it('acts on a plain expense to a named group exactly as before', () => {
+  it('requires review for a plain expense to a named group', () => {
     const result = parse('add 500 rupees dinner to the Goa trip');
-    expect(voiceAutoAction(result)).toEqual({ kind: 'commit-expense', groupId: 'g-goa' });
+    expect(voiceAutoAction(result)).toBeNull();
   });
 
   it('never acts alone on a sentence that names a payer', () => {
