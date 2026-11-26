@@ -8847,6 +8847,7 @@ export interface UiStrings {
     deleteSharedBody: string;
     deleteSharedKept: string;
     closeLoan: string;
+    markLoanClosed: string;
     reopenLoan: string;
     paidOff: string;
     closed: string;
@@ -17103,6 +17104,7 @@ const en: UiStrings = {
     deleteSharedKept:
       'Part of this is already repaid, so the debt stays in your balance with {name}.',
     closeLoan: 'Close',
+    markLoanClosed: 'Mark as closed',
     reopenLoan: 'Reopen',
     paidOff: 'Paid off',
     closed: 'Closed',
@@ -25411,6 +25413,7 @@ const ta: UiStrings = {
     deleteSharedKept:
       'இதில் ஒரு பகுதி ஏற்கெனவே செலுத்தப்பட்டதால், கடன் {name} உடனான உங்கள் இருப்பில் இருக்கும்.',
     closeLoan: 'மூடு',
+    markLoanClosed: 'மூடப்பட்டதாகக் குறி',
     reopenLoan: 'மீண்டும் திற',
     paidOff: 'அடைக்கப்பட்டது',
     closed: 'மூடப்பட்டது',
@@ -33540,6 +33543,7 @@ const hi: UiStrings = {
     deleteSharedBody: 'इससे उनकी ओर से भी यह कर्ज़ हट जाएगा।',
     deleteSharedKept: 'इसका कुछ हिस्सा चुकाया जा चुका है, इसलिए कर्ज़ {name} के साथ आपके हिसाब में बना रहेगा।',
     closeLoan: 'बंद करें',
+    markLoanClosed: 'बंद के रूप में चिह्नित करें',
     reopenLoan: 'फिर खोलें',
     paidOff: 'चुका दिया',
     closed: 'बंद',
@@ -42603,6 +42607,7 @@ const ar: UiStrings = {
     deleteSharedBody: 'سيُزال الدين أيضًا من جهته.',
     deleteSharedKept: 'تم سداد جزء منه، لذا يبقى الدين في رصيدك مع {name}.',
     closeLoan: 'إغلاق',
+    markLoanClosed: 'وضع علامة كمغلق',
     reopenLoan: 'إعادة فتح',
     paidOff: 'مسدَّد',
     closed: 'مغلق',

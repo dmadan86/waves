@@ -36,3 +36,13 @@ describe('the round add button', () => {
     expect(resolveFab(null, fallback).label).toBe('Add expense');
   });
 });
+
+describe('one add control per Personal screen', () => {
+  it('hides the round + where the header + is the add control', async () => {
+    const { personalShowsAddFab } = await import('../src/lib/personalLayoutRules');
+    for (const leaf of ['loans', 'recurring', 'budgets', 'upcoming'])
+      expect(personalShowsAddFab(['personal', leaf])).toBe(false);
+    expect(personalShowsAddFab(['personal', 'transactions'])).toBe(true);
+    expect(personalShowsAddFab(['(tabs)', 'me'])).toBe(true);
+  });
+});

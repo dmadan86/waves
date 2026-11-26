@@ -5,7 +5,7 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRef } from 'react';
+import { useRef, type RefObject } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { pickUpcoming, type PersonalRecurring, type PersonalTxn } from '@waves/core';
@@ -240,6 +240,7 @@ interface Tile {
   readonly icon: keyof typeof Ionicons.glyphMap;
   readonly label: string;
   readonly onPress: () => void;
+  readonly ref?: RefObject<View | null>;
 }
 
 /** Equal tiles under the hero, four to a row: everything the screen offers in one place. */
@@ -258,6 +259,7 @@ export function QuickActions({
           {row.map((tile) => (
             <Pressable
               key={tile.key}
+              ref={tile.ref}
               accessibilityRole="button"
               accessibilityLabel={tile.label}
               onPress={tile.onPress}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 // Native confirmation Alert explicitly required for recurring deletion.
 // eslint-disable-next-line no-restricted-imports
-import { Alert, Image, Pressable, ScrollView, View } from 'react-native';
+import { Alert, Pressable, ScrollView, View } from 'react-native';
 
 import {
   encodeRecurring,
@@ -47,7 +47,6 @@ import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { frequencyLabel } from '@/lib/frequencyLabel';
 import { OverflowMenu } from '@/components/OverflowMenu';
-import { useClaimFab } from '@/lib/fabOverride';
 
 function RecurringScreenBody() {
   const theme = useTheme();
@@ -62,9 +61,6 @@ function RecurringScreenBody() {
   const [menuRule, setMenuRule] = useState<PersonalRecurring | null>(null);
   const [filter, setFilter] = useState<RecurringFilter>('all');
   const [today] = useState(() => todayIso());
-  useClaimFab(true, t.personal.addRecurring, () =>
-    router.push({ pathname: '/personal/entry', params: { repeats: '1', addRecurring: '1' } }),
-  );
 
   const cadenceLabel = (rule: PersonalRecurring): string =>
     frequencyLabel(t, frequencyOf(rule), rule.interval);
@@ -85,25 +81,33 @@ function RecurringScreenBody() {
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: clearance + 72,
+          paddingBottom: clearance,
           gap: theme.spacing.md,
         }}
         showsVerticalScrollIndicator={false}
       >
         <View style={{ paddingTop: theme.spacing.sm, minHeight: 104 }}>
-          <Image
-            source={require('../../../assets/images/personal-bills.webp')}
-            resizeMode="contain"
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            style={{ position: 'absolute', top: theme.spacing.xs, end: 0, width: 96, height: 96 }}
-          />
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm, paddingEnd: 104 }}>
+          <Row
+            style={{ alignItems: 'center', gap: theme.spacing.sm, justifyContent: 'space-between' }}
+          >
             <Text
               style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: theme.color.text }}
             >
               {t.personal.recurring}
             </Text>
+            {recurrings.length > 0 ? (
+              <IconButton
+                label={t.personal.addRecurringItem.replace(/^\+\s*/, '')}
+                onPress={() =>
+                  router.push({
+                    pathname: '/personal/entry',
+                    params: { repeats: '1', addRecurring: '1' },
+                  })
+                }
+              >
+                <Ionicons name="add" size={iconSize.xl} color={theme.color.brand} />
+              </IconButton>
+            ) : null}
           </Row>
           <Text
             style={{
@@ -309,7 +313,7 @@ function RecurringScreenBody() {
             compact
             title={recurrings.length ? t.personal.noMoreRecurring : t.personal.noRecurring}
             body={t.personal.recurringEmptyBody}
-            action={t.personal.addRecurringItem}
+            action={t.personal.addRecurringItem.replace(/^\+\s*/, '')}
             onAdd={() =>
               router.push({
                 pathname: '/personal/entry',

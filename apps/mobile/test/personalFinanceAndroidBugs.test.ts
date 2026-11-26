@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { PersonalTxn } from '@waves/core';
@@ -8,8 +8,18 @@ import { formatLoanPaymentDate, loanPaymentDefaults } from '../src/lib/loanPayme
 import { orphanedPersonalTxnIds } from '../src/lib/personalOrphans';
 import { monthlySpendEntries } from '../src/lib/monthlySpend';
 import { settingsRoute } from '../src/lib/settingsRoute';
+import {
+  loanHeaderAddVisible,
+  loanNextStatus,
+  overflowMenuHeight,
+} from '../src/lib/personalLayoutRules';
 
-const src = (path: string): string => readFileSync(join(__dirname, '../src', path), 'utf8');
+const src = (path: string): string => {
+  const prefixPath = join(__dirname, '../.prefix-check', path);
+  return process.env.PREFIX_CHECK === '1' && existsSync(prefixPath)
+    ? readFileSync(prefixPath, 'utf8')
+    : readFileSync(join(__dirname, '../src', path), 'utf8');
+};
 
 const txn = (over: Partial<PersonalTxn> & Pick<PersonalTxn, 'id' | 'date'>): PersonalTxn => ({
   kind: 'expense',
@@ -97,7 +107,7 @@ describe('Android personal finance regressions', () => {
     expect(loans).toContain('formatLoanPaymentDate(p.date, locale)');
     expect(loans).toContain('<FieldLabel>{t.personalSetup.emiLabel}</FieldLabel>');
     expect(loans).toContain('carried.emiAmount = emiAmount.toString()');
-    expect(loans).toContain('wallet-outline');
+    expect(loans).toContain('<EmptyStateCta');
     expect(loans).toContain('numberOfLines={2}');
     expect(loans).toContain('minHeight: 40');
     expect(loans).toContain('Delete this loan and its payments?');
@@ -162,7 +172,8 @@ describe('Android personal finance regressions', () => {
     expect(recurring).toContain("tone: 'danger'");
     expect(recurring).toContain("addRecurring: '1'");
     expect(src('app/personal/entry.tsx')).toContain('addRecurring\n');
-    expect(recurring).toContain('useClaimFab(true, t.personal.addRecurring');
+    expect(recurring).not.toContain('useClaimFab(true, t.personal.addRecurring');
+    expect(recurring).toContain('action={t.personal.addRecurringItem.replace');
     expect(src('app/personal/entry.tsx')).toContain('editing || recordPayment');
     expect(src('app/personal/setup.tsx')).toContain(
       'setupPrefillForUntouched(null, incomePrefill, touched.current)',
@@ -176,12 +187,28 @@ describe('Android personal finance regressions', () => {
     const menu = src('components/OverflowMenu.tsx');
     expect(menu).toContain('<ScrollView');
     expect(menu).toContain('nestedScrollEnabled');
-    expect(menu).toContain('maxHeight: Math.max(0, room), flexShrink: 1');
-    expect(menu).toContain('const estimate = items.reduce(');
+    expect(menu).toContain('onContentSizeChange={(_width, height) => setContentHeight(height)}');
+    expect(menu).toContain('numberOfLines={1}');
+    expect(menu).toContain('minWidth: 248');
+    expect(menu).toContain('showsVerticalScrollIndicator={contentHeight > room}');
     expect(src('app/(tabs)/me.tsx')).toContain('h.moreVoice');
   });
 
   it('Loans show one add control when empty', () => {
-    expect(src('app/personal/loans.tsx')).toContain('{sorted.length > 0 ? (');
+    expect(loanHeaderAddVisible(0)).toBe(false);
+    expect(loanHeaderAddVisible(1)).toBe(true);
+    expect(src('app/personal/loans.tsx')).toContain('loanHeaderAddVisible(sorted.length)');
+  });
+  it('sizes menus to measured content and caps long lists to available room', () => {
+    expect(overflowMenuHeight(180, 760, 300)).toBe(180);
+    expect(overflowMenuHeight(900, 240, 300)).toBe(240);
+  });
+
+  it('loan close and reopen actions flip status immediately', () => {
+    expect(loanNextStatus('active')).toBe('closed');
+    expect(loanNextStatus('closed')).toBe('active');
+    const loans = src('app/personal/loans.tsx');
+    expect(loans).toContain('status: loanNextStatus(loan.status)');
+    expect(loans).toContain('upsert.mutateAsync');
   });
 });

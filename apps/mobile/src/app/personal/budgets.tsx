@@ -112,9 +112,13 @@ function BudgetsScreenBody() {
         <View style={{ flex: 1, alignItems: 'center' }}>
           <Text variant="heading">{t.personal.budgets}</Text>
         </View>
-        <IconButton label={t.personal.addBudget} onPress={() => setCreating(true)}>
-          <Ionicons name="add" size={iconSize.xxl} color={theme.color.brand} />
-        </IconButton>
+        {budgets.length > 0 ? (
+          <IconButton label={t.personal.addBudget} onPress={() => setCreating(true)}>
+            <Ionicons name="add" size={iconSize.xxl} color={theme.color.brand} />
+          </IconButton>
+        ) : (
+          <View style={{ width: 44 }} />
+        )}
       </Row>
 
       <ScrollView

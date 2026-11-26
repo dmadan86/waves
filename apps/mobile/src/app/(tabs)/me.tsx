@@ -68,6 +68,7 @@ import {
   SpendHistoryChart,
 } from '@/components/home/MonthParts';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { measureAnchor } from '@/lib/measureAnchor';
 import { TabHeader, TabIconButton } from '@/components/home/TabHeader';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { PersonalIntro } from '@/components/PersonalIntro';
@@ -277,29 +278,37 @@ function MeLedger() {
     family: h.groupFamily,
   });
   const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<View>(null);
+  const [moreAnchor, setMoreAnchor] = useState<MenuAnchorBox | null>(null);
   useWealthReminders();
   const firstName = identity.name.trim().split(/\s+/)[0];
 
   // One set of quick actions on this screen; the less-used ones live here.
   const moreItems: OverflowMenuItem[] = [
-    { icon: 'notifications-outline', label: h.reminder, route: '/dates/edit' },
-    { icon: 'pie-chart-outline', label: t.personal.nav.spending, route: '/personal/spending' },
-    { icon: 'sparkles-outline', label: t.spendingAsk.title, route: '/personal/ask' },
-    { icon: 'checkbox-outline', label: h.toolTodo, route: '/personal/setup' },
     {
-      icon: 'document-text-outline',
-      label: t.statementImport.title,
-      route: '/captures/statement',
+      icon: 'pie-chart-outline',
+      label: t.personal.nav.spending,
+      route: '/personal/spending',
+      section: 'views',
     },
     {
-      icon: 'pricetags-outline',
-      label: t.personal.dash.toolCategories,
-      route: '/settings/categories',
+      icon: 'sparkles-outline',
+      label: t.spendingAsk.title,
+      route: '/personal/ask',
+      section: 'views',
     },
+    { icon: 'notifications-outline', label: h.reminder, route: '/dates/edit', section: 'add' },
     {
       icon: 'mic-outline',
       label: h.moreVoice,
       route: { pathname: '/voice', params: { scope: 'personal' } },
+      section: 'add',
+    },
+    {
+      icon: 'document-text-outline',
+      label: t.statementImport.title,
+      route: '/captures/statement',
+      section: 'data',
     },
   ];
 
@@ -620,7 +629,11 @@ function MeLedger() {
                 tone: 'brand',
                 icon: 'ellipsis-horizontal',
                 label: h.toolMore,
-                onPress: () => setMoreOpen(true),
+                onPress: () => {
+                  measureAnchor(moreRef, setMoreAnchor);
+                  setMoreOpen(true);
+                },
+                ref: moreRef,
               },
             ]}
           />
@@ -713,7 +726,12 @@ function MeLedger() {
         </View>
       </ScrollView>
       <OverflowMenu visible={switchOpen} onClose={() => setSwitchOpen(false)} items={switchItems} />
-      <OverflowMenu visible={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} />
+      <OverflowMenu
+        visible={moreOpen}
+        onClose={() => setMoreOpen(false)}
+        items={moreItems}
+        anchor={moreAnchor}
+      />
       <OverflowMenu
         visible={monthMenuOpen}
         onClose={() => setMonthMenuOpen(false)}
@@ -729,6 +747,11 @@ function MeLedger() {
             icon: 'image-outline',
             label: t.heroScene.title,
             route: '/settings/scene?space=personal',
+          },
+          {
+            icon: 'pricetags-outline',
+            label: t.personal.dash.toolCategories,
+            route: '/settings/categories',
           },
           {
             icon: 'lock-closed-outline',

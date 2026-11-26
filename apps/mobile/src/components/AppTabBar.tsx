@@ -72,6 +72,7 @@ import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
 import { router, runBarMove, setBackOverride, switchTab } from '@/lib/navigation';
 import { installTabBack, type TabBackDeps } from '@/lib/tabBack';
 import { resolveFab, useFabOverride } from '@/lib/fabOverride';
+import { personalShowsAddFab } from '@/lib/personalLayoutRules';
 import { companyTabTarget, readLastSpace } from '@/lib/spaces';
 import { useFollowSpace } from '@/lib/useSpaces';
 import { pushToTalk } from '@/lib/pushToTalk';
@@ -803,8 +804,12 @@ export function AppTabBar() {
                 <CenterButton action={add} />
               </View>
             )
+          ) : personal ? (
+            personalShowsAddFab(segments) ? (
+              <CenterButton action={addPersonal} />
+            ) : null
           ) : (
-            <CenterButton action={personal ? addPersonal : voice} />
+            <CenterButton action={voice} />
           )}
         </Animated.View>
       ) : null}
