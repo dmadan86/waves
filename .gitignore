@@ -85,3 +85,8 @@ apps/web/playwright/.cache/
 # OTA code-signing private key: lives in ~/.waves-keys/updates, never in the repo
 private-key.pem
 *private-key*.pem
+
+# Tabnine agent config (local)
+.tabnine/
+# graphify knowledge graph (local)
+graphify-out/

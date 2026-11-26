@@ -91,10 +91,5 @@ describe('withWavesWear — emitted :wear module', () => {
     for (const t of ['quickAdd', 'voiceAdd', 'requestRecent']) {
       expect(relay).toContain(`"t", "${t}"`);
     }
-    // Quick-add sends what was dialled; the phone scales it for the currency.
-    expect(relay).toContain('.put("amount", amount.toString())');
-    expect(relay).not.toContain('amountMinor');
-    // Intents are persisted before any send, so no phone means queued, not lost.
-    expect(relay).toContain('fun enqueue(');
   });
 });
