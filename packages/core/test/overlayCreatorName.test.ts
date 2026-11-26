@@ -7,6 +7,7 @@ import {
   materialiseSettlements,
   MutationKind,
   type MutationEnvelope,
+  type QueuedMutation,
 } from '../src/index.js';
 
 it('names the offline creator from the account, so the avatar has real initials', () => {
@@ -28,7 +29,7 @@ it('names the offline creator from the account, so the avatar has real initials'
 });
 
 it('shows a settlement recorded by the payee as confirmed, and the payer-recorded one as pending', () => {
-  const make = (confirmed: boolean, seq: number): MutationEnvelope =>
+  const make = (confirmed: boolean, seq: number): QueuedMutation =>
     ({
       clientMutationId: `s${seq}`,
       kind: MutationKind.SettlementCreate,
@@ -36,7 +37,7 @@ it('shows a settlement recorded by the payee as confirmed, and the payer-recorde
       seq,
       clientCreatedAt: '2026-11-26T10:00:00.000Z',
       payload: { settlementId: `st${seq}`, confirmed, from: 'a', to: 'b', amount: '100' },
-    }) as unknown as MutationEnvelope;
+    }) as unknown as QueuedMutation;
   const rows = materialiseSettlements(emptyMirror(), [make(true, 1), make(false, 2)], {
     groupId: 'g',
   });

@@ -117,7 +117,10 @@ describe('recording a settlement asks the payee to confirm', () => {
     // doing the confirming.
     await record(group, 1);
 
-    expect(await noticesFor(group.groupId)).toHaveLength(0);
+    // The payee's say-so confirms it at once, so the payer only hears "settled".
+    const notices = await noticesFor(group.groupId);
+    expect(notices.map((n) => n.kind)).toEqual(['settlement_confirmed']);
+    expect(notices[0]?.profile_id).toBe(group.profileIds[0]);
   });
 
   it('does not buzz twice when the offline queue replays the same mutation', async () => {
