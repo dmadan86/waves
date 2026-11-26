@@ -1,7 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { decodeBudget, decodeRecurring, type CurrencyCode } from '@waves/core';
+import {
+  decodeBudget,
+  decodeRecurring,
+  deterministicId,
+  type CurrencyCode,
+  type PersonalRecurring,
+} from '@waves/core';
 
 import {
   answersToRecords,
@@ -13,6 +19,8 @@ import {
   regionHint,
   rememberSetup,
   setupSummary,
+  existingSetupAmount,
+  setupAmountChanged,
   type SetupContext,
 } from '@/lib/personalSetup';
 
@@ -23,6 +31,35 @@ const ctx: SetupContext = {
   label: (k) => k,
 };
 const rupees = (n: number): bigint => BigInt(n) * 100n;
+
+describe('rerunning Personal setup preserves existing recurring amounts', () => {
+  const salary = (active = true): PersonalRecurring => ({
+    id: deterministicId('psetup:u1:income:salary'),
+    txnKind: 'income',
+    amount: rupees(50000),
+    currency: 'INR',
+    category: null,
+    note: null,
+    cadence: 'monthly',
+    interval: 1,
+    secondDay: null,
+    anchorDate: '2026-11-01',
+    nextDate: '2026-11-01',
+    endDate: null,
+    autoPost: false,
+    active,
+  });
+  it('prefills the existing salary and writes only when its amount changes', () => {
+    const current = existingSetupAmount([salary()], 'u1', 'income:salary');
+    expect(current).toBe(5000000n);
+    expect(setupAmountChanged(current, 5000000n)).toBe(false);
+    expect(setupAmountChanged(current, 100000n)).toBe(true);
+  });
+  it('does not prefill a deleted recurring item', () => {
+    expect(existingSetupAmount([salary(false)], 'u1', 'income:salary')).toBeNull();
+    expect(setupAmountChanged(null, 100000n)).toBe(true);
+  });
+});
 
 describe('answersToRecords', () => {
   const answers = {

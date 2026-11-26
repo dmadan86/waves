@@ -177,6 +177,30 @@ export interface SetupRecord {
   data: Record<string, unknown>;
 }
 
+export function setupSlotId(ownerId: string, key: string): string {
+  const stableKey = key
+    .replace('bill:household_help', 'bill:help')
+    .replace('bill:building_fees', 'bill:society')
+    .replace('bill:investment_contribution', 'bill:sip')
+    .replace('emi:secured_other', 'emi:gold');
+  return deterministicId(`psetup:${ownerId}:${stableKey}`);
+}
+
+/** Existing record for one setup slot, used to seed rerun answers. */
+export function existingSetupAmount(
+  recurrings: readonly PersonalRecurring[],
+  ownerId: string,
+  key: string,
+): bigint | null {
+  const id = setupSlotId(ownerId, key);
+  return recurrings.find((r) => r.id === id && r.active)?.amount ?? null;
+}
+
+/** A rerun should preserve a matching active rule unless its amount changed. */
+export function setupAmountChanged(existing: bigint | null, proposed: bigint): boolean {
+  return existing === null || existing !== proposed;
+}
+
 const pad = (n: number): string => String(n).padStart(2, '0');
 const daysIn = (y: number, m: number): number => new Date(Date.UTC(y, m, 0)).getUTCDate();
 
@@ -208,12 +232,7 @@ export function eatOutMonthly(freq: EatFreq, each: bigint, currency: CurrencyCod
 const slot = (ctx: SetupContext, key: string): string => {
   // Keep the original opaque slot hash so a new answer edits the record an
   // earlier version created for the same question.
-  const stableKey = key
-    .replace('bill:household_help', 'bill:help')
-    .replace('bill:building_fees', 'bill:society')
-    .replace('bill:investment_contribution', 'bill:sip')
-    .replace('emi:secured_other', 'emi:gold');
-  return deterministicId(`psetup:${ctx.ownerId}:${stableKey}`);
+  return setupSlotId(ctx.ownerId, key);
 };
 
 function rule(

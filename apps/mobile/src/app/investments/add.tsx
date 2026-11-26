@@ -26,6 +26,7 @@ import { useEntitlement } from '@/lib/useEntitlement';
 import { router } from '@/lib/navigation';
 import { regionOf, typeHint } from '@/lib/wealthPlan';
 import { INVESTMENT_TYPES } from '@waves/core';
+import { INVESTMENT_WIZARD_STEPS, wizardProgress } from '@/lib/wealthFlow';
 
 type Step = 'type' | 'payout' | 'name' | 'howMuch' | 'day' | 'auto' | 'opening' | 'value';
 const FREQS: readonly RentFrequency[] = ['weekly', 'fortnightly', 'monthly', 'quarterly', 'yearly'];
@@ -74,7 +75,7 @@ function AddBody() {
     ...(plainBill ? [] : (['opening', 'value'] as Step[])),
   ];
   const step = order[Math.min(at, order.length - 1)]!;
-  const base = { index: Math.min(at, order.length - 1), total: order.length };
+  const base = wizardProgress(at, INVESTMENT_WIZARD_STEPS);
   const next = (): void => setAt((i) => i + 1);
 
   const draft = (autoPost: boolean): InvestmentDraft => ({

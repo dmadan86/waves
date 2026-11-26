@@ -15,6 +15,7 @@ import {
   Screen,
   Sheet,
   Text,
+  useTabBarClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -24,6 +25,7 @@ import { fill, useStrings } from '@/i18n';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { dateFrom, showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
+import { wizardFooterPadding } from '@/lib/wealthFlow';
 
 /** Money as the person's own locale writes it: masked when amounts are hidden, no bare ".00". */
 export function useWealthMoney(): (amount: bigint, currency: CurrencyCode) => string {
@@ -55,6 +57,7 @@ export function FlowShell({
   const theme = useTheme();
   const { t } = useStrings();
   const s = t.personalSetup;
+  const clearance = useTabBarClearance();
   return (
     <Screen>
       <View style={{ paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md, flex: 1 }}>
@@ -105,7 +108,7 @@ export function FlowShell({
           ) : null}
         </ScrollView>
         {onSkip ? (
-          <View style={{ paddingBottom: theme.spacing.lg }}>
+          <View style={{ paddingBottom: wizardFooterPadding(clearance, theme.spacing.lg) }}>
             <Button label={s.skip} variant="ghost" onPress={onSkip} />
           </View>
         ) : null}
