@@ -1886,6 +1886,7 @@ export function useCreateGroup() {
 
 export function useWriteExpense(groupId: string) {
   const { mutate } = useSync();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: Omit<WriteExpenseInput, 'groupId'>) => {
       const expenseId = input.expenseId ?? randomUUID();
@@ -1897,6 +1898,10 @@ export function useWriteExpense(groupId: string) {
           expenseId,
         },
       );
+      if (input.expenseId) {
+        await syncEngine.flush({ groupIds: [groupId] }).catch(() => undefined);
+        await queryClient.invalidateQueries({ queryKey: ['expense', expenseId, 'versions'] });
+      }
       return expenseId;
     },
   });

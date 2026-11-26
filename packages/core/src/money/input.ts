@@ -40,9 +40,11 @@ export function sanitiseMinorInput(raw: string, currency: CurrencyCode): string 
   } else if (comma >= 0) {
     const tail = value.length - comma - 1;
     normalized =
-      exponent > 0 && tail >= 1 && tail <= 2
+      exponent > 0 && tail >= 1 && tail <= exponent
         ? value.slice(0, comma).replace(/,/g, '') + '.' + value.slice(comma + 1)
-        : value.replace(/,/g, '');
+        : tail === 0 && exponent > 0
+          ? value.slice(0, comma).replace(/,/g, '') + '.'
+          : value.replace(/,/g, '');
   }
   let cleaned = normalized.replace(/[^0-9.]/g, '');
 

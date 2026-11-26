@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { skipOverdueOccurrences } from '../../../../../packages/core/src/personal/compute';
+import { useIsFocused } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 // Native confirmation Alert explicitly required for recurring deletion.
 // eslint-disable-next-line no-restricted-imports
@@ -12,6 +12,7 @@ import {
   isRecurringDue,
   money,
   type PersonalRecurring,
+  skipOverdueOccurrences,
 } from '@waves/core';
 import {
   Button,
@@ -48,8 +49,10 @@ import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { frequencyLabel } from '@/lib/frequencyLabel';
 import { OverflowMenu } from '@/components/OverflowMenu';
+import { useClaimFab } from '@/lib/fabOverride';
 
 function RecurringScreenBody() {
+  const focused = useIsFocused();
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -62,6 +65,9 @@ function RecurringScreenBody() {
   const [menuRule, setMenuRule] = useState<PersonalRecurring | null>(null);
   const [filter, setFilter] = useState<RecurringFilter>('all');
   const [today] = useState(() => todayIso());
+  useClaimFab(focused, t.personal.addRecurringItem.replace(/^\+\s*/, ''), () =>
+    router.push({ pathname: '/personal/entry', params: { repeats: '1', addRecurring: '1' } }),
+  );
 
   const cadenceLabel = (rule: PersonalRecurring): string =>
     frequencyLabel(t, frequencyOf(rule), rule.interval);

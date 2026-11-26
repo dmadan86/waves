@@ -33,6 +33,11 @@ export function claimOrphanDeletes(ids: readonly string[]): string[] {
   return fresh;
 }
 
+/** Release a claim when its delete could not be queued, so the ledger can retry. */
+export function releaseOrphanDelete(id: string): void {
+  requested.delete(id);
+}
+
 /** Test-only: forget what was claimed. */
 export function resetOrphanClaims(): void {
   requested.clear();

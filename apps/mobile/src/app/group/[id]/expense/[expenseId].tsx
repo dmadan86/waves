@@ -327,7 +327,14 @@ function ExpenseDetailScreen() {
     );
     if (found) return found;
     const latestVersion = [...(versions.data ?? [])].sort((a, b) => b.version_no - a.version_no)[0];
-    if (latestVersion && latestVersion.version_no > 1) {
+    if (
+      latestVersion &&
+      latestVersion.version_no > 1 &&
+      lastSeenAt !== null &&
+      Date.parse(latestVersion.created_at) > lastSeenAt &&
+      latestVersion.author_member_id !== null &&
+      !mine.has(latestVersion.author_member_id)
+    ) {
       return { kind: 'edited', byMemberId: latestVersion.author_member_id, at: 0 };
     }
     const hinted = newParam === '1' ? 'new' : editedParam === '1' ? 'edited' : null;

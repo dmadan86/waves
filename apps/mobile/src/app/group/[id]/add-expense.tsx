@@ -467,6 +467,7 @@ function AddExpenseScreen() {
     canOfferOnlyMe({ groupType: group.data?.type, editing: Boolean(expenseId) }) &&
     !captureId &&
     !movePersonal;
+  const saveOnlyMe = onlyMe;
   // Share it: a new expense in a pooled household is not split unless asked
   // ("Split this one"). The sync layer turns the default into the pool split.
   const poolDefault = isPoolGroup(group.data) && !expenseId;
@@ -1354,6 +1355,40 @@ function AddExpenseScreen() {
   const chooseCurrency = (code: string): void => {
     if (code !== currency) {
       setAmount(amountInCurrency(amount, currency as CurrencyCode, code as CurrencyCode));
+      setPayers(
+        (current) =>
+          new Map(
+            [...current].map(([id, value]) => [
+              id,
+              amountInCurrency(value, currency as CurrencyCode, code as CurrencyCode),
+            ]),
+          ),
+      );
+      setPaidText(
+        Object.fromEntries(
+          [...payers].map(([id, value]) => [
+            id,
+            formatMinorInput(
+              amountInCurrency(value, currency as CurrencyCode, code as CurrencyCode),
+              code as CurrencyCode,
+            ),
+          ]),
+        ),
+      );
+      setExacts((current) =>
+        Object.fromEntries(
+          Object.entries(current).map(([id, value]) => [
+            id,
+            value
+              ? amountInCurrency(
+                  BigInt(value),
+                  currency as CurrencyCode,
+                  code as CurrencyCode,
+                ).toString()
+              : value,
+          ]),
+        ),
+      );
     }
     setExpenseCurrency(code);
     setFx(null);
@@ -1522,7 +1557,7 @@ function AddExpenseScreen() {
     // history stay visible, but a new or edited expense sends them to sign up.
     if (guard.blockWrite()) return;
     setError(null);
-    if (onlyMeOffered && onlyMe) {
+    if (saveOnlyMe) {
       setSaving(true);
       setDraftsPaused(true);
       try {
@@ -1980,7 +2015,7 @@ function AddExpenseScreen() {
     previewValues.length > 0 && previewValues.every((value) => value === previewValues[0])
       ? previewValues[0]
       : null;
-  const savePreview = onlyMe
+  const savePreview = saveOnlyMe
     ? t.spacePrivacy.onlyMeTitle
     : poolDefault && !splitThis
       ? t.household.splitThisOneHint
@@ -2863,7 +2898,7 @@ function AddExpenseScreen() {
           <Row style={{ justifyContent: 'space-between', gap: theme.spacing.lg }}>
             <View style={{ flex: 1, minWidth: 0 }}>
               <MoneyText amount={amount} currency={currency} locale={locale} variant="title" />
-              <Text variant="micro" tone="muted" numberOfLines={1}>
+              <Text variant="micro" tone="muted">
                 {savePreview}
               </Text>
             </View>

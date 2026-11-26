@@ -37,7 +37,11 @@ import {
 } from '@waves/core';
 
 import { useAuth } from '@/lib/auth';
-import { claimOrphanDeletes, orphanedPersonalTxnIds } from '@/lib/personalOrphans';
+import {
+  claimOrphanDeletes,
+  orphanedPersonalTxnIds,
+  releaseOrphanDelete,
+} from '@/lib/personalOrphans';
 import { recurringTxnLinks } from '@/lib/recurringLinks';
 import { useSync } from '@/sync';
 
@@ -118,7 +122,9 @@ export function usePersonalLedger(): PersonalLedger {
 
   const orphanIds = useMemo(() => orphanedPersonalTxnIds(records), [records]);
   useEffect(() => {
-    for (const id of claimOrphanDeletes(orphanIds)) deleteRecord(id);
+    for (const id of claimOrphanDeletes(orphanIds)) {
+      deleteRecord(id, { onError: () => releaseOrphanDelete(id) });
+    }
   }, [orphanIds, deleteRecord]);
 
   return useMemo(() => {
@@ -192,6 +198,7 @@ export function useDeletePersonalRecord() {
       await mutate(MutationKind.PersonalDelete, personalScope(ownerId), { recordId });
       return recordId;
     },
+    onError: (_error, recordId) => releaseOrphanDelete(recordId),
   });
 }
 

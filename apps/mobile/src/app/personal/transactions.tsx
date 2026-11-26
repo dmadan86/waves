@@ -197,13 +197,14 @@ function PersonalTransactionsScreenBody() {
    */
   const items: LedgerItem[] = useMemo(() => {
     // The same entries the dashboard's income total counts (one shared selector).
+    const selectedMonth = monthEnabled ? browseMonth : null;
     const incomeIds =
-      kindParam === 'income' && month && currencyParam
-        ? new Set(monthlyIncomeEntries(txns, month, currencyParam).map((entry) => entry.id))
+      tab === 'income' && selectedMonth && currencyParam
+        ? new Set(monthlyIncomeEntries(txns, selectedMonth, currencyParam).map((entry) => entry.id))
         : null;
     const spendIds =
-      kindParam === 'expense' && month && currencyParam
-        ? new Set(monthlySpendEntries(txns, month, currencyParam).map((entry) => entry.id))
+      tab === 'expense' && selectedMonth && currencyParam
+        ? new Set(monthlySpendEntries(txns, selectedMonth, currencyParam).map((entry) => entry.id))
         : null;
     const matchesCategory = (category: string | null | undefined): boolean =>
       (!uncategorizedOnly || !category) &&
@@ -246,7 +247,6 @@ function PersonalTransactionsScreenBody() {
     }
     return list;
   }, [
-    month,
     currencyParam,
     kindParam,
     txns,
