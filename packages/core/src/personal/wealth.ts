@@ -20,6 +20,21 @@ export function investedSoFar(inv: PersonalInvestment, txns: readonly PersonalTx
   return sum;
 }
 
+/** Ledger transaction ids that belong to a parent being soft-deleted. */
+export function linkedPersonalTxnIds(
+  txns: readonly Pick<PersonalTxn, 'id' | 'investmentId' | 'propertyId' | 'loanId'>[],
+  link: { investmentId?: string; propertyId?: string; loanId?: string },
+): string[] {
+  return txns
+    .filter(
+      (txn) =>
+        (link.investmentId !== undefined && txn.investmentId === link.investmentId) ||
+        (link.propertyId !== undefined && txn.propertyId === link.propertyId) ||
+        (link.loanId !== undefined && txn.loanId === link.loanId),
+    )
+    .map((txn) => txn.id);
+}
+
 /** What the active schedules put into the investment each month (weekly and
  *  fortnightly rules are scaled by 52/12, rounded down). */
 export function goingInPerMonth(rules: readonly PersonalRecurring[], currency: string): bigint {

@@ -33,6 +33,7 @@ import {
   dayPlan,
   format,
   formatParts,
+  incomeSource,
   money,
   monthOutlook,
   personalBudgetProgress,
@@ -481,7 +482,7 @@ function MeLedger() {
                 onPress={() =>
                   router.push({
                     pathname: '/personal/transactions',
-                    params: { kind: 'income', month, returnTo: '/(tabs)/me' },
+                    params: { kind: 'income', month, currency: dc, returnTo: '/(tabs)/me' },
                   })
                 }
               />
@@ -1021,8 +1022,14 @@ function PrivacyFooterPill() {
 // tags fall back to their own stored label via the badge; here we only need the
 // built-in names, so an unknown id returns null and the row shows its note.
 function labelForCategory(t: ReturnType<typeof useStrings>['t']) {
-  return (id: string | null): string | null =>
-    id ? (t.categories[id as keyof typeof t.categories] ?? null) : null;
+  return (id: string | null): string | null => {
+    if (!id) return null;
+    const translated = t.categories[id as keyof typeof t.categories];
+    if (translated) return translated;
+    if (id.startsWith('inc.')) return incomeSource(id)?.label ?? null;
+    if (id.startsWith('inv.')) return id === 'inv.deposit' ? 'Investment deposit' : 'Investment';
+    return null;
+  };
 }
 
 type Strings = ReturnType<typeof useStrings>['t'];

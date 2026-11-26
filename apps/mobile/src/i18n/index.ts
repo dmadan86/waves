@@ -17126,7 +17126,7 @@ const en: UiStrings = {
     seePayments: 'See payments',
     payments: 'Payments',
     deleteInvestment: 'Delete this investment and its entries?',
-    deleteRental: 'Delete this rental and its tenant and rent records?',
+    deleteRental: 'Delete this rental and its tenant, rent rules, and entries?',
     loanPayments: 'Loan payments',
     lowerLimit: 'Lower by {amount}',
     raiseLimit: 'Raise by {amount}',

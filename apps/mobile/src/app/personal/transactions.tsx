@@ -28,7 +28,14 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
-import { format, money, resolveCategory, type PersonalTxn } from '@waves/core';
+import {
+  format,
+  isInvestmentCategory,
+  money,
+  monthlyIncomeEntries,
+  resolveCategory,
+  type PersonalTxn,
+} from '@waves/core';
 import {
   Button,
   directionalIcon,
@@ -42,6 +49,7 @@ import {
 } from '@waves/ui';
 
 import { EmptyStateCta } from '@/components/EmptyStateCta';
+import { personalTxnCategoryLabel } from '@/lib/personalTxnCategoryLabel';
 import { filterTxns, groupByDay, type TxnTab } from '@/lib/txnLedger';
 import { CategoryBadge, CategoryPicker } from '@/components/Category';
 import { usePersonalLedger } from '@/data/personal';
@@ -154,7 +162,7 @@ function PersonalTransactionsScreenBody() {
   const filter = picked === undefined ? paramCategory : picked;
 
   const labelFor = (id: string | null): string | null =>
-    id ? (t.categories[id as keyof typeof t.categories] ?? null) : null;
+    personalTxnCategoryLabel(id, (key) => t.categories[key as keyof typeof t.categories] ?? null);
 
   /**
    * Grouped by day, flattened into one recyclable list — a heading item where
@@ -163,6 +171,11 @@ function PersonalTransactionsScreenBody() {
    * the group month screen does.
    */
   const items: LedgerItem[] = useMemo(() => {
+    // The same entries the dashboard's income total counts (one shared selector).
+    const incomeIds =
+      kindParam === 'income' && month && currencyParam
+        ? new Set(monthlyIncomeEntries(txns, month, currencyParam).map((entry) => entry.id))
+        : null;
     const matchesCategory = (category: string | null | undefined): boolean =>
       (!uncategorizedOnly || !category) &&
       (!filter ||
@@ -180,7 +193,11 @@ function PersonalTransactionsScreenBody() {
       month: monthEnabled ? browseMonth : null,
       from: fromDate,
       to: toDate,
-    });
+    }).filter((txn) =>
+      incomeIds
+        ? incomeIds.has(txn.id)
+        : !(kindParam === 'income' && isInvestmentCategory(txn.category)),
+    );
     const list: LedgerItem[] = [];
     for (const { rows, ...day } of groupByDay(shown)) {
       list.push({ kind: 'day', key: `day-${day.day}`, ...day });
@@ -198,6 +215,7 @@ function PersonalTransactionsScreenBody() {
     }
     return list;
   }, [
+    month,
     txns,
     filter,
     picked,
@@ -212,6 +230,7 @@ function PersonalTransactionsScreenBody() {
     fromDate,
     toDate,
     tab,
+    kindParam,
     debouncedQuery,
     locale,
     t,

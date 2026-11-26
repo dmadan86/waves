@@ -560,13 +560,31 @@ export interface MonthlySummary {
   readonly net: bigint;
 }
 
+/** Entries counted by the monthly income figure and its drill-down list. */
+export function monthlyIncomeEntries(
+  txns: readonly PersonalTxn[],
+  month: string,
+  currency: CurrencyCode,
+): PersonalTxn[] {
+  return txns.filter(
+    (txn) =>
+      txn.kind === 'income' &&
+      txn.currency === currency &&
+      monthKey(txn.date) === month &&
+      !isInvestmentCategory(txn.category),
+  );
+}
+
 /** Income, expense and net for one month and currency. */
 export function monthlySummary(
   txns: readonly PersonalTxn[],
   month: string,
   currency: CurrencyCode,
 ): MonthlySummary {
-  let income = 0n;
+  const income = monthlyIncomeEntries(txns, month, currency).reduce(
+    (sum, txn) => sum + txn.amount,
+    0n,
+  );
   let expense = 0n;
   let invested = 0n;
   for (const txn of txns) {
@@ -574,8 +592,7 @@ export function monthlySummary(
     if (monthKey(txn.date) !== month) continue;
     if (isInvestmentCategory(txn.category)) {
       invested += txn.kind === 'income' ? -txn.amount : txn.amount;
-    } else if (txn.kind === 'income') income += txn.amount;
-    else expense += txn.amount;
+    } else if (txn.kind !== 'income') expense += txn.amount;
   }
   return { income, expense: expense + invested, invested, net: income - expense - invested };
 }
