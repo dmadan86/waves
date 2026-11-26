@@ -14576,7 +14576,8 @@ const en: UiStrings = {
     copyLink: 'Copy link',
     createLink: 'Create an invite link',
     newLink: 'Create a new link',
-    newLinkConfirm: 'Create a new link? The old link stops working. Use it to invite back someone you removed.',
+    newLinkConfirm:
+      'Create a new link? The old link stops working. Use it to invite back someone you removed.',
     expires: 'expires {when}',
     usesBadge: '{count} uses',
     shareMessage: 'Join {group} on Waves to split expenses together. Tap to join: {link}',
@@ -22859,7 +22860,8 @@ const ta: UiStrings = {
     copyLink: 'இணைப்பை நகலெடு',
     createLink: 'அழைப்பு இணைப்பை உருவாக்கு',
     newLink: 'புதிய இணைப்பை உருவாக்கு',
-    newLinkConfirm: 'புதிய இணைப்பை உருவாக்கவா? பழைய இணைப்பு வேலை செய்யாது. நீக்கிய ஒருவரை மீண்டும் அழைக்க இதைப் பயன்படுத்துங்கள்.',
+    newLinkConfirm:
+      'புதிய இணைப்பை உருவாக்கவா? பழைய இணைப்பு வேலை செய்யாது. நீக்கிய ஒருவரை மீண்டும் அழைக்க இதைப் பயன்படுத்துங்கள்.',
     expires: '{when} க்கு காலாவதி',
     usesBadge: '{count} பயன்பாடுகள்',
     shareMessage: 'செலவுகளை ஒன்றாகப் பிரிக்க Waves-ல் {group} குழுவில் சேரவும். சேர தட்டவும்: {link}',
@@ -23109,7 +23111,8 @@ const ta: UiStrings = {
     note: 'குறிப்பு',
     createdByName: '{name} உருவாக்கியது',
     editedByName: '{name} திருத்தியது',
-    replacedEdit: 'உங்கள் திருத்தத்திற்குப் பிறகு {name} இந்தக் கணக்கை மாற்றினார். உங்கள் பதிப்பு வரலாற்றில் உள்ளது.',
+    replacedEdit:
+      'உங்கள் திருத்தத்திற்குப் பிறகு {name} இந்தக் கணக்கை மாற்றினார். உங்கள் பதிப்பு வரலாற்றில் உள்ளது.',
     fresh: {
       new: 'புதியது',
       edited: 'திருத்தியது',
@@ -31101,7 +31104,8 @@ const hi: UiStrings = {
     copyLink: 'लिंक कॉपी करें',
     createLink: 'निमंत्रण लिंक बनाएँ',
     newLink: 'नया लिंक बनाएँ',
-    newLinkConfirm: 'नया लिंक बनाएँ? पुराना लिंक काम नहीं करेगा। हटाए गए व्यक्ति को वापस बुलाने के लिए इसका इस्तेमाल करें।',
+    newLinkConfirm:
+      'नया लिंक बनाएँ? पुराना लिंक काम नहीं करेगा। हटाए गए व्यक्ति को वापस बुलाने के लिए इसका इस्तेमाल करें।',
     expires: '{when} को खत्म',
     usesBadge: '{count} उपयोग',
     shareMessage: 'साथ मिलकर खर्च बाँटने के लिए Waves पर {group} में शामिल हों। जुड़ने के लिए टैप करें: {link}',

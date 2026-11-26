@@ -155,7 +155,8 @@ function InviteScreenInner() {
     (member) => isViewer(member, profile?.id) && member.role === 'admin' && !member.left_at,
   );
   const newLink = async (): Promise<void> => {
-    if (!(await confirm({ title: t.people.newLinkConfirm, confirmLabel: t.people.newLink }))) return;
+    if (!(await confirm({ title: t.people.newLinkConfirm, confirmLabel: t.people.newLink })))
+      return;
     setBusy(true);
     setError(null);
     try {

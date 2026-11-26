@@ -1585,3 +1585,11 @@ describe('digits in a group name are never money', () => {
     },
   );
 });
+
+describe('QA two-device sentence', () => {
+  it('keeps both items and ignores the group name digits', () => {
+    const groups = [{ id: 'g1', name: 'QA2dev26NovB', currency: 'INR' }] as never;
+    const r = parseVoiceExpenses('dinner 30 dollars and taxi 200 rupees QA2dev26NovB', groups);
+    expect(r.items.map((i) => i.amountMajor).sort((a, b) => a - b)).toEqual([30, 200]);
+  });
+});

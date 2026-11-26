@@ -15,9 +15,7 @@ export function GroupRemovedNotice() {
   useEffect(
     () =>
       onGroupsRemoved((groups) => {
-        toast.show(
-          fill(t.misc.removedFromGroup, { group: groups[0]?.name ?? t.misc.someone }),
-        );
+        toast.show(fill(t.misc.removedFromGroup, { group: groups[0]?.name ?? t.misc.someone }));
         if (insideRemovedGroup(pathname, groups)) router.replace('/');
       }),
     [pathname, t, toast],
