@@ -37,6 +37,7 @@ import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
 import { showFlash } from '@/lib/flash';
 import { groupSharesByFamily } from '@/lib/families';
+import { itemizedRows } from '@/lib/itemizedLines';
 import { MapPin } from 'lucide-react';
 
 export default function ExpensePage() {
@@ -205,6 +206,8 @@ function ExpenseDetail({
     }
   }
 
+  const itemLines = itemizedRows(version.split_type, version.split_params);
+
   const splitKind = version.split_type as keyof typeof t.expense.splitKind;
   const splitLabel = t.expense.splitKind[splitKind] ?? version.split_type;
 
@@ -272,6 +275,27 @@ function ExpenseDetail({
             ))}
           </div>
         </section>
+
+        {itemLines.length > 0 ? (
+          <section className="panel">
+            <div className="panel-head">
+              <h2>{splitLabel}</h2>
+            </div>
+            <div className="list">
+              {itemLines.map((line, index) => (
+                <div key={index} className="item" style={{ cursor: 'default' }}>
+                  <span className="grow">
+                    <span className="title" style={{ fontWeight: 500 }}>
+                      {line.label || '—'}
+                    </span>
+                    <span className="meta">{line.claimers.map(nameFor).join(', ')}</span>
+                  </span>
+                  <span className="amount">{money(line.total, currency, locale)}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className="panel">
           <div className="panel-head">

@@ -33,6 +33,30 @@ import {
 
 import { actorName, type ActivityRow } from '@waves/api-client';
 
+/** An expense's current figures by id: a delete or restore row's payload is empty, so the amount comes from here. */
+export type ExpenseFigures = ReadonlyMap<string, { amount: string | bigint; currency: string }>;
+
+/** The amount an expense row is about, in minor units, or null when the row has none to show. */
+export function activityAmount(
+  entry: ActivityRow,
+  figures?: ExpenseFigures,
+): { minor: bigint; currency: string } | null {
+  if (entry.object_type !== 'expense' || !entry.object_id) return null;
+  const { payload } = entry;
+  const fromPayload =
+    typeof payload?.amount === 'string' && /^-?\d+$/.test(payload.amount) && payload.currency
+      ? { amount: payload.amount, currency: String(payload.currency) }
+      : null;
+  const known = figures?.get(entry.object_id);
+  const pick =
+    entry.verb === 'deleted' || entry.verb === 'restored'
+      ? known
+      : ['added', 'edited'].includes(entry.verb)
+        ? (fromPayload ?? known)
+        : null;
+  return pick ? { minor: BigInt(pick.amount), currency: pick.currency } : null;
+}
+
 export function describeActivity(
   entry: ActivityRow,
   myProfileId: string | null,
@@ -42,7 +66,9 @@ export function describeActivity(
   const { payload } = entry;
   const description =
     (typeof payload?.description === 'string' ? payload.description : null) ??
-    (entry.verb === 'deleted' && entry.object_id ? expenseNames?.get(entry.object_id) : null) ??
+    ((entry.verb === 'deleted' || entry.verb === 'restored') && entry.object_id
+      ? expenseNames?.get(entry.object_id)
+      : null) ??
     null;
   const who = actorName(entry.actor, myProfileId);
 

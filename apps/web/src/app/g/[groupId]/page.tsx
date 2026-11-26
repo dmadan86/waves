@@ -62,7 +62,7 @@ import { SkeletonRows } from '@/components/Skeleton';
 import { waves } from '@/lib/waves';
 import { money } from '@/lib/money';
 import { groupByMonth, monthLabel } from '@/lib/ledgerFeed';
-import { describeActivity, VerbIcon } from '@/lib/activity';
+import { activityAmount, describeActivity, VerbIcon } from '@/lib/activity';
 import { groupComments } from '@/lib/groupWrites';
 import { commentRows, mergeFeed } from '@/lib/commentActivity';
 import { fill, plural } from '@/i18n';
@@ -198,6 +198,22 @@ function GroupDetail({
       new Map(
         expenses.flatMap((e) =>
           e.currentVersion?.description ? [[e.id, e.currentVersion.description] as const] : [],
+        ),
+      ),
+    [expenses],
+  );
+  const expenseFigures = useMemo(
+    () =>
+      new Map(
+        expenses.flatMap((e) =>
+          e.currentVersion
+            ? [
+                [
+                  e.id,
+                  { amount: e.currentVersion.amount, currency: e.currentVersion.currency },
+                ] as const,
+              ]
+            : [],
         ),
       ),
     [expenses],
@@ -572,6 +588,7 @@ function GroupDetail({
             ) : (
               <div className="list">
                 {feed.map((entry) => {
+                  const figure = activityAmount(entry, expenseFigures);
                   const line = (
                     <>
                       <span className="tile-emoji" aria-hidden>
@@ -587,6 +604,11 @@ function GroupDetail({
                           </span>
                         ) : null}
                       </span>
+                      {figure ? (
+                        <span className="amount">
+                          {money(figure.minor, figure.currency, locale)}
+                        </span>
+                      ) : null}
                     </>
                   );
                   // A row about an expense opens it, the same rule the

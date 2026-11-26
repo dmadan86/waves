@@ -26,7 +26,7 @@ import { totalsByCurrency, type CurrencyTotals } from '@waves/core';
 import { waves } from '@/lib/waves';
 import { SkeletonRows } from '@/components/Skeleton';
 import { money } from '@/lib/money';
-import { describeActivity, VerbIcon } from '@/lib/activity';
+import { activityAmount, describeActivity, VerbIcon } from '@/lib/activity';
 import { plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
@@ -249,21 +249,27 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
             <p className="muted">{t.dash.noActivity}</p>
           ) : (
             <div className="list">
-              {filteredActivity.slice(0, 6).map((entry) => (
-                <div key={entry.id} className="item" style={{ cursor: 'default' }}>
-                  <span className="tile-emoji" aria-hidden>
-                    <VerbIcon verb={entry.verb} />
-                  </span>
-                  <span className="grow">
-                    <span className="title" style={{ fontWeight: 500, whiteSpace: 'normal' }}>
-                      {describeActivity(entry, profileId)}
+              {filteredActivity.slice(0, 6).map((entry) => {
+                const figure = activityAmount(entry);
+                return (
+                  <div key={entry.id} className="item" style={{ cursor: 'default' }}>
+                    <span className="tile-emoji" aria-hidden>
+                      <VerbIcon verb={entry.verb} />
                     </span>
-                    <span className="meta">
-                      {entry.group?.name?.trim() ? entry.group.name : ''}
+                    <span className="grow">
+                      <span className="title" style={{ fontWeight: 500, whiteSpace: 'normal' }}>
+                        {describeActivity(entry, profileId)}
+                      </span>
+                      <span className="meta">
+                        {entry.group?.name?.trim() ? entry.group.name : ''}
+                      </span>
                     </span>
-                  </span>
-                </div>
-              ))}
+                    {figure ? (
+                      <span className="amount">{money(figure.minor, figure.currency, locale)}</span>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
