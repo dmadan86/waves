@@ -3,6 +3,7 @@ import type { MirrorPersonalRecord } from '@waves/core';
 import {
   claimOrphanDeletes,
   orphanedPersonalTxnIds,
+  releaseOrphanDelete,
   resetOrphanClaims,
 } from '../src/lib/personalOrphans';
 
@@ -38,5 +39,11 @@ describe('orphaned Personal entries from deletes made before the cascade fix', (
     expect(claimOrphanDeletes(['a', 'b'])).toEqual(['a', 'b']);
     expect(claimOrphanDeletes(['a', 'b'])).toEqual([]);
     expect(claimOrphanDeletes(['b', 'c'])).toEqual(['c']);
+  });
+
+  it('releases a failed dispatch so the orphan can be retried', () => {
+    expect(claimOrphanDeletes(['a'])).toEqual(['a']);
+    releaseOrphanDelete('a');
+    expect(claimOrphanDeletes(['a'])).toEqual(['a']);
   });
 });

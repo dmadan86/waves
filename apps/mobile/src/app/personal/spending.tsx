@@ -88,7 +88,7 @@ function SpendingScreenBody() {
   // so `computePersonalSpending` is left on its default and the Bills row reads
   // zero. The day a rule carries a kind, one `isBillLike` passed here fills the
   // row in and nothing else on this screen changes.
-  const spendTxns = useMemo(() => txns.filter((txn) => !txn.loanId), [txns]);
+  const spendTxns = txns;
   const trend = useMemo(
     () => personalSpendingTrend(spendTxns, months, dc),
     [spendTxns, months, dc],

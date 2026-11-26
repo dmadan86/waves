@@ -320,13 +320,14 @@ function EntryForm({
       tone: 'danger',
     });
     if (ok) {
-      remove.mutate(editing.id, {
-        onSuccess: () => {
+      void remove
+        .mutateAsync(editing.id)
+        .then(() => {
           // Deleting the entry deletes its receipt (and any unsaved replacement).
           void removePersonalReceipt(ownerId, savedReceipt);
           if (receiptKey !== savedReceipt) void removePersonalReceipt(ownerId, receiptKey);
-        },
-      });
+        })
+        .catch(() => undefined);
       // The delete is optimistic: leave now, not when the server answers, or the screen
       // re-renders as "That entry is no longer here" while offline or on a slow network.
       router.back();

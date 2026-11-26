@@ -36,6 +36,27 @@ const ctx: SetupContext = {
 const rupees = (n: number): bigint => BigInt(n) * 100n;
 
 describe('rerunning Personal setup preserves existing recurring amounts', () => {
+  it('prefills only matching currency, uses anchor day, and leaves unknown home kinds unanswered', () => {
+    const recs = answersToRecords(
+      {
+        income: { kind: 'salary', amount: rupees(50000), day: 7 },
+        home: { kind: 'rent', amount: rupees(20000), day: 9 },
+      },
+      ctx,
+    )
+      .filter((record) => record.recordKind === 'recurring')
+      .map((record) => decodeRecurring(record.recordId, record.data));
+    const anchored = recs.map((record) => ({ ...record, nextDate: '2026-12-25' }));
+    expect(setupPrefill(anchored, ctx)).toMatchObject({ income: { day: 7 }, home: { day: 9 } });
+    const differentCurrency = anchored.map((record) => ({ ...record, currency: 'EUR' }));
+    expect(setupPrefill(differentCurrency, ctx)).toMatchObject({ income: null, home: null });
+    expect(
+      setupPrefill(
+        anchored.map((record) => ({ ...record, note: 'old translated label' })),
+        ctx,
+      ).home?.kind,
+    ).toBeNull();
+  });
   it('hydrates a late prefill only while the answer is untouched', () => {
     const incoming = { kind: 'salary' as const, amount: 50000n, day: 1 };
     expect(setupPrefillForUntouched(null, incoming, false)).toEqual(incoming);

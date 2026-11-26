@@ -199,18 +199,18 @@ const INCOME_KIND_BY_CATEGORY: Record<string, IncomeKind> = {
  */
 export function setupPrefill(
   recurrings: readonly PersonalRecurring[],
-  ctx: Pick<SetupContext, 'ownerId' | 'label'>,
+  ctx: Pick<SetupContext, 'ownerId' | 'label' | 'currency'>,
 ): {
   income: { kind: IncomeKind; amount: bigint; day: number } | null;
-  home: { kind: HomeKind; amount: bigint; day: number } | null;
+  home: { kind: HomeKind | null; amount: bigint; day: number } | null;
   bills: BillAnswer[];
 } {
   const find = (key: string): PersonalRecurring | undefined => {
     const id = setupSlotId(ctx.ownerId, key);
-    return recurrings.find((r) => r.id === id && r.active);
+    return recurrings.find((r) => r.id === id && r.active && r.currency === ctx.currency);
   };
   const dayOf = (r: PersonalRecurring, fallback: number): number =>
-    Number(r.nextDate.slice(8, 10)) || fallback;
+    Number(r.anchorDate.slice(8, 10)) || fallback;
   const inc = find('income');
   const home = find('home');
   return {
@@ -225,7 +225,7 @@ export function setupPrefill(
       ? {
           kind:
             (['rent', 'home_loan'] as const).find((k) => ctx.label(`home:${k}`) === home.note) ??
-            'rent',
+            null,
           amount: home.amount,
           day: dayOf(home, 1),
         }

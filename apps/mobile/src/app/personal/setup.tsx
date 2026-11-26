@@ -90,7 +90,7 @@ interface StepProps {
   /** Income minus fixed bills so far, for the cap's starting figure. */
   free: bigint;
   incomePrefill?: { kind: IncomeKind; amount: bigint; day: number } | null;
-  homePrefill?: { kind: HomeKind; amount: bigint; day: number } | null;
+  homePrefill?: { kind: HomeKind | null; amount: bigint; day: number } | null;
   billPrefill?: BillAnswer[];
 }
 
