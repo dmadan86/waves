@@ -5,6 +5,7 @@ import {
   serialiseSplitParams,
   toLedgerSnapshots,
   type CurrencyCode,
+  type SplitParams,
   fallbackCurrency,
 } from '@waves/core';
 import type { ExpenseRow, ExpenseVersionRow } from '../data/types';
@@ -57,11 +58,21 @@ export interface Candidate {
   onlyViewerRemains: boolean;
 }
 
+/** Everyone who has left or been removed, so none of them is offered a share. */
+export const departedIds = (members: readonly { id: string; left_at?: string | null }[] = []) =>
+  new Set(members.filter((m) => m.left_at).map((m) => m.id));
+
+/** Own comment, an admin, or anyone still in the group when the author has left (matches waves_delete_expense_comment). */
+export const canDeleteComment = (mine: boolean, iAmAdmin: boolean, authorGone: boolean) =>
+  mine || iAmAdmin || authorGone;
+
 /** Deleted expenses and zero shares never offer a change. Payers take precedence. */
 export function classifyDepartedExpenses(
   expenses: readonly Expense[],
   memberId: string,
   viewerMemberId?: string,
+  // Everyone else who has left or been removed: they can never receive a share.
+  gone: ReadonlySet<string> = new Set(),
 ): { equal: Candidate[]; custom: Candidate[]; paid: Expense[] } {
   const equal: Candidate[] = [];
   const custom: Candidate[] = [];
@@ -77,7 +88,7 @@ export function classifyDepartedExpenses(
     const memberShare = shares.get(memberId) ?? 0n;
     if (memberShare === 0n) continue;
     const remainingParticipants = [...shares]
-      .filter(([id, amount]) => id !== memberId && amount > 0n)
+      .filter(([id, amount]) => id !== memberId && !gone.has(id) && amount > 0n)
       .map(([id]) => id);
     const noneRemaining = remainingParticipants.length === 0;
     const candidate: Candidate = {
@@ -105,41 +116,81 @@ function computed(expense: Expense): Map<string, bigint> {
   });
 }
 
-/** Keep produces no write. Custom shares retain their original amounts plus the rotated extra. */
+export type ResplitMode = 'keep' | 'share_equally' | 'proportional' | 'equal';
+export const RESPLIT_MODES: readonly ResplitMode[] = [
+  'keep',
+  'share_equally',
+  'proportional',
+  'equal',
+];
+
+/**
+ * keep: no write. share_equally: only their part, equally among the rest.
+ * proportional: their part follows the rest's existing ratio; percent and shares
+ * bills stay percent and shares. equal: the whole bill equally among the rest.
+ * All amounts come from computeShares, so they always add up to the bill.
+ */
 export function buildResplitItem(
   candidate: Candidate,
   memberId: string,
-  mode: 'keep' | 'equal' | 'share_equally' = 'equal',
+  mode: ResplitMode = 'share_equally',
 ): ResplitItem | null {
   if (mode === 'keep' || candidate.noneRemaining) return null;
   const { expense, remainingParticipants } = candidate;
   const v = expense.currentVersion!;
   const original = computed(expense);
-  const equal = v.split_type === 'equal';
-  const extra = computeShares({
-    amount: equal ? BigInt(v.amount) : (original.get(memberId) ?? 0n),
+  const base = {
+    amount: BigInt(v.amount),
     currency: v.currency as CurrencyCode,
-    params: { kind: 'equal' },
     participants: remainingParticipants,
     seed: expense.id,
-  });
-  const amounts = Object.fromEntries(
-    remainingParticipants
-      .map((id): [string, bigint] => [
-        id,
-        (equal ? 0n : (original.get(id) ?? 0n)) + (extra.get(id) ?? 0n),
-      ])
-      .filter(([, amount]) => amount !== 0n),
-  );
+  };
+  const params = parseSplitParams(v.split_params);
+  let next: SplitParams;
+  let amounts: Map<string, bigint>;
+  if (v.split_type === 'equal' || mode === 'equal') {
+    next = { kind: 'equal' };
+    amounts = computeShares({ ...base, params: next });
+  } else if (mode === 'share_equally') {
+    const extra = computeShares({
+      ...base,
+      amount: original.get(memberId) ?? 0n,
+      params: { kind: 'equal' },
+    });
+    amounts = new Map(
+      remainingParticipants.map((id) => [id, (original.get(id) ?? 0n) + (extra.get(id) ?? 0n)]),
+    );
+    next = { kind: 'exact', amounts: Object.fromEntries(amounts) };
+  } else {
+    const weights = (from: Readonly<Record<string, number | bigint>>) =>
+      Object.fromEntries(remainingParticipants.map((id) => [id, Number(from[id] ?? 0)]));
+    if (params.kind === 'percent') {
+      const bp = computeShares({
+        ...base,
+        amount: 10000n,
+        params: { kind: 'shares', weights: weights(params.basisPoints) },
+      });
+      next = {
+        kind: 'percent',
+        basisPoints: Object.fromEntries([...bp].map(([id, n]) => [id, Number(n)])),
+      };
+    } else if (params.kind === 'shares') {
+      next = { kind: 'shares', weights: weights(params.weights) };
+    } else {
+      next = { kind: 'shares', weights: weights(Object.fromEntries(original)) };
+    }
+    amounts = computeShares({ ...base, params: next });
+    // Anything but percent or shares was a fixed amount, and stays one.
+    if (next.kind === 'shares' && params.kind !== 'shares')
+      next = { kind: 'exact', amounts: Object.fromEntries(amounts) };
+  }
+  const kept = [...amounts].filter(([, amount]) => amount !== 0n);
   return {
     expense_id: expense.id,
     base_version_no: v.version_no,
-    split_type: equal ? 'equal' : 'exact',
-    split_params: serialiseSplitParams(equal ? { kind: 'equal' } : { kind: 'exact', amounts }),
-    shares: Object.entries(amounts).map(([member_id, amount]) => ({
-      member_id,
-      amount_minor: String(amount),
-    })),
+    split_type: next.kind as ResplitItem['split_type'],
+    split_params: serialiseSplitParams(next),
+    shares: kept.map(([member_id, amount]) => ({ member_id, amount_minor: String(amount) })),
   };
 }
 

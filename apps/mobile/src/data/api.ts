@@ -2484,7 +2484,7 @@ export async function undoResplit(batchId: string): Promise<UndoResplitResult> {
 export interface ResplitItem {
   expense_id: string;
   base_version_no: number;
-  split_type: 'equal' | 'exact';
+  split_type: 'equal' | 'exact' | 'percent' | 'shares';
   split_params: Record<string, unknown>;
   shares: { member_id: string; amount_minor: string }[];
 }

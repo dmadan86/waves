@@ -132,7 +132,10 @@ export function recentActivity(
   // Sorted before it is joined: the order depends only on `created_at`, which
   // the join does not touch, so the result is the same — and a caller that
   // wants only the newest few (the watch) joins only those.
-  const sorted = (rowsFor(mirror, SyncTable.ActivityLog) as unknown as ActivityRow[])
+  const sorted = [
+    ...(rowsFor(mirror, SyncTable.ActivityLog) as unknown as ActivityRow[]),
+    ...commentActivity(mirror, actors, expenseById),
+  ]
     // A row whose group the mirror has never seen is kept, with a null group —
     // that is the existing "newer build, unknown group" fallback and it reads
     // as a plain line. A row whose group the mirror knows to be deleted is
@@ -155,16 +158,18 @@ export function recentActivity(
     payload:
       row.verb === 'edited' || row.verb === 'deleted' || row.verb === 'restored'
         ? currentFigures(row, expenseById, newestEdit)
-        : row.verb === 'resplit_undone'
-          ? {
-              ...row.payload,
-              name:
-                row.payload.name ??
-                batchNames.get(
-                  `${row.group_id}:${row.payload.batchId ?? row.payload.batch_id ?? row.object_id}`,
-                ),
-            }
-          : row.payload,
+        : row.verb === 'resplit' && !row.payload.currency
+          ? { ...row.payload, currency: resplitCurrency(row, expenseById) ?? undefined }
+          : row.verb === 'resplit_undone'
+            ? {
+                ...row.payload,
+                name:
+                  row.payload.name ??
+                  batchNames.get(
+                    `${row.group_id}:${row.payload.batchId ?? row.payload.batch_id ?? row.object_id}`,
+                  ),
+              }
+            : row.payload,
     group: groups.get(row.group_id) ?? null,
     actor: row.actor_member_id ? (actors.get(row.actor_member_id) ?? null) : null,
     stake: stakeFor(row, expenseById, myMemberByGroup),
@@ -192,6 +197,30 @@ export function currentFigures(
     currency: version.currency,
     ...(version.description.trim() ? { description: version.description } : {}),
   };
+}
+
+/**
+ * A re-split row's payload has an amount but no currency, so a USD bill read as
+ * rupees. The versions it wrote share its instant and author, so the currency
+ * is theirs when they all agree; otherwise null and the caller keeps its fallback.
+ */
+export function resplitCurrency(
+  row: ActivityRow,
+  expenseById: ReadonlyMap<string, Pick<MirrorExpense, 'group_id' | 'currentVersion'>>,
+): string | null {
+  const at = Date.parse(String(row.created_at));
+  const found = new Set<string>();
+  for (const e of expenseById.values()) {
+    const v = e.currentVersion;
+    if (
+      e.group_id === row.group_id &&
+      v &&
+      v.author_member_id === row.actor_member_id &&
+      Date.parse(v.created_at) === at
+    )
+      found.add(v.currency);
+  }
+  return found.size === 1 ? [...found][0]! : null;
 }
 
 /** The category of the expense an activity row is about, or null. */
@@ -306,4 +335,63 @@ export function resplitBatchId(row: ActivityRow): string | null {
   if (row.verb !== 'resplit') return null;
   const id = row.payload.batchId ?? row.payload.batch_id ?? row.object_id;
   return typeof id === 'string' && id.length > 0 ? id : null;
+}
+
+type CommentRow = {
+  id: string;
+  group_id: string;
+  expense_id: string;
+  author_member_id: string | null;
+  deleted_by?: string | null;
+  body: string;
+  created_at: string | null;
+  deleted_at: string | null;
+};
+
+const memberName = (a: ActivityActor | undefined) =>
+  a?.profile?.display_name?.trim() || a?.ghost_name?.trim() || null;
+
+/**
+ * Comments are not in activity_log, so the feed reads them from the mirror: one
+ * row when added and, once deleted, one naming who deleted it (its `deleted_by`
+ * when the server recorded it). Authors are looked up among every member ever,
+ * so a person who has left still reads by name.
+ */
+function commentActivity(
+  mirror: MirrorState,
+  actors: ReadonlyMap<string, ActivityActor>,
+  expenseById: ReadonlyMap<string, MirrorExpense>,
+): ActivityRow[] {
+  const out: ActivityRow[] = [];
+  // A mirror saved by an older build may not have the table yet.
+  if (!mirror.tables[SyncTable.ExpenseComments]) return out;
+  for (const c of rowsFor(mirror, SyncTable.ExpenseComments) as unknown as CommentRow[]) {
+    const description = expenseById.get(c.expense_id)?.currentVersion?.description ?? '';
+    const base = { group_id: c.group_id, object_type: 'comment', object_id: c.expense_id };
+    if (c.created_at)
+      out.push({
+        ...base,
+        id: `comment:${c.id}`,
+        actor_member_id: c.author_member_id,
+        verb: 'commented',
+        payload: { description, body: c.deleted_at ? '' : c.body.slice(0, 80) },
+        created_at: c.created_at,
+      });
+    if (c.deleted_at)
+      out.push({
+        ...base,
+        id: `comment-deleted:${c.id}`,
+        actor_member_id: c.deleted_by ?? null,
+        verb: 'comment_deleted',
+        payload: {
+          description,
+          author:
+            c.deleted_by === c.author_member_id
+              ? null
+              : memberName(actors.get(c.author_member_id ?? '')),
+        },
+        created_at: c.deleted_at,
+      });
+  }
+  return out;
 }
