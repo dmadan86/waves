@@ -1949,16 +1949,20 @@ export function useRecordSettlement(groupId: string) {
       }
       const settlementId = randomUUID();
       // The person receiving the money recording it is the confirmation: only a
-      // payer-recorded payment waits for the payee to agree.
+      // payer-recorded payment waits for the payee to agree. The server creates
+      // it confirmed on its own (it mints its own row id, so a second "confirm"
+      // mutation naming this one would never find it); `confirmed` only shapes
+      // the overlay until the pull brings the real row.
       const viewerIsPayee = (
         materialiseMembers(mirror, queue, { groupId: input.groupId }) as unknown as MemberRow[]
       ).some((member) => member.id === input.toMemberId && isViewer(member, profile?.id));
-      const created = await mutate(
+      return mutate(
         MutationKind.SettlementCreate,
         input.groupId,
         {
           // Chosen here so the overlay has a stable row to show while it waits.
           settlementId,
+          confirmed: viewerIsPayee,
           from: input.fromMemberId,
           to: input.toMemberId,
           amount: input.amount.toString(),
@@ -1980,13 +1984,6 @@ export function useRecordSettlement(groupId: string) {
         },
         input.clientMutationId,
       );
-      if (viewerIsPayee) {
-        await mutate(MutationKind.SettlementTransition, input.groupId, {
-          settlementId,
-          to: SettlementStatus.Confirmed,
-        } satisfies SettlementTransitionPayload);
-      }
-      return created;
     },
   });
 }

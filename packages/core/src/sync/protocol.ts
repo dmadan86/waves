@@ -271,6 +271,8 @@ export interface ExpenseDeletePayload {
 
 export interface SettlementCreatePayload {
   readonly settlementId: string;
+  /** Recorded by the payee: shown confirmed in the overlay (the server creates it confirmed). */
+  readonly confirmed?: boolean;
   readonly from: MemberId;
   readonly to: MemberId;
   readonly currency: CurrencyCode;
