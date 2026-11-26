@@ -6707,6 +6707,8 @@ export interface UiStrings {
     /** The server refused a guest join (an older screen, or a race). */
     joinAccountRequired: string;
     joinRemoved: string;
+    /** Calm line when an admin removed you and the group left this phone. */
+    removedFromGroup: string;
     fromYourContacts: string;
     continueWith: string;
     noAddress: string;
@@ -15020,6 +15022,7 @@ const en: UiStrings = {
     joinAccountRequired:
       'You need an account to join this group. Sign up or log in, then open the link again.',
     joinRemoved: 'You were removed from this group. Ask an admin for a new invite.',
+    removedFromGroup: 'You are no longer in {group}.',
     fromYourContacts: 'From your contacts',
     continueWith: 'Continue with',
     noAddress: 'No address',
@@ -23457,6 +23460,7 @@ const ta: UiStrings = {
       'இந்தப் பதிப்பால் இனி Waves-உடன் தொடர்பு கொள்ள முடியாது, எனவே தவறாக இருக்கக்கூடிய எண்களைக் காட்டுவதற்குப் பதிலாக அது நிறுத்தப்பட்டுள்ளது.',
     newWavesOut: 'புதிய Waves வெளியாகிவிட்டது',
     wavesVersionOut: 'Waves {latest} கிடைக்கிறது',
+    removedFromGroup: 'நீங்கள் இனி {group} குழுவில் இல்லை.',
   },
   smsImport: {
     heroTitle: 'பணப்பரிமாற்றங்களை விரைவாகச் சேருங்கள்',
@@ -31674,6 +31678,7 @@ const hi: UiStrings = {
       'यह संस्करण अब Waves से बात नहीं कर सकता, इसलिए ग़लत आँकड़े दिखाने के बजाय इसे रोक दिया गया है।',
     newWavesOut: 'नया Waves आ गया है',
     wavesVersionOut: 'Waves {latest} उपलब्ध है',
+    removedFromGroup: 'आप अब {group} में नहीं हैं।',
   },
   smsImport: {
     heroTitle: 'भुगतान झटपट जोड़ें',
@@ -40304,6 +40309,7 @@ const ar: UiStrings = {
       'لم يعد بإمكان هذه النسخة التواصل مع Waves، لذا أُوقفت بدلًا من أن تعرض عليك أرقامًا قد تكون خاطئة.',
     newWavesOut: 'صدر إصدار جديد من Waves',
     wavesVersionOut: 'Waves {latest} متاح',
+    removedFromGroup: 'لم تعد في {group}.',
   },
   smsImport: {
     heroTitle: 'أضف المدفوعات بسرعة',

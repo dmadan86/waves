@@ -12,6 +12,7 @@
  * and the network call itself.
  */
 
+import { announceGroupsRemoved } from '@/lib/groupRemoved';
 import * as Network from 'expo-network';
 import {
   applyOutcomes,
@@ -824,10 +825,14 @@ export class SyncEngine {
         response.memberOf,
         gated,
       );
+      const removed: { id: string; name: string | null }[] = [];
       for (const groupId of dropped) {
         if (this.state.queue.some((mutation) => mutation.groupId === groupId)) continue;
+        const name = this.state.mirror.tables[SyncTable.Groups]?.[groupId]?.name;
+        removed.push({ id: groupId, name: typeof name === 'string' ? name : null });
         await this.dropGroup(groupId);
       }
+      announceGroupsRemoved(removed);
 
       // The server capped a table at MAX_ROWS_PER_TABLE and left the cursor
       // below its high-water; the rest is still on the server. Drain it now
