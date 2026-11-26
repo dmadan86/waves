@@ -75,3 +75,14 @@ describe('newMarksSince', () => {
     expect(newMarksSince([row('added', null, 2_000)], isMine, 1_000).get('e1')?.kind).toBe('new');
   });
 });
+
+describe('newMarksSince after my own later edit', () => {
+  it('does not name the other person once I have edited last', () => {
+    const marks = newMarksSince(
+      [row('edited', 'm-ravi', 2_000), row('edited', ME, 3_000)],
+      isMine,
+      1_000,
+    );
+    expect(marks.has('e1')).toBe(false);
+  });
+});
