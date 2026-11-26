@@ -149,3 +149,15 @@ export function tokenFromScan(data: string): string | null {
   if (candidates.some((token) => token !== candidates[0])) return null;
   return candidates[0];
 }
+
+/**
+ * Whether an admin should be offered "Create a new link": somebody has left or
+ * been removed, and the server refuses a removed person any link minted before
+ * their removal (20261012160000), so the old one cannot bring them back.
+ */
+export function offerNewInviteLink(
+  members: readonly { left_at?: string | null }[],
+  viewerIsAdmin: boolean,
+): boolean {
+  return viewerIsAdmin && members.some((member) => Boolean(member.left_at));
+}

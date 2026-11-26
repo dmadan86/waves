@@ -1241,6 +1241,15 @@ export async function ensureGroupJoinToken(groupId: string): Promise<string> {
   return data as string;
 }
 
+/** A fresh link; the old one stops working, which is what lets an admin invite back someone they removed. */
+export async function resetGroupJoinToken(groupId: string): Promise<string> {
+  const { data, error } = await backend.rpc('waves_reset_group_join_token', {
+    p_group_id: groupId,
+  });
+  if (error) throw new Error(error.message);
+  return data as string;
+}
+
 // ──────────────────────────────────────── export (ADR-012) ──
 
 export interface ExportResult {

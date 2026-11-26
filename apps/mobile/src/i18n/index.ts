@@ -6154,6 +6154,9 @@ export interface UiStrings {
     /** The clipboard item on the invite screen's share row. */
     copyLink: string;
     createLink: string;
+    /** Admin button after someone was removed: their old link no longer lets them back in. */
+    newLink: string;
+    newLinkConfirm: string;
     expires: string;
     usesBadge: string;
     shareMessage: string;
@@ -14572,6 +14575,8 @@ const en: UiStrings = {
     shareAnotherWay: 'Share another way',
     copyLink: 'Copy link',
     createLink: 'Create an invite link',
+    newLink: 'Create a new link',
+    newLinkConfirm: 'Create a new link? The old link stops working. Use it to invite back someone you removed.',
     expires: 'expires {when}',
     usesBadge: '{count} uses',
     shareMessage: 'Join {group} on Waves to split expenses together. Tap to join: {link}',
@@ -22853,6 +22858,8 @@ const ta: UiStrings = {
     shareAnotherWay: 'வேறு வழியில் பகிர்',
     copyLink: 'இணைப்பை நகலெடு',
     createLink: 'அழைப்பு இணைப்பை உருவாக்கு',
+    newLink: 'புதிய இணைப்பை உருவாக்கு',
+    newLinkConfirm: 'புதிய இணைப்பை உருவாக்கவா? பழைய இணைப்பு வேலை செய்யாது. நீக்கிய ஒருவரை மீண்டும் அழைக்க இதைப் பயன்படுத்துங்கள்.',
     expires: '{when} க்கு காலாவதி',
     usesBadge: '{count} பயன்பாடுகள்',
     shareMessage: 'செலவுகளை ஒன்றாகப் பிரிக்க Waves-ல் {group} குழுவில் சேரவும். சேர தட்டவும்: {link}',
@@ -31093,6 +31100,8 @@ const hi: UiStrings = {
     shareAnotherWay: 'किसी और तरीके से साझा करें',
     copyLink: 'लिंक कॉपी करें',
     createLink: 'निमंत्रण लिंक बनाएँ',
+    newLink: 'नया लिंक बनाएँ',
+    newLinkConfirm: 'नया लिंक बनाएँ? पुराना लिंक काम नहीं करेगा। हटाए गए व्यक्ति को वापस बुलाने के लिए इसका इस्तेमाल करें।',
     expires: '{when} को खत्म',
     usesBadge: '{count} उपयोग',
     shareMessage: 'साथ मिलकर खर्च बाँटने के लिए Waves पर {group} में शामिल हों। जुड़ने के लिए टैप करें: {link}',
@@ -39658,6 +39667,8 @@ const ar: UiStrings = {
     shareAnotherWay: 'شارك بطريقة أخرى',
     copyLink: 'نسخ الرابط',
     createLink: 'أنشئ رابط دعوة',
+    newLink: 'أنشئ رابطًا جديدًا',
+    newLinkConfirm: 'إنشاء رابط جديد؟ سيتوقف الرابط القديم. استخدمه لدعوة شخص أزلته مرة أخرى.',
     expires: 'ينتهي {when}',
     usesBadge: '{count} استخدامات',
     shareMessage: 'انضم إلى {group} على Waves لتقسيم المصروفات معًا. اضغط للانضمام: {link}',
