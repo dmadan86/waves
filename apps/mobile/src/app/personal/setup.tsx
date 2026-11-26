@@ -17,14 +17,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
-import {
-  budgetStep,
-  budgetDailyPace,
-  format,
-  money,
-  type CurrencyCode,
-  type PersonalRecurring,
-} from '@waves/core';
+import { budgetStep, format, money, type CurrencyCode } from '@waves/core';
 import {
   AmountField,
   Button,
@@ -56,6 +49,7 @@ import {
   regionHint,
   rememberSetup,
   SETUP_STEPS,
+  setupDailyPace,
   setupSummary,
   setupAmountChanged,
   setupPrefillForUntouched,
@@ -714,19 +708,19 @@ function Reveal({
   s,
   currency,
   locale,
-  recurrings,
+  ledger,
   today,
 }: {
   s: S;
   currency: CurrencyCode;
   locale: string;
-  recurrings: readonly PersonalRecurring[];
+  ledger: ReturnType<typeof usePersonalLedger>;
   today: string;
 }) {
   const theme = useTheme();
   const clearance = useTabBarClearance();
-  const sum = setupSummary(recurrings, today, currency);
-  const perDay = budgetDailyPace(sum.free, today) ?? sum.perDay;
+  const sum = setupSummary(ledger.recurrings, today, currency);
+  const perDay = setupDailyPace(ledger, sum.free, currency, today) ?? sum.perDay;
   const f = (v: bigint): string => format(money(v, currency), { locale });
   const month = new Date(`${today}T12:00:00`).toLocaleDateString(locale, { month: 'long' });
   const next = sum.next;
@@ -856,15 +850,7 @@ function SetupBody() {
   const skip = (): void => setIndex((i) => i + 1);
 
   if (index >= order.length) {
-    return (
-      <Reveal
-        s={s}
-        currency={currency}
-        locale={locale}
-        recurrings={ledger.recurrings}
-        today={today}
-      />
-    );
+    return <Reveal s={s} currency={currency} locale={locale} ledger={ledger} today={today} />;
   }
   const step = order[index]!;
   const StepView = STEP_VIEW[step];

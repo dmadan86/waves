@@ -187,10 +187,13 @@ export function personalBarAction(
 }
 
 /** Personal screens opened from a tab root: they pop their own stack, and the bar stays Personal. */
-export function isNestedPersonal(segments: readonly string[]): boolean {
+export function isNestedPersonal(segments: readonly string[], returnTo?: string): boolean {
   return (
     isPersonalMode(segments) &&
-    ['entry', 'source', 'budgets', 'loans', 'upcoming'].includes(segments[1] ?? '')
+    (['entry', 'source', 'budgets', 'loans', 'upcoming'].includes(segments[1] ?? '') ||
+      // A drill-down (Budgets/Reports/Me -> transactions) is pushed on top of its opener, so
+      // Back must pop to it. Treated as a tab root, the bar's own Back sent it to Personal Home.
+      (!!returnTo && ['transactions', 'spending'].includes(segments[1] ?? '')))
   );
 }
 

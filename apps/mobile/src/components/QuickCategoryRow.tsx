@@ -75,7 +75,10 @@ export function QuickCategoryRow({
         </Text>
       </Text>
 
-      <Row style={{ gap: theme.spacing.xs }} accessibilityRole="radiogroup">
+      <Row
+        style={{ gap: theme.spacing.xs, alignItems: 'flex-start' }}
+        accessibilityRole="radiogroup"
+      >
         {shown.map((entry) => {
           const selected = entry.key === value;
           const tint = theme.tint[entry.tint];

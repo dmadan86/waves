@@ -36,6 +36,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -348,222 +349,239 @@ function EntryForm({
 
   return (
     <Screen edges={[]}>
-      <ScrollView
+      {/* Save is pinned under the scroll, and the keyboard lifts both (iOS padding; Android
+          resizes the window), so it stays reachable while typing, as in the group form. */}
+      <KeyboardAvoidingView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: clearance }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <EntryHeader
-          title={title}
-          subtitle={
-            editing || recordPayment
-              ? null
-              : kind === 'income'
-                ? t.personal.entryScreen.incomeSub
-                : t.personal.entryScreen.expenseSub
-          }
-          onDelete={editing ? onDelete : undefined}
-        />
-
-        <View
-          style={{
-            paddingHorizontal: theme.spacing.lg,
-            marginTop: theme.spacing.md,
-            gap: theme.spacing.md,
-          }}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: theme.spacing.lg }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {/* Which way the money went — the one question that has to be answered
+          <EntryHeader
+            title={title}
+            subtitle={
+              editing || recordPayment
+                ? null
+                : kind === 'income'
+                  ? t.personal.entryScreen.incomeSub
+                  : t.personal.entryScreen.expenseSub
+            }
+            onDelete={editing ? onDelete : undefined}
+          />
+
+          <View
+            style={{
+              paddingHorizontal: theme.spacing.lg,
+              marginTop: theme.spacing.md,
+              gap: theme.spacing.md,
+            }}
+          >
+            {/* Which way the money went — the one question that has to be answered
               before any other field means anything, so it stays a control at the
               top. A repayment's direction is fixed by the loan, so only a plain
               entry chooses. */}
-          {loanId ? null : <KindToggle value={kind} onChange={setKind} t={t} />}
+            {loanId ? null : <KindToggle value={kind} onChange={setKind} t={t} />}
 
-          <AmountCard
-            currency={currency}
-            amount={amount}
-            onChange={setAmount}
-            calculatorLabel={t.personal.entryScreen.calculator}
-          />
+            <AmountCard
+              currency={currency}
+              amount={amount}
+              onChange={setAmount}
+              calculatorLabel={t.personal.entryScreen.calculator}
+            />
 
-          {/* What it was for, as a row of the usual answers — the five most
+            {/* What it was for, as a row of the usual answers — the five most
               reached-for and More — with "View all" opening the whole list.
               Income asks where the money came from and an expense what it was
               spent on: two different questions, two different lists. */}
-          {loanId ? null : (
-            <QuickPicks
-              kind={kind}
-              value={category}
-              onPick={setCategory}
-              onMore={() => setPicking('what')}
-              t={t}
-            />
-          )}
-
-          <NoteCard value={note} onChange={setNote} t={t} />
-
-          {/* Move a saved expense into a Share-it household. Its bill photo is
-              copied to the group expense before the private entry goes. */}
-          {editingTxn ? <MoveReceiptNotice personalId={editingTxn.id} /> : null}
-          {editingTxn && kind === 'expense' && !loanId ? (
-            <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setSplitting(true)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: theme.spacing.md,
-                  minHeight: 56,
-                }}
-              >
-                <Ionicons name="people-outline" size={iconSize.lg} color={theme.color.brand} />
-                <Text style={{ flex: 1, fontSize: 16, fontWeight: '700' }}>
-                  {t.personal.splitRow}
-                </Text>
-                <Ionicons
-                  name={directionalIcon('chevron-forward')}
-                  size={iconSize.md}
-                  color={theme.color.textMuted}
-                />
-              </Pressable>
-            </Card>
-          ) : null}
-
-          {/* The entry's facts, as one card of divided rows. */}
-          <FormCard style={{ paddingVertical: 0, paddingHorizontal: theme.spacing.lg }}>
-            <DetailRows>
-              <DetailRow
-                icon="calendar-outline"
-                label={repeat ? t.personal.startsOn : t.personal.date}
-                value={showDate(date, locale)}
-                onPress={() => setShowDatePicker(true)}
+            {loanId ? null : (
+              <QuickPicks
+                kind={kind}
+                value={category}
+                onPick={setCategory}
+                onMore={() => setPicking('what')}
+                t={t}
               />
+            )}
 
-              {canRepeat || editingRule ? (
+            <NoteCard value={note} onChange={setNote} t={t} />
+
+            {/* Move a saved expense into a Share-it household. Its bill photo is
+              copied to the group expense before the private entry goes. */}
+            {editingTxn ? <MoveReceiptNotice personalId={editingTxn.id} /> : null}
+            {editingTxn && kind === 'expense' && !loanId ? (
+              <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setSplitting(true)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: theme.spacing.md,
+                    minHeight: 56,
+                  }}
+                >
+                  <Ionicons name="people-outline" size={iconSize.lg} color={theme.color.brand} />
+                  <Text style={{ flex: 1, fontSize: 16, fontWeight: '700' }}>
+                    {t.personal.splitRow}
+                  </Text>
+                  <Ionicons
+                    name={directionalIcon('chevron-forward')}
+                    size={iconSize.md}
+                    color={theme.color.textMuted}
+                  />
+                </Pressable>
+              </Card>
+            ) : null}
+
+            {/* The entry's facts, as one card of divided rows. */}
+            <FormCard style={{ paddingVertical: 0, paddingHorizontal: theme.spacing.lg }}>
+              <DetailRows>
                 <DetailRow
-                  icon={repeat ? 'repeat' : 'repeat-outline'}
-                  // Brand only once it actually repeats: the mark is then saying
-                  // something the word beside it also says.
-                  iconColor={repeat ? theme.color.brand : undefined}
-                  label={t.personal.repeats}
-                  value={
-                    repeat
-                      ? frequencyLabel(t, repeat.frequency, repeat.interval)
-                      : t.personal.repeatsNever
-                  }
-                  onPress={() => setPicking('repeat')}
+                  icon="calendar-outline"
+                  label={repeat ? t.personal.startsOn : t.personal.date}
+                  value={showDate(date, locale)}
+                  onPress={() => setShowDatePicker(true)}
                 />
-              ) : null}
 
-              {repeat && !editingRule ? (
-                <Text variant="micro" tone="muted" style={{ paddingBottom: theme.spacing.sm }}>
-                  {t.personal.startsOnHint}
-                </Text>
-              ) : null}
+                {canRepeat || editingRule ? (
+                  <DetailRow
+                    icon={repeat ? 'repeat' : 'repeat-outline'}
+                    // Brand only once it actually repeats: the mark is then saying
+                    // something the word beside it also says.
+                    iconColor={repeat ? theme.color.brand : undefined}
+                    label={t.personal.repeats}
+                    value={
+                      repeat
+                        ? frequencyLabel(t, repeat.frequency, repeat.interval)
+                        : t.personal.repeatsNever
+                    }
+                    onPress={() => setPicking('repeat')}
+                  />
+                ) : null}
 
-              {/* How it was paid belongs to a single entry; a repeating rule and
+                {repeat && !editingRule ? (
+                  <Text variant="micro" tone="muted" style={{ paddingBottom: theme.spacing.sm }}>
+                    {t.personal.startsOnHint}
+                  </Text>
+                ) : null}
+
+                {/* How it was paid belongs to a single entry; a repeating rule and
                   a loan repayment carry none. */}
-              {repeat || loanId ? null : (
-                <DetailRow
-                  icon="wallet-outline"
-                  label={t.personal.entryScreen.paymentMethod}
-                  value={
-                    paymentMethod ? methodLabel(t, paymentMethod) : t.personal.entryScreen.notSet
-                  }
-                  onPress={() => setPicking('method')}
-                />
-              )}
+                {repeat || loanId ? null : (
+                  <DetailRow
+                    icon="wallet-outline"
+                    label={t.personal.entryScreen.paymentMethod}
+                    value={
+                      paymentMethod ? methodLabel(t, paymentMethod) : t.personal.entryScreen.notSet
+                    }
+                    onPress={() => setPicking('method')}
+                  />
+                )}
 
-              {/* A work spend to claim back: only a one-off expense can be one. */}
-              {repeat || loanId || kind !== 'expense' ? null : (
-                <DetailRow
-                  icon="briefcase-outline"
-                  label={t.followUps.reimbursableRow}
-                  value={reimbursable ? t.followUps.yes : t.followUps.no}
-                  onPress={() => setReimbursable((on) => !on)}
-                />
-              )}
+                {/* A work spend to claim back: only a one-off expense can be one. */}
+                {repeat || loanId || kind !== 'expense' ? null : (
+                  <DetailRow
+                    icon="briefcase-outline"
+                    label={t.followUps.reimbursableRow}
+                    value={reimbursable ? t.followUps.yes : t.followUps.no}
+                    onPress={() => setReimbursable((on) => !on)}
+                  />
+                )}
 
-              {/* A photo of the bill, for a single entry. Private to the owner. */}
-              {repeat || loanId || editingRule ? null : (
-                <PersonalReceiptRow
-                  value={receiptKey}
-                  savedKey={savedReceipt}
-                  onChange={setReceiptKey}
-                />
-              )}
-            </DetailRows>
-          </FormCard>
+                {/* A photo of the bill, for a single entry. Private to the owner. */}
+                {repeat || loanId || editingRule ? null : (
+                  <PersonalReceiptRow
+                    value={receiptKey}
+                    savedKey={savedReceipt}
+                    onChange={setReceiptKey}
+                  />
+                )}
+              </DetailRows>
+            </FormCard>
 
-          {showDatePicker ? (
-            <DateTimePicker
-              value={dateFrom(date)}
-              mode="date"
-              onChange={(event, picked) => {
-                // Android fires once and dismisses itself; iOS stays open.
-                if (Platform.OS !== 'ios') setShowDatePicker(false);
-                if (event.type === 'set' && picked) setDate(localIsoDate(picked));
-              }}
-            />
-          ) : null}
+            {showDatePicker ? (
+              <DateTimePicker
+                value={dateFrom(date)}
+                mode="date"
+                onChange={(event, picked) => {
+                  // Android fires once and dismisses itself; iOS stays open.
+                  if (Platform.OS !== 'ios') setShowDatePicker(false);
+                  if (event.type === 'set' && picked) setDate(localIsoDate(picked));
+                }}
+              />
+            ) : null}
 
-          {/* Everything that only means something once the entry repeats, kept
+            {/* Everything that only means something once the entry repeats, kept
             below the facts rather than inside the pattern sheet: the sheet
             answers "how often", and these are what the answer then implies. The
             block simply is not there while the entry happens once, which is the
             common case and the reason the form is short again. */}
-          {repeat ? (
-            <Card style={{ gap: theme.spacing.md }}>
-              {repeat.frequency === Frequency.TwiceAMonth ? (
-                <DayStepper
-                  label={t.personal.secondDay}
-                  value={repeat.secondDay}
-                  min={1}
-                  max={31}
-                  onChange={(secondDay) => setRepeat({ ...repeat, secondDay })}
-                />
-              ) : null}
+            {repeat ? (
+              <Card style={{ gap: theme.spacing.md }}>
+                {repeat.frequency === Frequency.TwiceAMonth ? (
+                  <DayStepper
+                    label={t.personal.secondDay}
+                    value={repeat.secondDay}
+                    min={1}
+                    max={31}
+                    onChange={(secondDay) => setRepeat({ ...repeat, secondDay })}
+                  />
+                ) : null}
 
-              {repeat.frequency === Frequency.EveryNMonths ? (
-                <DayStepper
-                  label={t.personal.everyNMonths}
-                  value={repeat.interval}
-                  min={2}
-                  max={24}
-                  onChange={(interval) => setRepeat({ ...repeat, interval })}
-                />
-              ) : null}
+                {repeat.frequency === Frequency.EveryNMonths ? (
+                  <DayStepper
+                    label={t.personal.everyNMonths}
+                    value={repeat.interval}
+                    min={2}
+                    max={24}
+                    onChange={(interval) => setRepeat({ ...repeat, interval })}
+                  />
+                ) : null}
 
-              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <View style={{ flex: 1, paddingRight: theme.spacing.md }}>
-                  <Text variant="body">{t.personal.autoPost}</Text>
-                  <Text variant="micro" tone="muted">
-                    {t.personal.autoPostHint}
-                  </Text>
-                </View>
-                <Toggle
-                  value={repeat.autoPost}
-                  onValueChange={(autoPost) => setRepeat({ ...repeat, autoPost })}
-                  accessibilityLabel={t.personal.autoPost}
-                />
-              </Row>
-
-              {/* Pausing belongs to a rule that already exists — a new one is
-                being written precisely because it is meant to run. */}
-              {editingRule ? (
                 <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text variant="body">{t.personal.active}</Text>
+                  <View style={{ flex: 1, paddingRight: theme.spacing.md }}>
+                    <Text variant="body">{t.personal.autoPost}</Text>
+                    <Text variant="micro" tone="muted">
+                      {t.personal.autoPostHint}
+                    </Text>
+                  </View>
                   <Toggle
-                    value={repeat.active}
-                    onValueChange={(active) => setRepeat({ ...repeat, active })}
-                    accessibilityLabel={t.personal.active}
+                    value={repeat.autoPost}
+                    onValueChange={(autoPost) => setRepeat({ ...repeat, autoPost })}
+                    accessibilityLabel={t.personal.autoPost}
                   />
                 </Row>
-              ) : null}
-            </Card>
-          ) : null}
 
+                {/* Pausing belongs to a rule that already exists — a new one is
+                being written precisely because it is meant to run. */}
+                {editingRule ? (
+                  <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text variant="body">{t.personal.active}</Text>
+                    <Toggle
+                      value={repeat.active}
+                      onValueChange={(active) => setRepeat({ ...repeat, active })}
+                      accessibilityLabel={t.personal.active}
+                    />
+                  </Row>
+                ) : null}
+              </Card>
+            ) : null}
+          </View>
+        </ScrollView>
+        <View
+          style={{
+            paddingHorizontal: theme.spacing.xl,
+            paddingTop: theme.spacing.sm,
+            paddingBottom: clearance,
+            borderTopWidth: 1,
+            borderTopColor: theme.color.border,
+            backgroundColor: theme.color.surface,
+          }}
+        >
           <SaveButton
             label={
               addRecurring
@@ -580,7 +598,7 @@ function EntryForm({
             onPress={onSave}
           />
         </View>
-      </ScrollView>
+      </KeyboardAvoidingView>
 
       {picking === 'what' ? (
         kind === 'income' ? (

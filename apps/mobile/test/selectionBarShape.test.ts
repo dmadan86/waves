@@ -94,7 +94,7 @@ describe('the action bar holds actions, and the destructive one is set apart', (
   });
 
   for (const [name, path, secondary] of [
-    ['Review', 'app/(tabs)/captures.tsx', 't.voice.justMe'],
+    ['Review', 'app/(tabs)/captures.tsx', 't.captures.justMePersonal'],
   ] as const) {
     it(`${name} gives both placements the same build`, () => {
       const bar = actionBar(source(path));

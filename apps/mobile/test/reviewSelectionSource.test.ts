@@ -64,7 +64,7 @@ describe('Review selection source contracts', () => {
       SCREEN.indexOf("} else if (choice.kind === 'create'"),
     );
     const bulkMe = SCREEN.slice(
-      SCREEN.indexOf('label={t.voice.justMe}'),
+      SCREEN.indexOf('label={t.captures.justMePersonal}'),
       SCREEN.indexOf('label={plural(locale, chosenRows.length, t.smsInbox.addToGroup)}'),
     );
 

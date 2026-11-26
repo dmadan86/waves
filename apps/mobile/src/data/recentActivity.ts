@@ -145,24 +145,53 @@ export function recentActivity(
     const batchId = resplitBatchId(row);
     if (batchId) batchNames.set(`${row.group_id}:${batchId}`, row.payload.name);
   }
+  // The newest "edited" row of each expense: the one whose figures the expense now holds.
+  const newestEdit = new Map<string, string>();
+  for (const row of sorted)
+    if (row.verb === 'edited' && row.object_type === 'expense' && row.object_id)
+      if (!newestEdit.has(row.object_id)) newestEdit.set(row.object_id, row.id);
   return (limit === undefined ? sorted : sorted.slice(0, limit)).map((row) => ({
     ...row,
     payload:
-      row.verb === 'resplit_undone'
-        ? {
-            ...row.payload,
-            name:
-              row.payload.name ??
-              batchNames.get(
-                `${row.group_id}:${row.payload.batchId ?? row.payload.batch_id ?? row.object_id}`,
-              ),
-          }
-        : row.payload,
+      row.verb === 'edited' || row.verb === 'deleted'
+        ? currentFigures(row, expenseById, newestEdit)
+        : row.verb === 'resplit_undone'
+          ? {
+              ...row.payload,
+              name:
+                row.payload.name ??
+                batchNames.get(
+                  `${row.group_id}:${row.payload.batchId ?? row.payload.batch_id ?? row.object_id}`,
+                ),
+            }
+          : row.payload,
     group: groups.get(row.group_id) ?? null,
     actor: row.actor_member_id ? (actors.get(row.actor_member_id) ?? null) : null,
     stake: stakeFor(row, expenseById, myMemberByGroup),
     category: categoryFor(row, expenseById),
   }));
+}
+
+/**
+ * An "edited" or "deleted" row's payload can carry the amount and name from before the change
+ * ("Edited Dinner ₹300" after 300 -> 450). The newest edit, and a delete, show what the expense
+ * holds now; older edits keep what they recorded.
+ */
+export function currentFigures(
+  row: ActivityRow,
+  expenseById: ReadonlyMap<string, Pick<MirrorExpense, 'currentVersion'>>,
+  newestEdit: ReadonlyMap<string, string>,
+): ActivityRow['payload'] {
+  if (row.object_type !== 'expense' || !row.object_id) return row.payload;
+  if (row.verb === 'edited' && newestEdit.get(row.object_id) !== row.id) return row.payload;
+  const version = expenseById.get(row.object_id)?.currentVersion;
+  if (!version) return row.payload;
+  return {
+    ...row.payload,
+    amount: version.amount,
+    currency: version.currency,
+    ...(version.description.trim() ? { description: version.description } : {}),
+  };
 }
 
 /** The category of the expense an activity row is about, or null. */

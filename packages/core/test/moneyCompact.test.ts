@@ -42,4 +42,16 @@ describe('compactMoney on an engine that ignores notation: compact', () => {
     expect(c(150_000_000n, 'USD', 'en-US')).toBe('$1.5M');
     expect(c(-32_000_000n, 'INR', 'en-IN')).toBe('-₹3.2L');
   });
+  it('does not trust an engine that reports compact but prints ₹1,872.0', () => {
+    class Liar extends Real {
+      constructor(l?: string | string[], o?: Intl.NumberFormatOptions) {
+        super(l, { ...o, notation: 'standard' });
+      }
+      override resolvedOptions(): Intl.ResolvedNumberFormatOptions {
+        return { ...super.resolvedOptions(), notation: 'compact' } as never;
+      }
+    }
+    vi.stubGlobal('Intl', { ...Intl, NumberFormat: Liar });
+    expect(c(187_200n, 'INR', 'en-IN')).toBe('₹1.9K');
+  });
 });

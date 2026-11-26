@@ -68,8 +68,8 @@ describe('Android personal finance regressions', () => {
   });
   it('drill-down back returns to the Personal Reports or Budgets screen', () => {
     const txns = src('app/personal/transactions.tsx');
-    expect(txns).toContain("navigation.addListener('beforeRemove'");
-    expect(txns).toContain('event.preventDefault()');
+    // Back is the native pop (the bar must not claim it): no beforeRemove redirect.
+    expect(txns).not.toContain('beforeRemove');
     expect(src('app/personal/spending.tsx')).toContain("returnTo: '/personal/spending'");
     expect(src('app/personal/budgets.tsx')).toContain("returnTo: '/personal/budgets'");
     expect(src('app/(tabs)/me.tsx')).toContain("returnTo: '/(tabs)/me'");
@@ -90,7 +90,9 @@ describe('Android personal finance regressions', () => {
   });
 
   it('setup reveal uses the shared remaining-days pace', () => {
-    expect(src('app/personal/setup.tsx')).toContain('budgetDailyPace(sum.free, today)');
+    expect(src('app/personal/setup.tsx')).toContain(
+      'setupDailyPace(ledger, sum.free, currency, today)',
+    );
   });
 
   it('Personal avatar initials use the cached display name', () => {

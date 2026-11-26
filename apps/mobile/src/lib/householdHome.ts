@@ -90,3 +90,7 @@ export function compactAmount(parts: {
 }): string {
   return /[1-9]/.test(parts.fraction) ? parts.text : parts.lead + parts.trail;
 }
+
+/** A headline tile only needs the short form (₹1.2L, $120K) from 100,000 major units up. */
+export const needsCompactTile = (minor: bigint): boolean =>
+  minor >= 10_000_000n || minor <= -10_000_000n;

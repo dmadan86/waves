@@ -222,7 +222,9 @@ export function compactMoney(amount: Money, options: FormatOptions = {}): string
       signDisplay: sign,
     });
     // Some engines (Hermes) accept the option and silently ignore it.
-    if (compact.resolvedOptions().notation === 'compact') return compact.format(signed);
+    // Some engines report compact yet still print "1,872.0": a compact 10,000 has two digits.
+    const ignored = (compact.format(10000).match(/[0-9]/g)?.length ?? 0) >= 5;
+    if (compact.resolvedOptions().notation === 'compact' && !ignored) return compact.format(signed);
   } catch {
     // fall through to the explicit scale below
   }

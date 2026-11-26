@@ -199,6 +199,7 @@ export function AppTabBar() {
     tab?: string;
     hh?: string;
     space?: string;
+    returnTo?: string;
   }>();
   const groupId = segments[0] === 'group' && typeof params.id === 'string' ? params.id : null;
 
@@ -498,7 +499,7 @@ export function AppTabBar() {
   );
 
   // Nested Personal screens (entry, source, budgets, loans) pop their own stack.
-  const nestedPersonal = isNestedPersonal(segments);
+  const nestedPersonal = isNestedPersonal(segments, params.returnTo);
 
   const personalBack =
     !nestedPersonal &&

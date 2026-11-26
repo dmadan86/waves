@@ -25,7 +25,6 @@ import {
   useGroupPeopleSignatures,
   useGroupLabeller,
   useOneToOneGroupIds,
-  usePeopleBalances,
 } from '@/data/hooks';
 import { GroupType } from '@/data/types';
 import { useStrings } from '@/i18n';
@@ -63,7 +62,6 @@ export function PersonalMoveSheet({
   const labelOf = useGroupLabeller();
   const groups = useExpenseGroups().data;
   const members = useAllGroupMembers();
-  const people = usePeopleBalances(viewerId).data;
   const oneToOne = useOneToOneGroupIds().data;
   const signatures = useGroupPeopleSignatures(viewerId).data;
   const createGroup = useCreateGroup();
@@ -81,8 +79,8 @@ export function PersonalMoveSheet({
     [groups, members, viewerId, entry.currency],
   );
   const friends: PersonChoice[] = useMemo(
-    () => friendChoices(people ?? [], oneToOne, new Set(offered.map((g) => g.id))),
-    [people, oneToOne, offered],
+    () => friendChoices(signatures ?? [], oneToOne, new Set(offered.map((g) => g.id))),
+    [signatures, oneToOne, offered],
   );
   const bySignature = useMemo(() => {
     const map = new Map<string, string>();

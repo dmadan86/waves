@@ -118,21 +118,23 @@ export function pendingMoveFor(
   };
 }
 
-/** Friends the entry can be split with 1:1: a person whose balance is one 1:1 space that is offered as a target. */
+/**
+ * Friends the entry can be split with 1:1: the other person in each 1:1 space that is offered as a
+ * target. Read from the spaces themselves, not from balances, so a friend you also share a trip
+ * with (balance spread over two groups) or are square with is still here.
+ */
 export function friendChoices(
-  rows: readonly {
-    person_key: string;
-    display_name: string;
-    only_group_id?: string | null;
-  }[],
+  signatures: readonly { groupId: string; names: readonly string[] }[],
   oneToOne: ReadonlySet<string>,
-  allowed: ReadonlySet<string>,
+  allowed?: ReadonlySet<string>,
 ): { personKey: string; name: string; groupId: string }[] {
-  const byGroup = new Map<string, { personKey: string; name: string; groupId: string }>();
-  for (const row of rows) {
-    const id = row.only_group_id;
-    if (!id || !oneToOne.has(id) || !allowed.has(id)) continue;
-    byGroup.set(id, { personKey: row.person_key, name: row.display_name, groupId: id });
-  }
-  return [...byGroup.values()].sort((a, b) => a.name.localeCompare(b.name));
+  return signatures
+    .filter(
+      (sig) =>
+        oneToOne.has(sig.groupId) &&
+        sig.names.length === 1 &&
+        (!allowed || allowed.has(sig.groupId)),
+    )
+    .map((sig) => ({ personKey: sig.groupId, name: sig.names[0]!, groupId: sig.groupId }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }

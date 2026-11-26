@@ -247,3 +247,13 @@ export function reviewItemKey(item: ReviewFeedItem): string {
       return item.capture.id;
   }
 }
+
+/** The Review header's line: "waiting for a group" only while some saved expense still has none. */
+export function reviewSubtitle(
+  rows: readonly Pick<CaptureRow, 'target_group_id'>[],
+  strings: { heroSubtitle: string; heroSubtitleSorted: string },
+): string {
+  return rows.length > 0 && rows.every((row) => row.target_group_id)
+    ? strings.heroSubtitleSorted
+    : strings.heroSubtitle;
+}
