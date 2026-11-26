@@ -39,3 +39,6 @@ BEGIN
    WHERE id = p_comment_id AND deleted_at IS NULL;
 END
 $$;
+
+REVOKE ALL ON FUNCTION public.waves_delete_expense_comment(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.waves_delete_expense_comment(uuid) TO authenticated, service_role;
