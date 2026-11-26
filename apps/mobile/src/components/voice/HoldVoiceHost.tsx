@@ -12,7 +12,7 @@
  */
 
 import { setVoiceBusy } from '@/lib/voiceBusy';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentType } from 'react';
 import { randomUUID } from 'expo-crypto';
 import { Platform, Pressable, View } from 'react-native';
 
@@ -33,7 +33,6 @@ import {
   useCreateCapture,
   useExpenseGroups,
   useGroup,
-  useRecentActivity,
   useVoiceAgentStatus,
 } from '@/data/hooks';
 import { useDeletePersonalRecord, useUpsertPersonalRecord } from '@/data/personal';
@@ -48,12 +47,10 @@ import {
   formatHoldTime,
   holdLanding,
   holdSummary,
-  lastAddedGroupId,
   type HoldLanding,
 } from '@/lib/holdVoicePure';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
-import { useAssistantAnswerer } from '@/lib/useAssistantAnswerer';
 import { useVoiceStreamsToCloud } from '@/lib/useVoiceRouting';
 import { transcriptRoute } from '@/lib/assistantComposerPure';
 import { savedStateFrom, type SavedState } from '@/lib/followUpApply';
@@ -68,20 +65,17 @@ import { agentFailureOf } from '@/lib/voiceAgentPure';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import { voiceSaveCurrency } from '@/lib/voiceCurrency';
 import { heardCaptureInput, leftoverCaptureInput, worthFiling } from '@/lib/voiceDraftPure';
+import { voiceSaveDecision } from '@/lib/voiceReviewDecision';
 import {
-  detectAddMember,
-  detectBalanceQuery,
-  detectMoneyIntent,
   parseVoiceExpenses,
   resolveVoiceParticipants,
   type VoiceParseResult,
 } from '@/lib/voiceExpense';
-import { isVoiceAssistantRequest } from '@/lib/voiceAssistantRequest';
 import { localParseIsConfident, parseLocally, type FastPathContext } from '@/lib/voiceFastPath';
 import { learnedForGroup, voiceNameHints, withAliases } from '@/lib/voiceNames';
 import { useVoiceNameMemory } from '@/lib/voiceNameStore';
 import { resolveVoiceSpace } from '@/lib/voiceSpace';
-import { useOpenSpaces, useVoiceAdded, useVoiceDefaultSpace } from '@/lib/voiceSpaceStore';
+import { useOpenSpaces, useVoiceAdded } from '@/lib/voiceSpaceStore';
 import { useSync } from '@/sync';
 import { UNDO_RING_MS } from '@/lib/assistantUndo';
 
@@ -158,38 +152,18 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
   const deletePersonal = useDeletePersonalRecord();
   const voiceAdded = useVoiceAdded();
   const nameMemory = useVoiceNameMemory(viewerId);
-  const answerer = useAssistantAnswerer();
   const { ids: spaceIds } = useOpenSpaces();
-  const { defaultId } = useVoiceDefaultSpace();
   const { enabled: agentServerOn } = useVoiceAgentStatus();
   const consent = useVoiceConsent(viewerId);
   const streamsToCloud = useVoiceStreamsToCloud();
 
   // The same launch rules as the voice screen: the screen's group, else the default space.
   const launchPersonal = personal && !groupId;
-  // Outside any group (Home, Friends): the group you last added to, the same
-  // guess the agent makes, rather than leaving the sentence for Review.
-  const activity = useRecentActivity(viewerId);
-  const lastGroupId = useMemo(() => {
-    if (launchPersonal || groupId) return null;
-    const mine = new Set(
-      local.groups.flatMap((g) => g.members.filter((m) => m.isViewer).map((m) => m.id)),
-    );
-    const company = new Set(
-      (groups.data ?? []).filter((g) => g.type === GroupType.Company).map((g) => g.id),
-    );
-    return lastAddedGroupId(
-      activity,
-      mine,
-      (id) => !company.has(id) && (spaceIds?.has(id) ?? false),
-    );
-  }, [activity, groupId, groups.data, launchPersonal, local.groups, spaceIds]);
-  const launchGroupId =
-    resolveVoiceSpace({
-      launchId: groupId,
-      defaultId: launchPersonal ? null : defaultId,
-      memberIds: spaceIds,
-    }) ?? lastGroupId;
+  const launchGroupId = resolveVoiceSpace({
+    launchId: groupId,
+    defaultId: null,
+    memberIds: spaceIds,
+  });
   const launchGroup = useGroup(launchGroupId ?? '');
   const launchMembers = launchGroupId
     ? withAliases(
@@ -468,14 +442,10 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
   const readOne = async (heard: string, alternatives: readonly string[]): Promise<HoldResult[]> => {
     const transcript = heard.trim();
     if (!worthFiling(transcript)) return [];
-    // Not an expense: the voice screen handles settle, remind and questions.
-    if (
-      detectMoneyIntent(transcript) ||
-      detectBalanceQuery(transcript) ||
-      detectAddMember(transcript) ||
-      isVoiceAssistantRequest(transcript) ||
-      answerer.parse(transcript)
-    ) {
+    // All hold transcripts use the voice screen's editable review card. In
+    // particular, never let the local parser or agent write payer, split, or
+    // destination details before the reader has seen them.
+    if (voiceSaveDecision(true) === 'review') {
       router.push({
         pathname: '/voice',
         params: { ...launchParams, heard: transcript, hn: randomUUID() },
@@ -509,9 +479,9 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
     }));
     // Anything not added stays a draft, so nothing is lost. When some went in,
     // the draft is swapped for one holding only the rest.
-    if (read.missed && added.length > 0 && read.leftover && read.leftover.length > 0) {
+    if (read.missed && added.length > 0 && (read.leftover?.length ?? 0) > 0) {
       const restId = randomUUID();
-      const rest = leftoverCaptureInput(transcript, read.leftover, today(), dc);
+      const rest = leftoverCaptureInput(transcript, read.leftover!, today(), dc);
       const swapped = await createCapture.mutateAsync({ captureId: restId, ...rest }).then(
         () => true,
         () => false,

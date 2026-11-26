@@ -47,23 +47,23 @@ describe('formatHoldTime', () => {
 describe('holdLanding', () => {
   const groups = [{ id: 'g1', name: 'Goa trip', currency: 'INR' }];
   const parse = (text: string) => parseVoiceExpenses(text, groups);
-  it('adds a named group at once', () => {
+  it('routes a named group to review', () => {
     expect(
       holdLanding(
         parse('3000 for hotel in Goa trip'),
         { launchGroupId: null, launchPersonal: false },
         new Set(['g1']),
       ),
-    ).toEqual({ kind: 'group', groupId: 'g1' });
+    ).toEqual({ kind: 'later' });
   });
-  it('uses the group the mic was held in', () => {
+  it('routes an expense from a group to review', () => {
     expect(
       holdLanding(
-        parse('coffee 120'),
+        parse('add 500 rupees for dinner'),
         { launchGroupId: 'g1', launchPersonal: false },
         new Set(['g1']),
       ),
-    ).toEqual({ kind: 'group', groupId: 'g1' });
+    ).toEqual({ kind: 'later' });
   });
   it('keeps a sentence with no destination as a draft', () => {
     expect(
@@ -74,24 +74,33 @@ describe('holdLanding', () => {
       ),
     ).toEqual({ kind: 'later' });
   });
+  it('V02: Home never auto-uses the last-used shared group', () => {
+    expect(
+      holdLanding(
+        parse('add 500 rupees for dinner'),
+        { launchGroupId: 'g1', launchPersonal: false },
+        new Set(['g1']),
+      ),
+    ).toEqual({ kind: 'later' });
+  });
   it('keeps a stale group as a draft', () => {
     expect(
       holdLanding(parse('coffee 120'), { launchGroupId: 'g1', launchPersonal: false }, new Set()),
     ).toEqual({ kind: 'later' });
   });
-  it('adds a personal one from the personal ledger', () => {
+  it('routes a personal expense to review', () => {
     expect(
       holdLanding(parse('coffee 120'), { launchGroupId: null, launchPersonal: true }, new Set()),
-    ).toEqual({ kind: 'personal' });
+    ).toEqual({ kind: 'later' });
   });
-  it('adds several expenses said in one go', () => {
+  it('routes several expenses said in one go to review', () => {
     expect(
       holdLanding(
         parse('lunch 200, taxi 300 and petrol 500'),
         { launchGroupId: 'g1', launchPersonal: false },
         new Set(['g1']),
       ),
-    ).toEqual({ kind: 'group', groupId: 'g1' });
+    ).toEqual({ kind: 'later' });
     expect(parse('lunch 200, taxi 300 and petrol 500').items).toHaveLength(3);
   });
   it('keeps no amount as a draft', () => {
@@ -107,15 +116,35 @@ describe('holdLanding', () => {
 
 describe('agentAddsAtOnce', () => {
   const one = { problem: false, action: { type: 'add_expense' } };
-  it('adds one clean expense', () => {
-    expect(agentAddsAtOnce({ cards: [one], answer: null, clarify: null })).toBe(true);
+  it('always routes clean AI expense proposals to the review card', () => {
+    expect(agentAddsAtOnce({ cards: [one], answer: null, clarify: null })).toBe(false);
+  });
+  it('V03: reviews the agent payer and uneven shares before any write', () => {
+    const proposed = {
+      problem: false,
+      action: {
+        type: 'add_expense',
+        payerMemberId: 'u2',
+        shares: [
+          { memberId: 'u1', amountMinor: '600' },
+          { memberId: 'u2', amountMinor: '300' },
+        ],
+      },
+    };
+    expect(
+      agentAddsAtOnce({
+        cards: [proposed],
+        answer: null,
+        clarify: null,
+      }),
+    ).toBe(false);
   });
   it('leaves problems, questions and several cards', () => {
     expect(
       agentAddsAtOnce({ cards: [{ ...one, problem: true }], answer: null, clarify: null }),
     ).toBe(false);
     expect(agentAddsAtOnce({ cards: [one], answer: null, clarify: 'Which?' })).toBe(false);
-    expect(agentAddsAtOnce({ cards: [one, one], answer: null, clarify: null })).toBe(true);
+    expect(agentAddsAtOnce({ cards: [one, one], answer: null, clarify: null })).toBe(false);
     expect(
       agentAddsAtOnce({ cards: [one, { ...one, problem: true }], answer: null, clarify: null }),
     ).toBe(false);

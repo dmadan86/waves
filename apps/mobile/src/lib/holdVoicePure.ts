@@ -3,7 +3,7 @@
  * no microphone, so they can be tested alone.
  */
 
-import { voiceAutoAction, type VoiceParseResult } from '@/lib/voiceExpense';
+import type { VoiceParseResult } from '@/lib/voiceExpense';
 
 export type HoldPlan = 'overlay' | 'screen';
 
@@ -41,35 +41,21 @@ export type HoldLanding =
  * voice screen, and anything it would not add by itself stays a draft.
  */
 export function holdLanding(
-  result: VoiceParseResult,
-  context: { launchGroupId: string | null; launchPersonal: boolean },
-  openGroupIds: ReadonlySet<string>,
+  _result: VoiceParseResult,
+  _context: { launchGroupId: string | null; launchPersonal: boolean },
+  _openGroupIds: ReadonlySet<string>,
 ): HoldLanding {
-  const auto = voiceAutoAction(result, { ...context, allowMany: true });
-  if (auto?.kind !== 'commit-expense') return { kind: 'later' };
-  if (auto.groupId === null) return { kind: 'personal' };
-  return openGroupIds.has(auto.groupId)
-    ? { kind: 'group', groupId: auto.groupId }
-    : { kind: 'later' };
+  return { kind: 'later' };
 }
 
 /** The agent's answer is added with no review only when every card is a clean
  *  expense ("lunch 200, taxi 300" is two), and it asked and answered nothing. */
-export function agentAddsAtOnce(plan: {
+export function agentAddsAtOnce(_plan: {
   cards: readonly { problem: boolean; action: { type: string } }[];
   answer: string | null;
   clarify: string | null;
 }): boolean {
-  return (
-    plan.cards.length > 0 &&
-    !plan.answer &&
-    !plan.clarify &&
-    plan.cards.every(
-      (card) =>
-        !card.problem &&
-        (card.action.type === 'add_expense' || card.action.type === 'add_personal'),
-    )
-  );
+  return false;
 }
 
 /**
