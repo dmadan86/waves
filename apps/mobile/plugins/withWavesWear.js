@@ -13,8 +13,9 @@
  * hook withShortNativeBuildPath.js uses). The module is standalone (not embedded
  * via `wearApp`), so it builds and installs independently of the phone APK.
  *
- * Builds: `:wear:assembleDebug` succeeded on 2026-11-26 (JDK 17). The
- * UI and relay behaviour still want a pass on a Wear emulator paired with a phone.
+ * UNVERIFIED: authored on Windows with no Android/Wear build. The Wear Compose /
+ * Kotlin / AGP version matrix in particular must be reconciled against the
+ * generated android/ on a real emulator build before trust.
  */
 
 const fs = require('fs');
@@ -173,12 +174,10 @@ import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -208,22 +207,6 @@ object WearRelay {
     private val _currency = MutableStateFlow("USD")
     val currency: StateFlow<String> = _currency
 
-    // Why the last expense is not (yet) on the phone, shown on Home; null when all is well.
-    private val _status = MutableStateFlow<String?>(null)
-    val status: StateFlow<String?> = _status
-
-    // Whether the last probe found a phone; null until one has run. Lets Recent say
-    // "Phone not connected" instead of "Nothing yet".
-    private val _phoneConnected = MutableStateFlow<Boolean?>(null)
-    val phoneConnected: StateFlow<Boolean?> = _phoneConnected
-
-    private const val NOT_CONNECTED = "Phone not connected. Saved here, will send when it is."
-    private const val REFUSED = "Your phone couldn't add that. Open Waves to check."
-
-    // Expenses outlive the screen that made them, so sending is not tied to a composition.
-    private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val lock = Any()
-
     /** Called by PhoneListenerService for every inbound message. Fails closed on
      *  a malformed or version-skewed payload rather than crashing the binder. */
     fun onMessage(json: String) {
@@ -248,123 +231,76 @@ object WearRelay {
                     )
                 }
                 _recent.value = list
-                _phoneConnected.value = true
             }
             "settings" -> {
                 _recentCount.value = obj.optInt("recentCount", _recentCount.value)
                 obj.optString("currency").takeIf { it.isNotEmpty() }?.let { _currency.value = it }
             }
-            "ack" -> {
-                if (!obj.optBoolean("ok", false)) _status.value = REFUSED
-                else if (_status.value == REFUSED) _status.value = null
-            }
             else -> {}
+        }
+    }
+
+    private suspend fun send(context: Context, message: JSONObject) {
+        withContext(Dispatchers.IO) {
+            try {
+                val bytes = message.toString().toByteArray(Charsets.UTF_8)
+                // Bounded so a node lookup that never resolves can't pin an IO
+                // thread; a failed/timed-out send just shows no update on the watch.
+                val nodes = Tasks.await(
+                    Wearable.getNodeClient(context).connectedNodes,
+                    10,
+                    TimeUnit.SECONDS,
+                )
+                val client = Wearable.getMessageClient(context)
+                for (node in nodes) {
+                    client.sendMessage(node.id, PATH, bytes)
+                }
+            } catch (e: Exception) {
+                // Swallowed on purpose — the Data Layer is best-effort here.
+            }
         }
     }
 
     // Matches @waves/core's WATCH_RELAY_VERSION.
     private const val RELAY_VERSION = 1
 
-    /** One delivery attempt: true only if a connected phone accepted the message. */
-    private fun trySend(context: Context, message: JSONObject): Boolean {
-        return try {
-            val bytes = message.toString().toByteArray(Charsets.UTF_8)
-            // Bounded so a node lookup that never resolves can't pin an IO thread.
-            val nodes = Tasks.await(
-                Wearable.getNodeClient(context).connectedNodes,
-                10,
-                TimeUnit.SECONDS,
-            )
-            if (nodes.isEmpty()) return false
-            val client = Wearable.getMessageClient(context)
-            for (node in nodes) {
-                Tasks.await(client.sendMessage(node.id, PATH, bytes), 10, TimeUnit.SECONDS)
-            }
-            true
-        } catch (e: Exception) {
-            false
-        }
-    }
-
-    private fun prefs(context: Context) =
-        context.applicationContext.getSharedPreferences("waves_relay", Context.MODE_PRIVATE)
-
-    private fun loadPending(context: Context): JSONArray =
-        try {
-            JSONArray(prefs(context).getString("pending", "[]"))
-        } catch (e: Exception) {
-            JSONArray()
-        }
-
-    /** Expenses are written to disk before any send, so none can vanish with the phone away. */
-    private fun enqueue(context: Context, message: JSONObject) {
-        synchronized(lock) {
-            val arr = loadPending(context)
-            arr.put(message)
-            prefs(context).edit().putString("pending", arr.toString()).commit()
-        }
-        _status.value = NOT_CONNECTED
-    }
-
-    /**
-     * Send everything waiting, oldest first, stopping at the first failure. A message
-     * the phone already took is safe to resend: it dedupes on the intent \`id\`.
-     */
-    fun flush(context: Context) {
-        synchronized(lock) {
-            val arr = loadPending(context)
-            if (arr.length() == 0) return
-            val remaining = JSONArray()
-            var failed = false
-            for (i in 0 until arr.length()) {
-                val item = arr.getJSONObject(i)
-                if (!failed && trySend(context, item)) continue
-                failed = true
-                remaining.put(item)
-            }
-            prefs(context).edit().putString("pending", remaining.toString()).commit()
-            if (remaining.length() > 0) _status.value = NOT_CONNECTED
-            else if (_status.value == NOT_CONNECTED) _status.value = null
-        }
-    }
-
-    fun flushAsync(context: Context) {
-        ioScope.launch { flush(context) }
-    }
-
     fun requestRecent(context: Context, scope: CoroutineScope) {
         scope.launch {
-            val ok = withContext(Dispatchers.IO) {
-                trySend(
-                    context,
-                    JSONObject().put("t", "requestRecent").put("version", RELAY_VERSION)
-                        .put("count", _recentCount.value),
-                )
-            }
-            _phoneConnected.value = ok
+            send(
+                context,
+                JSONObject().put("t", "requestRecent").put("version", RELAY_VERSION)
+                    .put("count", _recentCount.value),
+            )
         }
     }
 
-    /** \`amount\` is whole units as dialled; the phone scales it to the currency's minor units. */
-    fun quickAdd(context: Context, amount: Long, currency: String, note: String) {
-        enqueue(
-            context,
-            // A stable id per intent so a transport retry is idempotent on the phone.
-            JSONObject().put("t", "quickAdd").put("version", RELAY_VERSION)
-                .put("id", UUID.randomUUID().toString())
-                .put("amount", amount.toString())
-                .put("currency", currency).put("note", note),
-        )
-        flushAsync(context)
+    fun quickAdd(
+        context: Context,
+        scope: CoroutineScope,
+        amountMinor: Long,
+        currency: String,
+        note: String,
+    ) {
+        scope.launch {
+            send(
+                context,
+                // A stable id per intent so a transport retry is idempotent on the phone.
+                JSONObject().put("t", "quickAdd").put("version", RELAY_VERSION)
+                    .put("id", UUID.randomUUID().toString())
+                    .put("amountMinor", amountMinor.toString())
+                    .put("currency", currency).put("note", note),
+            )
+        }
     }
 
-    fun voiceAdd(context: Context, transcript: String) {
-        enqueue(
-            context,
-            JSONObject().put("t", "voiceAdd").put("version", RELAY_VERSION)
-                .put("id", UUID.randomUUID().toString()).put("transcript", transcript),
-        )
-        flushAsync(context)
+    fun voiceAdd(context: Context, scope: CoroutineScope, transcript: String) {
+        scope.launch {
+            send(
+                context,
+                JSONObject().put("t", "voiceAdd").put("version", RELAY_VERSION)
+                    .put("id", UUID.randomUUID().toString()).put("transcript", transcript),
+            )
+        }
     }
 }
 `;
@@ -379,8 +315,6 @@ class PhoneListenerService : WearableListenerService() {
     override fun onMessageReceived(event: MessageEvent) {
         if (event.path != WearRelay.PATH) return
         WearRelay.onMessage(String(event.data, Charsets.UTF_8))
-        // The phone just spoke, so it is connected: send anything that was waiting.
-        WearRelay.flushAsync(applicationContext)
     }
 }
 `;
@@ -396,7 +330,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -457,19 +390,12 @@ fun HomeScreen(nav: NavHostController) {
                 ?.firstOrNull()
                 ?.trim()
                 .orEmpty()
-            if (spoken.isNotEmpty()) WearRelay.voiceAdd(context, spoken)
+            if (spoken.isNotEmpty()) WearRelay.voiceAdd(context, scope, spoken)
         }
-    }
-
-    val status by WearRelay.status.collectAsState()
-    // Anything saved while the phone was away goes out as soon as the app opens.
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { WearRelay.flush(context) }
     }
 
     ScalingLazyColumn(modifier = Modifier.fillMaxSize()) {
         item { Text("Waves") }
-        status?.let { message -> item { Text(message, color = MaterialTheme.colors.error) } }
         item {
             Chip(
                 modifier = Modifier.fillMaxWidth(),
@@ -512,8 +438,9 @@ fun HomeScreen(nav: NavHostController) {
 @Composable
 fun QuickAddScreen(nav: NavHostController) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val currency by WearRelay.currency.collectAsState()
-    // Whole units on the crown/stepper; the phone converts to the currency's minor units.
+    // Whole units on the crown/stepper; converted to minor units on send.
     var amount by remember { mutableStateOf(0) }
 
     Column(
@@ -523,26 +450,17 @@ fun QuickAddScreen(nav: NavHostController) {
         Stepper(
             value = amount,
             onValueChange = { amount = it },
-            valueProgression = 0..100000 step 1,
+            valueProgression = 0..100000 step 10,
             decreaseIcon = { Text("-") },
             increaseIcon = { Text("+") },
             modifier = Modifier.weight(1f),
         ) {
             Text("$currency $amount")
         }
-        // Step 1 is precise but slow for big amounts (the crown also turns the stepper).
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Button(onClick = { amount = minOf(amount + 10, 100000) }, modifier = Modifier.weight(1f)) {
-                Text("+10")
-            }
-            Button(onClick = { amount = minOf(amount + 100, 100000) }, modifier = Modifier.weight(1f)) {
-                Text("+100")
-            }
-        }
         Button(
             onClick = {
                 if (amount > 0) {
-                    WearRelay.quickAdd(context, amount.toLong(), currency, "")
+                    WearRelay.quickAdd(context, scope, amount.toLong() * 100, currency, "")
                     nav.popBackStack()
                 }
             },
@@ -558,14 +476,13 @@ fun RecentScreen() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val recent by WearRelay.recent.collectAsState()
-    val connected by WearRelay.phoneConnected.collectAsState()
 
     androidx.compose.runtime.LaunchedEffect(Unit) { WearRelay.requestRecent(context, scope) }
 
     ScalingLazyColumn(modifier = Modifier.fillMaxSize()) {
         item { Text("Recent") }
         if (recent.isEmpty()) {
-            item { Text(if (connected == false) "Phone not connected" else "Nothing yet") }
+            item { Text("Nothing yet") }
         } else {
             items(recent) { row ->
                 Column(
