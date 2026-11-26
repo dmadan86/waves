@@ -335,10 +335,10 @@ it('IN-V-10 settlement lists owed-to-me and I-owe but omits rateless transfers; 
   w.record.mockImplementation(() => new Promise<void>((r) => (resolve = r)));
   const c = confirm();
   act(() => {
-    c.onConfirm();
-    c.onConfirm();
+    c.onConfirm('cash');
+    c.onConfirm('cash');
   });
-  expect(w.record).toHaveBeenCalledExactlyOnceWith(settlementFor('g', transfers[0]!, [], 'upi'));
+  expect(w.record).toHaveBeenCalledExactlyOnceWith(settlementFor('g', transfers[0]!, [], 'cash'));
   resolve();
   await flush();
   expect(settleRows(r)).toHaveLength(1);

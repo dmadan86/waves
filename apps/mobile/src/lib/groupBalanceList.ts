@@ -61,3 +61,23 @@ export function balanceWord(
   if (isViewerRow) return balance > 0n ? words.youAreOwed : words.youOwe;
   return balance > 0n ? words.isOwed : words.owes;
 }
+
+/**
+ * What a screen reader says for a balance row. Your own row speaks to you
+ * (`own`, the viewer-direction sentence); somebody else's says what is true of
+ * them ("Ravi is owed ₹300"), never "you owe", because their balance is with the
+ * whole group, not necessarily with the viewer.
+ */
+export function spokenRowBalance(
+  balance: bigint,
+  isViewerRow: boolean,
+  name: string,
+  amountText: string,
+  words: { own: string; isOwed: string; owes: string; square: string },
+): string {
+  if (isViewerRow) return words.own;
+  const fill = (template: string) =>
+    template.replace('{name}', name).replace('{amount}', amountText);
+  if (balance === 0n) return fill(words.square);
+  return fill(balance > 0n ? words.isOwed : words.owes);
+}

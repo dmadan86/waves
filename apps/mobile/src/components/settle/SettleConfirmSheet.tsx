@@ -1,18 +1,21 @@
 /** Confirm a settlement before recording it. Dismissing records nothing. */
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
 import type { CurrencyCode } from '@waves/core';
-import { Button, iconSize, MoneyText, Popup, Row, Text, useTheme } from '@waves/ui';
+import { Button, Chip, iconSize, MoneyText, Popup, Row, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
+import { SETTLE_METHODS, type SettleMethod } from '@/lib/settleMethod';
 
 export interface SettleConfirmSheetProps {
   visible: boolean;
-  /** Answer yes: the caller records the payment. */
-  onConfirm: () => void;
+  /** Answer yes: the caller records the payment, by the method picked. */
+  onConfirm: (method: SettleMethod) => void;
+  /** How the money moved to start with; the person can change it before saying yes. */
+  defaultMethod: SettleMethod;
   /** Any way out: the X, "No", the scrim, Android back. Records nothing. */
   onClose: () => void;
   title: string;
@@ -30,6 +33,7 @@ export interface SettleConfirmSheetProps {
 export function SettleConfirmSheet({
   visible,
   onConfirm,
+  defaultMethod,
   onClose,
   title,
   body,
@@ -42,6 +46,14 @@ export function SettleConfirmSheet({
 }: SettleConfirmSheetProps) {
   const theme = useTheme();
   const { t, locale } = useStrings();
+  const [method, setMethod] = useState<SettleMethod>(defaultMethod);
+  // Each time the sheet opens it starts from the default again (adjusted in
+  // render rather than in an effect, so there is no flash of the old choice).
+  const [wasVisible, setWasVisible] = useState(visible);
+  if (visible !== wasVisible) {
+    setWasVisible(visible);
+    if (visible) setMethod(defaultMethod);
+  }
 
   return (
     <Popup visible={visible} onClose={onClose} closeLabel={t.misc.recordNo}>
@@ -123,6 +135,24 @@ export function SettleConfirmSheet({
           />
         </Row>
 
+        <Row
+          style={{
+            alignSelf: 'stretch',
+            flexWrap: 'wrap',
+            gap: theme.spacing.xs,
+            marginTop: theme.spacing.md,
+          }}
+        >
+          {SETTLE_METHODS.map((id) => (
+            <Chip
+              key={id}
+              label={t.groupExport.methods[id]}
+              selected={method === id}
+              onPress={() => setMethod(id)}
+            />
+          ))}
+        </Row>
+
         <Row style={{ alignSelf: 'stretch', gap: theme.spacing.md, marginTop: theme.spacing.md }}>
           <View style={{ flex: 1 }}>
             <Button
@@ -142,7 +172,7 @@ export function SettleConfirmSheet({
               label={confirmLabel}
               variant="brand"
               fullWidth
-              onPress={onConfirm}
+              onPress={() => onConfirm(method)}
               style={{ paddingHorizontal: theme.spacing.md }}
             />
           </View>

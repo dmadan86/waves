@@ -5,6 +5,7 @@ import {
   filterOtherTransfers,
   memberBalanceStatus,
   sortPeopleDebts,
+  spokenRowBalance,
 } from '../src/lib/groupBalanceList';
 
 const transfers = [
@@ -55,5 +56,22 @@ describe('directionForViewer', () => {
   it('keeps the viewer own balance as is', () => {
     expect(directionForViewer(500n, true)).toBe(BalanceDirection.OwedToYou);
     expect(directionForViewer(-500n, true)).toBe(BalanceDirection.YouOwe);
+  });
+});
+
+describe('spokenRowBalance', () => {
+  const words = {
+    own: 'you owe 5',
+    isOwed: '{name} is owed {amount}',
+    owes: '{name} owes {amount}',
+    square: '{name} is settled',
+  };
+  it("never tells the viewer they owe on somebody else's creditor row", () => {
+    expect(spokenRowBalance(30000n, false, 'Ravi', '₹300', words)).toBe('Ravi is owed ₹300');
+    expect(spokenRowBalance(-30000n, false, 'Pal', '₹300', words)).toBe('Pal owes ₹300');
+    expect(spokenRowBalance(0n, false, 'Pal', '₹0', words)).toBe('Pal is settled');
+  });
+  it('speaks to you on your own row', () => {
+    expect(spokenRowBalance(-500n, true, 'You', '₹5', words)).toBe('you owe 5');
   });
 });

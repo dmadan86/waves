@@ -1,6 +1,7 @@
 import { owedByGroup, viewerEdge, type OwedDirection, type OwedGroupMeta } from '@/lib/owedByGroup';
 import { COMPANIES_ENABLED, visibleGroups } from '@/lib/companiesEnabled';
 import { requestActionAd, AdGateCancelledError } from '@/lib/adGateBridge';
+import { assertStillPending } from '@/lib/paymentWithdrawn';
 /**
  * React Query hooks + the realtime bridge.
  *
@@ -163,7 +164,7 @@ import {
   type RecentActivityRow,
 } from './recentActivity';
 import { useBlockedUsers } from './blocked';
-import { groupLabel, GroupType, isGhost, isViewer, SettlementStatus } from './types';
+import { displayName, groupLabel, GroupType, isGhost, isViewer, SettlementStatus } from './types';
 import { timeOfDay, type TimelineEntry } from '@/lib/timeline';
 import type {
   ActivityRow,
@@ -1978,14 +1979,43 @@ export function useRecordSettlement(groupId: string) {
   });
 }
 
+/**
+ * The payee acts on a payment only if it is still pending. The phone may be
+ * minutes behind a payer who just withdrew it, so pull the group first and read
+ * the fresh row: a withdrawn payment ends in a calm "X withdrew this payment"
+ * (`PaymentWithdrawnError`) instead of a queued change the server must refuse.
+ */
+async function ensureStillPending(groupId: string, settlementId: string): Promise<void> {
+  await Promise.race([
+    syncEngine.flush({ groupIds: [groupId] }).catch(() => undefined),
+    new Promise((resolve) => setTimeout(resolve, 3000)),
+  ]);
+  const { mirror, queue } = syncEngine.getState();
+  const members = materialiseMembers(mirror, queue, {
+    groupId,
+    includeLeft: true,
+  }) as unknown as MemberRow[];
+  assertStillPending(
+    rowsFor(mirror, SyncTable.Settlements, groupId) as unknown as SettlementRow[],
+    settlementId,
+    (memberId) => {
+      const member = members.find((candidate) => candidate.id === memberId);
+      return member ? displayName(member) : '';
+    },
+  );
+}
+
+/** The payee confirms a claimed payment ("Confirm received"). */
 export function useConfirmSettlement(groupId: string) {
   const { mutate } = useSync();
   return useMutation({
-    mutationFn: (settlementId: string) =>
-      mutate(MutationKind.SettlementTransition, groupId, {
+    mutationFn: async (settlementId: string) => {
+      await ensureStillPending(groupId, settlementId);
+      return mutate(MutationKind.SettlementTransition, groupId, {
         settlementId,
         to: SettlementStatus.Confirmed,
-      } satisfies SettlementTransitionPayload),
+      } satisfies SettlementTransitionPayload);
+    },
   });
 }
 
@@ -2005,11 +2035,13 @@ export function useCancelSettlement(groupId: string) {
 export function useDisputeSettlement(groupId: string) {
   const { mutate } = useSync();
   return useMutation({
-    mutationFn: (settlementId: string) =>
-      mutate(MutationKind.SettlementTransition, groupId, {
+    mutationFn: async (settlementId: string) => {
+      await ensureStillPending(groupId, settlementId);
+      return mutate(MutationKind.SettlementTransition, groupId, {
         settlementId,
         to: SettlementStatus.Disputed,
-      } satisfies SettlementTransitionPayload),
+      } satisfies SettlementTransitionPayload);
+    },
   });
 }
 

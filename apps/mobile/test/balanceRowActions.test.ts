@@ -9,6 +9,7 @@ describe('balance row accessibility actions', () => {
         balance: -50000n,
         memberId: 'financer-member',
         myMemberId: 'user-member',
+        owesViewer: true,
       }),
     ).toBe(true);
   });
@@ -19,6 +20,7 @@ describe('balance row accessibility actions', () => {
         balance: 50000n,
         memberId: 'rider-member',
         myMemberId: 'user-member',
+        owesViewer: true,
       }),
     ).toBe(false);
   });
@@ -29,6 +31,7 @@ describe('balance row accessibility actions', () => {
         balance: -50000n,
         memberId: 'user-member',
         myMemberId: 'user-member',
+        owesViewer: true,
       }),
     ).toBe(false);
   });
@@ -39,7 +42,19 @@ describe('balance row accessibility actions', () => {
         balance: -50000n,
         memberId: 'ghost-member',
         myMemberId: 'user-member',
+        owesViewer: true,
       }),
     ).toBe(true);
+  });
+
+  it('does not offer remind to someone who owes the group but not the viewer', () => {
+    expect(
+      canRemindFromBalanceRow({
+        balance: -30000n,
+        memberId: 'pal-c',
+        myMemberId: 'u2-member',
+        owesViewer: false,
+      }),
+    ).toBe(false);
   });
 });

@@ -12,6 +12,7 @@
  * other members, the payment history and the who-pays-whom view sit below.
  */
 
+import { PaymentWithdrawnError } from '@/lib/paymentWithdrawn';
 import { randomUUID } from 'expo-crypto';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -21,7 +22,6 @@ import {
   allocateSettlement,
   BalanceDirection,
   buildPaymentUri,
-  defaultRailForCurrency,
   format,
   money,
   railById,
@@ -77,6 +77,7 @@ import { hasLeft, memberNameById } from '@/lib/memberName';
 import { OwedStatus, claimsToConfirm, owedRowModel } from '@/lib/settleRow';
 import { useToast } from '@/lib/toast';
 import { useRemind } from '@/lib/useRemind';
+import { defaultSettleMethod } from '@/lib/settleMethod';
 import { filterOtherTransfers, sortPeopleDebts } from '@/lib/groupBalanceList';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { OverflowMenu } from '@/components/OverflowMenu';
@@ -371,6 +372,10 @@ export function useSettleFlow(
       ids.forEach((id) =>
         confirmSettlement.mutate(id, {
           onSuccess: () => toast.show(t.group.paymentConfirmedToast),
+          onError: (error) => {
+            if (error instanceof PaymentWithdrawnError)
+              toast.show(fill(t.group.paymentWithdrawnToast, { name: error.payerName }), 'info');
+          },
         }),
       ),
     currency,
@@ -840,7 +845,6 @@ export function SettleHistory({ flow }: { flow: SettleFlow }) {
 export function SettleConfirm({ flow }: { flow: SettleFlow }) {
   const { t } = useStrings();
   const {
-    currency,
     record,
     setSettleAskOpen,
     settleAsk,
@@ -856,9 +860,13 @@ export function SettleConfirm({ flow }: { flow: SettleFlow }) {
         <SettleConfirmSheet
           visible={settleAskOpen}
           onClose={() => setSettleAskOpen(false)}
-          onConfirm={() => {
+          defaultMethod={defaultSettleMethod({
+            handoff: false,
+            payeeHasUpi: settleAskMember ? payableAt(settleAskMember)?.rail === 'upi' : false,
+          })}
+          onConfirm={(method) => {
             setSettleAskOpen(false);
-            void record(settleAsk.transfer, defaultRailForCurrency(currency));
+            void record(settleAsk.transfer, method);
           }}
           title={settleAskTitle}
           body={settleAskReceived ? t.misc.settleConfirmReceivedBody : t.misc.settleConfirmPaidBody}

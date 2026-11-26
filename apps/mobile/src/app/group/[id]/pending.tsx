@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { PaymentWithdrawnError } from '@/lib/paymentWithdrawn';
 import { fallbackCurrency } from '@waves/core';
 import { useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
@@ -195,6 +196,13 @@ function PendingConfirmationsScreen() {
                       onPress={() =>
                         confirmSettlement.mutate(settlement.id, {
                           onSuccess: () => toast.show(t.group.paymentConfirmedToast),
+                          onError: (error) => {
+                            if (error instanceof PaymentWithdrawnError)
+                              toast.show(
+                                fill(t.group.paymentWithdrawnToast, { name: error.payerName }),
+                                'info',
+                              );
+                          },
                         })
                       }
                     />

@@ -6042,6 +6042,8 @@ export interface UiStrings {
     /** Payer's action to withdraw a payment they recorded, and its prompt. */
     /** Toast after confirming a payment you received. */
     paymentConfirmedToast: string;
+    /** `{name}` is the payer who withdrew the payment before it was confirmed. */
+    paymentWithdrawnToast: string;
     cancelSettlement: string;
     /** Section label above the suggested repayments on the Balances tab. */
     /** Balances tab of a group with no expenses and no payments yet. */
@@ -14526,6 +14528,7 @@ const en: UiStrings = {
       '{name} recorded paying you. This clears the pending payment and doesn’t change any balance.',
     rejectConfirm: 'Reject',
     paymentConfirmedToast: 'Payment confirmed',
+    paymentWithdrawnToast: '{name} withdrew this payment',
     cancelSettlement: 'Cancel payment',
     noBalancesYet: 'Nothing to settle yet. Add an expense and the balances show up here.',
     paymentsToSettle: 'Payments to settle',
@@ -22820,6 +22823,7 @@ const ta: UiStrings = {
       '{name} உங்களுக்குப் பணம் கொடுத்ததாகப் பதிவு செய்தார். இது நிலுவைப் பணத்தை நீக்கும்; எந்த இருப்பும் மாறாது.',
     rejectConfirm: 'நிராகரி',
     paymentConfirmedToast: 'பணம் உறுதியானது',
+    paymentWithdrawnToast: '{name} இந்தப் பணத்தைத் திரும்பப் பெற்றார்',
     cancelSettlement: 'பணத்தை ரத்து செய்',
     noBalancesYet: 'இன்னும் தீர்க்க எதுவும் இல்லை. செலவைச் சேர்த்தால் இருப்புகள் இங்கே தெரியும்.',
     paymentsToSettle: 'தீர்க்க வேண்டிய கொடுப்பனவுகள்',
@@ -31082,6 +31086,7 @@ const hi: UiStrings = {
     rejectBody: '{name} ने आपको भुगतान करना दर्ज किया। इससे लंबित भुगतान हट जाएगा और कोई बैलेंस नहीं बदलेगा।',
     rejectConfirm: 'अस्वीकारें',
     paymentConfirmedToast: 'भुगतान की पुष्टि हुई',
+    paymentWithdrawnToast: '{name} ने यह भुगतान वापस ले लिया',
     cancelSettlement: 'भुगतान रद्द करें',
     noBalancesYet: 'अभी चुकाने को कुछ नहीं है। खर्च जोड़ें, हिसाब यहीं दिखेगा।',
     paymentsToSettle: 'चुकाने वाले भुगतान',
@@ -39640,6 +39645,7 @@ const ar: UiStrings = {
     rejectBody: 'سجّل {name} أنه دفع لك. هذا يمسح الدفعة المعلّقة ولا يغيّر أي رصيد.',
     rejectConfirm: 'رفض',
     paymentConfirmedToast: 'تم تأكيد الدفعة',
+    paymentWithdrawnToast: 'سحب {name} هذه الدفعة',
     cancelSettlement: 'إلغاء الدفعة',
     noBalancesYet: 'لا شيء للتسوية بعد. أضف مصروفًا وستظهر الأرصدة هنا.',
     paymentsToSettle: 'دفعات للتسوية',

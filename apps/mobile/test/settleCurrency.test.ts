@@ -26,14 +26,15 @@ describe('the converted caption', () => {
   // The English string; every locale carries one (UiStrings makes it required).
   const template = 'Includes {currencies} bills at their recorded rates';
 
-  it('names the converted currencies by symbol', () => {
-    expect(convertedCaption(['VND'], 'en-IN', template)).toBe(
-      'Includes ₫ bills at their recorded rates',
+  it('names the converted currencies by code, never a bare symbol', () => {
+    expect(convertedCaption(['VND'], template)).toBe('Includes VND bills at their recorded rates');
+    expect(convertedCaption(['USD', 'AUD'], template)).toBe(
+      'Includes USD AUD bills at their recorded rates',
     );
   });
 
   it('says nothing when nothing was converted', () => {
-    expect(convertedCaption([], 'en-IN', template)).toBeNull();
+    expect(convertedCaption([], template)).toBeNull();
   });
 });
 

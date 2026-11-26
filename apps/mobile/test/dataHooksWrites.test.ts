@@ -527,6 +527,29 @@ describe('settlements', () => {
     expect(onlyMutate()[0]).toBe(MutationKind.SettlementCreate);
   });
 
+  it('confirming a payment the payer already withdrew queues nothing and names the payer', async () => {
+    sync.mirror = mirrorOf({
+      [SyncTable.GroupMembers]: [memberRow('m-bob', 'g-1', 'p-bob')],
+      [SyncTable.Settlements]: [
+        {
+          id: 's-9',
+          group_id: 'g-1',
+          from_member_id: 'm-bob',
+          to_member_id: 'm-me',
+          currency: 'INR',
+          amount: '30000',
+          status: 'cancelled',
+          initiated_at: '2026-03-01T09:00:00Z',
+          confirmed_at: null,
+        },
+      ],
+    });
+    await expect(
+      mutation<string>(() => hooks.useConfirmSettlement('g-1')).mutationFn('s-9'),
+    ).rejects.toMatchObject({ name: 'PaymentWithdrawnError' });
+    expect(sync.mutate).not.toHaveBeenCalled();
+  });
+
   it('confirm, cancel and dispute are one transition each', async () => {
     await mutation<string>(() => hooks.useConfirmSettlement('g-1')).mutationFn('s-1');
     await mutation<string>(() => hooks.useCancelSettlement('g-1')).mutationFn('s-1');
