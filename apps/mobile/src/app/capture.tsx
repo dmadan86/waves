@@ -14,6 +14,7 @@ import {
   parseReceiptText,
   CategoryId,
   type CategoryMeta,
+  type CurrencyCode,
   type ExpenseLocation,
   type HeuristicReceipt,
   type PaymentMethod,
@@ -68,6 +69,7 @@ import { shareDecodeMode } from '@/lib/sharedReceipt';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useAuth } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
+import { amountInCurrency } from '@/lib/expenseForm';
 import { usePersonalOffered } from '@/lib/guestGuard';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
@@ -1040,6 +1042,7 @@ export default function CaptureScreen() {
         <CurrencySheet
           value={currency}
           onPick={(code) => {
+            setAmount(amountInCurrency(amount, currency as CurrencyCode, code as CurrencyCode));
             setPickedCurrency(code);
             setPickingCurrency(false);
           }}

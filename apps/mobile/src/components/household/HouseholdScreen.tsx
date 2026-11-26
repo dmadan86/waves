@@ -66,7 +66,7 @@ import { groupLabel, isGhost } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useViewerId } from '@/lib/auth';
-import { compactAmount } from '@/lib/householdHome';
+import { compactAmount, needsCompactTile } from '@/lib/householdHome';
 import { memberNameById } from '@/lib/memberName';
 import {
   barMove,
@@ -157,9 +157,10 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
       ? BALANCE_MASK
       : compactAmount(formatParts(money(minor, currency as CurrencyCode), { locale }));
 
-  // The three headline tiles are tight on a phone: short figures there, full ones everywhere else.
+  // The three headline tiles are tight on a phone: short figures from 1 lakh/100K up, the standard
+  // formatter (so no stray ".0") below that.
   const tileFmt = (minor: bigint): string =>
-    hidden || minor === 0n
+    hidden || !needsCompactTile(minor)
       ? fmt(minor)
       : compactMoney(money(minor, currency as CurrencyCode), { locale });
 

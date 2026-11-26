@@ -24,8 +24,8 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
-import { useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
 import {
@@ -55,7 +55,6 @@ import { filterTxns, groupByDay, type TxnTab } from '@/lib/txnLedger';
 import { CategoryBadge, CategoryPicker } from '@/components/Category';
 import { usePersonalLedger } from '@/data/personal';
 import { monthlySpendEntries } from '@/lib/monthlySpend';
-import { isBackAction } from '@/lib/personalLayoutRules';
 import { deviceCountry, plural, useStrings } from '@/i18n';
 import { paymentMethodLabel } from '@/lib/paymentMethodLabel';
 import { PersonalGuard } from '@/components/PersonalGuard';
@@ -102,28 +101,6 @@ function PersonalTransactionsScreenBody() {
     to?: string;
     returnTo?: string;
   }>();
-  // The phone's Back does what the on-screen back does: return to where the drill-down began.
-  const returnTo = params.returnTo;
-  const navigation = useNavigation();
-  const redirectingBack = useRef(false);
-  useFocusEffect(
-    useCallback(() => {
-      if (!returnTo) return undefined;
-      redirectingBack.current = false;
-      const sub = navigation.addListener('beforeRemove', (event) => {
-        // Only a back (hardware back, gesture, header back) returns to where the drill-down
-        // began; a tab switch or any other navigation away goes where it was going.
-        if (redirectingBack.current || !isBackAction(event.data.action.type)) return;
-        redirectingBack.current = true;
-        event.preventDefault();
-        router.replace(returnTo as never);
-      });
-      return () => {
-        redirectingBack.current = false;
-        sub();
-      };
-    }, [navigation, returnTo]),
-  );
   const paramCategory = typeof params.category === 'string' ? params.category : null;
   // The dashboard's columns are buckets: a custom or unknown category is counted
   // under Other there, so it has to be listed under Other here too. Budgets pass
@@ -309,7 +286,9 @@ function PersonalTransactionsScreenBody() {
           <IconButton
             label={t.common.back}
             onPress={() =>
-              params.returnTo ? router.replace(params.returnTo as never) : router.back()
+              params.returnTo && !router.canGoBack()
+                ? router.replace(params.returnTo as never)
+                : router.back()
             }
           >
             <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
@@ -386,7 +365,7 @@ function PersonalTransactionsScreenBody() {
               accessibilityLabel={t.personal.searchTransactions}
               returnKeyType="search"
               autoCorrect={false}
-              style={{ flex: 1, fontSize: 15, color: ink, paddingVertical: 0 }}
+              style={{ flex: 1, fontSize: 15, height: 40, color: ink, paddingVertical: 0 }}
             />
             {query ? (
               <Pressable

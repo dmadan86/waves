@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
   addToDate,
+  budgetDailyPace,
   budgetStep,
   CategoryId,
   dayDelta,
@@ -21,6 +22,9 @@ import {
   IncomeSourceId,
   minorUnitScale,
   nextRecurring,
+  personalBudgetProgress,
+  type PersonalBudget,
+  type PersonalTxn,
   type CurrencyCode,
   type PersonalRecordKind,
   type PersonalRecurring,
@@ -462,6 +466,22 @@ export function setupSummary(
       ? { name: next.rule.note ?? '', days: Math.max(0, dayDelta(today, next.date)) }
       : null,
   };
+}
+
+/**
+ * "About X a day", the one number Setup's reveal and Home's chip both show: the overall budget's
+ * remainder (what Home counts) over the days left, falling back to what setup calls free only when
+ * no overall budget exists. Home's `0n` for no pool stays Home's own.
+ */
+export function setupDailyPace(
+  ledger: { budgets: readonly PersonalBudget[]; txns: readonly PersonalTxn[] },
+  free: bigint,
+  currency: CurrencyCode,
+  today: string,
+): bigint | null {
+  const cap = ledger.budgets.find((b) => b.category === null && b.currency === currency);
+  const left = cap ? personalBudgetProgress(cap, ledger.txns, today.slice(0, 7)).remaining : free;
+  return budgetDailyPace(left, today);
 }
 
 // ───────────────────────────────────────────────────────── local progress ──

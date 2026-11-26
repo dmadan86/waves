@@ -23,8 +23,3 @@ export function personalShowsAddFab(segments: readonly string[]): boolean {
     segments[0] === 'settings'
   );
 }
-
-/** Navigation actions that mean "go back" (hardware back, swipe, header back). */
-export function isBackAction(type: string): boolean {
-  return type === 'GO_BACK' || type === 'POP' || type === 'POP_TO_TOP';
-}

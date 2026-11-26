@@ -345,6 +345,11 @@ describe('Personal mode', () => {
       expect(isNestedPersonal(segments)).toBe(true);
     }
     expect(isNestedPersonal(['personal', 'transactions'])).toBe(false);
+    // Root cause of the Budgets/Reports drill-down Back bug: a drill-down is not a tab root,
+    // so the bar must not install its own Back (which went to Personal Home).
+    expect(isNestedPersonal(['personal', 'transactions'], '/personal/budgets')).toBe(true);
+    expect(isNestedPersonal(['personal', 'spending'], '/personal/spending')).toBe(true);
+    expect(isNestedPersonal(['personal', 'recurring'], '/personal/budgets')).toBe(false);
     expect(isNestedPersonal(['group', '[id]'])).toBe(false);
   });
   it('hardware and chevron Back share one function', () => {

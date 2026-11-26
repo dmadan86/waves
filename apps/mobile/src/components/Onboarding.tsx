@@ -326,6 +326,8 @@ const SlideCard = memo(function SlideCard({
   const theme = useTheme();
   const { ink, inkMuted } = slide;
   const artSize = Math.min(width - 80, 270);
+  // A short screen (iPhone SE class) has no spare height: smaller type keeps the text clear of the dots.
+  const short = height < 700;
 
   return (
     <View
@@ -399,13 +401,18 @@ const SlideCard = memo(function SlideCard({
       <View style={{ gap: theme.spacing.sm }}>
         <Text
           maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-          style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: ink }}
+          style={{
+            fontSize: short ? 24 : 28,
+            lineHeight: short ? 29 : 34,
+            fontWeight: '800',
+            color: ink,
+          }}
         >
           {title}
         </Text>
         <Text
           maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-          style={{ fontSize: 15, lineHeight: 22, color: inkMuted }}
+          style={{ fontSize: short ? 14 : 15, lineHeight: short ? 20 : 22, color: inkMuted }}
         >
           {body}
         </Text>
@@ -413,7 +420,7 @@ const SlideCard = memo(function SlideCard({
 
       {/* The room the dots and arrow take: they are one overlay (see
           Onboarding), so the card only reserves their space. */}
-      <View style={{ marginTop: theme.spacing.xl, height: 46 }} />
+      <View style={{ marginTop: short ? theme.spacing.md : theme.spacing.xl, height: 46 }} />
     </View>
   );
 });

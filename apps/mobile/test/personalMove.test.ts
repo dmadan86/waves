@@ -92,19 +92,24 @@ describe('target listing', () => {
   it('offers only open, non-company groups you are in and can add this currency to', () => {
     expect(movableGroups(groups, members, 'u', 'INR').map((g) => g.id)).toEqual(['g1']);
   });
-  it('lists friends as people whose only shared space is an offered 1:1', () => {
-    const rows = [
-      { person_key: 'k2', display_name: 'Zed', only_group_id: 'o2' },
-      { person_key: 'k1', display_name: 'Asha', only_group_id: 'o1' },
-      { person_key: 'k3', display_name: 'Trip mate', only_group_id: 'trip' },
-      { person_key: 'k4', display_name: 'Hidden', only_group_id: 'o4' },
-      { person_key: 'k5', display_name: 'None', only_group_id: null },
+  it('lists the other person of each offered 1:1, even one also in a trip or square with you', () => {
+    const sigs = [
+      { groupId: 'o2', names: ['Zed'] },
+      { groupId: 'o1', names: ['Asha'] },
+      { groupId: 'trip', names: ['Trip mate', 'Other'] },
+      { groupId: 'o4', names: ['Hidden'] },
+      { groupId: 'o5', names: [] },
     ];
     expect(
-      friendChoices(rows, new Set(['o1', 'o2', 'o4']), new Set(['o1', 'o2', 'trip'])).map(
+      friendChoices(sigs, new Set(['o1', 'o2', 'o4', 'o5']), new Set(['o1', 'o2', 'trip'])).map(
         (f) => f.name,
       ),
     ).toEqual(['Asha', 'Zed']);
+    expect(friendChoices(sigs, new Set(['o1', 'o2', 'o4'])).map((f) => f.name)).toEqual([
+      'Asha',
+      'Hidden',
+      'Zed',
+    ]);
   });
 });
 

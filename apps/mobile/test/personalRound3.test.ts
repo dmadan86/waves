@@ -54,14 +54,3 @@ describe('one add control per Personal screen', () => {
     expect(personalActiveKey(['settings', 'lock'], 'personal')).toBe('me');
   });
 });
-
-describe('the phone Back from a drill-down', () => {
-  it('only back actions are redirected to where the drill-down began', async () => {
-    const { isBackAction } = await import('../src/lib/personalLayoutRules');
-    expect(isBackAction('GO_BACK')).toBe(true);
-    expect(isBackAction('POP')).toBe(true);
-    // A tab switch replaces the screen: it must go where it was going.
-    expect(isBackAction('REPLACE')).toBe(false);
-    expect(isBackAction('NAVIGATE')).toBe(false);
-  });
-});

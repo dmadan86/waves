@@ -55,7 +55,13 @@ import { randomUUID } from 'expo-crypto';
 import { Image } from 'expo-image';
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 
-import { encodeTxn, toFxRecord, type CategoryMeta, type ExpenseLocation } from '@waves/core';
+import {
+  encodeTxn,
+  toFxRecord,
+  type CategoryMeta,
+  type CurrencyCode,
+  type ExpenseLocation,
+} from '@waves/core';
 import { Button, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { DestinationPicker } from '@/components/DestinationPicker';
@@ -78,6 +84,7 @@ import { isGhost, isViewer, type GroupRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
+import { amountInCurrency } from '@/lib/expenseForm';
 import { CurrencyChoices } from '@/components/expense/CurrencySheet';
 import { usePersonalOffered } from '@/lib/guestGuard';
 import type { PickedImage } from '@/lib/image';
@@ -451,6 +458,8 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
               value={currency}
               onPick={(code) => {
                 currencyChosen.current = true;
+                // Same figure the person typed, re-expressed in the new currency's precision.
+                setAmount(amountInCurrency(amount, currency as CurrencyCode, code as CurrencyCode));
                 setCurrency(code);
                 setPickingCurrency(false);
               }}
@@ -498,7 +507,13 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                   {t.quickExpense.noPlacesYet}
                 </Text>
               ) : null}
-              <ScrollView ref={chipsRef} horizontal showsHorizontalScrollIndicator={false}>
+              <ScrollView
+                ref={chipsRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingRight: theme.spacing.lg }}
+              >
                 <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
                   {/* The private ledger, first and always — a spend that is
                   nobody else's business is the one destination that never

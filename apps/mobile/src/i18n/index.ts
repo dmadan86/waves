@@ -5423,6 +5423,7 @@ export interface UiStrings {
     /** Phrases inside `emptyBody` drawn heavier. Missing from the text, nothing is emphasised. */
     emptyEmphasisLead: string;
     heroSubtitle: string;
+    heroSubtitleSorted: string;
     savedPersonal: string;
     savedReview: string;
     openSaved: string;
@@ -13955,6 +13956,7 @@ const en: UiStrings = {
       'Catch a spend the moment it happens — the amount, a note, a photo of the bill — and choose which group it belongs to later.',
     emptyEmphasisLead: 'Catch a spend the moment it happens',
     heroSubtitle: 'Saved expenses waiting for a group',
+    heroSubtitleSorted: 'Saved expenses to review',
     savedPersonal: 'Saved to Personal',
     savedReview: 'Saved to Review',
     openSaved: 'Open',
@@ -22201,6 +22203,7 @@ const ta: UiStrings = {
       'செலவு நடந்த அந்த நொடியிலேயே பிடித்து வையுங்கள் — தொகை, ஒரு குறிப்பு, ரசீதின் படம் — எந்தக் குழுவுக்கு உரியது என்பதைப் பிறகு தீர்மானியுங்கள்.',
     emptyEmphasisLead: 'செலவு நடந்த அந்த நொடியிலேயே பிடித்து வையுங்கள்',
     heroSubtitle: 'குழுவுக்காகக் காத்திருக்கும் சேமித்த செலவுகள்',
+    heroSubtitleSorted: 'மதிப்பாய்வுக்கான சேமித்த செலவுகள்',
     savedPersonal: 'தனிப்பட்டதில் சேமிக்கப்பட்டது',
     savedReview: 'மறுபார்வையில் சேமிக்கப்பட்டது',
     openSaved: 'திற',
@@ -30445,6 +30448,7 @@ const hi: UiStrings = {
       'खर्च होते ही उसे पकड़ लें — रकम, एक नोट, बिल की तस्वीर — और बाद में तय करें कि यह किस समूह का है।',
     emptyEmphasisLead: 'खर्च होते ही उसे पकड़ लें',
     heroSubtitle: 'ग्रुप के इंतज़ार में सेव किए खर्च',
+    heroSubtitleSorted: 'रिव्यू के लिए सेव किए खर्च',
     savedPersonal: 'पर्सनल में सेव हुआ',
     savedReview: 'रिव्यू में सेव हुआ',
     openSaved: 'खोलें',
@@ -38906,6 +38910,7 @@ const ar: UiStrings = {
       'التقط المصروف لحظة حدوثه — المبلغ، ملاحظة، صورة الفاتورة — وقرّر لاحقًا إلى أي مجموعة ينتمي.',
     emptyEmphasisLead: 'التقط المصروف لحظة حدوثه',
     heroSubtitle: 'مصروفات محفوظة تنتظر مجموعة',
+    heroSubtitleSorted: 'مصروفات محفوظة للمراجعة',
     savedPersonal: 'تم الحفظ في الشخصي',
     savedReview: 'تم الحفظ في المراجعة',
     openSaved: 'فتح',

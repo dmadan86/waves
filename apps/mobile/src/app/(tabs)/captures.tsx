@@ -107,11 +107,7 @@ import {
 
 import { withScenic } from '@/components/ScenicScope';
 import { CategoryBadge } from '@/components/Category';
-import {
-  DestinationPicker,
-  type DestinationSelection,
-  type PersonChoice,
-} from '@/components/DestinationPicker';
+import { DestinationPicker, type DestinationSelection } from '@/components/DestinationPicker';
 import { SortMenu, type MenuAnchor } from '@/components/SortMenu';
 import { PendingMark } from '@/components/PendingMark';
 import { ReviewHeroBackground } from '@/components/ReviewHeroBackground';
@@ -130,7 +126,6 @@ import {
   useExpenseGroups,
   useHomeSummary,
   useOneToOneGroupIds,
-  usePeopleBalances,
 } from '@/data/hooks';
 import { groupLabel, GroupType, isViewer, type CaptureRow } from '@/data/types';
 import { plural, useStrings, type UiStrings } from '@/i18n';
@@ -152,6 +147,7 @@ import {
   type ReviewTabId,
   doubtsAbout,
   reviewItemKey,
+  reviewSubtitle,
   type ReviewFeedItem,
 } from '@/lib/reviewFeed';
 import { useReducedMotion } from '@/lib/reducedMotion';
@@ -165,6 +161,7 @@ import { useSmsMessages } from '@/lib/smsMessages';
 import { totalWaiting } from '@/lib/smsInbox';
 import { useDialog } from '@/lib/dialog';
 import { useToast } from '@/lib/toast';
+import { friendChoices } from '@/lib/personalMove';
 import { usePlaceInPersonal } from '@/lib/usePlaceInPersonal';
 import { useSync } from '@/sync';
 
@@ -1096,7 +1093,6 @@ function CapturesScreen() {
   // The people the picker can point a draft at, and the raw material for
   // deciding whether a chosen set of them already share a group. All read from
   // the mirror, so the picker works with no network (ADR-005).
-  const people = usePeopleBalances(viewerId);
   const oneToOne = useOneToOneGroupIds();
   const signatures = useGroupPeopleSignatures(viewerId);
   const createGroup = useCreateGroup();
@@ -1216,22 +1212,12 @@ function CapturesScreen() {
     [assignableGroups, viewerId, summary],
   );
 
-  // The people the picker offers, by name. A contact is somebody whose balance
-  // with the viewer is explained by a single group (`only_group_id`) that is a
-  // true 1:1 — you and them and nobody else. A whole trip is never a person,
-  // even when it happens to be the only group you share with someone.
-  const peopleChoices = useMemo(() => {
-    const byGroup = new Map<string, PersonChoice>();
-    for (const row of people.data ?? []) {
-      if (!row.only_group_id || !oneToOne.data.has(row.only_group_id)) continue;
-      byGroup.set(row.only_group_id, {
-        personKey: row.person_key,
-        name: row.display_name,
-        groupId: row.only_group_id,
-      });
-    }
-    return [...byGroup.values()].sort((a, b) => a.name.localeCompare(b.name));
-  }, [people.data, oneToOne.data]);
+  // The people the picker offers, by name: the other person in each true 1:1 — you
+  // and them and nobody else. A whole trip is never a person.
+  const peopleChoices = useMemo(
+    () => friendChoices(signatures.data, oneToOne.data),
+    [signatures.data, oneToOne.data],
+  );
 
   // A set of people → the group they already share, if any. First match wins;
   // it only ever answers "these exact people already have a group together".
@@ -2213,7 +2199,7 @@ function CapturesScreen() {
               {t.captures.title}
             </Text>
             <Text variant="caption" tone="onBrand" numberOfLines={1} style={{ opacity: 0.85 }}>
-              {t.captures.heroSubtitle}
+              {reviewSubtitle(rows, t.captures)}
             </Text>
           </View>
           {/* The hero's two round buttons, where a phone reads its own
@@ -2851,7 +2837,7 @@ function CapturesScreen() {
                 refused is worse than no button. */}
             {personalOffered ? (
               <Button
-                label={t.voice.justMe}
+                label={t.captures.justMePersonal}
                 variant="secondary"
                 style={{ flex: 1 }}
                 onPress={() => {
