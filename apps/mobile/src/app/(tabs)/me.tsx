@@ -101,6 +101,7 @@ import {
 } from '@/data/personal';
 import { personalHomeIdentity } from '@/data/personalHomeIdentity';
 import { useProfileForDisplay } from '@/lib/profileCache';
+import { recentTxns as selectRecentTxns } from '@/lib/txnLedger';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
@@ -136,7 +137,6 @@ function MeLedger() {
   const { t, locale } = useStrings();
   const deviceCurrency = useDefaultCurrency();
   const { hydrated } = useSync();
-  const { profile } = useAuth();
   // Name and currency survive an offline cold start (display only).
   const displayProfile = useProfileForDisplay();
   const viewerFace = useViewerIdentity();
@@ -251,7 +251,7 @@ function MeLedger() {
     : null;
 
   // The latest three entries, newest first (the ledger comes newest-first).
-  const recentTxns = ledger.txns.slice(0, 3);
+  const recentTxns = selectRecentTxns(ledger.txns, today);
 
   const h = t.personalHome;
   const plan = {
@@ -376,7 +376,7 @@ function MeLedger() {
         left={
           <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
             <PersonAvatar
-              name={profile?.display_name ?? t.account.you}
+              name={displayProfile?.display_name ?? t.account.you}
               avatarUrl={avatarUrl}
               size={44}
               accessibilityLabel={t.profile}

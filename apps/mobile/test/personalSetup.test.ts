@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  budgetDailyPace,
   decodeBudget,
   decodeRecurring,
   deterministicId,
@@ -175,6 +176,10 @@ describe('answersToRecords', () => {
 });
 
 describe('helpers', () => {
+  it('spreads setup free money across the calendar days left including today', () => {
+    expect(budgetDailyPace(30000n, '2026-11-21')).toBe(3000n);
+  });
+
   it('chooses display hints by region and keeps unknown regions neutral', () => {
     expect(regionHint('homeLoan', 'IN')).toEqual(['hintEmi']);
     expect(regionHint('buildingFees', 'US')).toEqual(['hintHoa']);

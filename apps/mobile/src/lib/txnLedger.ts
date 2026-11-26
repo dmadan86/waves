@@ -4,6 +4,11 @@ import { isCreditCard } from '@/lib/personalMonthBreakdown';
 
 export type TxnTab = 'all' | 'expense' | 'income' | 'transfer';
 
+/** Recent means posted today or earlier; ledger order is already newest first. */
+export function recentTxns(txns: readonly PersonalTxn[], today: string, limit = 3): PersonalTxn[] {
+  return txns.filter((txn) => txn.date <= today).slice(0, limit);
+}
+
 export interface TxnFilters {
   tab: TxnTab;
   needle: string;

@@ -7,6 +7,7 @@ export type LoanFilter = 'all' | 'owe' | 'owed';
 export interface LoanLeft {
   readonly direction: LoanDirection;
   readonly left: bigint;
+  readonly status?: 'active' | 'closed';
 }
 
 /** You owe = what is left on borrowed loans; you are owed = on lent ones; total = both. */
@@ -16,6 +17,7 @@ export function loanTotals(loans: readonly LoanLeft[]) {
   let oweCount = 0;
   let owedCount = 0;
   for (const l of loans) {
+    if (l.status === 'closed') continue;
     if (l.direction === 'borrowed') {
       owe += l.left;
       oweCount += 1;
@@ -28,7 +30,7 @@ export function loanTotals(loans: readonly LoanLeft[]) {
     owe,
     owed,
     total: owe + owed,
-    counts: { all: loans.length, owe: oweCount, owed: owedCount },
+    counts: { all: oweCount + owedCount, owe: oweCount, owed: owedCount },
   };
 }
 

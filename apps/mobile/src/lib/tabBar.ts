@@ -129,9 +129,10 @@ export function isPersonalMode(segments: readonly string[], space?: string): boo
 }
 
 /** Highlight the owning Personal destination, leaving standalone features unselected. */
-export function personalActiveKey(segments: readonly string[]): string {
+export function personalActiveKey(segments: readonly string[], space?: string): string {
   // Settings opened from the Personal bar's Me tab.
-  if (segments[0] === 'profile') return 'me';
+  if (segments[0] === 'profile' || (segments[0] === 'settings' && space === 'personal'))
+    return 'me';
   if (segments[0] === '(tabs)') return segments[1] === 'me' ? 'home' : '';
   if (segments[0] !== 'personal') return '';
   const leaf = segments[1] ?? '';

@@ -170,6 +170,7 @@ it('keeps profile and other settings outside Personal', () => {
   expect(isPersonalMode(['profile'])).toBe(false);
   expect(isPersonalMode(['settings', 'account'])).toBe(false);
   expect(personalActiveKey(['settings', 'transactions'])).toBe('');
+  expect(personalActiveKey(['settings', 'backup'], 'personal')).toBe('me');
 });
 it.each([
   ['budgets', 'planning'],
