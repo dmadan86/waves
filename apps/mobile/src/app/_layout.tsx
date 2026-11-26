@@ -69,6 +69,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { StatusBanner, UpdateGate } from '@/components/AppStatus';
 import { SharedReceiptHandler } from '@/lib/SharedReceiptHandler';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { DollarMeansApply } from '@/lib/dollarMeansStore';
 import { markLaunchReady } from '@/lib/launchReady';
 import { AutoBackup } from '@/lib/backup/AutoBackup';
 import { backendConfigured } from '@/lib/backend';
@@ -326,6 +327,7 @@ function RootLayout() {
                             ledger or signing anybody in either. */}
                                         <UpdateGate>
                                           <PushRouting />
+                                          <DollarMeansApply />
                                           <LockGate>
                                             {/* Below the lock and update gates so the watch
                                 bridge never turns a wrist tap into a capture
@@ -1054,6 +1056,7 @@ function AuthGate() {
           <Stack.Screen name="settings/scene" />
           <Stack.Screen name="settings/storage" />
           <Stack.Screen name="settings/theme" />
+          <Stack.Screen name="settings/dollar" />
           <Stack.Screen name="settings/categories" />
           <Stack.Screen name="settings/language" />
           <Stack.Screen name="settings/packs" />

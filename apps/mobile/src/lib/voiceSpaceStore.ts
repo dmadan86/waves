@@ -29,7 +29,7 @@ import {
 } from '@/lib/voiceAdded';
 
 /** One small persisted value per signed-in person, readable from any screen. */
-function profileStore<T>(prefix: string, empty: T) {
+export function profileStore<T>(prefix: string, empty: T) {
   let owner: string | null = null;
   let value = empty;
   const subs = new Set<() => void>();

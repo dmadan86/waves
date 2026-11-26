@@ -25,6 +25,8 @@ import {
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { SettingsSection } from '@/components/SettingsSection';
+import { DOLLAR_ASK } from '@waves/core';
+import { useDollarMeans } from '@/lib/dollarMeansStore';
 import { SignOutSheet } from '@/components/SignOutSheet';
 import { SkeletonList } from '@/components/Skeletons';
 import { isRtlLanguage, LANGUAGE_NAMES, useStrings } from '@/i18n';
@@ -186,6 +188,7 @@ function ProfileForm() {
       ? t.account.languageFollowingPhone.replace('{language}', LANGUAGE_NAMES[language].own)
       : `${LANGUAGE_NAMES[language].own} · ${LANGUAGE_NAMES[language].english}`;
 
+  const { means: dollarMeans } = useDollarMeans();
   const themeSummary = themeOverridden
     ? themePreference === 'dark'
       ? t.theme.dark
@@ -386,6 +389,12 @@ function ProfileForm() {
                     route: '/settings/theme' as const,
                   },
                 ]),
+            {
+              icon: 'logo-usd',
+              label: t.account.dollarRow,
+              value: dollarMeans === DOLLAR_ASK ? t.account.dollarAsk : dollarMeans,
+              route: '/settings/dollar',
+            },
             {
               icon: 'notifications-outline',
               label: t.account.notifications,
