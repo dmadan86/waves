@@ -115,7 +115,7 @@ export function resolveTabBar(segments: readonly string[], signedOut = false): T
 export function isPersonalMode(segments: readonly string[], space?: string): boolean {
   const [root, screen] = segments;
   // Shared settings pages stay in Personal only when opened from Me (`?space=personal`).
-  if (root === 'settings' && space === 'personal') return true;
+  if ((root === 'settings' || root === 'profile') && space === 'personal') return true;
   // Statement import is a personal-ledger feature opened from Overview.
   if (root === 'captures' && screen === 'statement') return true;
   // Categories is a personal-ledger feature opened from Overview.
@@ -130,6 +130,8 @@ export function isPersonalMode(segments: readonly string[], space?: string): boo
 
 /** Highlight the owning Personal destination, leaving standalone features unselected. */
 export function personalActiveKey(segments: readonly string[]): string {
+  // Settings opened from the Personal bar's Me tab.
+  if (segments[0] === 'profile') return 'me';
   if (segments[0] === '(tabs)') return segments[1] === 'me' ? 'home' : '';
   if (segments[0] !== 'personal') return '';
   const leaf = segments[1] ?? '';

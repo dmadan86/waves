@@ -52,8 +52,7 @@ import {
   setupSummary,
   setupAmountChanged,
   setupPrefillForUntouched,
-  existingSetupAmount,
-  setupSlotId,
+  setupPrefill,
   type BillAnswer,
   type BillId,
   type EatFreq,
@@ -861,37 +860,10 @@ function SetupBody() {
   }
   const step = order[index]!;
   const StepView = STEP_VIEW[step];
-  const incomePrefill =
-    (['salary', 'business', 'freelance', 'pension'] as const)
-      .map((kind) => {
-        const amount = existingSetupAmount(ledger.recurrings, ownerId, `income:${kind}`);
-        const rule = ledger.recurrings.find(
-          (r) => r.id === setupSlotId(ownerId, `income:${kind}`) && r.active,
-        );
-        return amount === null
-          ? null
-          : { kind, amount, day: Number(rule?.nextDate.slice(-2) ?? 1) };
-      })
-      .find((entry) => entry !== null) ?? null;
-  const homePrefill =
-    (['rent', 'home_loan'] as const)
-      .map((kind) => {
-        const amount = existingSetupAmount(ledger.recurrings, ownerId, `home:${kind}`);
-        const rule = ledger.recurrings.find(
-          (r) => r.id === setupSlotId(ownerId, `home:${kind}`) && r.active,
-        );
-        return amount === null
-          ? null
-          : { kind, amount, day: Number(rule?.nextDate.slice(-2) ?? 1) };
-      })
-      .find((entry) => entry !== null) ?? null;
-  const billPrefill = BILL_IDS.flatMap((id) => {
-    const amount = existingSetupAmount(ledger.recurrings, ownerId, `bill:${id}`);
-    const rule = ledger.recurrings.find(
-      (r) => r.id === setupSlotId(ownerId, `bill:${id}`) && r.active,
-    );
-    return amount === null ? [] : [{ id, amount, day: Number(rule?.nextDate.slice(-2) ?? 5) }];
-  });
+  const prefill = setupPrefill(ledger.recurrings, ctx);
+  const incomePrefill = prefill.income;
+  const homePrefill = prefill.home;
+  const billPrefill = prefill.bills;
   return (
     <BackContext.Provider value={index > 0 ? () => setIndex((i) => i - 1) : null}>
       <View style={{ flex: 1 }} key={step}>

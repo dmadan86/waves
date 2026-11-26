@@ -24,9 +24,9 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { BackHandler, Pressable, TextInput, View } from 'react-native';
 
 import {
   format,
@@ -100,6 +100,18 @@ function PersonalTransactionsScreenBody() {
     to?: string;
     returnTo?: string;
   }>();
+  // The phone's Back does what the on-screen back does: return to where the drill-down began.
+  const returnTo = params.returnTo;
+  useFocusEffect(
+    useCallback(() => {
+      if (!returnTo) return undefined;
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        router.replace(returnTo as never);
+        return true;
+      });
+      return () => sub.remove();
+    }, [returnTo]),
+  );
   const paramCategory = typeof params.category === 'string' ? params.category : null;
   // The dashboard's columns are buckets: a custom or unknown category is counted
   // under Other there, so it has to be listed under Other here too. Budgets pass

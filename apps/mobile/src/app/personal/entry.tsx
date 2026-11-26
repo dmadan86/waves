@@ -323,9 +323,11 @@ function EntryForm({
           // Deleting the entry deletes its receipt (and any unsaved replacement).
           void removePersonalReceipt(ownerId, savedReceipt);
           if (receiptKey !== savedReceipt) void removePersonalReceipt(ownerId, receiptKey);
-          router.back();
         },
       });
+      // The delete is optimistic: leave now, not when the server answers, or the screen
+      // re-renders as "That entry is no longer here" while offline or on a slow network.
+      router.back();
     }
   };
 
