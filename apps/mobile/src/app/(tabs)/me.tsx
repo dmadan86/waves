@@ -30,7 +30,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   cashflowTrend,
-  dayPlan,
+  budgetDailyPace,
+  personalHomeSpent,
   format,
   formatParts,
   incomeSource,
@@ -97,6 +98,8 @@ import {
   usePersonalLedger,
   useUpsertPersonalRecord,
 } from '@/data/personal';
+import { personalHomeIdentity } from '@/data/personalHomeIdentity';
+import { useProfileForDisplay } from '@/lib/profileCache';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
@@ -130,12 +133,22 @@ function MeLedger() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
-  const dc = useDefaultCurrency();
+  const deviceCurrency = useDefaultCurrency();
   const { hydrated } = useSync();
   const { profile } = useAuth();
+  // Name and currency survive an offline cold start (display only).
+  const displayProfile = useProfileForDisplay();
   const viewerFace = useViewerIdentity();
   const avatarUrl = useAvatarUrl(viewerFace.avatarUrl);
   const ledger = usePersonalLedger();
+  const identity = personalHomeIdentity(
+    displayProfile,
+    ledger.txns,
+    ledger.budgets,
+    deviceCurrency,
+    t.account.you,
+  );
+  const dc = identity.currency;
   const upsert = useUpsertPersonalRecord();
   // The eye on the summary card: masks every figure on it (and the three
   // tiles beneath it), the same privacy the dashboard's own eye gives Home.
@@ -247,7 +260,9 @@ function MeLedger() {
     currency: dc,
     today,
   };
-  const perDay = monthsBack === 0 ? (dayPlan(plan)?.perDay ?? 0n) : 0n;
+  const perDay =
+    monthsBack === 0 ? (budgetDailyPace(budgetProgress?.remaining ?? null, today) ?? 0n) : 0n;
+  const homeSpent = personalHomeSpent(ledger.txns, month, dc);
   const upcomingRows = usePersonalUpcoming(
     { txns: ledger.txns, recurrings: ledger.recurrings, currency: dc, today },
     3,
@@ -263,7 +278,7 @@ function MeLedger() {
   });
   const [moreOpen, setMoreOpen] = useState(false);
   useWealthReminders();
-  const firstName = (profile?.display_name ?? t.account.you).trim().split(/\s+/)[0];
+  const firstName = identity.name.trim().split(/\s+/)[0];
 
   // One set of quick actions on this screen; the less-used ones live here.
   const moreItems: OverflowMenuItem[] = [
@@ -428,7 +443,7 @@ function MeLedger() {
                 <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
                   <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
                     {monthsBack === 0
-                      ? t.personal.dash.totalSpent
+                      ? t.personal.dash.totalSpentThisMonth
                       : fill(t.personal.dash.totalSpentIn, { month: monthLabel(month, locale) })}
                   </Text>
                   <Pressable
@@ -453,7 +468,7 @@ function MeLedger() {
                   minimumFontScale={0.6}
                   style={HEADLINE_STYLE}
                 >
-                  {amountsHidden ? BALANCE_MASK : fmt(summary.expense - summary.invested)}
+                  {amountsHidden ? BALANCE_MASK : fmt(homeSpent)}
                 </Text>
                 {change !== null && !amountsHidden ? (
                   <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
@@ -490,7 +505,7 @@ function MeLedger() {
                 icon="arrow-up"
                 tone="negative"
                 label={t.personal.spent}
-                value={fmt(summary.expense - summary.invested)}
+                value={fmt(homeSpent)}
                 hidden={amountsHidden}
                 // The month's spends, entry by entry.
                 onPress={() =>

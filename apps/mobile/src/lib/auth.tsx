@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { Session } from '@/lib/backend';
+import { clearProfileCache } from '@/lib/profileCache';
 import { makeRedirectUri } from 'expo-auth-session';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
@@ -606,6 +607,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearCaptureNudge(leaving),
         cancelPlanNudges(),
         clearPlanNudge(leaving),
+        clearProfileCache(leaving),
       ]),
       new Promise((resolve) => setTimeout(resolve, SIGN_OUT_TIDY_UP_MS)),
     ]);
