@@ -1,11 +1,11 @@
 /**
- * The mark: the Shared Crest, a white crest-wave and dot on a violet tile.
+ * The mark: the Shared Crest, a white crest-wave and dot on a blue tile (#0A66C2, the app icon).
  * Drawn as paths so it stays crisp at favicon size and needs no raster file.
  */
 export function WaveMark({ className = 'h-7 w-7' }: { className?: string }) {
   return (
     <svg viewBox="0 0 1024 1024" className={className} aria-hidden="true">
-      <rect width="1024" height="1024" rx="232" fill="#6C4EE3" />
+      <rect width="1024" height="1024" rx="232" fill="#0A66C2" />
       <path
         d="M262 420C285 640 385 700 450 590C505 495 565 480 600 580C640 695 715 650 772 400"
         fill="none"
