@@ -352,7 +352,7 @@ function EntryForm({
         <EntryHeader
           title={title}
           subtitle={
-            editing
+            editing || recordPayment
               ? null
               : kind === 'income'
                 ? t.personal.entryScreen.incomeSub

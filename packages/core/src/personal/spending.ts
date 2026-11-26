@@ -92,17 +92,13 @@ function isBill(txn: PersonalTxn, options: PersonalSpendingOptions): boolean {
 }
 
 /**
- * One month split into income, bills, spending and what was left.
+ * One month split into income, bills, spending and what was left. Loan payments
+ * are left out of the consumer spending categories to match Home's Spent figure,
+ * but still reduce `leftOver` so the available balance stays honest.
  *
- * Every entry in the currency counts exactly once, so `income − bills −
- * spending` is the same figure `monthlySummary` calls `net` and the two screens
- * can never disagree. That includes the awkward ones, on purpose:
- *
- * - A loan repayment is spending. It left the wallet; a screen that hid it
- *   would show money left over that is not there.
- * - Money arriving to repay a loan you made is income, for the same reason. It
- *   flatters the month, and it is genuinely what landed in the account — the
- *   loans screen is where the principal is tracked, not here.
+ * Money arriving to repay a loan you made is income, for the same reason. It
+ * flatters the month, and it is genuinely what landed in the account — the
+ * loans screen is where the principal is tracked, not here.
  */
 export function computePersonalSpending(
   txns: readonly PersonalTxn[],
@@ -114,6 +110,7 @@ export function computePersonalSpending(
   let bills = 0n;
   let spending = 0n;
   let invested = 0n;
+  let loanPayments = 0n;
 
   for (const txn of txns) {
     if (txn.currency !== currency) continue;
@@ -121,6 +118,7 @@ export function computePersonalSpending(
     if (isInvestmentCategory(txn.category))
       invested += txn.kind === 'income' ? -txn.amount : txn.amount;
     else if (txn.kind === 'income') income += txn.amount;
+    else if (txn.loanId) loanPayments += txn.amount;
     else if (isBill(txn, options)) bills += txn.amount;
     else spending += txn.amount;
   }
@@ -131,7 +129,7 @@ export function computePersonalSpending(
     bills,
     spending,
     invested,
-    leftOver: income - bills - spending - invested,
+    leftOver: income - bills - spending - invested - loanPayments,
   };
 }
 

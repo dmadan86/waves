@@ -16,6 +16,7 @@ import {
   isRecurringDue,
   loanOutstanding,
   monthlySummary,
+  monthlySpendEntries,
   nextRecurring,
   personalBudgetProgress,
   recentMonths,
@@ -126,6 +127,13 @@ describe('recurringOccurrenceId', () => {
 });
 
 describe('monthlySummary', () => {
+  it('selects only the same non-investment expenses shown as monthly spending', () => {
+    const spend = txn({ id: 'spend', kind: 'expense', category: 'food', amount: 418n });
+    const deposit = txn({ id: 'deposit', kind: 'expense', category: 'inv.fund', amount: 250n });
+    expect(monthlySpendEntries([spend, deposit], '2026-08', 'INR').map((x) => x.id)).toEqual([
+      'spend',
+    ]);
+  });
   it('nets income against expense within one month and currency', () => {
     const txns = [
       txn({ kind: 'income', amount: 100000n, date: '2026-08-01' }),

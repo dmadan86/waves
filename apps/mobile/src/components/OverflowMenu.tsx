@@ -163,7 +163,12 @@ export function OverflowMenu({
   const gap = theme.spacing.xs;
   const rtl = I18nManager.isRTL;
   const below = anchor ? anchor.y + anchor.height + gap : insets.top + 56;
-  const estimate = items.length * 44 + 2 * theme.spacing.xs;
+  // Text wraps on narrow Android screens; a one-line-per-row estimate leaves
+  // the last item clipped when a menu contains several long labels.
+  const estimate = items.reduce(
+    (height, item) => height + (item.subtitle || item.label.length > 18 ? 64 : 52),
+    2 * theme.spacing.xs,
+  );
   // Flip above only when it will not fit below and there is more room above.
   const above =
     anchor !== null &&

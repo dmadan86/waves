@@ -47,6 +47,7 @@ import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { frequencyLabel } from '@/lib/frequencyLabel';
 import { OverflowMenu } from '@/components/OverflowMenu';
+import { useClaimFab } from '@/lib/fabOverride';
 
 function RecurringScreenBody() {
   const theme = useTheme();
@@ -61,6 +62,9 @@ function RecurringScreenBody() {
   const [menuRule, setMenuRule] = useState<PersonalRecurring | null>(null);
   const [filter, setFilter] = useState<RecurringFilter>('all');
   const [today] = useState(() => todayIso());
+  useClaimFab(true, t.personal.addRecurring, () =>
+    router.push({ pathname: '/personal/entry', params: { repeats: '1', addRecurring: '1' } }),
+  );
 
   const cadenceLabel = (rule: PersonalRecurring): string =>
     frequencyLabel(t, frequencyOf(rule), rule.interval);
