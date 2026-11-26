@@ -3596,9 +3596,7 @@ export interface UiStrings {
     reminderToday: string;
     reminderBody: string;
     moveKeep: string;
-    moveTo: string;
     movePrivacy: string;
-    moved: string;
     moveFailed: string;
     moveReceiptFailed: string;
     moveReceiptRetry: string;
@@ -5474,6 +5472,7 @@ export interface UiStrings {
     assignEditExpenseFor: string;
     assignSearch: string;
     assignNew: string;
+    justMePersonal: string;
     assignNewBody: string;
     assignNoMatch: string;
     noGroups: string;
@@ -8940,6 +8939,8 @@ export interface UiStrings {
     secondDay: string;
     dayOfMonth: string;
     startsOn: string;
+    splitRow: string;
+    splitTitle: string;
     /** One scheduled occurrence, and what became of it. */
     received: string;
     missed: string;
@@ -12416,9 +12417,7 @@ const en: UiStrings = {
     reminderToday: '{bill} is due today',
     reminderBody: '{amount} · {group}',
     moveKeep: 'Keep private',
-    moveTo: 'Move to {group}',
     movePrivacy: 'Your Personal stays private. Your partner can’t see it.',
-    moved: 'Moved to {group}',
     moveFailed: 'Could not move this. Nothing was changed.',
     moveReceiptFailed: 'Couldn’t move the receipt. Your entry is still here.',
     moveReceiptRetry: 'Try again',
@@ -14000,6 +13999,7 @@ const en: UiStrings = {
     assignEditExpenseFor: 'Edit {item}',
     assignSearch: 'Search groups',
     assignNew: 'New group',
+    justMePersonal: 'Just me (Personal)',
     assignNewBody: 'Create one and add this to it',
     assignNoMatch: 'No groups match',
     noGroups: 'You have no groups yet. Make one first, then assign this to it.',
@@ -17180,6 +17180,8 @@ const en: UiStrings = {
     secondDay: 'Second day',
     dayOfMonth: 'Day {n}',
     startsOn: 'Starts on',
+    splitRow: 'Split with friends…',
+    splitTitle: 'Split with friends',
     received: 'Received',
     missed: 'Missed',
     expected: 'Expected',
@@ -20644,9 +20646,7 @@ const ta: UiStrings = {
     reminderToday: '{bill} இன்று செலுத்த வேண்டும்',
     reminderBody: '{amount} · {group}',
     moveKeep: 'தனிப்பட்டதாக வைத்திருங்கள்',
-    moveTo: '{group} குழுவுக்கு மாற்று',
     movePrivacy: 'உங்கள் தனிப்பட்ட பகுதி தனிப்பட்டதாகவே இருக்கும். உங்கள் துணையால் இதைப் பார்க்க முடியாது.',
-    moved: '{group} குழுவுக்கு மாற்றப்பட்டது',
     moveFailed: 'இதை மாற்ற முடியவில்லை. எதுவும் மாறவில்லை.',
     moveReceiptFailed: 'ரசீதை மாற்ற முடியவில்லை. உங்கள் பதிவு இங்கேயே உள்ளது.',
     moveReceiptRetry: 'மீண்டும் முயற்சிக்கவும்',
@@ -22245,6 +22245,7 @@ const ta: UiStrings = {
     assignEditExpenseFor: '{item} ஐத் திருத்து',
     assignSearch: 'குழுக்களைத் தேடு',
     assignNew: 'புதிய குழு',
+    justMePersonal: 'நான் மட்டும் (தனிப்பட்ட)',
     assignNewBody: 'ஒன்றை உருவாக்கி இதை அதில் சேருங்கள்',
     assignNoMatch: 'எந்தக் குழுவும் பொருந்தவில்லை',
     noGroups: 'உங்களிடம் இன்னும் குழுக்கள் இல்லை. முதலில் ஒன்றை உருவாக்கி, பிறகு இதை ஒதுக்குங்கள்.',
@@ -25490,6 +25491,8 @@ const ta: UiStrings = {
     secondDay: 'இரண்டாம் நாள்',
     dayOfMonth: '{n}ஆம் நாள்',
     startsOn: 'தொடங்கும் நாள்',
+    splitRow: 'நண்பர்களுடன் பிரி…',
+    splitTitle: 'நண்பர்களுடன் பிரி',
     received: 'கிடைத்தது',
     missed: 'கிடைக்கவில்லை',
     expected: 'எதிர்பார்க்கப்படுகிறது',
@@ -28915,9 +28918,7 @@ const hi: UiStrings = {
     reminderToday: '{bill} आज देय है',
     reminderBody: '{amount} · {group}',
     moveKeep: 'निजी रखें',
-    moveTo: '{group} में ले जाएँ',
     movePrivacy: 'आपका पर्सनल निजी रहता है। आपका साथी इसे नहीं देख सकता।',
-    moved: '{group} में ले जाया गया',
     moveFailed: 'इसे नहीं ले जा सके। कुछ नहीं बदला।',
     moveReceiptFailed: 'रसीद नहीं ले जा सके। आपकी प्रविष्टि यहीं है।',
     moveReceiptRetry: 'फिर कोशिश करें',
@@ -30485,6 +30486,7 @@ const hi: UiStrings = {
     assignEditExpenseFor: '{item} संपादित करें',
     assignSearch: 'समूह खोजें',
     assignNew: 'नया समूह',
+    justMePersonal: 'सिर्फ़ मैं (पर्सनल)',
     assignNewBody: 'एक बनाएँ और इसे उसमें जोड़ें',
     assignNoMatch: 'कोई समूह मेल नहीं खाता',
     noGroups: 'आपके पास अभी कोई समूह नहीं है। पहले एक बनाएँ, फिर इसे उसमें सौंपें।',
@@ -33620,6 +33622,8 @@ const hi: UiStrings = {
     secondDay: 'दूसरा दिन',
     dayOfMonth: '{n} तारीख़',
     startsOn: 'शुरू होता है',
+    splitRow: 'दोस्तों के साथ बाँटें…',
+    splitTitle: 'दोस्तों के साथ बाँटें',
     received: 'मिल गया',
     missed: 'नहीं मिला',
     expected: 'अपेक्षित',
@@ -37247,9 +37251,7 @@ const ar: UiStrings = {
     reminderToday: 'يستحق {bill} اليوم',
     reminderBody: '{amount} · {group}',
     moveKeep: 'أبقِه خاصًا',
-    moveTo: 'انقل إلى {group}',
     movePrivacy: 'حسابك الشخصي يبقى خاصًا. شريكك لا يستطيع رؤيته.',
-    moved: 'تم النقل إلى {group}',
     moveFailed: 'تعذّر النقل. لم يتغير شيء.',
     moveReceiptFailed: 'تعذّر نقل الإيصال. إدخالك ما زال هنا.',
     moveReceiptRetry: 'حاول مرة أخرى',
@@ -38957,6 +38959,7 @@ const ar: UiStrings = {
     assignEditExpenseFor: 'تعديل {item}',
     assignSearch: 'ابحث عن المجموعات',
     assignNew: 'مجموعة جديدة',
+    justMePersonal: 'أنا فقط (شخصي)',
     assignNewBody: 'أنشئ واحدة وأضف هذا إليها',
     assignNoMatch: 'لا توجد مجموعات مطابقة',
     noGroups: 'ليست لديك مجموعات بعد. أنشئ واحدة أولًا ثم أسنِد هذا إليها.',
@@ -42685,6 +42688,8 @@ const ar: UiStrings = {
     secondDay: 'اليوم الثاني',
     dayOfMonth: 'يوم {n}',
     startsOn: 'يبدأ في',
+    splitRow: 'قسّم مع الأصدقاء…',
+    splitTitle: 'قسّم مع الأصدقاء',
     received: 'وصل',
     missed: 'لم يصل',
     expected: 'متوقَّع',
