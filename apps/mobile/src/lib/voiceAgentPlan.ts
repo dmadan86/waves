@@ -24,6 +24,8 @@ import {
   type VoiceClarifyOption,
 } from '@waves/core';
 
+import { itemList, largest } from '@/lib/voiceItemList';
+
 export interface AgentLocalMember {
   id: string;
   name: string;
@@ -127,6 +129,49 @@ function memberName(member: AgentLocalMember, text: VoiceAgentText): string {
   return member.isViewer ? text.you : member.name;
 }
 
+/**
+ * The agent proposes one action per priced item; the review shows one expense
+ * per currency (same rule as the on-device parse). Only plain equal splits with
+ * the same group, payer, people and date are merged: a sentence that gives
+ * different payers or shares per item stays as the agent sent it.
+ */
+export function mergeAgentExpenses(actions: readonly VoiceAgentAction[]): VoiceAgentAction[] {
+  type Spend = Extract<VoiceAgentAction, { type: 'add_expense' | 'add_personal' }>;
+  const keyOf = (action: VoiceAgentAction): string | null => {
+    if (action.type !== 'add_expense' && action.type !== 'add_personal') return null;
+    if (parseMinor(action.amountMinor) === null) return null;
+    const tail = `${action.currency}|${action.date ?? ''}`;
+    if (action.type === 'add_personal') return `p|${tail}`;
+    if (action.split.mode !== 'equal') return null;
+    const people = action.split.shares.map((share) => share.memberId).sort();
+    return `e|${action.groupId}|${action.paidByMemberId}|${people.join(',')}|${tail}`;
+  };
+  const buckets = new Map<string, Spend[]>();
+  for (const action of actions) {
+    const key = keyOf(action);
+    if (key) buckets.set(key, [...(buckets.get(key) ?? []), action as Spend]);
+  }
+  return actions.flatMap((action) => {
+    const key = keyOf(action);
+    const rows = key ? buckets.get(key) : undefined;
+    if (!rows || rows.length < 2) return [action];
+    if (rows[0] !== action) return [];
+    const items = rows.map((row) => ({
+      note: row.description,
+      amountMinor: BigInt(row.amountMinor),
+      category: row.category,
+    }));
+    const total = items.reduce((sum, item) => sum + item.amountMinor, 0n);
+    return [
+      {
+        ...rows[items.indexOf(largest(items))],
+        amountMinor: total.toString(),
+        description: itemList(items, action.currency),
+      },
+    ];
+  });
+}
+
 export function planVoiceAgentActions(
   response: VoiceAgentResponse,
   local: AgentLocalData,
@@ -135,7 +180,7 @@ export function planVoiceAgentActions(
   const groups = new Map(local.groups.map((group) => [group.id, group]));
   const cards: AgentCard[] = [];
 
-  response.actions.forEach((action, index) => {
+  mergeAgentExpenses(response.actions).forEach((action, index) => {
     const key = `${index}:${action.type}`;
     const card = (segments: string[], problem: boolean): void => {
       cards.push({ key, kind: action.type, action, segments, problem });

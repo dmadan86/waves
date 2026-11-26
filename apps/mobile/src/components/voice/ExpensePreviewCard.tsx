@@ -63,8 +63,17 @@ export function SplitLine({
       })}
     >
       <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
-      <Text style={{ flex: 1 }}>{label}</Text>
-      <Text tone="muted">{value}</Text>
+      <Text numberOfLines={1} style={{ flexShrink: 0 }}>
+        {label}
+      </Text>
+      <Text
+        tone="muted"
+        numberOfLines={1}
+        ellipsizeMode="tail"
+        style={{ flex: 1, textAlign: 'right' }}
+      >
+        {value}
+      </Text>
       <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.textFaint} />
     </Pressable>
   );

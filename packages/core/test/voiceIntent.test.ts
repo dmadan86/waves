@@ -702,3 +702,18 @@ describe('buildVoiceSplit — what can be saved', () => {
     expect(plan('madan paid for dinner').problems).toContainEqual({ code: 'no_amount' });
   });
 });
+
+describe('one payer, one share', () => {
+  it('"I paid 900, Alice owes 300" is one expense with an exact split', () => {
+    const intent = parseVoiceIntent('I paid 900, Alice owes 300', {
+      members: [...MEMBERS, { id: 'm-alice', name: 'Alice' }],
+    });
+    expect(intent.amountMinor).toBe(90000n);
+    expect(intent.items).toBeUndefined();
+    expect(intent.splitMode).toBe('exact');
+    expect(intent.participants?.map((person) => [person.memberId, person.exactMinor])).toEqual([
+      ['m-alice', 30000n],
+      ['m-me', 60000n],
+    ]);
+  });
+});

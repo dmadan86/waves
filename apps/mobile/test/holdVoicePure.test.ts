@@ -101,7 +101,8 @@ describe('holdLanding', () => {
         new Set(['g1']),
       ),
     ).toEqual({ kind: 'later' });
-    expect(parse('lunch 200, taxi 300 and petrol 500').items).toHaveLength(3);
+    // One expense listing the three items.
+    expect(parse('lunch 200, taxi 300 and petrol 500').items).toHaveLength(1);
   });
   it('keeps no amount as a draft', () => {
     expect(

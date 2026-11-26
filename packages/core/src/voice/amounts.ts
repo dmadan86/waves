@@ -796,7 +796,7 @@ const PERCENT_AFTER = /^\s*(?:%|percent(?![\p{L}])|per\s*cent(?![\p{L}]))/iu;
  * are prices the way people here say them, not counts.
  */
 const UNIT_AFTER =
-  /^\s*(?:x(?![\p{L}])|kgs?|kilos?|kilograms?|g(?![\p{L}])|gms?|grams?|kms?|kilomet(?:er|re)s?|miles?|ml|litres?|liters?|ltrs?|items?|pieces?|pcs|tickets|nights?|hours?|hrs?|minutes?|mins?|seconds?|secs?|days?|weeks?|months?|years?|yrs?|units?|times|rounds?|dozens?|stars?|floors?|rooms|steps?|seats|beds|bhk|gb|mb|inch(?:es)?|feet|ft|cm|mm|pages?|copies)(?![\p{L}])/iu;
+  /^\s*(?:x(?![\p{L}])(?!\s*(?:x(?![\p{L}])|$))|kgs?|kilos?|kilograms?|g(?![\p{L}])|gms?|grams?|kms?|kilomet(?:er|re)s?|miles?|ml|litres?|liters?|ltrs?|items?|pieces?|pcs|tickets|nights?|hours?|hrs?|minutes?|mins?|seconds?|secs?|days?|weeks?|months?|years?|yrs?|units?|times|rounds?|dozens?|stars?|floors?|rooms|steps?|seats|beds|bhk|gb|mb|inch(?:es)?|feet|ft|cm|mm|pages?|copies)(?![\p{L}])/iu;
 const EACH_AFTER = new RegExp(
   `^\\s*(?:${CURRENCY_WORD}\\s+)?(?:each(?:\\s+person)?|apiece|per\\s+(?:person|head|plate|pax|ticket|piece|item|each)|a\\s+(?:head|person|piece|plate)|for\\s+each(?:\\s+(?:person|of\\s+us))?)(?![\\p{L}])`,
   'iu',

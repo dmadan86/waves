@@ -41,16 +41,17 @@ describe('heardCaptureInput amount forms', () => {
   it('several clear amounts in one currency are filed as their total, words kept', () => {
     const d = draft('paid 200 for lunch and 300 for dinner');
     expect(d.amount).toBe(50000n);
-    expect(d.description).toBe('paid 200 for lunch and 300 for dinner');
+    expect(d.description).toBe('lunch 200, dinner 300');
+    expect(d.rawText).toBe('paid 200 for lunch and 300 for dinner');
   });
 
   it.each([
-    ['Rs 1000 for food 800 rupees for dress', ['food', 'dress']],
-    ['food 1000 and dress 800', ['food', 'dress']],
-    ['1000 rupees food, 800 dress', ['food', 'dress']],
-  ])('keeps each amount with its own words: %s', (said, notes) => {
+    ['Rs 1000 for food 800 rupees for dress', 'food 1000, dress 800'],
+    ['food 1000 and dress 800', 'food 1000, dress 800'],
+    ['1000 rupees food, 800 dress', 'food 1000, dress 800'],
+  ])('keeps each amount with its own words: %s', (said, note) => {
     const parsed = parseVoiceExpenses(said, []);
-    expect(parsed.items.map((item) => item.note)).toEqual(notes);
+    expect(parsed.items.map((item) => item.note)).toEqual([note]);
     expect(parsed.items[0].category).toBe('food');
   });
 

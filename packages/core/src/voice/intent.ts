@@ -1662,6 +1662,9 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
     }
     // NUM [rupees] for|to|ko NAME  ("300 for arjun 200 for meera")
     if (pairs.length < 2) {
+      // Keep a lone "alice owes 300" when this reading finds nothing either.
+      const loneBefore = [...pairs];
+      const loneTaken = [...taken];
       pairs.length = 0;
       taken.length = 0;
       for (let i = 0; i < n; i += 1) {
@@ -1678,6 +1681,10 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
         pairs.push({ name: at(j + 1), value: Number(at(i)), percent });
         taken.push([i, j + 2]);
         i = j + 1;
+      }
+      if (pairs.length === 0) {
+        pairs.push(...loneBefore);
+        taken.push(...loneTaken);
       }
     }
     const lone =

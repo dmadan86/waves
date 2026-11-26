@@ -22,6 +22,17 @@ export function splitRowValue(params: SplitParams, count: number, words: SplitRo
   return template.replace('{count}', String(count));
 }
 
+/** The paying members for the Paid by row, by name — never the member id. */
+export function payerRowEntries(
+  payerIds: readonly string[],
+  members: readonly { id: string; name: string; isMe?: boolean }[],
+): { name: string; isYou?: boolean }[] {
+  return payerIds.map((id) => {
+    const member = members.find((candidate) => candidate.id === id);
+    return { name: member?.name ?? '', isYou: member?.isMe };
+  });
+}
+
 /** 'You', one name, or 'N people' (`several` is the `{count}` template). */
 export function payerRowValue(
   payers: readonly { name: string; isYou?: boolean }[],

@@ -193,3 +193,11 @@ describe('parseVoiceIntent amounts', () => {
     expect(parseVoiceIntent('paanch sau rupaye chai').amountMinor).toBe(50000n);
   });
 });
+
+describe('a trailing "x" is not a quantity marker', () => {
+  it('keeps the amount before stray x junk', () => {
+    expect(findAmountSpans('dinner 500 x x x').map((span) => span.role)).toEqual(['total']);
+    expect(findAmountSpans('dinner 500 x').map((span) => span.role)).toEqual(['total']);
+    expect(findAmountSpans('3 x tickets').map((span) => span.role)).toEqual(['quantity']);
+  });
+});

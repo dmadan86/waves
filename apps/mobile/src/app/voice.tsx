@@ -68,6 +68,7 @@ import {
   type VoiceSplitPlan,
   parseMinorInput,
   type CurrencyCode,
+  type FxRecord,
 } from '@waves/core';
 import {
   Button,
@@ -97,10 +98,13 @@ import {
   useOneToOneGroupIds,
   usePeopleBalances,
   useRecordSettlement,
+  useGroupFxRates,
   useVoiceAgentStatus,
   useWriteExpense,
 } from '@/data/hooks';
 import { nudgeToSettle } from '@/data/api';
+import { CurrencyRate } from '@/components/CurrencyRate';
+import { tripRateFor } from '@/lib/tripRates';
 import { useAddCompanyEntry } from '@/data/companyEntries';
 import { useUpsertPersonalRecord } from '@/data/personal';
 import { displayName, GroupType, isViewer, type GroupRow, type MemberRow } from '@/data/types';
@@ -162,7 +166,12 @@ import {
 } from '@/lib/voiceDraftPure';
 import { VoiceDetailRows } from '@/components/voice/VoiceDetailRows';
 import { VoiceSplitSheet } from '@/components/voice/VoiceSplitSheet';
-import { payerRowValue, splitRowValue, voiceExpenseAmounts } from '@/lib/voiceReviewRows';
+import {
+  payerRowEntries,
+  payerRowValue,
+  splitRowValue,
+  voiceExpenseAmounts,
+} from '@/lib/voiceReviewRows';
 import type { UndoEntry } from '@/lib/assistantUndo';
 import type { AgentExpenseWrite } from '@/lib/voiceAgentPlan';
 import { splitEditFromParams } from '@/lib/voiceSplitPure';
@@ -523,12 +532,16 @@ export default function VoiceScreen() {
   // Never lost: it stays until an add promotes it (see `dropHeardDraft`).
   const heardId = useRef<string | null>(null);
   const heardSentence = useRef<string | null>(null);
+  // Typed text is on screen already: it is only ever a draft when the reader says
+  // so (Save to inbox), never filed on arrival or by leaving.
+  const heardTyped = useRef(false);
   // The in-flight draft write, so a delete never overtakes the create it undoes.
   const heardWrite = useRef<Promise<void>>(Promise.resolve());
   // File what was heard as an amount-less draft carrying the sentence. A later
   // sentence on the same screen (a fix, an answer) rewrites that one draft.
   const fileHeard = (transcript: string): void => {
-    if (!worthFiling(transcript) || heardSentence.current === transcript) return;
+    if (!worthFiling(transcript, heardTyped.current) || heardSentence.current === transcript)
+      return;
     heardSentence.current = transcript;
     const fields = heardCaptureInput(transcript, today(), dc);
     const existing = heardId.current;
@@ -1473,6 +1486,7 @@ export default function VoiceScreen() {
     // double-apply.
     if (!captureActive.current) return;
     captureActive.current = false;
+    heardTyped.current = typed;
     setHeardText(transcript);
     setEditingDraft(false);
     setDetailsOpen(true);
@@ -1819,7 +1833,7 @@ export default function VoiceScreen() {
       const allSavable = drafts.every(
         (draft) => toMinor(draft.amount, draft.currency ?? dc) !== null,
       );
-      if (!leaveUpdatesDraft(phase, drafts.length, allSavable)) return;
+      if (!leaveUpdatesDraft(phase, drafts.length, allSavable, heardTyped.current)) return;
       event.preventDefault();
       committed.current = true;
       void (async () => {
@@ -2005,6 +2019,20 @@ export default function VoiceScreen() {
         ? dest.ghostNames.length + 1
         : null);
   const groupCurrencyNow = target.group.data?.default_currency ?? null;
+  // A currency other than the group's (EUR in a rupee group) gets the same rate
+  // card Add expense shows, and its rate rides on the write (ADR-003).
+  const groupFxRates = useGroupFxRates(targetGroupId);
+  const [fx, setFx] = useState<FxRecord | null>(null);
+  const foreignDraft =
+    dest.kind === 'existing' && groupCurrencyNow
+      ? drafts.find(
+          (draft) =>
+            draft.currency !== null &&
+            draft.currency !== groupCurrencyNow &&
+            toMinor(draft.amount, draft.currency) !== null,
+        )
+      : undefined;
+  const foreignCurrency = foreignDraft?.currency ?? null;
   let amountQuestion: { draft: Draft; question: VoiceAmountQuestion } | null = null;
   for (const draft of drafts) {
     if (draft.amountAnswered || !draft.amountReading) continue;
@@ -2373,7 +2401,12 @@ export default function VoiceScreen() {
           payers,
           expectedShares,
         };
-        await writeExpense.mutateAsync({ ...write, location });
+        await writeExpense.mutateAsync({
+          ...write,
+          location,
+          // Only a rate for this very pair; a stale one from another currency is dropped.
+          fx: fx?.from === currency && fx.to === groupCurrency ? fx : null,
+        });
         voiceAdded.mark(dest.groupId, [expenseId]);
         if (drafts.length === 1)
           single = {
@@ -2463,6 +2496,10 @@ export default function VoiceScreen() {
     !saving &&
     !whoBlocked &&
     drafts.every((draft) => toMinor(draft.amount, draft.currency ?? dc) !== null);
+  // Why Save is greyed out when an amount is zero or too small to count.
+  const amountMissing = drafts.some(
+    (draft) => toMinor(draft.amount, draft.currency ?? dc) === null,
+  );
 
   // Every destination keeps each draft's spoken currency (see `save`); a draft
   // with none takes the group's currency for a group, else the reader's default.
@@ -2603,7 +2640,7 @@ export default function VoiceScreen() {
         paidByLabel: t.voiceScreen.paidByLabel,
         paidBy: payerRowValue(
           who?.payers
-            ? Object.keys(who.payers).map((id) => ({ name: id }))
+            ? payerRowEntries(Object.keys(who.payers), targetMembers)
             : [{ name: payerName ?? '', isYou: payerName === t.voice.youLabel }],
           t.voice.youLabel,
           t.voiceScreen.payersPeople,
@@ -3250,6 +3287,27 @@ export default function VoiceScreen() {
                       </Text>
                     </Pressable>
                   </Card>
+
+                  {foreignDraft && foreignCurrency && groupCurrencyNow ? (
+                    <CurrencyRate
+                      groupCurrency={groupCurrencyNow}
+                      currency={foreignCurrency}
+                      amount={toMinor(foreignDraft.amount, foreignCurrency) ?? 0n}
+                      fx={fx}
+                      onFxChange={setFx}
+                      tripRate={tripRateFor(
+                        groupFxRates.data ?? [],
+                        foreignCurrency,
+                        groupCurrencyNow,
+                      )}
+                      expenseDate={voiceExpenseDate ?? today()}
+                      autoFetch
+                    />
+                  ) : null}
+
+                  {amountMissing ? (
+                    <Callout tone="negative">{t.voice.confirmNeedAmount}</Callout>
+                  ) : null}
 
                   {intent?.hasSocialDetail && dest.kind !== 'existing' ? (
                     <Callout tone="info">{t.voice.needGroupForSplit}</Callout>
