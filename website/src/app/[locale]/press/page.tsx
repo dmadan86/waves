@@ -22,7 +22,7 @@ const description =
 export const metadata: Metadata = socialMetadata({ title, description, path: '/press' });
 
 const colours = [
-  ['Waves violet', '#6C4EE3'],
+  ['Waves blue', '#0A66C2'],
   ['White', '#FFFFFF'],
   ['Ink (dark surface)', '#0D0E10'],
 ];

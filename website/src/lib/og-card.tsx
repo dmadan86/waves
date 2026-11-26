@@ -25,7 +25,19 @@ export function ogCard({ start, accent, sub }: { start: string; accent: string; 
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-        <div style={{ width: 68, height: 68, borderRadius: 16, background: '#6C4EE3' }} />
+        {/* The real mark (same paths as components/logo.tsx), not a plain tile. */}
+        <svg width="68" height="68" viewBox="0 0 1024 1024">
+          <rect width="1024" height="1024" rx="232" fill="#0A66C2" />
+          <path
+            d="M262 420C285 640 385 700 450 590C505 495 565 480 600 580C640 695 715 650 772 400"
+            fill="none"
+            stroke="#fff"
+            strokeWidth="88"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle cx="790" cy="290" r="46" fill="#fff" />
+        </svg>
         <div style={{ fontSize: 46, fontWeight: 700, letterSpacing: -1.5 }}>Waves</div>
       </div>
 
