@@ -201,6 +201,7 @@ describe('rentals', () => {
   });
   it('starts an existing tenancy this month, not years back', () => {
     expect(rentAnchor('2024-01-01', 5, '2026-11-21', 'monthly')).toBe('2026-11-05');
+    expect(rentAnchor('2026-11-26', 1, '2026-11-26', 'monthly')).toBe('2026-11-26');
     expect(rentAnchor('2027-01-01', 5, '2026-11-21', 'monthly')).toBe('2027-01-05');
     expect(rentAnchor('2024-01-01', 5, '2026-11-21', 'fortnightly')).toBe('2026-11-21');
   });

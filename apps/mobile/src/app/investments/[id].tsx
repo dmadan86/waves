@@ -5,7 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
-import { investedSoFar, isInvestmentCategory } from '@waves/core';
+import { investedSoFar, isInvestmentCategory, linkedPersonalTxnIds } from '@waves/core';
 import { Button, IconButton, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { PersonalGuard } from '@/components/PersonalGuard';
@@ -206,8 +206,11 @@ function DetailBody() {
                   tone: 'danger',
                 });
                 if (!ok) return;
-                if (rule) void del.mutateAsync(rule.id);
-                void del.mutateAsync(inv.id).then(() => router.back());
+                for (const txnId of linkedPersonalTxnIds(ledger.txns, { investmentId: inv.id }))
+                  await del.mutateAsync(txnId);
+                if (rule) await del.mutateAsync(rule.id);
+                await del.mutateAsync(inv.id);
+                router.back();
               })();
             },
           },

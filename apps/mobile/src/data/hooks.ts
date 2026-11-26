@@ -2326,6 +2326,10 @@ export function useExpenseVersions(expenseId: string) {
   return useQuery({
     queryKey: ['expense', expenseId, 'versions'],
     queryFn: () => fetchExpenseVersions(expenseId),
+    // Version history is the audit source of truth. A 30s cached first version
+    // hid edits when returning from the edit form on mobile.
+    staleTime: 0,
+    refetchOnMount: 'always',
     // A demo expense has no server history, and its id is not a UUID.
     enabled: Boolean(expenseId) && !isDemoId(expenseId),
   });

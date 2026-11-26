@@ -44,6 +44,12 @@ export function useOverlayBusy(): boolean {
   return overlayBusy();
 }
 
+/** Read by prompt arbitration so every full-screen overlay pauses queued prompts. */
+export function useOverlayBusyState(): boolean {
+  useSyncExternalStore(subscribe, () => version);
+  return overlayBusy();
+}
+
 export interface TourGate {
   /** The "seen" flag has been read for this account. */
   tourReady: boolean;

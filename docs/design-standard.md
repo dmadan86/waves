@@ -64,6 +64,15 @@ Before building or changing a screen, answer: what must the user understand at a
 - Customizable layouts: a screen of cards (the company Overview) may let people reorder and hide cards, never restyle them. Entry is the ⋮ OverflowMenu › "Edit layout", or a long press on the cards. Edit mode is one list: a − to hide, a ≡ handle to drag, a Hidden cards list with + to bring back, Reset to default and Done; the first card is locked (shown with a lock). Haptics only on pick-up and drop; every row has move up / move down / hide accessibility actions. The layout is a pure model (`lib/overviewLayout.ts`: per-role default merged with the saved one), saved per account and company on the phone and mirrored to `profiles.ui_prefs`.
 - Spaces: Personal and each company are separate spaces, switched from the pill at the top left ("Personal" / the company name, with a chevron) which opens one "Switch space" sheet (`SpacePill` in `components/SpaceSwitcher.tsx`). Personal Home lists every group type except company; a company never shows groups. The last explicit switch (sheet, create, accept invite) is remembered per account and the app opens there; a company that is gone or left falls back to Personal. The Company tab opens the last company. Users with no company see a plain "Personal" label, no chevron.
 
+## Add controls
+
+One add control per screen in the Personal space; never two that open the same form.
+
+- Tab roots (Home, Transactions): the tab-bar FAB. No + in the header.
+- Sub-screens with a back header (Loans, Recurring, Budgets, Upcoming): one + in the header (`PlainHeader` `trailing`). No FAB.
+- Empty list: the button in the empty state (`EmptyStateCta`) is the only add control; hide the header +. Label is verb + noun ("Add loan").
+- Empty because of filters: "Clear filters" in the empty state; the screen's normal add control stays.
+
 ## Never say
 
 Words that read as advice, a promise or a legal claim. They are banned in copy, notifications, store text and the Ask prompt, for every feature including Ask.

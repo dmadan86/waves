@@ -23,6 +23,7 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { router } from '@/lib/navigation';
 import { regionOf } from '@/lib/wealthPlan';
+import { rentalWizardSteps, wizardProgress } from '@/lib/wealthFlow';
 
 type Step = 'type' | 'name' | 'rented' | 'tenant';
 
@@ -48,9 +49,9 @@ function AddBody() {
     'rented',
     ...(rented ? (Array.from({ length: TENANT_STEPS }, () => 'tenant') as Step[]) : []),
   ];
-  const index = Math.min(at, order.length - 1);
+  const { index } = wizardProgress(at, order.length);
   const step = order[index]!;
-  const base = { index, total: order.length };
+  const base = { index, total: rentalWizardSteps(TENANT_STEPS) };
 
   const save = async (tenant: TenantDraft | null): Promise<void> => {
     if (!isPro && wealth.properties.filter((p) => p.status === 'active').length >= 1) {

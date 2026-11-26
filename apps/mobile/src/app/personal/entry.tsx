@@ -113,6 +113,9 @@ function PersonalEntryScreenBody() {
     loanId?: string;
     recurringId?: string;
     repeats?: string;
+    addRecurring?: string;
+    recordPayment?: string;
+    category?: string;
     /** Handed over by the quick sheet's "More details": what was already typed
         there, so the form opens on it rather than throwing it away. */
     amount?: string;
@@ -170,6 +173,9 @@ function PersonalEntryScreenBody() {
       defaultKind={params.kind === 'income' ? 'income' : 'expense'}
       paramLoanId={typeof params.loanId === 'string' ? params.loanId : null}
       startRepeating={params.repeats === '1'}
+      addRecurring={params.addRecurring === '1'}
+      recordPayment={params.recordPayment === '1'}
+      startCategory={typeof params.category === 'string' ? params.category : null}
       startAmount={routeAmount(params.amount)}
       startNote={typeof params.note === 'string' ? params.note : ''}
       currency={editingTxn?.currency ?? editingRule?.currency ?? params.currency ?? dc}
@@ -184,6 +190,9 @@ function EntryForm({
   defaultKind,
   paramLoanId,
   startRepeating,
+  addRecurring,
+  recordPayment,
+  startCategory,
   startAmount,
   startNote,
   currency,
@@ -194,6 +203,9 @@ function EntryForm({
   defaultKind: TxnKind;
   paramLoanId: string | null;
   startRepeating: boolean;
+  addRecurring: boolean;
+  recordPayment: boolean;
+  startCategory: string | null;
   /** What a hand-off already knows the amount to be; zero for a bare new entry. */
   startAmount: bigint;
   startNote: string;
@@ -213,7 +225,7 @@ function EntryForm({
   );
   const [amount, setAmount] = useState<bigint>(editing?.amount ?? startAmount);
   const [note, setNote] = useState(editing?.note ?? startNote);
-  const [category, setCategory] = useState<string | null>(editing?.category ?? null);
+  const [category, setCategory] = useState<string | null>(editing?.category ?? startCategory);
   // For a one-off this is the day it happened; for a repeating one it is the day
   // the schedule *starts*, which is why an existing rule opens on its anchor and
   // not on its next due date. A rule can only be told it began last year from
@@ -311,19 +323,25 @@ function EntryForm({
           // Deleting the entry deletes its receipt (and any unsaved replacement).
           void removePersonalReceipt(ownerId, savedReceipt);
           if (receiptKey !== savedReceipt) void removePersonalReceipt(ownerId, receiptKey);
-          router.back();
         },
       });
+      // The delete is optimistic: leave now, not when the server answers, or the screen
+      // re-renders as "That entry is no longer here" while offline or on a slow network.
+      router.back();
     }
   };
 
-  const title = editingRule
-    ? t.personal.editRecurring
-    : editingTxn
-      ? t.personal.transactions
-      : kind === 'income'
-        ? t.personal.addIncome
-        : t.personal.addExpense;
+  const title = addRecurring
+    ? t.personal.addRecurring
+    : recordPayment
+      ? t.personal.recordPayment
+      : editingRule
+        ? t.personal.editRecurring
+        : editingTxn
+          ? t.personal.transactions
+          : kind === 'income'
+            ? t.personal.addIncome
+            : t.personal.addExpense;
 
   return (
     <Screen edges={[]}>
@@ -336,7 +354,7 @@ function EntryForm({
         <EntryHeader
           title={title}
           subtitle={
-            editing
+            editing || recordPayment
               ? null
               : kind === 'income'
                 ? t.personal.entryScreen.incomeSub
@@ -535,11 +553,15 @@ function EntryForm({
 
           <SaveButton
             label={
-              editing
+              addRecurring
                 ? t.personal.save
-                : kind === 'income'
-                  ? t.personal.entryScreen.saveIncome
-                  : t.personal.entryScreen.saveExpense
+                : recordPayment
+                  ? 'Save payment'
+                  : editing
+                    ? t.personal.save
+                    : kind === 'income'
+                      ? t.personal.entryScreen.saveIncome
+                      : t.personal.entryScreen.saveExpense
             }
             disabled={!canSave}
             onPress={onSave}

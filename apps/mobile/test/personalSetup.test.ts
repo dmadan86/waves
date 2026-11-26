@@ -1,7 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { decodeBudget, decodeRecurring, type CurrencyCode } from '@waves/core';
+import {
+  decodeBudget,
+  decodeRecurring,
+  deterministicId,
+  type CurrencyCode,
+  type PersonalRecurring,
+} from '@waves/core';
 
 import {
   answersToRecords,
@@ -13,6 +19,10 @@ import {
   regionHint,
   rememberSetup,
   setupSummary,
+  existingSetupAmount,
+  setupPrefillForUntouched,
+  setupPrefill,
+  setupAmountChanged,
   type SetupContext,
 } from '@/lib/personalSetup';
 
@@ -23,6 +33,43 @@ const ctx: SetupContext = {
   label: (k) => k,
 };
 const rupees = (n: number): bigint => BigInt(n) * 100n;
+
+describe('rerunning Personal setup preserves existing recurring amounts', () => {
+  it('hydrates a late prefill only while the answer is untouched', () => {
+    const incoming = { kind: 'salary' as const, amount: 50000n, day: 1 };
+    expect(setupPrefillForUntouched(null, incoming, false)).toEqual(incoming);
+    expect(setupPrefillForUntouched({ ...incoming, amount: 60000n }, incoming, true)).toEqual({
+      ...incoming,
+      amount: 60000n,
+    });
+  });
+  const salary = (active = true): PersonalRecurring => ({
+    id: deterministicId('psetup:u1:income:salary'),
+    txnKind: 'income',
+    amount: rupees(50000),
+    currency: 'INR',
+    category: null,
+    note: null,
+    cadence: 'monthly',
+    interval: 1,
+    secondDay: null,
+    anchorDate: '2026-11-01',
+    nextDate: '2026-11-01',
+    endDate: null,
+    autoPost: false,
+    active,
+  });
+  it('prefills the existing salary and writes only when its amount changes', () => {
+    const current = existingSetupAmount([salary()], 'u1', 'income:salary');
+    expect(current).toBe(5000000n);
+    expect(setupAmountChanged(current, 5000000n)).toBe(false);
+    expect(setupAmountChanged(current, 100000n)).toBe(true);
+  });
+  it('does not prefill a deleted recurring item', () => {
+    expect(existingSetupAmount([salary(false)], 'u1', 'income:salary')).toBeNull();
+    expect(setupAmountChanged(null, 100000n)).toBe(true);
+  });
+});
 
 describe('answersToRecords', () => {
   const answers = {
@@ -202,5 +249,51 @@ describe('monthlyEquivalent', () => {
     expect(monthlyEquivalent(rule('yearly'))).toBe(100n);
     expect(monthlyEquivalent(rule('weekly'))).toBe(5200n);
     expect(monthlyEquivalent(rule('semimonthly'))).toBe(2400n);
+  });
+});
+
+describe('rerunning setup starts from what setup saved', () => {
+  const labelled: SetupContext = {
+    ...ctx,
+    label: (k) => ({ 'home:rent': 'Rent', 'home:home_loan': 'Home loan EMI' })[k] ?? k,
+  };
+  const saved = (answers: Parameters<typeof answersToRecords>[0]) =>
+    answersToRecords(answers, labelled)
+      .filter((r) => r.recordKind === 'recurring')
+      .map((r) => decodeRecurring(r.recordId, r.data));
+
+  it('round-trips salary, rent and bills through the real save path', () => {
+    const recurrings = saved({
+      income: { kind: 'salary', amount: 5_000_000n, day: 1 },
+      home: { kind: 'rent', amount: 1_500_000n, day: 5 },
+      bills: [{ id: 'mobile', amount: 59_900n, day: 10 }],
+    });
+    const p = setupPrefill(recurrings, labelled);
+    expect(p.income).toMatchObject({ kind: 'salary', amount: 5_000_000n });
+    expect(p.home).toMatchObject({ kind: 'rent', amount: 1_500_000n });
+    expect(p.bills).toEqual([expect.objectContaining({ id: 'mobile', amount: 59_900n })]);
+  });
+
+  it('recognises pension income and a home loan', () => {
+    const p = setupPrefill(
+      saved({
+        income: { kind: 'pension', amount: 2_000_000n, day: 1 },
+        home: { kind: 'home_loan', amount: 3_000_000n, day: 7 },
+      }),
+      labelled,
+    );
+    expect(p.income?.kind).toBe('pension');
+    expect(p.home?.kind).toBe('home_loan');
+  });
+
+  it('ignores paused records and records of another person', () => {
+    const recurrings = saved({ income: { kind: 'salary', amount: 5_000_000n, day: 1 } });
+    expect(
+      setupPrefill(
+        recurrings.map((r) => ({ ...r, active: false })),
+        labelled,
+      ).income,
+    ).toBeNull();
+    expect(setupPrefill(recurrings, { ...labelled, ownerId: 'someone-else' }).income).toBeNull();
   });
 });

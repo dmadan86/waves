@@ -326,9 +326,22 @@ function ExpenseDetailScreen() {
       expenseId ?? '',
     );
     if (found) return found;
+    const latestVersion = [...(versions.data ?? [])].sort((a, b) => b.version_no - a.version_no)[0];
+    if (latestVersion && latestVersion.version_no > 1) {
+      return { kind: 'edited', byMemberId: latestVersion.author_member_id, at: 0 };
+    }
     const hinted = newParam === '1' ? 'new' : editedParam === '1' ? 'edited' : null;
     return hinted ? { kind: hinted, byMemberId: null, at: 0 } : null;
-  }, [activity.data, everyone.data, viewerId, lastSeenAt, expenseId, newParam, editedParam]);
+  }, [
+    activity.data,
+    everyone.data,
+    viewerId,
+    lastSeenAt,
+    expenseId,
+    newParam,
+    editedParam,
+    versions.data,
+  ]);
   // For an edit, which values moved since that look (the activity log keeps no
   // field list, so it is the version history that says): the first version at or
   // before the look against the current one.

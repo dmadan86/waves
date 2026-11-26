@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import {
   decideFirstRun,
+  firstRunDisplayDecision,
   isInviteRoute,
   nameForField,
   routeForIntents,
   shouldShowIntro,
+  shouldRouteToFirstRun,
   summariseHeard,
   type IntentNames,
 } from '@/lib/firstRunFlow';
@@ -37,6 +39,27 @@ describe('decideFirstRun', () => {
       decideFirstRun({ seen: false, introSeen: false, groupsReady: true, groupCount: 2 }),
     ).toBe('mark-existing');
     expect(decideFirstRun({ seen: false, introSeen: true, ...ready })).toBe('mark-existing');
+  });
+});
+
+describe('time-boxed first-run wait', () => {
+  it('keeps waiting when sync lands in time, then shows the new account flow', () => {
+    expect(firstRunDisplayDecision('wait', false)).toBe('wait');
+    expect(decideFirstRun({ seen: false, introSeen: false, ...ready })).toBe('show');
+  });
+  it('shows the app after timeout while allowing a later new-account result to route', () => {
+    expect(firstRunDisplayDecision('wait', true)).toBe('skip');
+    expect(shouldRouteToFirstRun('show', '/')).toBe(true);
+  });
+  it('never routes an existing account to start', () => {
+    const existing = decideFirstRun({
+      seen: false,
+      introSeen: false,
+      groupsReady: true,
+      groupCount: 1,
+    });
+    expect(existing).toBe('mark-existing');
+    expect(shouldRouteToFirstRun(existing, '/')).toBe(false);
   });
 });
 

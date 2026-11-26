@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   cushionMonths,
   dayPlan,
+  budgetDailyPace,
+  personalHomeSpent,
   leftThisWeek,
   leftToday,
   monthRecap,
@@ -50,6 +52,26 @@ const today = '2026-11-18';
 const base = { budgets: [] as PersonalBudget[], currency: 'INR' as const, today };
 
 describe('dayPlan', () => {
+  it('uses the same current-month spend selector for every Personal Home figure', () => {
+    const txns = [
+      txn({ id: 'expense', amount: 42_900n, date: '2026-11-03' }),
+      txn({ id: 'prior-month', amount: 25_000n, date: '2026-10-31' }),
+      txn({ id: 'income', kind: 'income', amount: 500_000n }),
+      { ...txn({ id: 'loan-payment', amount: 8_000n }), loanId: 'loan' },
+      { ...txn({ id: 'usd', amount: 99_000n }), currency: 'USD' as const },
+      { ...txn({ id: 'deleted', amount: 77_000n }), deletedAt: '2026-11-04' } as PersonalTxn,
+    ];
+    expect(personalHomeSpent(txns, '2026-11', 'INR')).toBe(42_900n);
+    expect(personalHomeSpent([], '2026-11', 'INR')).toBe(0n);
+  });
+
+  it('keeps the monthly budget chip daily amount tied to its remaining budget', () => {
+    expect(budgetDailyPace(10_000n, '2026-11-01')).toBe(10_000n / 30n);
+    expect(budgetDailyPace(10_000n, '2026-11-30')).toBe(10_000n);
+    expect(budgetDailyPace(-1n, '2026-11-18')).toBeNull();
+    expect(budgetDailyPace(null, '2026-11-18')).toBeNull();
+    expect(budgetDailyPace(0n, '2026-11-18')).toBe(0n);
+  });
   it('spreads income − bills − spent over the days left', () => {
     const txns = [
       txn({ kind: 'income', amount: 100_000_00n, date: '2026-11-01' }),

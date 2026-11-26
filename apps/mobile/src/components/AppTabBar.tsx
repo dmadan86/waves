@@ -71,7 +71,8 @@ import { usePendingCount } from '@/lib/companyPending';
 import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
 import { router, runBarMove, setBackOverride, switchTab } from '@/lib/navigation';
 import { installTabBack, type TabBackDeps } from '@/lib/tabBack';
-import { useFabOverride } from '@/lib/fabOverride';
+import { resolveFab, useFabOverride } from '@/lib/fabOverride';
+import { personalShowsAddFab } from '@/lib/personalLayoutRules';
 import { companyTabTarget, readLastSpace } from '@/lib/spaces';
 import { useFollowSpace } from '@/lib/useSpaces';
 import { pushToTalk } from '@/lib/pushToTalk';
@@ -192,7 +193,13 @@ export function AppTabBar() {
   // *into that group*, not the unassigned inbox. `useSegments` gives the route
   // shape (`group/[id]/…`); the id's value comes from the focused route's
   // params. Any non-group screen leaves this null and the mic opens plain.
-  const params = useGlobalSearchParams<{ id?: string; view?: string; tab?: string; hh?: string }>();
+  const params = useGlobalSearchParams<{
+    id?: string;
+    view?: string;
+    tab?: string;
+    hh?: string;
+    space?: string;
+  }>();
   const groupId = segments[0] === 'group' && typeof params.id === 'string' ? params.id : null;
 
   // No session means no bar anywhere — the privacy page opened from the login
@@ -200,7 +207,7 @@ export function AppTabBar() {
   const { hidden, activeKey: sharedKey } = resolveTabBar(segments, !session);
   // On the Personal tab and its screens the bar swaps to the private-money
   // destinations (same look, same mic); leaving them swaps it back. Route-derived.
-  const personal = isPersonalMode(segments);
+  const personal = isPersonalMode(segments, params.space);
   // Company mode: an owner or manager inside their own company gets the company bar
   // (Home · Team · Payments · Vendors · Clients · More) with a floating mic and add button.
   const companyIds = useViewerCompanyIds();
@@ -471,7 +478,8 @@ export function AppTabBar() {
         const how = personalBarAction(segments, route);
         if (how === 'replace') router.replace(route);
         else if (how === 'dismissTo') router.dismissTo(route);
-        else if (route === '/profile') router.navigate(route);
+        else if (route === '/profile')
+          router.navigate({ pathname: '/profile', params: { space: 'personal' } });
         else switchTab(route);
         return;
       }
@@ -679,14 +687,18 @@ export function AppTabBar() {
   );
 
   // Personal's floating button adds an expense; speaking one lives under Money tools > More.
-  const addPersonal = useMemo<PillTabAction>(
-    () => ({
-      accessibilityLabel: t.personal.addExpense,
-      onPress: () => router.push({ pathname: '/personal/entry', params: { kind: 'expense' } }),
+  // A Personal screen may claim it (Recurring: "Add recurring"), the same way company screens do.
+  const addPersonal = useMemo<PillTabAction>(() => {
+    const fab = resolveFab(fabOverride, {
+      label: t.personal.addExpense,
+      run: () => router.push({ pathname: '/personal/entry', params: { kind: 'expense' } }),
+    });
+    return {
+      accessibilityLabel: fab.label,
+      onPress: fab.run,
       icon: (color: string) => <Ionicons name="add" size={iconSize.xl} color={color} />,
-    }),
-    [t.personal.addExpense],
-  );
+    };
+  }, [t.personal.addExpense, fabOverride]);
 
   // Hidden, unless a hold is running — see `holding` above. A hold wins over a
   // screen's request too: the mic is the thing under the finger at that moment,
@@ -792,8 +804,12 @@ export function AppTabBar() {
                 <CenterButton action={add} />
               </View>
             )
+          ) : personal ? (
+            personalShowsAddFab(segments) ? (
+              <CenterButton action={addPersonal} />
+            ) : null
           ) : (
-            <CenterButton action={personal ? addPersonal : voice} />
+            <CenterButton action={voice} />
           )}
         </Animated.View>
       ) : null}

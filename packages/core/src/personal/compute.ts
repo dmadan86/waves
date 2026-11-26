@@ -560,13 +560,48 @@ export interface MonthlySummary {
   readonly net: bigint;
 }
 
+/** Entries counted by the monthly income figure and its drill-down list. */
+export function monthlyIncomeEntries(
+  txns: readonly PersonalTxn[],
+  month: string,
+  currency: CurrencyCode,
+): PersonalTxn[] {
+  return txns.filter(
+    (txn) =>
+      txn.kind === 'income' &&
+      txn.currency === currency &&
+      monthKey(txn.date) === month &&
+      !isInvestmentCategory(txn.category),
+  );
+}
+
+/** Entries counted by Personal Home's monthly Spent figure. */
+export function monthlySpendEntries(
+  txns: readonly PersonalTxn[],
+  month: string,
+  currency: CurrencyCode,
+): PersonalTxn[] {
+  return txns.filter(
+    (txn) =>
+      txn.kind === 'expense' &&
+      txn.currency === currency &&
+      monthKey(txn.date) === month &&
+      !isInvestmentCategory(txn.category) &&
+      txn.loanId === null &&
+      !(txn as PersonalTxn & { deletedAt?: string | null }).deletedAt,
+  );
+}
+
 /** Income, expense and net for one month and currency. */
 export function monthlySummary(
   txns: readonly PersonalTxn[],
   month: string,
   currency: CurrencyCode,
 ): MonthlySummary {
-  let income = 0n;
+  const income = monthlyIncomeEntries(txns, month, currency).reduce(
+    (sum, txn) => sum + txn.amount,
+    0n,
+  );
   let expense = 0n;
   let invested = 0n;
   for (const txn of txns) {
@@ -574,8 +609,7 @@ export function monthlySummary(
     if (monthKey(txn.date) !== month) continue;
     if (isInvestmentCategory(txn.category)) {
       invested += txn.kind === 'income' ? -txn.amount : txn.amount;
-    } else if (txn.kind === 'income') income += txn.amount;
-    else expense += txn.amount;
+    } else if (txn.kind !== 'income') expense += txn.amount;
   }
   return { income, expense: expense + invested, invested, net: income - expense - invested };
 }
@@ -720,6 +754,15 @@ export interface PersonalBudgetProgress {
   readonly ratio: number;
 }
 
+/** The single spend figure used throughout Personal Home and its monthly budget. */
+export function personalHomeSpent(
+  txns: readonly PersonalTxn[],
+  month: string,
+  currency: CurrencyCode,
+): bigint {
+  return monthlySpendEntries(txns, month, currency).reduce((sum, txn) => sum + txn.amount, 0n);
+}
+
 /**
  * Spend against one budget for a month: everyday expense txns in the budget's
  * currency, in that month, matching its category (or all categories for an
@@ -731,16 +774,20 @@ export function personalBudgetProgress(
   txns: readonly PersonalTxn[],
   month: string,
 ): PersonalBudgetProgress {
-  let spent = 0n;
-  for (const txn of txns) {
-    if (txn.kind !== 'expense') continue;
-    if (isInvestmentCategory(txn.category)) continue;
-    if (txn.loanId !== null) continue;
-    if (txn.currency !== budget.currency) continue;
-    if (monthKey(txn.date) !== month) continue;
-    if (budget.category !== null && txn.category !== budget.category) continue;
-    spent += txn.amount;
-  }
+  let spent = budget.category === null ? personalHomeSpent(txns, month, budget.currency) : 0n;
+  if (budget.category !== null)
+    for (const txn of txns) {
+      if (
+        txn.kind === 'expense' &&
+        !isInvestmentCategory(txn.category) &&
+        txn.loanId === null &&
+        txn.currency === budget.currency &&
+        monthKey(txn.date) === month &&
+        txn.category === budget.category
+      ) {
+        spent += txn.amount;
+      }
+    }
   const remaining = budget.limit - spent;
   const ratio = budget.limit > 0n ? Number(spent) / Number(budget.limit) : 0;
   return { spent, limit: budget.limit, remaining, ratio };

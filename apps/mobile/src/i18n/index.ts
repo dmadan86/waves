@@ -5294,6 +5294,7 @@ export interface UiStrings {
     keptForGroup: string;
     /** Under Save when the private ledger is the destination: no split, no
      *  payer, nobody owes anybody. */
+    onlyYouPersonal: string;
     justMeHint: string;
     /** The button beside Save: keeps the amount against the chosen group
      *  without becoming an expense. Always offered, and the only thing offered
@@ -8847,6 +8848,7 @@ export interface UiStrings {
     deleteSharedBody: string;
     deleteSharedKept: string;
     closeLoan: string;
+    markLoanClosed: string;
     reopenLoan: string;
     paidOff: string;
     closed: string;
@@ -13871,13 +13873,14 @@ const en: UiStrings = {
     advanced: 'Advanced',
     advancedLong: 'Advanced — open the full form with what you have entered',
     save: 'Save',
-    splitEqually: 'Split equally between {count} · you paid',
+    splitEqually: 'Split equally between {count} · You paid',
     justMe: 'Just me',
     noPlacesYet: 'Pick where this belongs',
     atGroupRate: "Counted at {group}'s own rate for {currency}.",
     keptInCurrency: 'Saved in {currency}. Add a rate to count it towards {group}.',
     keptForGroup: 'Kept for {group} — open it to say who paid and how it splits.',
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
+    onlyYouPersonal: 'Only you · Personal',
     saveDraft: 'Draft',
     saveDraftLong: 'Keep as a draft',
     stepUp: 'Add {amount}',
@@ -17103,6 +17106,7 @@ const en: UiStrings = {
     deleteSharedKept:
       'Part of this is already repaid, so the debt stays in your balance with {name}.',
     closeLoan: 'Close',
+    markLoanClosed: 'Mark as closed',
     reopenLoan: 'Reopen',
     paidOff: 'Paid off',
     closed: 'Closed',
@@ -17126,7 +17130,7 @@ const en: UiStrings = {
     seePayments: 'See payments',
     payments: 'Payments',
     deleteInvestment: 'Delete this investment and its entries?',
-    deleteRental: 'Delete this rental and its tenant and rent records?',
+    deleteRental: 'Delete this rental and its tenant, rent rules, and entries?',
     loanPayments: 'Loan payments',
     lowerLimit: 'Lower by {amount}',
     raiseLimit: 'Raise by {amount}',
@@ -22113,13 +22117,14 @@ const ta: UiStrings = {
     advanced: 'Advanced',
     advancedLong: 'Advanced — open the full form with what you have entered',
     save: 'Save',
-    splitEqually: 'Split equally between {count} · you paid',
+    splitEqually: 'Split equally between {count} · You paid',
     justMe: 'Just me',
     noPlacesYet: 'Pick where this belongs',
     atGroupRate: "Counted at {group}'s own rate for {currency}.",
     keptInCurrency: 'Saved in {currency}. Add a rate to count it towards {group}.',
     keptForGroup: 'Kept for {group} — open it to say who paid and how it splits.',
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
+    onlyYouPersonal: 'Only you · Personal',
     saveDraft: 'Draft',
     saveDraftLong: 'Keep as a draft',
     stepUp: 'Add {amount}',
@@ -25411,6 +25416,7 @@ const ta: UiStrings = {
     deleteSharedKept:
       'இதில் ஒரு பகுதி ஏற்கெனவே செலுத்தப்பட்டதால், கடன் {name} உடனான உங்கள் இருப்பில் இருக்கும்.',
     closeLoan: 'மூடு',
+    markLoanClosed: 'மூடப்பட்டதாகக் குறி',
     reopenLoan: 'மீண்டும் திற',
     paidOff: 'அடைக்கப்பட்டது',
     closed: 'மூடப்பட்டது',
@@ -30355,13 +30361,14 @@ const hi: UiStrings = {
     advanced: 'Advanced',
     advancedLong: 'Advanced — open the full form with what you have entered',
     save: 'Save',
-    splitEqually: 'Split equally between {count} · you paid',
+    splitEqually: 'Split equally between {count} · You paid',
     justMe: 'Just me',
     noPlacesYet: 'Pick where this belongs',
     atGroupRate: "Counted at {group}'s own rate for {currency}.",
     keptInCurrency: 'Saved in {currency}. Add a rate to count it towards {group}.',
     keptForGroup: 'Kept for {group} — open it to say who paid and how it splits.',
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
+    onlyYouPersonal: 'Only you · Personal',
     saveDraft: 'Draft',
     saveDraftLong: 'Keep as a draft',
     stepUp: 'Add {amount}',
@@ -33540,6 +33547,7 @@ const hi: UiStrings = {
     deleteSharedBody: 'इससे उनकी ओर से भी यह कर्ज़ हट जाएगा।',
     deleteSharedKept: 'इसका कुछ हिस्सा चुकाया जा चुका है, इसलिए कर्ज़ {name} के साथ आपके हिसाब में बना रहेगा।',
     closeLoan: 'बंद करें',
+    markLoanClosed: 'बंद के रूप में चिह्नित करें',
     reopenLoan: 'फिर खोलें',
     paidOff: 'चुका दिया',
     closed: 'बंद',
@@ -38798,13 +38806,14 @@ const ar: UiStrings = {
     advanced: 'Advanced',
     advancedLong: 'Advanced — open the full form with what you have entered',
     save: 'Save',
-    splitEqually: 'Split equally between {count} · you paid',
+    splitEqually: 'Split equally between {count} · You paid',
     justMe: 'Just me',
     noPlacesYet: 'Pick where this belongs',
     atGroupRate: "Counted at {group}'s own rate for {currency}.",
     keptInCurrency: 'Saved in {currency}. Add a rate to count it towards {group}.',
     keptForGroup: 'Kept for {group} — open it to say who paid and how it splits.',
     justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
+    onlyYouPersonal: 'Only you · Personal',
     saveDraft: 'Draft',
     saveDraftLong: 'Keep as a draft',
     stepUp: 'Add {amount}',
@@ -42603,6 +42612,7 @@ const ar: UiStrings = {
     deleteSharedBody: 'سيُزال الدين أيضًا من جهته.',
     deleteSharedKept: 'تم سداد جزء منه، لذا يبقى الدين في رصيدك مع {name}.',
     closeLoan: 'إغلاق',
+    markLoanClosed: 'وضع علامة كمغلق',
     reopenLoan: 'إعادة فتح',
     paidOff: 'مسدَّد',
     closed: 'مغلق',

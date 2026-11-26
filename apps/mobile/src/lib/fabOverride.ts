@@ -27,3 +27,11 @@ export function useClaimFab(active: boolean, label: string, run: () => void) {
     };
   }, [active, label, run]);
 }
+
+/** What the round add button does: the claiming screen's action, else the bar's own. */
+export function resolveFab(
+  override: Override,
+  fallback: { label: string; run: () => void },
+): { label: string; run: () => void } {
+  return override ?? fallback;
+}

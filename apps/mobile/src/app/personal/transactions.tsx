@@ -24,11 +24,18 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { BackHandler, Pressable, TextInput, View } from 'react-native';
 
-import { format, money, resolveCategory, type PersonalTxn } from '@waves/core';
+import {
+  format,
+  isInvestmentCategory,
+  money,
+  monthlyIncomeEntries,
+  resolveCategory,
+  type PersonalTxn,
+} from '@waves/core';
 import {
   Button,
   directionalIcon,
@@ -42,9 +49,11 @@ import {
 } from '@waves/ui';
 
 import { EmptyStateCta } from '@/components/EmptyStateCta';
+import { personalTxnCategoryLabel } from '@/lib/personalTxnCategoryLabel';
 import { filterTxns, groupByDay, type TxnTab } from '@/lib/txnLedger';
 import { CategoryBadge, CategoryPicker } from '@/components/Category';
 import { usePersonalLedger } from '@/data/personal';
+import { monthlySpendEntries } from '@/lib/monthlySpend';
 import { deviceCountry, plural, useStrings } from '@/i18n';
 import { paymentMethodLabel } from '@/lib/paymentMethodLabel';
 import { PersonalGuard } from '@/components/PersonalGuard';
@@ -53,6 +62,7 @@ import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { loanScope } from '@/lib/personalLoanScope';
 import { router } from '@/lib/navigation';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
+import { monthLabel, shiftMonth } from '@/lib/monthNav';
 
 type Tab = TxnTab;
 
@@ -88,7 +98,20 @@ function PersonalTransactionsScreenBody() {
     loans?: string;
     from?: string;
     to?: string;
+    returnTo?: string;
   }>();
+  // The phone's Back does what the on-screen back does: return to where the drill-down began.
+  const returnTo = params.returnTo;
+  useFocusEffect(
+    useCallback(() => {
+      if (!returnTo) return undefined;
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        router.replace(returnTo as never);
+        return true;
+      });
+      return () => sub.remove();
+    }, [returnTo]),
+  );
   const paramCategory = typeof params.category === 'string' ? params.category : null;
   // The dashboard's columns are buckets: a custom or unknown category is counted
   // under Other there, so it has to be listed under Other here too. Budgets pass
@@ -117,6 +140,8 @@ function PersonalTransactionsScreenBody() {
   const uncategorizedOnly = params.uncategorized === '1' && !dropUncategorized;
 
   const [tab, setTab] = useState<Tab>(kindParam ?? 'all');
+  const [browseMonth, setBrowseMonth] = useState(month ?? new Date().toISOString().slice(0, 7));
+  const [monthEnabled, setMonthEnabled] = useState(true);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(() => new Set());
@@ -136,13 +161,21 @@ function PersonalTransactionsScreenBody() {
   ].some((value) => value !== undefined);
   const addExpense = () =>
     router.push({ pathname: '/personal/entry', params: { kind: 'expense' } });
+  const clearFilters = (): void => {
+    setPicked(null);
+    setQuery('');
+    setTab('all');
+    setBrowseMonth(new Date().toISOString().slice(0, 7));
+    setMonthEnabled(false);
+    if (drillIn) router.replace('/personal/transactions');
+  };
   // The filter sheet's pick replaces the one the screen was opened with.
   const [picked, setPicked] = useState<string | null | undefined>(undefined);
   const [filterOpen, setFilterOpen] = useState(false);
   const filter = picked === undefined ? paramCategory : picked;
 
   const labelFor = (id: string | null): string | null =>
-    id ? (t.categories[id as keyof typeof t.categories] ?? null) : null;
+    personalTxnCategoryLabel(id, (key) => t.categories[key as keyof typeof t.categories] ?? null);
 
   /**
    * Grouped by day, flattened into one recyclable list — a heading item where
@@ -151,6 +184,15 @@ function PersonalTransactionsScreenBody() {
    * the group month screen does.
    */
   const items: LedgerItem[] = useMemo(() => {
+    // The same entries the dashboard's income total counts (one shared selector).
+    const incomeIds =
+      kindParam === 'income' && month && currencyParam
+        ? new Set(monthlyIncomeEntries(txns, month, currencyParam).map((entry) => entry.id))
+        : null;
+    const spendIds =
+      kindParam === 'expense' && month && currencyParam
+        ? new Set(monthlySpendEntries(txns, month, currencyParam).map((entry) => entry.id))
+        : null;
     const matchesCategory = (category: string | null | undefined): boolean =>
       (!uncategorizedOnly || !category) &&
       (!filter ||
@@ -165,10 +207,16 @@ function PersonalTransactionsScreenBody() {
       creditOnly,
       currency: currencyParam,
       categoryLabel: (id) => t.categories[id as keyof typeof t.categories] ?? id,
-      month,
+      month: monthEnabled ? browseMonth : null,
       from: fromDate,
       to: toDate,
-    });
+    }).filter((txn) =>
+      incomeIds
+        ? incomeIds.has(txn.id)
+        : spendIds
+          ? spendIds.has(txn.id)
+          : !(kindParam === 'income' && isInvestmentCategory(txn.category)),
+    );
     const list: LedgerItem[] = [];
     for (const { rows, ...day } of groupByDay(shown)) {
       list.push({ kind: 'day', key: `day-${day.day}`, ...day });
@@ -186,16 +234,19 @@ function PersonalTransactionsScreenBody() {
     }
     return list;
   }, [
+    month,
+    currencyParam,
+    kindParam,
     txns,
     filter,
     picked,
     bucketed,
     creditOnly,
-    currencyParam,
     uncategorizedOnly,
     loanId,
     params.loans,
-    month,
+    browseMonth,
+    monthEnabled,
     fromDate,
     toDate,
     tab,
@@ -243,7 +294,12 @@ function PersonalTransactionsScreenBody() {
         }}
       >
         {drillIn ? (
-          <IconButton label={t.common.back} onPress={() => router.back()}>
+          <IconButton
+            label={t.common.back}
+            onPress={() =>
+              params.returnTo ? router.replace(params.returnTo as never) : router.back()
+            }
+          >
             <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
           </IconButton>
         ) : null}
@@ -260,11 +316,29 @@ function PersonalTransactionsScreenBody() {
               {fromDate === toDate ? fromDate : `${fromDate} – ${toDate}`}
             </Text>
           ) : null}
-          {month ? (
-            <Text style={{ fontSize: 12, color: muted }} numberOfLines={1}>
-              {monthName(month, locale)}
+          <Row style={{ alignItems: 'center', gap: 8 }}>
+            <IconButton
+              label={t.personal.prevMonth}
+              onPress={() => {
+                setMonthEnabled(true);
+                setBrowseMonth(shiftMonth(browseMonth, -1));
+              }}
+            >
+              <Ionicons name="chevron-back" size={18} color={muted} />
+            </IconButton>
+            <Text style={{ fontSize: 12, color: muted }}>
+              {monthEnabled ? monthLabel(browseMonth, locale) : 'All months'}
             </Text>
-          ) : null}
+            <IconButton
+              label={t.personal.nextMonth}
+              onPress={() => {
+                setMonthEnabled(true);
+                setBrowseMonth(shiftMonth(browseMonth, 1));
+              }}
+            >
+              <Ionicons name="chevron-forward" size={18} color={muted} />
+            </IconButton>
+          </Row>
         </View>
         {/* The assistant, already pointed at the private ledger: what is said or
             typed there stays personal. */}
@@ -276,23 +350,6 @@ function PersonalTransactionsScreenBody() {
         >
           <Ionicons name="sparkles-outline" size={iconSize.xl} color={accent} />
         </IconButton>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.personal.add}
-          onPress={addExpense}
-          hitSlop={4}
-          style={({ pressed }) => ({
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            backgroundColor: accent,
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: pressed ? 0.8 : 1,
-          })}
-        >
-          <Ionicons name="add" size={26} color="#FFFFFF" />
-        </Pressable>
       </Row>
 
       <View style={{ paddingHorizontal: theme.spacing.lg, gap: 10, paddingTop: 6 }}>
@@ -452,10 +509,16 @@ function PersonalTransactionsScreenBody() {
         ListEmptyComponent={
           <View style={{ paddingTop: theme.spacing.xxxl }}>
             <EmptyStateCta
-              title={t.personal.empty}
+              title={
+                filter || query || tab !== 'all' || drillIn
+                  ? 'No entries match these filters'
+                  : `No entries in ${monthLabel(browseMonth, locale)}`
+              }
               body={t.personal.transactionsSubtitle}
-              action={t.personal.add}
-              onAdd={addExpense}
+              action={
+                filter || query || tab !== 'all' || drillIn ? 'Clear filters' : t.personal.add
+              }
+              onAdd={filter || query || tab !== 'all' || drillIn ? clearFilters : addExpense}
             />
           </View>
         }
@@ -615,6 +678,7 @@ function PersonalTransactionsScreenBody() {
           {t.personal.filterCategory}
         </Text>
         <CategoryPicker
+          wrap
           value={filter}
           onChange={(key) => {
             setPicked(key);
@@ -664,17 +728,6 @@ export default function PersonalTransactionsScreen() {
       <PersonalTransactionsScreenBody />
     </PersonalGuard>
   );
-}
-
-/** A month as "September 2026" for the line under the title, timezone-safe. */
-function monthName(month: string, locale: string): string {
-  try {
-    return dateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
-      new Date(`${month}-01T00:00:00Z`),
-    );
-  } catch {
-    return month;
-  }
 }
 
 /** A removable pill naming a narrowing the screen was opened with. */

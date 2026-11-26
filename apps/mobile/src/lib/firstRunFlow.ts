@@ -21,6 +21,21 @@ export const isIntent = (value: unknown): value is Intent =>
 
 export type FirstRunDecision = 'wait' | 'show' | 'skip' | 'mark-existing';
 
+/** After this long, let the app render while the first sync continues. */
+export const FIRST_RUN_WAIT_TIMEOUT_MS = 3_000;
+
+/** A timed-out wait affects presentation only; the underlying decision can still become `show`. */
+export function firstRunDisplayDecision(
+  decision: FirstRunDecision,
+  timedOut: boolean,
+): FirstRunDecision {
+  return decision === 'wait' && timedOut ? 'skip' : decision;
+}
+
+export function shouldRouteToFirstRun(decision: FirstRunDecision, path: string): boolean {
+  return decision === 'show' && !isInviteRoute(path);
+}
+
 export function decideFirstRun(input: {
   /** This flow's own flag; null until storage has answered. */
   seen: boolean | null;

@@ -112,8 +112,10 @@ export function resolveTabBar(segments: readonly string[], signedOut = false): T
  * Personal mode: the bar swaps to the private-money destinations while you are
  * on the Personal tab, `personal/*`, or its linked ledger features. Derived from the route alone, so there is no state to forget to reset.
  */
-export function isPersonalMode(segments: readonly string[]): boolean {
+export function isPersonalMode(segments: readonly string[], space?: string): boolean {
   const [root, screen] = segments;
+  // Shared settings pages stay in Personal only when opened from Me (`?space=personal`).
+  if ((root === 'settings' || root === 'profile') && space === 'personal') return true;
   // Statement import is a personal-ledger feature opened from Overview.
   if (root === 'captures' && screen === 'statement') return true;
   // Categories is a personal-ledger feature opened from Overview.
@@ -128,6 +130,8 @@ export function isPersonalMode(segments: readonly string[]): boolean {
 
 /** Highlight the owning Personal destination, leaving standalone features unselected. */
 export function personalActiveKey(segments: readonly string[]): string {
+  // Settings opened from the Personal bar's Me tab.
+  if (segments[0] === 'profile') return 'me';
   if (segments[0] === '(tabs)') return segments[1] === 'me' ? 'home' : '';
   if (segments[0] !== 'personal') return '';
   const leaf = segments[1] ?? '';

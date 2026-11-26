@@ -30,9 +30,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   cashflowTrend,
-  dayPlan,
+  budgetDailyPace,
+  personalHomeSpent,
   format,
   formatParts,
+  incomeSource,
   money,
   monthOutlook,
   personalBudgetProgress,
@@ -66,6 +68,7 @@ import {
   SpendHistoryChart,
 } from '@/components/home/MonthParts';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { measureAnchor } from '@/lib/measureAnchor';
 import { TabHeader, TabIconButton } from '@/components/home/TabHeader';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { PersonalIntro } from '@/components/PersonalIntro';
@@ -96,6 +99,8 @@ import {
   usePersonalLedger,
   useUpsertPersonalRecord,
 } from '@/data/personal';
+import { personalHomeIdentity } from '@/data/personalHomeIdentity';
+import { useProfileForDisplay } from '@/lib/profileCache';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
@@ -129,12 +134,22 @@ function MeLedger() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
-  const dc = useDefaultCurrency();
+  const deviceCurrency = useDefaultCurrency();
   const { hydrated } = useSync();
   const { profile } = useAuth();
+  // Name and currency survive an offline cold start (display only).
+  const displayProfile = useProfileForDisplay();
   const viewerFace = useViewerIdentity();
   const avatarUrl = useAvatarUrl(viewerFace.avatarUrl);
   const ledger = usePersonalLedger();
+  const identity = personalHomeIdentity(
+    displayProfile,
+    ledger.txns,
+    ledger.budgets,
+    deviceCurrency,
+    t.account.you,
+  );
+  const dc = identity.currency;
   const upsert = useUpsertPersonalRecord();
   // The eye on the summary card: masks every figure on it (and the three
   // tiles beneath it), the same privacy the dashboard's own eye gives Home.
@@ -246,7 +261,9 @@ function MeLedger() {
     currency: dc,
     today,
   };
-  const perDay = monthsBack === 0 ? (dayPlan(plan)?.perDay ?? 0n) : 0n;
+  const perDay =
+    monthsBack === 0 ? (budgetDailyPace(budgetProgress?.remaining ?? null, today) ?? 0n) : 0n;
+  const homeSpent = personalHomeSpent(ledger.txns, month, dc);
   const upcomingRows = usePersonalUpcoming(
     { txns: ledger.txns, recurrings: ledger.recurrings, currency: dc, today },
     3,
@@ -261,29 +278,37 @@ function MeLedger() {
     family: h.groupFamily,
   });
   const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<View>(null);
+  const [moreAnchor, setMoreAnchor] = useState<MenuAnchorBox | null>(null);
   useWealthReminders();
-  const firstName = (profile?.display_name ?? t.account.you).trim().split(/\s+/)[0];
+  const firstName = identity.name.trim().split(/\s+/)[0];
 
   // One set of quick actions on this screen; the less-used ones live here.
   const moreItems: OverflowMenuItem[] = [
-    { icon: 'notifications-outline', label: h.reminder, route: '/dates/edit' },
-    { icon: 'pie-chart-outline', label: t.personal.nav.spending, route: '/personal/spending' },
-    { icon: 'sparkles-outline', label: t.spendingAsk.title, route: '/personal/ask' },
-    { icon: 'checkbox-outline', label: h.toolTodo, route: '/personal/setup' },
     {
-      icon: 'document-text-outline',
-      label: t.statementImport.title,
-      route: '/captures/statement',
+      icon: 'pie-chart-outline',
+      label: t.personal.nav.spending,
+      route: '/personal/spending',
+      section: 'views',
     },
     {
-      icon: 'pricetags-outline',
-      label: t.personal.dash.toolCategories,
-      route: '/settings/categories',
+      icon: 'sparkles-outline',
+      label: t.spendingAsk.title,
+      route: '/personal/ask',
+      section: 'views',
     },
+    { icon: 'notifications-outline', label: h.reminder, route: '/dates/edit', section: 'add' },
     {
       icon: 'mic-outline',
       label: h.moreVoice,
       route: { pathname: '/voice', params: { scope: 'personal' } },
+      section: 'add',
+    },
+    {
+      icon: 'document-text-outline',
+      label: t.statementImport.title,
+      route: '/captures/statement',
+      section: 'data',
     },
   ];
 
@@ -427,7 +452,7 @@ function MeLedger() {
                 <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
                   <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
                     {monthsBack === 0
-                      ? t.personal.dash.totalSpent
+                      ? t.personal.dash.totalSpentThisMonth
                       : fill(t.personal.dash.totalSpentIn, { month: monthLabel(month, locale) })}
                   </Text>
                   <Pressable
@@ -452,7 +477,7 @@ function MeLedger() {
                   minimumFontScale={0.6}
                   style={HEADLINE_STYLE}
                 >
-                  {amountsHidden ? BALANCE_MASK : fmt(summary.expense - summary.invested)}
+                  {amountsHidden ? BALANCE_MASK : fmt(homeSpent)}
                 </Text>
                 {change !== null && !amountsHidden ? (
                   <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
@@ -481,7 +506,7 @@ function MeLedger() {
                 onPress={() =>
                   router.push({
                     pathname: '/personal/transactions',
-                    params: { kind: 'income', month },
+                    params: { kind: 'income', month, currency: dc, returnTo: '/(tabs)/me' },
                   })
                 }
               />
@@ -489,13 +514,13 @@ function MeLedger() {
                 icon="arrow-up"
                 tone="negative"
                 label={t.personal.spent}
-                value={fmt(summary.expense - summary.invested)}
+                value={fmt(homeSpent)}
                 hidden={amountsHidden}
                 // The month's spends, entry by entry.
                 onPress={() =>
                   router.push({
                     pathname: '/personal/transactions',
-                    params: { kind: 'expense', month },
+                    params: { kind: 'expense', month, returnTo: '/(tabs)/me' },
                   })
                 }
               />
@@ -604,7 +629,11 @@ function MeLedger() {
                 tone: 'brand',
                 icon: 'ellipsis-horizontal',
                 label: h.toolMore,
-                onPress: () => setMoreOpen(true),
+                onPress: () => {
+                  measureAnchor(moreRef, setMoreAnchor);
+                  setMoreOpen(true);
+                },
+                ref: moreRef,
               },
             ]}
           />
@@ -697,7 +726,12 @@ function MeLedger() {
         </View>
       </ScrollView>
       <OverflowMenu visible={switchOpen} onClose={() => setSwitchOpen(false)} items={switchItems} />
-      <OverflowMenu visible={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} />
+      <OverflowMenu
+        visible={moreOpen}
+        onClose={() => setMoreOpen(false)}
+        items={moreItems}
+        anchor={moreAnchor}
+      />
       <OverflowMenu
         visible={monthMenuOpen}
         onClose={() => setMonthMenuOpen(false)}
@@ -709,8 +743,21 @@ function MeLedger() {
         onClose={() => setGearOpen(false)}
         items={[
           { icon: 'sparkles-outline', label: t.personalSetup.title, route: '/personal/setup' },
-          { icon: 'image-outline', label: t.heroScene.title, route: '/settings/scene' },
-          { icon: 'lock-closed-outline', label: t.personal.dash.settings, route: '/settings/lock' },
+          {
+            icon: 'image-outline',
+            label: t.heroScene.title,
+            route: '/settings/scene?space=personal',
+          },
+          {
+            icon: 'pricetags-outline',
+            label: t.personal.dash.toolCategories,
+            route: '/settings/categories',
+          },
+          {
+            icon: 'lock-closed-outline',
+            label: t.personal.dash.settings,
+            route: '/settings/lock?space=personal',
+          },
         ]}
       />
       <PersonalIntro visible={introOpen} onDone={closeIntro} />
@@ -1002,7 +1049,10 @@ function PrivateNote() {
 function PrivacyFooterPill() {
   const { t } = useStrings();
   return (
-    <PrivacyPill label={t.personal.privateNote} onPress={() => router.push('/settings/backup')} />
+    <PrivacyPill
+      label={t.personal.privateNote}
+      onPress={() => router.push('/settings/backup?space=personal')}
+    />
   );
 }
 
@@ -1010,8 +1060,14 @@ function PrivacyFooterPill() {
 // tags fall back to their own stored label via the badge; here we only need the
 // built-in names, so an unknown id returns null and the row shows its note.
 function labelForCategory(t: ReturnType<typeof useStrings>['t']) {
-  return (id: string | null): string | null =>
-    id ? (t.categories[id as keyof typeof t.categories] ?? null) : null;
+  return (id: string | null): string | null => {
+    if (!id) return null;
+    const translated = t.categories[id as keyof typeof t.categories];
+    if (translated) return translated;
+    if (id.startsWith('inc.')) return incomeSource(id)?.label ?? null;
+    if (id.startsWith('inv.')) return id === 'inv.deposit' ? 'Investment deposit' : 'Investment';
+    return null;
+  };
 }
 
 type Strings = ReturnType<typeof useStrings>['t'];
@@ -1148,7 +1204,13 @@ function MonthMoneyCard({
           onPress={() =>
             router.push({
               pathname: '/personal/transactions',
-              params: { kind: 'expense', month, method: 'credit', currency },
+              params: {
+                kind: 'expense',
+                month,
+                method: 'credit',
+                currency,
+                returnTo: '/(tabs)/me',
+              },
             })
           }
         />
@@ -1215,7 +1277,13 @@ function ByCategoryCard({
             onPress={() =>
               router.push({
                 pathname: '/personal/transactions',
-                params: { kind: 'expense', month, category: row.category!, currency },
+                params: {
+                  kind: 'expense',
+                  month,
+                  category: row.category!,
+                  currency,
+                  returnTo: '/(tabs)/me',
+                },
               })
             }
             style={({ pressed }) => ({ gap: 4, minHeight: 40, opacity: pressed ? 0.6 : 1 })}
@@ -1254,7 +1322,13 @@ function ByCategoryCard({
           onPress={() =>
             router.push({
               pathname: '/personal/transactions',
-              params: { kind: 'expense', month, uncategorized: '1', currency },
+              params: {
+                kind: 'expense',
+                month,
+                uncategorized: '1',
+                currency,
+                returnTo: '/(tabs)/me',
+              },
             })
           }
           style={({ pressed }) => ({

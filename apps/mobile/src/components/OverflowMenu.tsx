@@ -51,6 +51,7 @@ import { type MenuAnchor } from '@/components/SortMenu';
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
+import { overflowMenuHeight } from '@/lib/personalLayoutRules';
 
 /** The corner-grow timings: a touch longer to open than to close, the usual
     asymmetry that makes an entrance feel arriving and a dismiss feel prompt. */
@@ -120,6 +121,7 @@ export function OverflowMenu({
   // away. `progress` drives both the scrim's opacity and the card's scale+fade;
   // 1 is fully open, 0 fully closed.
   const [mounted, setMounted] = useState(visible);
+  const [contentHeight, setContentHeight] = useState(0);
   const progress = useSharedValue(visible ? 1 : 0);
 
   // Mount the moment we open — a state adjustment on a prop change, done in
@@ -163,7 +165,11 @@ export function OverflowMenu({
   const gap = theme.spacing.xs;
   const rtl = I18nManager.isRTL;
   const below = anchor ? anchor.y + anchor.height + gap : insets.top + 56;
-  const estimate = items.length * 44 + 2 * theme.spacing.xs;
+  // Text wraps on narrow Android screens; a one-line-per-row estimate leaves
+  // the last item clipped when a menu contains several long labels.
+  const estimate =
+    contentHeight ||
+    items.reduce((height, item) => height + (item.subtitle ? 64 : 52), 2 * theme.spacing.xs);
   // Flip above only when it will not fit below and there is more room above.
   const above =
     anchor !== null &&
@@ -248,7 +254,7 @@ export function OverflowMenu({
             {
               position: 'absolute',
               ...place,
-              minWidth: 220,
+              minWidth: 248,
               maxWidth: windowWidth - 2 * theme.spacing.md,
               borderRadius: theme.radius.lg,
               transformOrigin: `${above ? 'bottom' : 'top'} ${rtl ? 'left' : 'right'}`,
@@ -270,9 +276,14 @@ export function OverflowMenu({
             {/* A long menu (every month of a ledger) scrolls inside the card,
                 capped to the room below it; a short one never scrolls. */}
             <ScrollView
-              style={{ maxHeight: room }}
+              nestedScrollEnabled
+              style={{
+                height: overflowMenuHeight(contentHeight, room, estimate),
+                flexShrink: 1,
+              }}
               bounces={false}
-              showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator={contentHeight > room}
+              onContentSizeChange={(_width, height) => setContentHeight(height)}
             >
               {header && (
                 <Pressable
@@ -356,7 +367,11 @@ export function OverflowMenu({
                         }
                       />
                       <View style={{ flex: 1 }}>
-                        <Text variant="body" tone={item.tone === 'danger' ? 'negative' : undefined}>
+                        <Text
+                          variant="body"
+                          numberOfLines={1}
+                          tone={item.tone === 'danger' ? 'negative' : undefined}
+                        >
                           {item.label}
                         </Text>
                         {item.subtitle ? (

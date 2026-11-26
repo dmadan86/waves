@@ -212,10 +212,15 @@ describe('personal mode: linked features', () => {
     expect(isPersonalMode([])).toBe(false);
   });
 
-  it('statement import and categories are personal-ledger features', () => {
+  it('Me settings keep the Personal tab bar', () => {
     expect(isPersonalMode(['captures', 'statement'])).toBe(true);
     expect(isPersonalMode(['captures', 'paste'])).toBe(false);
     expect(isPersonalMode(['settings', 'categories'])).toBe(true);
+    // Opened from Me: stays in Personal. Opened from Groups: stays in Groups.
+    for (const page of ['backup', 'scene', 'lock']) {
+      expect(isPersonalMode(['settings', page], 'personal')).toBe(true);
+      expect(isPersonalMode(['settings', page])).toBe(false);
+    }
     expect(isPersonalMode(['settings', 'account'])).toBe(false);
   });
 });
