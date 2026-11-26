@@ -30,7 +30,9 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { useLocalSearchParams } from 'expo-router';
 import { router } from '@/lib/navigation';
+import { settingsRoute } from '@/lib/settingsRoute';
 
 export interface SettingsRow {
   icon: keyof typeof Ionicons.glyphMap;
@@ -55,6 +57,8 @@ export interface SettingsRow {
 
 export function SettingsSection({ title, rows }: { title?: string; rows: SettingsRow[] }) {
   const theme = useTheme();
+  // Opened from Personal's Me tab: every page this list opens stays in Personal.
+  const { space } = useLocalSearchParams<{ space?: string }>();
   return (
     <View>
       {title ? <SectionHeader title={title} /> : null}
@@ -68,7 +72,10 @@ export function SettingsSection({ title, rows }: { title?: string; rows: Setting
                 subtitle={item.hint}
                 destructive={item.destructive}
                 onPress={
-                  item.onPress ?? (item.route ? () => router.push(item.route as never) : undefined)
+                  item.onPress ??
+                  (item.route
+                    ? () => router.push(settingsRoute(item.route!, space) as never)
+                    : undefined)
                 }
                 leading={
                   <View

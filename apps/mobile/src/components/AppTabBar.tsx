@@ -71,7 +71,7 @@ import { usePendingCount } from '@/lib/companyPending';
 import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
 import { router, runBarMove, setBackOverride, switchTab } from '@/lib/navigation';
 import { installTabBack, type TabBackDeps } from '@/lib/tabBack';
-import { useFabOverride } from '@/lib/fabOverride';
+import { resolveFab, useFabOverride } from '@/lib/fabOverride';
 import { companyTabTarget, readLastSpace } from '@/lib/spaces';
 import { useFollowSpace } from '@/lib/useSpaces';
 import { pushToTalk } from '@/lib/pushToTalk';
@@ -477,7 +477,8 @@ export function AppTabBar() {
         const how = personalBarAction(segments, route);
         if (how === 'replace') router.replace(route);
         else if (how === 'dismissTo') router.dismissTo(route);
-        else if (route === '/profile') router.navigate(route);
+        else if (route === '/profile')
+          router.navigate({ pathname: '/profile', params: { space: 'personal' } });
         else switchTab(route);
         return;
       }
@@ -685,14 +686,18 @@ export function AppTabBar() {
   );
 
   // Personal's floating button adds an expense; speaking one lives under Money tools > More.
-  const addPersonal = useMemo<PillTabAction>(
-    () => ({
-      accessibilityLabel: t.personal.addExpense,
-      onPress: () => router.push({ pathname: '/personal/entry', params: { kind: 'expense' } }),
+  // A Personal screen may claim it (Recurring: "Add recurring"), the same way company screens do.
+  const addPersonal = useMemo<PillTabAction>(() => {
+    const fab = resolveFab(fabOverride, {
+      label: t.personal.addExpense,
+      run: () => router.push({ pathname: '/personal/entry', params: { kind: 'expense' } }),
+    });
+    return {
+      accessibilityLabel: fab.label,
+      onPress: fab.run,
       icon: (color: string) => <Ionicons name="add" size={iconSize.xl} color={color} />,
-    }),
-    [t.personal.addExpense],
-  );
+    };
+  }, [t.personal.addExpense, fabOverride]);
 
   // Hidden, unless a hold is running — see `holding` above. A hold wins over a
   // screen's request too: the mic is the thing under the finger at that moment,

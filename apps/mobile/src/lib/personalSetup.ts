@@ -186,6 +186,57 @@ export function setupSlotId(ownerId: string, key: string): string {
   return deterministicId(`psetup:${ownerId}:${stableKey}`);
 }
 
+const INCOME_KIND_BY_CATEGORY: Record<string, IncomeKind> = {
+  [IncomeSourceId.Salary]: 'salary',
+  [IncomeSourceId.Business]: 'business',
+  [IncomeSourceId.Freelance]: 'freelance',
+  [IncomeSourceId.Pension]: 'pension',
+};
+
+/**
+ * What a rerun of setup starts from: the active records setup itself wrote, found under the SAME
+ * slot keys `answersToRecords` saves with (`income`, `home`, `bill:<id>`).
+ */
+export function setupPrefill(
+  recurrings: readonly PersonalRecurring[],
+  ctx: Pick<SetupContext, 'ownerId' | 'label'>,
+): {
+  income: { kind: IncomeKind; amount: bigint; day: number } | null;
+  home: { kind: HomeKind; amount: bigint; day: number } | null;
+  bills: BillAnswer[];
+} {
+  const find = (key: string): PersonalRecurring | undefined => {
+    const id = setupSlotId(ctx.ownerId, key);
+    return recurrings.find((r) => r.id === id && r.active);
+  };
+  const dayOf = (r: PersonalRecurring, fallback: number): number =>
+    Number(r.nextDate.slice(8, 10)) || fallback;
+  const inc = find('income');
+  const home = find('home');
+  return {
+    income: inc
+      ? {
+          kind: INCOME_KIND_BY_CATEGORY[inc.category ?? ''] ?? 'salary',
+          amount: inc.amount,
+          day: dayOf(inc, 1),
+        }
+      : null,
+    home: home
+      ? {
+          kind:
+            (['rent', 'home_loan'] as const).find((k) => ctx.label(`home:${k}`) === home.note) ??
+            'rent',
+          amount: home.amount,
+          day: dayOf(home, 1),
+        }
+      : null,
+    bills: BILL_IDS.flatMap((id) => {
+      const r = find(`bill:${id}`);
+      return r ? [{ id, amount: r.amount, day: dayOf(r, 5) }] : [];
+    }),
+  };
+}
+
 /** Existing record for one setup slot, used to seed rerun answers. */
 export function existingSetupAmount(
   recurrings: readonly PersonalRecurring[],

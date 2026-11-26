@@ -21,6 +21,7 @@ import {
   setupSummary,
   existingSetupAmount,
   setupPrefillForUntouched,
+  setupPrefill,
   setupAmountChanged,
   type SetupContext,
 } from '@/lib/personalSetup';
@@ -248,5 +249,51 @@ describe('monthlyEquivalent', () => {
     expect(monthlyEquivalent(rule('yearly'))).toBe(100n);
     expect(monthlyEquivalent(rule('weekly'))).toBe(5200n);
     expect(monthlyEquivalent(rule('semimonthly'))).toBe(2400n);
+  });
+});
+
+describe('rerunning setup starts from what setup saved', () => {
+  const labelled: SetupContext = {
+    ...ctx,
+    label: (k) => ({ 'home:rent': 'Rent', 'home:home_loan': 'Home loan EMI' })[k] ?? k,
+  };
+  const saved = (answers: Parameters<typeof answersToRecords>[0]) =>
+    answersToRecords(answers, labelled)
+      .filter((r) => r.recordKind === 'recurring')
+      .map((r) => decodeRecurring(r.recordId, r.data));
+
+  it('round-trips salary, rent and bills through the real save path', () => {
+    const recurrings = saved({
+      income: { kind: 'salary', amount: 5_000_000n, day: 1 },
+      home: { kind: 'rent', amount: 1_500_000n, day: 5 },
+      bills: [{ id: 'mobile', amount: 59_900n, day: 10 }],
+    });
+    const p = setupPrefill(recurrings, labelled);
+    expect(p.income).toMatchObject({ kind: 'salary', amount: 5_000_000n });
+    expect(p.home).toMatchObject({ kind: 'rent', amount: 1_500_000n });
+    expect(p.bills).toEqual([expect.objectContaining({ id: 'mobile', amount: 59_900n })]);
+  });
+
+  it('recognises pension income and a home loan', () => {
+    const p = setupPrefill(
+      saved({
+        income: { kind: 'pension', amount: 2_000_000n, day: 1 },
+        home: { kind: 'home_loan', amount: 3_000_000n, day: 7 },
+      }),
+      labelled,
+    );
+    expect(p.income?.kind).toBe('pension');
+    expect(p.home?.kind).toBe('home_loan');
+  });
+
+  it('ignores paused records and records of another person', () => {
+    const recurrings = saved({ income: { kind: 'salary', amount: 5_000_000n, day: 1 } });
+    expect(
+      setupPrefill(
+        recurrings.map((r) => ({ ...r, active: false })),
+        labelled,
+      ).income,
+    ).toBeNull();
+    expect(setupPrefill(recurrings, { ...labelled, ownerId: 'someone-else' }).income).toBeNull();
   });
 });
