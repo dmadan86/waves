@@ -11,6 +11,10 @@
 import { useEffect, useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
+import {
+  latestDueOccurrence,
+  stepOccurrence,
+} from '../../../../packages/core/src/personal/compute';
 
 import {
   decodeBudget,
@@ -22,7 +26,6 @@ import {
   materialisePersonalRecords,
   MutationKind,
   personalScope,
-  unpostedOccurrences,
   recurringOccurrenceId,
   type MirrorPersonalRecord,
   type PersonalBudget,
@@ -30,10 +33,12 @@ import {
   type PersonalRecordKind,
   type PersonalRecurring,
   type PersonalTxn,
+  type PersonalTenancy,
 } from '@waves/core';
 
 import { useAuth } from '@/lib/auth';
 import { claimOrphanDeletes, orphanedPersonalTxnIds } from '@/lib/personalOrphans';
+import { recurringTxnLinks } from '@/lib/recurringLinks';
 import { useSync } from '@/sync';
 
 /** A Date as a LOCAL YYYY-MM-DD — the calendar day the person is looking at, not
@@ -211,6 +216,7 @@ export async function postDueRecurring(
   ledger: PersonalLedger,
   today: string,
   upsert: (input: UpsertPersonalInput) => Promise<string>,
+  tenancies: readonly Pick<PersonalTenancy, 'id' | 'propertyId'>[] = [],
 ): Promise<number> {
   let posted = 0;
   for (const rule of ledger.recurrings) {
@@ -218,8 +224,12 @@ export async function postDueRecurring(
     // Only what is genuinely missing: `unpostedOccurrences` drops any period a
     // record already exists for, matched by id rather than by date (see its
     // note in core — matching on the date overwrites hand-entered figures).
-    const { dates, nextDate } = unpostedOccurrences(rule, ledger.txns, today);
-    if (dates.length === 0 && nextDate === rule.nextDate) continue;
+    const date = latestDueOccurrence(rule, today);
+    if (date === null) continue;
+    const nextDate = stepOccurrence(rule, date);
+    const dates = ledger.txns.some((txn) => txn.id === recurringOccurrenceId(rule.id, date))
+      ? []
+      : [date];
     for (const date of dates) {
       await upsert({
         recordId: recurringOccurrenceId(rule.id, date),
@@ -233,7 +243,7 @@ export async function postDueRecurring(
           date,
           loanId: null,
           recurringId: rule.id,
-          ...(rule.investmentId ? { investmentId: rule.investmentId } : {}),
+          ...recurringTxnLinks(rule, tenancies),
         }),
       });
       posted += 1;

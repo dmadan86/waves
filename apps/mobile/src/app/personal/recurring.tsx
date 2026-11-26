@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { skipOverdueOccurrences } from '../../../../../packages/core/src/personal/compute';
 import Ionicons from '@expo/vector-icons/Ionicons';
 // Native confirmation Alert explicitly required for recurring deletion.
 // eslint-disable-next-line no-restricted-imports
@@ -345,7 +346,13 @@ function RecurringScreenBody() {
                     upsert.mutate({
                       recordId: menuRule.id,
                       recordKind: 'recurring',
-                      data: encodeRecurring({ ...menuRule, active: !menuRule.active }),
+                      data: encodeRecurring({
+                        ...menuRule,
+                        active: !menuRule.active,
+                        ...(!menuRule.active
+                          ? { nextDate: skipOverdueOccurrences(menuRule, today) }
+                          : {}),
+                      }),
                     }),
                 },
                 {

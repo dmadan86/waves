@@ -104,6 +104,20 @@ describe('postDueRecurring', () => {
     expect(decodeRecurring(RENT.id, writes.at(-1)!.data).nextDate).toBe('2026-10-05');
   });
 
+  it('posts only the current weekly period for a rule started two years ago', async () => {
+    const oldRule = {
+      ...RENT,
+      cadence: 'weekly' as const,
+      anchorDate: '2024-09-10',
+      nextDate: '2024-09-10',
+    };
+    const posted = await postDueRecurring(ledger([], [oldRule]), '2026-09-10', upsert);
+    expect(posted).toBe(1);
+    const txn = writes.find((write) => write.recordKind === 'txn')!;
+    expect(decodeTxn(txn.recordId ?? '', txn.data).date).toBe('2026-09-08');
+    expect(decodeRecurring(oldRule.id, writes.at(-1)!.data).nextDate).toBe('2026-09-15');
+  });
+
   it('writes nothing for a rule that is not due, or not set to auto-post', async () => {
     const manual = { ...RENT, id: 'rule-manual', autoPost: false };
     const paused = { ...RENT, id: 'rule-paused', active: false };

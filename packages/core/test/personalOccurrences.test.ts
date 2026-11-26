@@ -22,6 +22,9 @@ import {
   stepOccurrence,
   unpostedOccurrences,
   recurringCatchUp,
+  skipOverdueOccurrences,
+  latestDueOccurrence,
+  monthlySummariesByCurrency,
   recurringOccurrenceId,
   type PersonalRecurring,
   type PersonalTxn,
@@ -62,6 +65,23 @@ const YEAR = { from: '2026-01-01', to: '2026-12-31' };
 const statuses = (list: readonly { status: string }[]): string[] => list.map((o) => o.status);
 
 describe('stepOccurrence', () => {
+  it('keeps monthly Personal totals separated by currency', () => {
+    const inr = { ...paid('2026-09-10', 1250n, 'inr'), kind: 'expense' as const };
+    const usd = {
+      ...paid('2026-09-11', 300n, 'usd'),
+      kind: 'expense' as const,
+      currency: 'USD' as const,
+    };
+    expect(monthlySummariesByCurrency([inr, usd], '2026-09')).toEqual([
+      { currency: 'INR', summary: expect.objectContaining({ expense: 1250n }) },
+      { currency: 'USD', summary: expect.objectContaining({ expense: 300n }) },
+    ]);
+  });
+  it('resumes after overdue dates and selects only the latest due period', () => {
+    const paused = rule({ cadence: 'weekly', nextDate: '2026-09-01' });
+    expect(skipOverdueOccurrences(paused, '2026-09-22')).toBe('2026-09-29');
+    expect(latestDueOccurrence(paused, '2026-09-22')).toBe('2026-09-22');
+  });
   it('walks the ordinary cadences exactly as addToDate does', () => {
     expect(stepOccurrence(rule({ cadence: 'monthly' }), '2026-01-05')).toBe('2026-02-05');
     expect(stepOccurrence(rule({ cadence: 'monthly', interval: 3 }), '2026-01-05')).toBe(

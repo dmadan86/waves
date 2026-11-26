@@ -9,9 +9,12 @@ import {
 } from '@waves/core';
 
 import { useUpsertPersonalRecord } from '@/data/personal';
+import { usePersonalWealth } from '@/data/personalWealth';
+import { recurringTxnLinks } from '@/lib/recurringLinks';
 
 export function usePostRecurring() {
   const upsert = useUpsertPersonalRecord();
+  const wealth = usePersonalWealth();
   // The occurrence id is deterministic per (rule, date), so posting a date the
   // auto catch-up also posts collapses to one row rather than two. A date before
   // the rule's next one (a late bill) leaves `nextDate` where it is.
@@ -28,7 +31,7 @@ export function usePostRecurring() {
         date: dueDate,
         loanId: null,
         recurringId: rule.id,
-        ...(rule.investmentId ? { investmentId: rule.investmentId } : {}),
+        ...recurringTxnLinks(rule, wealth.tenancies),
       }),
     });
     if (dueDate < rule.nextDate) return;
