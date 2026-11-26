@@ -1574,3 +1574,14 @@ it('re-parses family splits with the destination group families', () => {
     }).intent?.splitMode,
   ).toBe('equal');
 });
+
+describe('digits in a group name are never money', () => {
+  const groups = [{ id: 'g1', name: 'QA2dev26NovB', currency: 'INR' }] as never;
+  it.each(['taxi 200 QA2dev26NovB', 'taxi 200 QA 2 dev 26 Nov B', 'taxi 200 in QA2dev26NovB'])(
+    '%s is ₹200',
+    (text) => {
+      const r = parseVoiceExpenses(text, groups);
+      expect(r.items.map((i) => i.amountMajor)).toEqual([200]);
+    },
+  );
+});
