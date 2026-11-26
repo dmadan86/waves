@@ -247,6 +247,32 @@ export function recurringCatchUp(
   return { dates, nextDate: cursor };
 }
 
+/** Move a resumed rule past every occurrence that became due while it was paused. */
+export function skipOverdueOccurrences(rule: PersonalRecurring, today: string): string {
+  let cursor = rule.nextDate;
+  for (let guard = 0; cursor <= today && guard < 10_000; guard += 1) {
+    if (rule.endDate !== null && cursor > rule.endDate) break;
+    const next = stepOccurrence(rule, cursor);
+    if (next <= cursor) break;
+    cursor = next;
+  }
+  return cursor;
+}
+
+/** The latest occurrence due today, used to avoid silently back-filling history. */
+export function latestDueOccurrence(rule: PersonalRecurring, today: string): string | null {
+  let cursor = rule.nextDate;
+  let latest: string | null = null;
+  for (let guard = 0; cursor <= today && guard < 10_000; guard += 1) {
+    if (rule.endDate !== null && cursor > rule.endDate) break;
+    latest = cursor;
+    const next = stepOccurrence(rule, cursor);
+    if (next <= cursor) break;
+    cursor = next;
+  }
+  return latest;
+}
+
 /**
  * A stable record id for one occurrence of a recurring rule, derived from the
  * rule and the occurrence date. Deterministic on purpose: whichever path posts
@@ -612,6 +638,20 @@ export function monthlySummary(
     } else if (txn.kind !== 'income') expense += txn.amount;
   }
   return { income, expense: expense + invested, invested, net: income - expense - invested };
+}
+
+/** Monthly totals split by currency so callers never combine unlike units. */
+export function monthlySummariesByCurrency(
+  txns: readonly PersonalTxn[],
+  month: string,
+): { currency: CurrencyCode; summary: MonthlySummary }[] {
+  const currencies = [
+    ...new Set(txns.filter((txn) => monthKey(txn.date) === month).map((txn) => txn.currency)),
+  ];
+  return currencies.map((currency) => ({
+    currency,
+    summary: monthlySummary(txns, month, currency),
+  }));
 }
 
 /**

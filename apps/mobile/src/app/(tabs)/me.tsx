@@ -44,6 +44,7 @@ import {
   worstOverBudget,
   type PersonalTxn,
 } from '@waves/core';
+import { monthlySummariesByCurrency } from '../../../../../packages/core/src/personal/compute';
 import {
   Button,
   Card,
@@ -99,6 +100,7 @@ import {
   usePersonalLedger,
   useUpsertPersonalRecord,
 } from '@/data/personal';
+import { usePersonalWealth } from '@/data/personalWealth';
 import { personalHomeIdentity } from '@/data/personalHomeIdentity';
 import { useProfileForDisplay } from '@/lib/profileCache';
 import { recentTxns as selectRecentTxns } from '@/lib/txnLedger';
@@ -185,14 +187,17 @@ function MeLedger() {
   // double-fire is harmless: occurrence ids are deterministic
   // (recurringOccurrenceId), so a repeat upserts the same rows, never a dupe.
   // Always keyed on `today`, never the browsed month.
+  const wealth = usePersonalWealth();
   const posted = useRef(false);
   const ready = hydrated && ledger.recurrings.length > 0;
   useEffect(() => {
     if (posted.current || !ready) return;
     posted.current = true;
-    postDueRecurring(ledger, today, (input) => upsert.mutateAsync(input)).catch(() => {
-      posted.current = false;
-    });
+    postDueRecurring(ledger, today, (input) => upsert.mutateAsync(input), wealth.tenancies).catch(
+      () => {
+        posted.current = false;
+      },
+    );
     // Keyed on readiness only; `ledger`/`today`/`upsert` are read at fire time
     // and the ref makes it one-shot per successful run.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -264,6 +269,9 @@ function MeLedger() {
   const perDay =
     monthsBack === 0 ? (budgetDailyPace(budgetProgress?.remaining ?? null, today) ?? 0n) : 0n;
   const homeSpent = personalHomeSpent(ledger.txns, month, dc);
+  const otherCurrencySummaries = monthlySummariesByCurrency(ledger.txns, month).filter(
+    (item) => item.currency !== dc,
+  );
   const upcomingRows = usePersonalUpcoming(
     { txns: ledger.txns, recurrings: ledger.recurrings, currency: dc, today },
     3,
@@ -535,6 +543,18 @@ function MeLedger() {
                 onPress={() => router.push('/personal/spending')}
               />
             </Row>
+            {otherCurrencySummaries.map(({ currency, summary: other }) => (
+              <Row key={currency} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text variant="caption" tone="muted">
+                  {currency} activity
+                </Text>
+                <Text variant="caption" style={{ fontWeight: '600' }}>
+                  {amountsHidden
+                    ? BALANCE_MASK
+                    : format(money(other.expense, currency), { locale, trimZeros: true })}
+                </Text>
+              </Row>
+            ))}
             {summary.invested !== 0n ? (
               <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text variant="caption" tone="muted">
