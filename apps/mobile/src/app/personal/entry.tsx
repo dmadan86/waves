@@ -76,7 +76,8 @@ import { CategoryBadge, CategorySheet } from '@/components/Category';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { DayStepper, RepeatSheet } from '@/components/RepeatPicker';
-import { MoveReceiptNotice, MoveToFamily } from '@/components/MoveToFamily';
+import { MoveReceiptNotice } from '@/components/MoveToFamily';
+import { PersonalMoveSheet } from '@/components/PersonalMoveSheet';
 import { PersonalNoteField } from '@/components/PersonalNoteField';
 import { PersonalReceiptRow } from '@/components/PersonalReceiptRow';
 import { SourceSheet, useSourceLabel } from '@/components/IncomeSource';
@@ -241,6 +242,7 @@ function EntryForm({
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [picking, setPicking] = useState<'what' | 'repeat' | 'method' | null>(null);
+  const [splitting, setSplitting] = useState(false);
   // How it was paid. A new entry starts on cash, the answer most spends have;
   // an existing one keeps what it has, or none.
   const [paymentMethod, setPaymentMethod] = useState<string | null>(
@@ -403,18 +405,28 @@ function EntryForm({
               copied to the group expense before the private entry goes. */}
           {editingTxn ? <MoveReceiptNotice personalId={editingTxn.id} /> : null}
           {editingTxn && kind === 'expense' && !loanId ? (
-            <MoveToFamily
-              entry={{
-                id: editingTxn.id,
-                amount: editingTxn.amount,
-                currency,
-                date: editingTxn.date,
-                note: editingTxn.note ?? null,
-                category: editingTxn.category ?? null,
-                receiptKey: savedReceipt,
-              }}
-              onMoved={() => router.back()}
-            />
+            <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setSplitting(true)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.spacing.md,
+                  minHeight: 56,
+                }}
+              >
+                <Ionicons name="people-outline" size={iconSize.lg} color={theme.color.brand} />
+                <Text style={{ flex: 1, fontSize: 16, fontWeight: '700' }}>
+                  {t.personal.splitRow}
+                </Text>
+                <Ionicons
+                  name={directionalIcon('chevron-forward')}
+                  size={iconSize.md}
+                  color={theme.color.textMuted}
+                />
+              </Pressable>
+            </Card>
           ) : null}
 
           {/* The entry's facts, as one card of divided rows. */}
@@ -612,6 +624,25 @@ function EntryForm({
             setPicking(null);
           }}
           onClose={() => setPicking(null)}
+        />
+      ) : null}
+
+      {editingTxn ? (
+        <PersonalMoveSheet
+          visible={splitting}
+          entry={{
+            id: editingTxn.id,
+            amount: editingTxn.amount,
+            currency,
+            date: editingTxn.date,
+            note: editingTxn.note ?? null,
+            category: editingTxn.category ?? null,
+            receiptKey: savedReceipt,
+          }}
+          onClose={() => setSplitting(false)}
+          onMoved={(groupId, expenseId) =>
+            router.replace(`/group/${groupId}/expense/${expenseId}` as never)
+          }
         />
       ) : null}
     </Screen>

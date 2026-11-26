@@ -211,15 +211,9 @@ export function DestinationPicker({
   if (pinned.includes('me') && personalOffered) {
     pinnedRows.push({
       key: 'me',
-      // Your own name, not the words "Just me".
-      //
-      // Every other row here names something real — a group you made, a person
-      // you know — and this one named a grammatical category. Your name and
-      // your face are what the rest of the app calls you, and a portrait is
-      // recognised without being read, which is the whole job of a shortcut.
-      // `personalOffered` is `!isGuest`, so this is only ever reached by an
-      // account that has a name worth showing.
-      label: viewer.name,
+      // "Just me (Personal)": your own name alone did not say this files the
+      // draft privately, so people looked for a Personal target and found none.
+      label: t.captures.justMePersonal,
       avatarUrl: viewer.avatarUrl,
       // Kept as the fallback for the moment the portrait cannot draw.
       icon: 'person-circle-outline',
