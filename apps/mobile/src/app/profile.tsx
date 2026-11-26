@@ -450,11 +450,6 @@ function ProfileForm() {
           title={t.account.sectionBackup}
           rows={[
             {
-              icon: 'calendar-outline',
-              label: t.dates.title,
-              route: '/dates',
-            },
-            {
               icon: 'pricetags-outline',
               label: t.tags.settingsRow,
               route: '/settings/categories',

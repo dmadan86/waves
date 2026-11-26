@@ -156,11 +156,17 @@ export default function PersonalUpcomingScreen() {
       <PlainHeader
         title={h.upcomingTitle}
         trailing={
-          view.rows.length > 0 ? (
-            <IconButton label={h.addReminder} onPress={() => setAdding(true)}>
-              <Ionicons name="add" size={iconSize.xl} color={theme.color.brand} />
+          <Row style={{ gap: theme.spacing.xs }}>
+            {/* Birthdays, anniversaries and festival switches live here (moved out of Settings). */}
+            <IconButton label={t.dates.title} onPress={() => router.push('/dates')}>
+              <Ionicons name="calendar-outline" size={iconSize.lg} color={theme.color.brand} />
             </IconButton>
-          ) : null
+            {view.rows.length > 0 ? (
+              <IconButton label={h.addReminder} onPress={() => setAdding(true)}>
+                <Ionicons name="add" size={iconSize.xl} color={theme.color.brand} />
+              </IconButton>
+            ) : null}
+          </Row>
         }
       />
       <ScrollView
