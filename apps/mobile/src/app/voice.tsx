@@ -129,6 +129,7 @@ import { SaveToSheet, type SaveToPerson } from '@/components/SaveToSheet';
 import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
+import { drawablePhase, type VoicePhase } from '@/lib/voicePhasePure';
 import { shouldAutoOfferVoiceAd } from '@/lib/voiceAdOfferPure';
 import { isVoiceAssistantRequest } from '@/lib/voiceAssistantRequest';
 import { useVoiceStreamsToCloud } from '@/lib/useVoiceRouting';
@@ -611,9 +612,7 @@ export default function VoiceScreen() {
   // scrolls only when it does not fit (see the ScrollView below).
   const [viewportHeight, setViewportHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
-  const [phase, setPhase] = useState<
-    'listening' | 'thinking' | 'review' | 'committing' | 'answer' | 'agent' | 'saved'
-  >(widgetHeard ? 'thinking' : 'listening');
+  const [rawPhase, setPhase] = useState<VoicePhase>(widgetHeard ? 'thinking' : 'listening');
   // Pro advanced voice (flag `voice_agent`): when on, the mic streams to Deepgram
   // and the live transcript goes to the agent (phase 'agent') instead of straight
   // to the on-device parser. Off, none of this runs and the screen behaves as it always has.
@@ -778,6 +777,13 @@ export default function VoiceScreen() {
   // capture, "add more", or a single row's re-dictation), read when it returns.
   const [micMode, setMicMode] = useState<MicMode>('replace');
   const [drafts, setDrafts] = useState<Draft[]>([]);
+  // Never draw a phase that has nothing to show: it would be a blank screen.
+  const phase = drawablePhase(rawPhase, {
+    drafts: drafts.length,
+    answer: answer !== null,
+    saved: savedResult !== null,
+    agent: agentSession !== null,
+  });
   const [voicePeopleText, setVoicePeopleText] = useState<string | null>(null);
   const [voiceSplitCount, setVoiceSplitCount] = useState<number | null>(null);
   const [voiceExpenseDate, setVoiceExpenseDate] = useState<string | null>(null);
@@ -1603,7 +1609,14 @@ export default function VoiceScreen() {
     setPhase('thinking');
     const token = (interpretToken.current += 1);
     void (async () => {
-      const parsed = await interpret(transcript, alternatives);
+      let parsed: VoiceParseResult;
+      try {
+        parsed = await interpret(transcript, alternatives);
+      } catch {
+        // A failed read must not leave the screen on 'thinking': back to the input.
+        if (interpretToken.current === token) setPhase('listening');
+        return;
+      }
       // Dropped if the reader has since backed out of 'thinking' (which bumps the
       // token), or a newer capture superseded this one — a late append must not
       // land on the review they returned to.
@@ -2772,6 +2785,8 @@ export default function VoiceScreen() {
     setAgentFollowUp(null);
     setNoAmount(false);
     setTypedMode(false);
+    setAgentStage('working');
+    setPanelFooter(null);
     setMicMode('replace');
     setAttempt((current) => current + 1);
     setPhase('listening');
