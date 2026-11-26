@@ -147,3 +147,29 @@ export function leftWithBalance(
   return members.filter((member) => member.left_at && (balances.get(member.id) ?? 0n) !== 0n)
     .length;
 }
+
+/**
+ * The payments `fromMemberId` says they made to me that I have not confirmed yet.
+ * The Balances row offers "Confirm received" for these directly, so confirming
+ * never hides on another screen or slide.
+ */
+export function claimsToConfirm(
+  settlements: readonly {
+    readonly id: string;
+    readonly status: string;
+    readonly from_member_id: string;
+    readonly to_member_id: string;
+  }[],
+  myMemberId: string | null,
+  fromMemberId: string,
+): string[] {
+  if (!myMemberId) return [];
+  return settlements
+    .filter(
+      (row) =>
+        row.status === 'initiated' &&
+        row.to_member_id === myMemberId &&
+        row.from_member_id === fromMemberId,
+    )
+    .map((row) => row.id);
+}

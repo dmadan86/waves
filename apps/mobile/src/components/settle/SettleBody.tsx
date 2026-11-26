@@ -48,6 +48,7 @@ import {
   toLedgerSnapshots,
   useGroup,
   type GroupLedger,
+  useConfirmSettlement,
   useRecordSettlement,
 } from '@/data/hooks';
 import {
@@ -73,7 +74,8 @@ import { SettleConfirmSheet } from '@/components/settle/SettleConfirmSheet';
 import { useAddRate } from '@/lib/useAddRate';
 import { pendingPairKey, splitSettlePlan, type PlanTransfer } from '@/lib/settlePlan';
 import { hasLeft, memberNameById } from '@/lib/memberName';
-import { OwedStatus, owedRowModel } from '@/lib/settleRow';
+import { OwedStatus, claimsToConfirm, owedRowModel } from '@/lib/settleRow';
+import { useToast } from '@/lib/toast';
 import { useRemind } from '@/lib/useRemind';
 import { filterOtherTransfers, sortPeopleDebts } from '@/lib/groupBalanceList';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -102,6 +104,8 @@ export function useSettleFlow(
 
   const { group, members, everyone, expenses, settlements } = useGroup(groupId);
   const recordSettlement = useRecordSettlement(groupId);
+  const confirmSettlement = useConfirmSettlement(groupId);
+  const toast = useToast();
   const submitGuard = useRef(createSubmitGuard(randomUUID)).current;
   const guard = useGuestGuard();
 
@@ -362,6 +366,13 @@ export function useSettleFlow(
     activeFilter,
     addRate,
     amountsText,
+    claimsFrom: (fromId: string) => claimsToConfirm(settlements.data ?? [], myMemberId, fromId),
+    confirmClaims: (ids: readonly string[]) =>
+      ids.forEach((id) =>
+        confirmSettlement.mutate(id, {
+          onSuccess: () => toast.show(t.group.paymentConfirmedToast),
+        }),
+      ),
     currency,
     error,
     explainPending,
@@ -421,6 +432,8 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
     activeFilter,
     addRate,
     amountsText,
+    claimsFrom,
+    confirmClaims,
     error,
     explainPending,
     filterOpen,
@@ -530,6 +543,8 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
                 ghost={ghostFor(person)}
                 amounts={debts.amounts}
                 pending={debts.amounts.some((amount) => isPending(amount.transfer))}
+                toConfirm={claimsFrom(debts.memberId)}
+                onConfirm={confirmClaims}
                 locale={locale}
                 disabled={recordSettlement.isPending}
                 // The row has always been the way to say "they paid me".
@@ -1194,6 +1209,8 @@ function OwedPersonRow({
   ghost,
   amounts,
   pending,
+  toConfirm,
+  onConfirm,
   locale,
   disabled,
   onPress,
@@ -1207,6 +1224,9 @@ function OwedPersonRow({
   ghost: boolean;
   amounts: readonly PersonAmount[];
   pending: boolean;
+  /** Their payments to me still waiting for my yes. */
+  toConfirm: readonly string[];
+  onConfirm: (settlementIds: readonly string[]) => void;
   locale: string;
   disabled: boolean;
   onPress: () => void;
@@ -1267,13 +1287,23 @@ function OwedPersonRow({
           <Ionicons name="notifications-outline" size={iconSize.md} color={theme.color.brand} />
         </IconButton>
       ) : null}
-      <PayPill
-        label={t.misc.settleRecord}
-        tinted
-        accessibilityLabel={fill(t.misc.settleRecordA11y, { name, amount: amountText })}
-        disabled={disabled}
-        onPress={onPress}
-      />
+      {toConfirm.length > 0 ? (
+        // They say they paid: the yes is right here, not on another screen.
+        <PayPill
+          label={t.group.confirmReceived}
+          accessibilityLabel={`${t.group.confirmReceived}: ${name}, ${amountText}`}
+          disabled={disabled}
+          onPress={() => onConfirm(toConfirm)}
+        />
+      ) : (
+        <PayPill
+          label={t.misc.settleRecord}
+          tinted
+          accessibilityLabel={fill(t.misc.settleRecordA11y, { name, amount: amountText })}
+          disabled={disabled}
+          onPress={onPress}
+        />
+      )}
       {remind.sheet}
     </>
   );
