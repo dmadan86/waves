@@ -9,13 +9,14 @@
  * which is handed the reader's profile id and the current search text.
  */
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Sparkles } from 'lucide-react';
 
 import { useAccount, useAuth } from '@/lib/auth';
 import { useStrings } from '@/i18n-context';
 import { Shell, type Section } from '@/components/Shell';
 import { SignIn } from '@/components/SignIn';
+import { dismissFlash, useFlash } from '@/lib/flash';
 
 export function AppFrame({
   current,
@@ -52,6 +53,7 @@ export function AppFrame({
       onSignOut={signOut}
     >
       {isGuest ? <GuestBanner /> : null}
+      <FlashToast />
       {children({ profileId, query })}
     </Shell>
   );
@@ -74,6 +76,34 @@ function GuestBanner() {
           {t.dash.guestCta}
         </button>
       </div>
+    </div>
+  );
+}
+
+/** The message a page left behind before navigating (see lib/flash). */
+function FlashToast() {
+  const flash = useFlash();
+  useEffect(() => {
+    if (!flash) return;
+    const timer = setTimeout(dismissFlash, 8000);
+    return () => clearTimeout(timer);
+  }, [flash]);
+  if (!flash) return null;
+  return (
+    <div className="toast" role="status">
+      <span>{flash.message}</span>
+      {flash.undo ? (
+        <button
+          type="button"
+          className="btn soft"
+          onClick={() => {
+            dismissFlash();
+            void flash.undo?.run();
+          }}
+        >
+          {flash.undo.label}
+        </button>
+      ) : null}
     </div>
   );
 }

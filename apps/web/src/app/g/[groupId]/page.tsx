@@ -47,6 +47,7 @@ import {
   GroupType,
   pastNameOf,
   type ActivityRow,
+  type ExpenseComment,
   type Expense,
   type Group,
   type Member,
@@ -62,6 +63,8 @@ import { waves } from '@/lib/waves';
 import { money } from '@/lib/money';
 import { groupByMonth, monthLabel } from '@/lib/ledgerFeed';
 import { describeActivity, VerbIcon } from '@/lib/activity';
+import { groupComments } from '@/lib/groupWrites';
+import { commentRows, mergeFeed } from '@/lib/commentActivity';
 import { fill, plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
@@ -113,6 +116,7 @@ function GroupDetail({
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [activity, setActivity] = useState<ActivityRow[] | null>(null);
   const [activityFailed, setActivityFailed] = useState(false);
+  const [comments, setComments] = useState<ExpenseComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -178,10 +182,31 @@ function GroupDetail({
       .catch(() => {
         if (active) setActivityFailed(true);
       });
+    // Comments are not in the trail; losing them costs only their rows.
+    void groupComments(groupId)
+      .then((rows) => {
+        if (active) setComments(rows);
+      })
+      .catch(() => undefined);
     return () => {
       active = false;
     };
   }, [groupId]);
+
+  const expenseNames = useMemo(
+    () =>
+      new Map(
+        expenses.flatMap((e) =>
+          e.currentVersion?.description ? [[e.id, e.currentVersion.description] as const] : [],
+        ),
+      ),
+    [expenses],
+  );
+  const feed = useMemo(
+    () =>
+      activity === null ? null : mergeFeed(activity, commentRows(comments, everyone, expenseNames)),
+    [activity, comments, everyone, expenseNames],
+  );
 
   // Built once per locale. Constructing an Intl formatter is expensive, and a
   // feed re-runs its headings and its dates on every render.
@@ -540,20 +565,22 @@ function GroupDetail({
           >
             {activityFailed ? (
               <EmptyState Icon={History} title={t.errors.couldNotLoad} />
-            ) : activity === null ? (
+            ) : feed === null ? (
               <SkeletonRows rows={6} amount={false} />
-            ) : activity.length === 0 ? (
+            ) : feed.length === 0 ? (
               <EmptyState Icon={History} title={t.activity.empty} />
             ) : (
               <div className="list">
-                {activity.map((entry) => {
+                {feed.map((entry) => {
                   const line = (
                     <>
                       <span className="tile-emoji" aria-hidden>
                         <VerbIcon verb={entry.verb} />
                       </span>
                       <span className="grow">
-                        <span className="title wrap">{describeActivity(entry, profileId)}</span>
+                        <span className="title wrap">
+                          {describeActivity(entry, profileId, expenseNames)}
+                        </span>
                         {entry.created_at ? (
                           <span className="meta">
                             {dayFormat.format(new Date(entry.created_at))}

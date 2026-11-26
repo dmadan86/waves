@@ -3455,6 +3455,22 @@
     font-size: var(--w-font-caption);
     color: var(--w-tint-pink-ink);
   }
+  .toast {
+    position: fixed;
+    inset-block-end: 16px;
+    inset-inline: 16px;
+    margin-inline: auto;
+    max-inline-size: 420px;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: var(--w-selected-fill);
+    color: var(--w-on-selected-fill);
+  }
   .row {
     display: flex;
     align-items: center;

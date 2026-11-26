@@ -849,6 +849,8 @@ export interface WebStrings {
     delete: string;
     confirmDelete: string;
     restore: string;
+    deletedToast: string;
+    undo: string;
     deletedBadge: string;
     /** The small tag on a work expense (to claim). */
     workBadge: string;
@@ -1005,6 +1007,7 @@ export interface WebStrings {
     removeAdmin: string;
     remove: string;
     removeConfirm: string;
+    removedToast: string;
     leave: string;
     leaveConfirm: string;
     inviteInstead: string;
@@ -1027,6 +1030,7 @@ export interface WebStrings {
     emojiLabel: string;
     currencyLabel: string;
     currencyNote: string;
+    currencyLocked: string;
     simplifyLabel: string;
     simplifyBody: string;
     save: string;
@@ -2014,6 +2018,8 @@ const en: WebStrings = {
     delete: 'Delete',
     confirmDelete: 'Tap again to delete',
     restore: 'Restore',
+    deletedToast: 'Expense deleted',
+    undo: 'Undo',
     deletedBadge: 'Deleted',
     workBadge: 'Work',
     disputes: 'Disagreements',
@@ -2160,6 +2166,7 @@ const en: WebStrings = {
     removeAdmin: 'Remove admin',
     remove: 'Remove',
     removeConfirm: 'Remove {name}? Their expenses stay in the ledger.',
+    removedToast: '{name} removed',
     leave: 'Leave group',
     leaveConfirm: 'Leave this group? What you added stays.',
     inviteInstead: 'Invite with a link',
@@ -2183,6 +2190,7 @@ const en: WebStrings = {
     currencyLabel: 'Currency',
     currencyNote:
       'New expenses default to this. Ones already entered keep the currency they were in.',
+    currencyLocked: "The currency can't be changed once a group has expenses or payments.",
     simplifyLabel: 'Simplify debts',
     simplifyBody: 'Fewest payments that square everybody.',
     save: 'Save',
@@ -3132,6 +3140,8 @@ const ta: WebStrings = {
     delete: 'நீக்கு',
     confirmDelete: 'நீக்க மீண்டும் தட்டவும்',
     restore: 'மீட்டமை',
+    deletedToast: 'செலவு நீக்கப்பட்டது',
+    undo: 'செயல்தவிர்',
     deletedBadge: 'நீக்கப்பட்டது',
     workBadge: 'பணி',
     disputes: 'கருத்து வேறுபாடுகள்',
@@ -3280,6 +3290,7 @@ const ta: WebStrings = {
     removeAdmin: 'நிர்வாகியை நீக்கு',
     remove: 'நீக்கு',
     removeConfirm: '{name} ஐ நீக்கவா? அவர்களின் செலவுகள் கணக்கில் இருக்கும்.',
+    removedToast: '{name} நீக்கப்பட்டார்',
     leave: 'குழுவிலிருந்து விலகு',
     leaveConfirm: 'இந்தக் குழுவிலிருந்து விலகவா? நீங்கள் சேர்த்தவை இருக்கும்.',
     inviteInstead: 'இணைப்பு மூலம் அழை',
@@ -3302,6 +3313,7 @@ const ta: WebStrings = {
     emojiLabel: 'சின்னம்',
     currencyLabel: 'நாணயம்',
     currencyNote: 'புதிய செலவுகள் இதைப் பயன்படுத்தும். ஏற்கனவே உள்ளவை மாறாது.',
+    currencyLocked: 'செலவுகள் அல்லது பணம் செலுத்தல்கள் உள்ள குழுவின் நாணயத்தை மாற்ற முடியாது.',
     simplifyLabel: 'கடன்களை எளிதாக்கு',
     simplifyBody: 'குறைந்த பரிமாற்றங்களில் அனைவரும் சரியாகிறார்கள்.',
     save: 'சேமி',
@@ -4233,6 +4245,8 @@ const hi: WebStrings = {
     delete: 'हटाएँ',
     confirmDelete: 'हटाने के लिए फिर से टैप करें',
     restore: 'बहाल करें',
+    deletedToast: 'ख़र्च हटाया गया',
+    undo: 'पूर्ववत करें',
     deletedBadge: 'हटाया गया',
     workBadge: 'कार्य',
     disputes: 'असहमति',
@@ -4378,6 +4392,7 @@ const hi: WebStrings = {
     removeAdmin: 'व्यवस्थापक हटाएँ',
     remove: 'हटाएँ',
     removeConfirm: '{name} को हटाएँ? उनके ख़र्च हिसाब में रहेंगे.',
+    removedToast: '{name} को हटाया गया',
     leave: 'समूह छोड़ें',
     leaveConfirm: 'यह समूह छोड़ें? आपने जो जोड़ा वह रहेगा.',
     inviteInstead: 'लिंक से बुलाएँ',
@@ -4400,6 +4415,7 @@ const hi: WebStrings = {
     emojiLabel: 'चिह्न',
     currencyLabel: 'मुद्रा',
     currencyNote: 'नए ख़र्च इसी में होंगे. पहले के ख़र्च जैसे थे वैसे रहेंगे.',
+    currencyLocked: 'ख़र्च या भुगतान होने के बाद ग्रुप की मुद्रा नहीं बदली जा सकती.',
     simplifyLabel: 'हिसाब आसान करें',
     simplifyBody: 'कम से कम भुगतान में सब बराबर.',
     save: 'सहेजें',
@@ -5382,6 +5398,8 @@ const ar: WebStrings = {
     delete: 'حذف',
     confirmDelete: 'اضغط مرة أخرى للحذف',
     restore: 'استعادة',
+    deletedToast: 'تم حذف المصروف',
+    undo: 'تراجع',
     deletedBadge: 'محذوف',
     workBadge: 'عمل',
     disputes: 'اعتراضات',
@@ -5541,6 +5559,7 @@ const ar: WebStrings = {
     removeAdmin: 'إزالة الإشراف',
     remove: 'إزالة',
     removeConfirm: 'إزالة {name}؟ تبقى مصاريفهم في السجل.',
+    removedToast: 'تمت إزالة {name}',
     leave: 'مغادرة المجموعة',
     leaveConfirm: 'مغادرة هذه المجموعة؟ يبقى ما أضفته.',
     inviteInstead: 'ادعُ برابط',
@@ -5570,6 +5589,7 @@ const ar: WebStrings = {
     emojiLabel: 'الرمز',
     currencyLabel: 'العملة',
     currencyNote: 'المصاريف الجديدة تأتي بهذه العملة. ما أُدخل سابقًا يبقى كما هو.',
+    currencyLocked: 'لا يمكن تغيير العملة بعد وجود مصاريف أو دفعات في المجموعة.',
     simplifyLabel: 'تبسيط الديون',
     simplifyBody: 'أقل عدد من الدفعات يجعل الجميع متعادلين.',
     save: 'حفظ',
