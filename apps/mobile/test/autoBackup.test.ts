@@ -36,6 +36,7 @@ const h = vi.hoisted(() => ({
   removed: vi.fn(),
   runBackup: vi.fn(),
   reportHandled: vi.fn(),
+  sync: { hydrated: true, hasSynced: true, status: 'idle' },
 }));
 
 vi.mock('react-native', () => ({
@@ -58,6 +59,7 @@ vi.mock('expo-crypto', () => ({
 }));
 vi.mock('expo-network', () => ({ NetworkStateType: { WIFI: 'wifi', CELLULAR: 'cellular' } }));
 vi.mock('@/lib/auth', () => ({ useAuth: () => ({ session: h.session }) }));
+vi.mock('@/sync', () => ({ useSync: () => h.sync }));
 vi.mock('@/data/personal', () => ({ usePersonalRecords: () => h.records }));
 vi.mock('@/lib/observability', () => ({ reportHandled: h.reportHandled }));
 vi.mock('@/lib/backup/engine', () => ({ runBackup: h.runBackup }));
@@ -78,6 +80,7 @@ beforeEach(async () => {
   h.appState.length = 0;
   h.session = { user: { id: 'alice' } };
   h.records = [{ id: 'r1' }];
+  h.sync = { hydrated: true, hasSynced: true, status: 'idle' };
   h.runBackup.mockResolvedValue({ ok: true, last: { at: NOW, size: 20, records: 1 } });
   await AsyncStorage.clear();
 });
@@ -97,6 +100,32 @@ describe('AutoBackup', () => {
   });
 
   it('does nothing while the schedule is off', async () => {
+    renderHook(() => AutoBackup());
+    await settle();
+    expect(h.runBackup).not.toHaveBeenCalled();
+  });
+
+  it('does not back up before the mirror has hydrated and the first sync settled', async () => {
+    await saveFrequency('alice', BackupFrequency.Daily);
+    await saveLastBackup('alice', LAST);
+    h.sync = { hydrated: false, hasSynced: false, status: 'idle' };
+    const first = renderHook(() => AutoBackup());
+    await settle();
+    expect(h.runBackup).not.toHaveBeenCalled();
+    h.sync = { hydrated: true, hasSynced: false, status: 'syncing' };
+    first.rerender();
+    await settle();
+    expect(h.runBackup).not.toHaveBeenCalled();
+    h.sync = { hydrated: true, hasSynced: true, status: 'idle' };
+    first.rerender();
+    await settle();
+    expect(h.runBackup).toHaveBeenCalledTimes(1);
+  });
+
+  it('never seals an empty ledger, and passes the last known backup time', async () => {
+    await saveFrequency('alice', BackupFrequency.Daily);
+    await saveLastBackup('alice', LAST);
+    h.records = [];
     renderHook(() => AutoBackup());
     await settle();
     expect(h.runBackup).not.toHaveBeenCalled();

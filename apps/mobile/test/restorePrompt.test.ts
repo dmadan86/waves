@@ -26,8 +26,14 @@ vi.mock('expo-network', () => ({
 
 const { restoreOffer, RestoreOffer } = await import('../src/lib/backup/restorePrompt');
 const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-const { clearBackupSettings, loadRestorePromptDismissed, markRestorePromptDismissed } =
-  await import('../src/lib/backup/settings');
+const {
+  armRestorePending,
+  clearBackupSettings,
+  loadRestorePending,
+  loadRestorePromptDismissed,
+  markRestorePromptDismissed,
+  resolveRestorePending,
+} = await import('../src/lib/backup/settings');
 
 /** A signed-in, non-guest, Drive-capable phone that has been fully read. */
 const READY: RestorePromptInput = {
@@ -169,5 +175,29 @@ describe('dismissing it sticks', () => {
     await markRestorePromptDismissed('');
     expect(await AsyncStorage.getAllKeys()).toEqual([]);
     expect(await loadRestorePromptDismissed('')).toBe(false);
+  });
+});
+
+describe('a fresh phone that has not yet restored or started fresh', () => {
+  it('keeps the offer after the first new entry', () => {
+    expect(offer({ recordCount: 1, restorePending: true })).toBe(RestoreOffer.Restore);
+    expect(offer({ recordCount: 1, restorePending: false })).toBe(RestoreOffer.None);
+  });
+
+  it('stays pending until restored or started fresh, and is never re-armed after', async () => {
+    expect(await loadRestorePending('alice')).toBe(false);
+    expect(await armRestorePending('alice')).toBe(true);
+    expect(await loadRestorePending('alice')).toBe(true);
+    await resolveRestorePending('alice');
+    expect(await loadRestorePending('alice')).toBe(false);
+    expect(await armRestorePending('alice')).toBe(false);
+    expect(await loadRestorePending('alice')).toBe(false);
+  });
+
+  it('is wiped by sign-out so the next sign-in starts fresh', async () => {
+    await armRestorePending('alice');
+    await clearBackupSettings('alice');
+    expect(await loadRestorePending('alice')).toBe(false);
+    expect(await armRestorePending('alice')).toBe(true);
   });
 });

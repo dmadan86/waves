@@ -30,6 +30,9 @@ const hoisted = vi.hoisted(() => ({
   beforeUpload: null as (() => Promise<void>) | null,
   /** When set, the next `read` of this remote id throws instead of answering. */
   failRead: null as string | null,
+  /** Runs after a `find` / `put` of that name, to stage another phone's write. */
+  afterFind: null as ((name: string) => void) | null,
+  afterPut: null as ((name: string) => void) | null,
   nextId: 1,
 }));
 
@@ -89,6 +92,7 @@ vi.mock('@/lib/cloud/providers', () => {
     async find(_tokens: unknown, name: string) {
       hoisted.calls.push(`find:${name}`);
       const file = hoisted.folder.get(name);
+      hoisted.afterFind?.(name);
       return file
         ? { remoteId: file.remoteId, name, size: file.content.length, modifiedAt: null }
         : null;
@@ -100,6 +104,7 @@ vi.mock('@/lib/cloud/providers', () => {
         throw new Error('drive said no');
       const remoteId = existingId ?? `file-${hoisted.nextId++}`;
       hoisted.folder.set(name, { remoteId, name, content });
+      hoisted.afterPut?.(name);
       return { remoteId, name, size: content.length, modifiedAt: null };
     },
     async commit(_tokens: unknown, remoteId: string, name: string) {
@@ -137,13 +142,14 @@ vi.mock('@/lib/cloud/providers', () => {
 
 const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
 const { saveTokens } = await import('../src/lib/cloud/tokens');
-const { runBackup, scanBackup, upgradeToExtra, backupFileName } =
+const { runBackup, scanBackup, upgradeToExtra, backupFileName, keyOpensBackup } =
   await import('../src/lib/backup/engine');
 const { backupAad, buildBody, buildFile, BACKUP_FORMAT, BACKUP_VERSION, BACKUP_ALG } =
   await import('../src/lib/backup/payload');
 const { bytesToHex, loadRecoveryKey, parseRecoveryKey, saveRecoveryKey, sealBackup, backupNonce } =
   await import('../src/lib/backup/recoveryKey');
-const { BackupTier, escrowFileName, parseEscrow } = await import('../src/lib/backup/tier');
+const { BackupTier, buildEscrow, escrowFileName, parseEscrow } =
+  await import('../src/lib/backup/tier');
 const { loadBackupSettings } = await import('../src/lib/backup/settings');
 const { SyncNetworkPreference } = await import('../src/lib/syncNetwork');
 
@@ -175,13 +181,20 @@ const row = (id: string) => ({
   deleted_at: null,
 });
 
-const run = (tier: (typeof BackupTier)[keyof typeof BackupTier], records = [row('a')]) =>
+const run = (
+  tier: (typeof BackupTier)[keyof typeof BackupTier],
+  records = [row('a')],
+  extra: Partial<Parameters<typeof runBackup>[0]> = {},
+) =>
   runBackup({
     ownerId: OWNER,
     records,
     tier,
     network: SyncNetworkPreference.Both,
     manual: true,
+    // By default this phone made whatever is on Drive; guard tests override it.
+    knownBackupAt: Date.now() + 60_000,
+    ...extra,
   });
 
 /** The envelope currently in the folder, parsed as JSON. */
@@ -199,6 +212,8 @@ beforeEach(async () => {
   hoisted.beforeCommit = null;
   hoisted.beforeUpload = null;
   hoisted.failRead = null;
+  hoisted.afterFind = null;
+  hoisted.afterPut = null;
   hoisted.nextId = 1;
   await AsyncStorage.clear();
   await saveTokens('gdrive', OWNER, TOKENS);
@@ -599,5 +614,156 @@ describe('verified atomic publication', () => {
     await expect(run(BackupTier.Standard, [row('new')])).rejects.toThrow('commit rejected');
     expect(hoisted.folder.get(BLOB)!.content).toBe(previous);
     expect(hoisted.folder.has(`${BLOB}.pending`)).toBe(false);
+  });
+});
+
+const buildEscrowFor = (key: Uint8Array) => buildEscrow(bytesToHex(key), new Date().toISOString());
+const NEW_KEY_2 = parseRecoveryKey('22'.repeat(32))!;
+
+describe('a good Drive backup is not replaced by a smaller or stranger one', () => {
+  const GUARD = { knownBackupAt: null };
+  const seed = async () => {
+    await run(BackupTier.Standard, [row('a'), row('b'), row('c')]);
+    return hoisted.folder.get(BLOB)!.content;
+  };
+
+  it('refuses a fresh phone with one entry, telling the screen what Drive holds', async () => {
+    const before = await seed();
+    const result = await run(BackupTier.Standard, [row('new')], GUARD);
+    expect(result).toMatchObject({
+      ok: false,
+      refusal: 'would-overwrite',
+      existing: { records: 3, local: 1 },
+    });
+    expect(hoisted.folder.get(BLOB)!.content).toBe(before);
+  });
+
+  it('refuses an automatic run the same way, and an empty ledger always', async () => {
+    const before = await seed();
+    expect(await run(BackupTier.Standard, [row('new')], { ...GUARD, manual: false })).toMatchObject(
+      { refusal: 'would-overwrite' },
+    );
+    expect(await run(BackupTier.Standard, [], { knownBackupAt: Date.now() + 1 })).toMatchObject({
+      refusal: 'would-overwrite',
+    });
+    expect(hoisted.folder.get(BLOB)!.content).toBe(before);
+  });
+
+  it('replaces it when the person chose Replace', async () => {
+    await seed();
+    const result = await run(BackupTier.Standard, [row('new')], {
+      ...GUARD,
+      replaceExisting: true,
+    });
+    expect(result.ok).toBe(true);
+    const scan = await scanBackup({ ownerId: OWNER, localIds: new Set() });
+    expect(scan.ok && scan.plan.restore.map((r) => r.id)).toEqual(['new']);
+  });
+
+  it('still lets a phone replace its own backup after a few deletions', async () => {
+    await seed();
+    expect((await run(BackupTier.Standard, [row('a'), row('b')])).ok).toBe(true);
+  });
+
+  it('refuses a newer backup from another phone that holds rows this one lacks', async () => {
+    await seed();
+    const known = Date.parse('2020-01-01T00:00:00Z');
+    expect(
+      await run(BackupTier.Standard, [row('a'), row('d')], {
+        knownBackupAt: known,
+      }),
+    ).toMatchObject({ refusal: 'would-overwrite' });
+  });
+});
+
+describe('Extra protection with the wrong key', () => {
+  it('does not seal over a backup its key cannot open, and says the key is wrong', async () => {
+    await saveRecoveryKey(OWNER, OLD_KEY);
+    await run(BackupTier.Extra, [row('a'), row('b')]);
+    const before = hoisted.folder.get(BLOB)!.content;
+
+    expect(await keyOpensBackup(OWNER, OLD_KEY)).toBe('opens');
+    expect(await keyOpensBackup(OWNER, NEW_KEY_2)).toBe('wrong');
+
+    await saveRecoveryKey(OWNER, NEW_KEY_2);
+    expect(await run(BackupTier.Extra, [row('x')], { replaceExisting: true })).toEqual({
+      ok: false,
+      refusal: 'needs-key',
+    });
+    expect(hoisted.folder.get(BLOB)!.content).toBe(before);
+  });
+});
+
+describe('a tier-less legacy backup', () => {
+  it('is treated as Extra: a Standard phone with no escrow neither mints nor overwrites', async () => {
+    await saveRecoveryKey(OWNER, OLD_KEY);
+    await run(BackupTier.Extra, [row('a')]);
+    const legacy = JSON.parse(hoisted.folder.get(BLOB)!.content) as Record<string, unknown>;
+    delete legacy.tier;
+    hoisted.folder.get(BLOB)!.content = JSON.stringify(legacy);
+    forgetDeviceKey();
+
+    expect(await run(BackupTier.Standard)).toEqual({ ok: false, refusal: 'needs-key' });
+    expect(hoisted.folder.get(BLOB)!.content).toBe(JSON.stringify(legacy));
+    expect(hoisted.folder.has(ESCROW)).toBe(false);
+  });
+});
+
+describe('two fresh phones minting the Standard key', () => {
+  const planted = (key: Uint8Array) => ({
+    remoteId: 'rival',
+    name: ESCROW,
+    content: JSON.stringify(buildEscrowFor(key)),
+  });
+
+  it('adopts a key another phone escrowed after this one looked', async () => {
+    let fired = false;
+    hoisted.afterFind = (name) => {
+      if (name === ESCROW && !fired) {
+        fired = true;
+        hoisted.folder.set(ESCROW, planted(NEW_KEY_2));
+      }
+    };
+    expect((await run(BackupTier.Standard)).ok).toBe(true);
+    expect(parseEscrow(hoisted.folder.get(ESCROW)!.content).key).toBe(bytesToHex(NEW_KEY_2));
+    expect(bytesToHex((await loadRecoveryKey(OWNER))!)).toBe(bytesToHex(NEW_KEY_2));
+    const scan = await scanBackup({ ownerId: OWNER, localIds: new Set() });
+    expect(scan.ok).toBe(true);
+  });
+
+  it('adopts the winner when the other phone writes at the same moment', async () => {
+    hoisted.afterPut = (name) => {
+      if (name === ESCROW) hoisted.folder.set(ESCROW, planted(NEW_KEY_2));
+    };
+    expect((await run(BackupTier.Standard)).ok).toBe(true);
+    hoisted.afterPut = null;
+    expect(bytesToHex((await loadRecoveryKey(OWNER))!)).toBe(bytesToHex(NEW_KEY_2));
+    forgetDeviceKey();
+    expect((await scanBackup({ ownerId: OWNER, localIds: new Set() })).ok).toBe(true);
+  });
+});
+
+describe('the upgrade to Extra goes through the staged upload', () => {
+  it('stages before committing, and a kill mid-upload leaves the old blob intact', async () => {
+    await run(BackupTier.Standard, [row('a')]);
+    const before = hoisted.folder.get(BLOB)!.content;
+    hoisted.calls.length = 0;
+    hoisted.beforeUpload = async () => {
+      throw new Error('killed mid-upload');
+    };
+    await expect(upgradeToExtra({ ownerId: OWNER, records: [], key: NEW_KEY_2 })).rejects.toThrow(
+      'killed',
+    );
+    expect(hoisted.folder.get(BLOB)!.content).toBe(before);
+
+    hoisted.beforeUpload = null;
+    hoisted.calls.length = 0;
+    expect((await upgradeToExtra({ ownerId: OWNER, records: [], key: NEW_KEY_2 })).ok).toBe(true);
+    expect(hoisted.calls.indexOf(`put:${BLOB}.pending`)).toBeGreaterThanOrEqual(0);
+    expect(hoisted.calls.indexOf(`put:${BLOB}.pending`)).toBeLessThan(
+      hoisted.calls.indexOf(`put:${BLOB}`),
+    );
+    expect(hoisted.folder.has(`${BLOB}.pending`)).toBe(false);
+    expect(envelope().tier).toBe(BackupTier.Extra);
   });
 });

@@ -8,6 +8,7 @@ vi.mock('expo-network', () => ({
   NetworkStateType: { WIFI: 'wifi', CELLULAR: 'cellular', NONE: 'none' },
 }));
 
+const { BackupFrequency } = await import('../src/lib/backup/schedule');
 const { wantsBackupReminder, REMINDER_FRESH_MS } = await import('../src/lib/backup/reminder');
 const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
 const { clearBackupSettings, loadBackupReminderDay, saveBackupReminderDay } =
@@ -21,6 +22,7 @@ const base: BackupReminderInput = {
   configured: true,
   recordCount: 12,
   lastBackupAt: null,
+  frequency: BackupFrequency.Off,
   answeredOn: null,
   today: '2026-10-02',
   now: NOW,
@@ -38,6 +40,24 @@ describe('wantsBackupReminder', () => {
 
   it('stays quiet after a backup inside the last day', () => {
     expect(wantsBackupReminder({ ...base, lastBackupAt: NOW - 60_000 })).toBe(false);
+  });
+
+  it('does not nag a weekly or monthly schedule daily', () => {
+    const DAY = REMINDER_FRESH_MS;
+    const weekly = { ...base, frequency: BackupFrequency.Weekly };
+    expect(wantsBackupReminder({ ...weekly, lastBackupAt: NOW - 3 * DAY })).toBe(false);
+    expect(wantsBackupReminder({ ...weekly, lastBackupAt: NOW - 9 * DAY })).toBe(true);
+    const monthly = { ...base, frequency: BackupFrequency.Monthly };
+    expect(wantsBackupReminder({ ...monthly, lastBackupAt: NOW - 20 * DAY })).toBe(false);
+    expect(wantsBackupReminder({ ...monthly, lastBackupAt: NOW - 40 * DAY })).toBe(true);
+    // A daily schedule is given a day of grace.
+    const daily = { ...base, frequency: BackupFrequency.Daily };
+    expect(wantsBackupReminder({ ...daily, lastBackupAt: NOW - 1.5 * DAY })).toBe(false);
+    expect(wantsBackupReminder({ ...daily, lastBackupAt: NOW - 3 * DAY })).toBe(true);
+    // Dismissal is still respected on a schedule.
+    expect(
+      wantsBackupReminder({ ...weekly, lastBackupAt: NOW - 20 * DAY, answeredOn: '2026-10-02' }),
+    ).toBe(false);
   });
 
   it('asks at most once a day', () => {

@@ -245,7 +245,7 @@ export default function BackupSettingsScreen() {
   const clearance = useTabBarClearance();
   usePreventCapture('backup-key');
   const { t, locale } = useStrings();
-  const { confirm } = useDialog();
+  const { confirm, choose } = useDialog();
   const backup = useBackup();
   /**
    * The dashboard's restore prompt sends its nonce here to mean "link if you
@@ -346,6 +346,8 @@ export default function BackupSettingsScreen() {
         return t.backup.refusedAuth;
       case 'no-backup':
         return t.backup.refusedNoBackup;
+      case 'would-overwrite':
+        return t.backup.overwriteTitle;
       default:
         return t.backup.refusedBusy;
     }
@@ -418,7 +420,30 @@ export default function BackupSettingsScreen() {
     setError(null);
     setErrorCode(null);
     try {
-      const outcome = await backup.backupNow();
+      let outcome = await backup.backupNow();
+      // Drive holds more (or newer) than this phone: the person picks, never us.
+      if (outcome.kind === 'refused' && outcome.refusal === 'would-overwrite' && outcome.existing) {
+        const { records, createdAt, local } = outcome.existing;
+        const at = Date.parse(createdAt);
+        const picked = await choose({
+          title: t.backup.overwriteTitle,
+          body: t.backup.overwriteBody
+            .replace('{count}', String(records))
+            .replace('{date}', Number.isFinite(at) ? dateTime(at) : '')
+            .replace('{local}', String(local)),
+          options: [
+            { id: 'restore', label: t.backup.overwriteRestore },
+            { id: 'replace', label: t.backup.overwriteReplace, tone: 'danger' },
+          ],
+        });
+        if (picked === 'restore') {
+          await onCheckForBackup();
+          return;
+        }
+        // Dismissing the sheet leaves Drive exactly as it was.
+        if (picked !== 'replace') return;
+        outcome = await backup.backupNow(false, true);
+      }
       // Wi‑Fi only and on mobile data: ask once instead of spending data silently.
       if (outcome.kind === 'refused' && outcome.refusal === 'network-policy') {
         if (
@@ -577,8 +602,11 @@ export default function BackupSettingsScreen() {
   const onAcceptKey = async (): Promise<void> => {
     setTypedProblem(null);
     try {
-      if (!(await backup.acceptKey(typedKey))) {
-        setTypedProblem(t.backup.keyEnterInvalid);
+      const accepted = await backup.acceptKey(typedKey);
+      if (accepted !== 'ok') {
+        setTypedProblem(
+          accepted === 'wrong-key' ? t.backup.keyWrongForBackup : t.backup.keyEnterInvalid,
+        );
         return;
       }
       setEntering(false);
@@ -784,7 +812,16 @@ export default function BackupSettingsScreen() {
    * been entered the card goes back to backing up, and restore steps down to a
    * single row further down for the rare case of wanting it anyway.
    */
-  const restoreFirst = settled && setup.complete && backup.recordCount === 0;
+  const restoreFirst =
+    settled && setup.complete && (backup.recordCount === 0 || (backup.restorePending && !last));
+
+  // An empty, settled phone may have a backup waiting. Remember it, so the
+  // first new entry does not turn this card into "Back up now".
+  const armRestore = backup.armRestore;
+  const emptyAndSettled = settled && backup.recordCount === 0;
+  useEffect(() => {
+    if (emptyAndSettled) void armRestore();
+  }, [emptyAndSettled, armRestore]);
 
   const statusTone: 'warning' | 'brand' | 'positive' =
     !settled || (setup.complete && !last) ? 'brand' : setup.complete ? 'positive' : 'warning';
@@ -1041,6 +1078,16 @@ export default function BackupSettingsScreen() {
                     )
                   }
                 />
+                {restoreFirst && backup.recordCount > 0 ? (
+                  <Button
+                    label={t.backup.startFresh}
+                    variant="ghost"
+                    size="sm"
+                    fullWidth
+                    disabled={busy || running}
+                    onPress={() => void backup.startFresh()}
+                  />
+                ) : null}
                 {/* Where the look ended up, under the button that would look
                     again — "there is no backup on this Drive account yet" is
                     often a slow folder rather than an empty one. */}
