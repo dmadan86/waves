@@ -233,6 +233,23 @@ export function departedPairSummary(
   return { lent, owe, net };
 }
 
+/**
+ * What this person still owes (positive) or is owed (negative) per currency, from
+ * the ledger's own settlement-aware balances: the same figure the Balances tab
+ * shows, not the gross of the bills listed here.
+ */
+export function departedOpenBalance(
+  net: ReadonlyMap<string, ReadonlyMap<string, bigint>>,
+  memberId: string,
+): Map<string, bigint> {
+  const open = new Map<string, bigint>();
+  for (const [currency, perMember] of net) {
+    const balance = perMember.get(memberId) ?? 0n;
+    if (balance !== 0n) open.set(currency, -balance);
+  }
+  return open;
+}
+
 export function departedExpenseTotals(
   expenses: readonly Expense[],
   group?: { default_currency: string; convert_to_group_currency?: boolean } | null,

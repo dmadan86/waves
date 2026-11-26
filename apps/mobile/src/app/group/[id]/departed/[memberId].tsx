@@ -36,6 +36,7 @@ import {
   buildResplitItem,
   departedCategoryCounts,
   departedExpenseTotals,
+  departedOpenBalance,
   departedPairSummary,
   selectedDepartedCandidates,
   sortDepartedExpenses,
@@ -233,7 +234,7 @@ function DepartedExpensesScreen() {
                 {label}
               </Text>
               <Text variant="caption" style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}>
-                {amountLine(summary.net) ||
+                {amountLine(departedOpenBalance(ledger.net, memberId)) ||
                   fill(plural(locale, listed.length, s.owed), { name, amount: fmt(0n) })}
               </Text>
             </View>
