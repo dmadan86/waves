@@ -26,7 +26,12 @@ describe('sanitiseMinorInput', () => {
   });
 
   it('strips anything that is not a digit or a separator', () => {
-    expect(sanitiseMinorInput('₹1,2 3abc', 'INR')).toBe('123');
+    expect(sanitiseMinorInput('₹1 2 3abc', 'INR')).toBe('123');
+  });
+
+  it('reads a comma typed on a European keypad as the decimal point', () => {
+    expect(sanitiseMinorInput('1,2', 'EUR')).toBe('1.2');
+    expect(sanitiseMinorInput('1,234', 'INR')).toBe('1234');
   });
 
   it('keeps only the first decimal point', () => {
@@ -69,6 +74,14 @@ describe('parseMinorInput', () => {
     expect(parseMinorInput('10.5', 'INR')).toBe(1050n);
     expect(parseMinorInput('10.50', 'INR')).toBe(1050n);
     expect(parseMinorInput('0.07', 'INR')).toBe(7n);
+  });
+
+  it('accepts decimal commas and common grouped number formats', () => {
+    expect(parseMinorInput('12,50', 'INR')).toBe(1250n);
+    expect(parseMinorInput('1.234,50', 'INR')).toBe(123450n);
+    expect(parseMinorInput('1,234.50', 'INR')).toBe(123450n);
+    expect(parseMinorInput('1,23,456.50', 'INR')).toBe(12_345_650n);
+    expect(parseMinorInput('₹ 1 234', 'INR')).toBe(123400n);
   });
 
   it('reads a currency with no minor unit as whole units', () => {

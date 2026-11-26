@@ -837,7 +837,7 @@ function QuickExpenseFooter({
     await createCapture.mutateAsync({
       captureId,
       description: note.trim(),
-      expenseDate: new Date().toISOString().slice(0, 10),
+      expenseDate: todayIso(),
       currency,
       amount,
       category,
@@ -878,7 +878,7 @@ function QuickExpenseFooter({
       }
       const expenseId = await write.mutateAsync({
         description: note.trim(),
-        expenseDate: new Date().toISOString().slice(0, 10),
+        expenseDate: todayIso(),
         currency,
         amount,
         category,

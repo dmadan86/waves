@@ -739,8 +739,7 @@ export function loanOutstanding(loan: PersonalLoan, txns: readonly PersonalTxn[]
   for (const txn of txns) {
     if (txn.loanId === loan.id) paid += txn.amount;
   }
-  const remaining = loan.principal - paid;
-  return remaining > 0n ? remaining : 0n;
+  return loan.principal - paid;
 }
 
 // ───────────────────────────────────────────────────────────── budgets ──

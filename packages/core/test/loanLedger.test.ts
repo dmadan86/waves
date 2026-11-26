@@ -88,8 +88,8 @@ describe('loan versus gift ledger', () => {
       ]),
     ).toBe(500000n);
   });
-  it('LG-04 overpayment floors outstanding at zero', () => {
-    expect(loanOutstanding(loan(), [txn({ loanId: 'loan-ravi', amount: 900000n })])).toBe(0n);
+  it('LG-04 reports the overpayment as a negative outstanding amount', () => {
+    expect(loanOutstanding(loan(), [txn({ loanId: 'loan-ravi', amount: 900000n })])).toBe(-100000n);
   });
   it('LG-05 documents current cross-currency linked repayment behaviour', () => {
     // Current compute sums linked amounts without a currency check or FX conversion.

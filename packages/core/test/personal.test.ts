@@ -161,13 +161,13 @@ describe('loanOutstanding', () => {
     status: 'active',
   };
 
-  it('is the principal less linked repayments, floored at zero', () => {
+  it('is the principal less linked repayments, including overpayment', () => {
     const txns = [
       txn({ amount: 40000n, loanId: 'L1' }),
       txn({ amount: 70000n, loanId: 'L1' }), // over-pays
       txn({ amount: 99999n, loanId: 'other' }), // not this loan
     ];
-    expect(loanOutstanding(loan, txns)).toBe(0n);
+    expect(loanOutstanding(loan, txns)).toBe(-10000n);
     expect(loanOutstanding(loan, [txn({ amount: 25000n, loanId: 'L1' })])).toBe(75000n);
   });
 });
