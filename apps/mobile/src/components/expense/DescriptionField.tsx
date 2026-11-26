@@ -96,6 +96,8 @@ export function DescriptionField({
         style={{
           flex: 1,
           fontSize: 17,
+          // Explicit, so a script with tall marks (Tamil) is not cut by a tight box.
+          lineHeight: 24,
           fontWeight: card ? '400' : '600',
           color: theme.color.text,
           paddingVertical: theme.spacing.sm,

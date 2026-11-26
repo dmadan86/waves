@@ -654,6 +654,7 @@ export function materialiseMembers(
       const payload = mutation.payload as {
         creatorMemberId?: string | null;
         creatorProfileId?: string | null;
+        creatorName?: string | null;
       };
       const id = payload.creatorMemberId ?? `pending:${mutation.clientMutationId}`;
       if (!byId.has(id)) {
@@ -662,6 +663,17 @@ export function materialiseMembers(
           group_id: mutation.groupId,
           profile_id: payload.creatorProfileId ?? null,
           ghost_name: null,
+          // Named from the account that made the group, so its avatar says
+          // "QO" rather than "S" until the server's own row arrives.
+          ...(payload.creatorProfileId && payload.creatorName
+            ? {
+                profile: {
+                  id: payload.creatorProfileId,
+                  display_name: payload.creatorName,
+                  avatar_url: null,
+                },
+              }
+            : {}),
           left_at: null,
           invite_email: null,
           invite_phone: null,

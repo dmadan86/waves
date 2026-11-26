@@ -1839,6 +1839,9 @@ export function invalidateGroup(queryClient: QueryClient, groupId: string): void
     .catch(() => undefined)
     .then(() => {
       void queryClient.invalidateQueries({ queryKey: ['group', groupId] });
+      // An edit applied after the form closed (offline, or a slow sync) still
+      // has to show in the open History tab.
+      void queryClient.invalidateQueries({ queryKey: ['expense'] });
     });
 }
 
@@ -1878,6 +1881,7 @@ export function useCreateGroup() {
         country: input.country ?? null,
         creatorMemberId,
         creatorProfileId: profile?.id ?? null,
+        creatorName: profile?.display_name ?? null,
       });
       return groupId;
     },
@@ -1923,8 +1927,9 @@ export function useRestoreExpense(groupId: string) {
 
 export function useRecordSettlement(groupId: string) {
   const { mutate, mirror, queue } = useSync();
+  const { profile } = useAuth();
   return useMutation({
-    mutationFn: (input: Parameters<typeof recordSettlement>[0]) => {
+    mutationFn: async (input: Parameters<typeof recordSettlement>[0]) => {
       // The floor under every caller: a group that settles in its own currency
       // takes only that currency (the server refuses the rest with
       // UPDATE_APP_TO_SETTLE). A debt in another one is a bill with no rate yet;
@@ -1942,12 +1947,18 @@ export function useRecordSettlement(groupId: string) {
           new Error('NO_RATE_YET: this debt has no rate into the group currency yet'),
         );
       }
-      return mutate(
+      const settlementId = randomUUID();
+      // The person receiving the money recording it is the confirmation: only a
+      // payer-recorded payment waits for the payee to agree.
+      const viewerIsPayee = (
+        materialiseMembers(mirror, queue, { groupId: input.groupId }) as unknown as MemberRow[]
+      ).some((member) => member.id === input.toMemberId && isViewer(member, profile?.id));
+      const created = await mutate(
         MutationKind.SettlementCreate,
         input.groupId,
         {
           // Chosen here so the overlay has a stable row to show while it waits.
-          settlementId: randomUUID(),
+          settlementId,
           from: input.fromMemberId,
           to: input.toMemberId,
           amount: input.amount.toString(),
@@ -1969,6 +1980,13 @@ export function useRecordSettlement(groupId: string) {
         },
         input.clientMutationId,
       );
+      if (viewerIsPayee) {
+        await mutate(MutationKind.SettlementTransition, input.groupId, {
+          settlementId,
+          to: SettlementStatus.Confirmed,
+        } satisfies SettlementTransitionPayload);
+      }
+      return created;
     },
   });
 }

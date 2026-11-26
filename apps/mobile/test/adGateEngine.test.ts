@@ -22,15 +22,12 @@ const input = {
   placement,
   localGroups: 2,
   credits: 0,
-  passesUsed: 0,
 };
 it('caps passes at two in seven days and expires the window', () => {
   let l = grantPass(emptyLedger(), 100, placement);
   l = grantPass(l, 101, placement);
   expect(passesUsed(l, 102)).toBe(2);
-  expect(decideGate({ ...input, passesUsed: passesUsed(l, 102) })).toBe('offline_capped');
   expect(passesUsed(l, 101 + PASS_WINDOW_MS)).toBe(0);
-  expect(decideGate({ ...input, passesUsed: 0 })).toBe('offline_pass');
 });
 it('does not revive or extend passes on a backward jump', () => {
   const l = touch(grantPass(grantPass(emptyLedger(), 100), 101), 1000);
@@ -49,14 +46,16 @@ it('accepts the documented offline forward-jump residual', () => {
 });
 it.each([
   [{ localGroups: 0 }, 'allow'],
-  [{ localGroups: 0, passesUsed: 2 }, 'allow'],
-  [{ localGroups: 1, passesUsed: 2 }, 'allow'],
-  [{ placement: 'export_rewarded' as const, localGroups: 0 }, 'offline_pass'],
-  [{ online: true, required: null }, 'allow'],
+  [{ localGroups: 1 }, 'allow'],
+  // Fail closed: past the free groups, offline never lets the action through.
+  [{ localGroups: 2 }, 'offline_capped'],
+  [{ placement: 'export_rewarded' as const, localGroups: 0 }, 'offline_capped'],
+  [{ online: true, required: null }, 'ask'],
+  [{ online: true, required: null, localGroups: 1 }, 'allow'],
   [{ online: true, required: false }, 'allow'],
   [{ online: true, required: true, credits: 6 }, 'use_credit'],
   [{ online: true, required: true }, 'ask'],
-  [{ paid: true, passesUsed: 2 }, 'allow'],
+  [{ paid: true }, 'allow'],
 ] as const)('decides %j', (patch, expected) =>
   expect(decideGate({ ...input, ...patch })).toBe(expected),
 );
@@ -115,11 +114,9 @@ it('requires backend evidence and respects reachable probe veto', () => {
   ).toBe('retry');
   expect(classifyFailure({ ...failureInput, failure, online: false })).toBe('offline');
 });
-it('allows only after three consecutive no-fills', () => {
-  expect(classifyFailure({ ...failureInput, failure: 'no-fill', noFillStreak: 2 })).toBe('retry');
-  expect(classifyFailure({ ...failureInput, failure: 'no-fill', noFillStreak: 3 })).toBe(
-    'nofill_allow',
-  );
+it('never lets the action through on repeated no-fills (fail closed)', () => {
+  expect(classifyFailure({ ...failureInput, failure: 'no-fill', noFillStreak: 3 })).toBe('retry');
+  expect(classifyFailure({ ...failureInput, failure: 'no-fill', noFillStreak: 9 })).toBe('retry');
 });
 it.each(['no-fill', 'TIMEOUT', 'mediation-no-fill'])('recognizes %s', (s) =>
   expect(isNoFill(s)).toBe(true),

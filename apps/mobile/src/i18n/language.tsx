@@ -64,8 +64,10 @@ import {
   LanguageContext,
   localeFor,
   setActiveLanguage,
+  STRINGS_BY_LANGUAGE,
   type Language,
 } from '@/i18n';
+import { setYouLabel } from '@/data/types';
 
 const KEY = 'waves.language';
 
@@ -185,6 +187,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setActiveLanguage(language);
   }, [language]);
+  // "You" for the viewer's own rows. Set while rendering, not in an effect, so
+  // the rows drawn in this very pass already say it in the new language.
+  setYouLabel(STRINGS_BY_LANGUAGE[language].comments.you);
 
   const setLanguage = useCallback(async (value: Language | null) => {
     setStored(value);

@@ -151,7 +151,7 @@ import { TimelineBody } from '@/components/timeline/TimelineBody';
 import { draftsForGroup } from '@/lib/groupDrafts';
 import { amountMatches } from '@/lib/expenseSearch';
 import { memberNameById, memberNameFor } from '@/lib/memberName';
-import { memberBalanceStatus } from '@/lib/groupBalanceList';
+import { directionForViewer, memberBalanceStatus } from '@/lib/groupBalanceList';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
 enum Tab {
@@ -1507,7 +1507,7 @@ function LedgerGroupScreen() {
         shownName,
         moneyAccessibilityLabel(
           { minor: balance, currency },
-          balanceDirection(balance),
+          directionForViewer(balance, member.id === ledger.myMemberId),
           copyFor(locale).money,
           { locale },
         ),
@@ -1574,7 +1574,10 @@ function LedgerGroupScreen() {
                   mode="plain"
                   fadeFraction={false}
                   tone={
-                    balanceDirection(balance) === BalanceDirection.OwedToYou ? 'brand' : undefined
+                    directionForViewer(balance, member.id === ledger.myMemberId) ===
+                    BalanceDirection.OwedToYou
+                      ? 'brand'
+                      : undefined
                   }
                 />
                 {member.pending ? <PendingMark /> : null}

@@ -5,6 +5,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import {
+  BalanceDirection,
   currencyExposure,
   format,
   isValidVpa,
@@ -51,6 +52,7 @@ import {
 import { syncEngine } from '@/sync';
 import { classifyDepartedExpenses } from '@/lib/departedExpenses';
 import { friendlyError } from '@/lib/errors';
+import { directionForViewer } from '@/lib/groupBalanceList';
 import { expenseTitle } from '@/data/expenseTitle';
 import { removeMemberBody } from '@/data/removeMemberConfirm';
 import { personKeyOf } from '@/data/peopleBalances';
@@ -886,10 +888,14 @@ function MemberScreen() {
 
             <View style={{ alignItems: 'flex-end' }}>
               <Text variant="caption" style={{ color: heroInk, opacity: 0.85 }}>
-                {balance > 0n
-                  ? t.tabs.owesYou
-                  : balance < 0n
-                    ? t.tabs.youOweThem
+                {directionForViewer(balance, isMe) === BalanceDirection.OwedToYou
+                  ? isMe
+                    ? t.youAreOwed
+                    : t.tabs.owesYou
+                  : directionForViewer(balance, isMe) === BalanceDirection.YouOwe
+                    ? isMe
+                      ? t.youOwe
+                      : t.tabs.youOweThem
                     : t.tabs.allSquare}
               </Text>
               <MoneyText

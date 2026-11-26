@@ -29,8 +29,6 @@ import {
   shouldProbeAdHost,
   shouldOfferCredit,
   touch,
-  passesUsed,
-  grantPass,
   declineOffer,
   type Placement,
 } from '@/lib/adGateEngine';
@@ -115,7 +113,7 @@ export function useAdGate(options?: { offerCredit?: boolean }) {
     const status = online ? await readGateStatus(viewerId).catch(() => null) : null;
     if (!valid(l)) return false;
     const now = Date.now();
-    const ledger = await updateLedger(viewerId, (value) => (l.valid() ? touch(value, now) : value));
+    await updateLedger(viewerId, (value) => (l.valid() ? touch(value, now) : value));
     if (!valid(l)) return false;
     const required = status
       ? gateRequired({
@@ -134,18 +132,13 @@ export function useAdGate(options?: { offerCredit?: boolean }) {
       credits:
         typeof status?.credits === 'number' && Number.isFinite(status.credits) ? status.credits : 0,
       cost: status?.costs?.[next === 'export_rewarded' ? 'export' : 'group'] ?? 6,
-      passesUsed: passesUsed(ledger, now),
     });
     setBalance(typeof status?.credits === 'number' ? status.credits : null);
     setPerAd(status?.perAd ?? 6);
     if (decision === 'use_credit') {
       const result = await spendCredits(next === 'export_rewarded' ? 'export' : 'group');
       if (!valid(l)) return false;
-      if (!result) {
-        logAdEvent(viewerId, next, 'offline_allowed', 'status');
-        finish(true);
-        return true;
-      }
+      if (!result) return open(next);
       if (!result.ok) return open(next);
       if (result.spent)
         toast.show(
@@ -153,19 +146,7 @@ export function useAdGate(options?: { offerCredit?: boolean }) {
         );
       logAdEvent(viewerId, next, 'credit_used');
     }
-    if (decision === 'offline_pass') {
-      await updateLedger(viewerId, (value) =>
-        l.valid() && !paid.current ? grantPass(value, now, next) : value,
-      );
-      if (!valid(l)) return false;
-      logAdEvent(viewerId, next, 'offline_allowed', 'pass');
-    }
-    if (
-      paid.current ||
-      decision === 'allow' ||
-      decision === 'use_credit' ||
-      decision === 'offline_pass'
-    ) {
+    if (paid.current || decision === 'allow' || decision === 'use_credit') {
       if (online && !status && !paid.current)
         logAdEvent(viewerId, next, 'offline_allowed', 'status');
       finish(true);
@@ -240,40 +221,11 @@ export function useAdGate(options?: { offerCredit?: boolean }) {
         noFillStreak: streak,
       });
       if (cls === 'offline') {
-        const now = Date.now();
-        const ledger = await updateLedger(viewerId, (value) =>
-          l.valid() ? touch(value, now) : value,
-        );
-        if (!valid(l)) return;
-        const decision = decideGate({
-          paid: paid.current,
-          online: false,
-          required: true,
-          placement,
-          localGroups: localGroupCount(),
-          credits: 0,
-          passesUsed: passesUsed(ledger, now),
-        });
-        if (decision === 'offline_pass') {
-          await updateLedger(viewerId, (value) =>
-            l.valid() && !paid.current ? grantPass(value, now, placement) : value,
-          );
-          if (!valid(l)) return;
-          logAdEvent(viewerId, placement, 'offline_allowed', 'pass');
-        }
-        if (decision !== 'offline_capped') {
-          finish(true);
-          return;
-        }
+        // Fail closed: no network means no ad, and no ad means no action.
         logAdEvent(viewerId, placement, 'offline_capped');
         watching.current = false;
         setBusy(false);
         setCapped(true);
-        return;
-      }
-      if (cls === 'nofill_allow') {
-        coordinator.resetNoFill(viewerId);
-        finish(true);
         return;
       }
       if (cls === 'blocked') logAdEvent(viewerId, placement, 'blocked_adblock');

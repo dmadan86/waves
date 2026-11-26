@@ -34,7 +34,7 @@ export default function CreditsScreen() {
   const theme = useTheme();
   const c = theme.color;
   const clearance = useBottomClearance();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const viewerId = useViewerId();
   const { isPaid } = useEntitlement();
   const wallet = useQuery({
@@ -58,7 +58,7 @@ export default function CreditsScreen() {
         key === 'unavailable'
           ? t.adGates.blockedBody
           : s?.nextAt
-            ? fill(t.credits.nextAt, { time: new Date(s.nextAt).toLocaleString() })
+            ? fill(t.credits.nextAt, { time: new Date(s.nextAt).toLocaleString(locale) })
             : t.credits.earn,
     });
 

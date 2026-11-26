@@ -5960,6 +5960,8 @@ export interface UiStrings {
     leftToast: string;
     leaveQuestion: string;
     leaveBody: string;
+    /** Leaving a group in which you are the only member. */
+    leaveLastBody: string;
     settleFirstBalance: string;
     leaveAnyway: string;
     settleFirstSettle: string;
@@ -13120,8 +13122,7 @@ const en: UiStrings = {
     settlementRequests: 'Settlement confirmations',
     settlementRequestsBody: 'When someone says they paid you, so your balance stays right.',
     nudges: 'Reminders',
-    nudgesBody:
-      'A friendly nudge about money owed. Limited to one per person per day, in the database.',
+    nudgesBody: 'A friendly nudge about money owed. At most one per person per day.',
     digest: 'Daily group summary',
     digestBody: 'Everything else, batched into one notification a day instead of a stream.',
     companyUpdates: 'Company updates',
@@ -14420,6 +14421,8 @@ const en: UiStrings = {
     leftToast: 'You left {name}',
     leaveQuestion: 'Leave this group?',
     leaveBody: 'Your past expenses stay in the group history.',
+    leaveLastBody:
+      'You are the only member. If you leave, nobody is left in this group and its history can no longer be opened.',
     settleFirstBalance: 'Your balance',
     leaveAnyway: 'Leave anyway',
     settleFirstSettle: 'Settle up',
@@ -21353,8 +21356,7 @@ const ta: UiStrings = {
     settlementRequests: 'தீர்வு உறுதிப்படுத்தல்கள்',
     settlementRequestsBody: 'உங்களுக்குப் பணம் கொடுத்ததாக யாராவது சொல்லும்போது, உங்கள் பாக்கி சரியாக இருக்க.',
     nudges: 'நினைவூட்டல்கள்',
-    nudgesBody:
-      'தர வேண்டிய பணம் குறித்த மென்மையான நினைவூட்டல். ஒரு நாளைக்கு ஒருவருக்கு ஒன்று மட்டுமே, தரவுத்தளத்திலேயே வரையறுக்கப்பட்டது.',
+    nudgesBody: 'தர வேண்டிய பணம் குறித்த மென்மையான நினைவூட்டல். ஒரு நாளைக்கு ஒருவருக்கு அதிகபட்சம் ஒன்று.',
     digest: 'நாள்தோறும் குழுச் சுருக்கம்',
     digestBody: 'மற்ற அனைத்தும், தொடர்ச்சியாக அல்லாமல் நாளுக்கு ஒரு அறிவிப்பாகத் தொகுத்து.',
     companyUpdates: 'நிறுவன அறிவிப்புகள்',
@@ -22679,6 +22681,8 @@ const ta: UiStrings = {
     leftToast: 'நீங்கள் {name} குழுவிலிருந்து வெளியேறினீர்கள்',
     leaveQuestion: 'இந்தக் குழுவிலிருந்து விலகவா?',
     leaveBody: 'உங்கள் பழைய செலவுகள் குழு வரலாற்றில் இருக்கும்.',
+    leaveLastBody:
+      'இந்தக் குழுவில் நீங்கள் மட்டுமே உறுப்பினர். நீங்கள் விலகினால் யாரும் இருக்க மாட்டார்கள், வரலாற்றையும் திறக்க முடியாது.',
     settleFirstBalance: 'உங்கள் இருப்பு',
     leaveAnyway: 'எப்படியும் விலகு',
     settleFirstSettle: 'கணக்கைத் தீர்',
@@ -29621,7 +29625,7 @@ const hi: UiStrings = {
     settlementRequests: 'निपटान की पुष्टि',
     settlementRequestsBody: 'जब कोई कहे कि उसने आपको भुगतान किया, ताकि आपकी बाकी सही रहे।',
     nudges: 'याद दिलाना',
-    nudgesBody: 'बाकी पैसे की एक विनम्र याद। डेटाबेस में ही सीमित — एक व्यक्ति को दिन में एक बार।',
+    nudgesBody: 'बाकी पैसे की एक विनम्र याद। एक व्यक्ति को दिन में ज़्यादा से ज़्यादा एक बार।',
     digest: 'दैनिक समूह सारांश',
     digestBody: 'बाकी सब कुछ, लगातार की जगह दिन में एक सूचना में इकट्ठा।',
     companyUpdates: 'कंपनी अपडेट',
@@ -30908,6 +30912,7 @@ const hi: UiStrings = {
     leftToast: 'आपने {name} छोड़ दिया',
     leaveQuestion: 'यह समूह छोड़ें?',
     leaveBody: 'आपके पुराने खर्च समूह के इतिहास में बने रहेंगे।',
+    leaveLastBody: 'इस समूह में सिर्फ़ आप हैं। आप छोड़ेंगे तो कोई नहीं बचेगा और इसका इतिहास फिर खुल नहीं पाएगा।',
     settleFirstBalance: 'आपका बकाया',
     leaveAnyway: 'फिर भी छोड़ें',
     settleFirstSettle: 'हिसाब चुकाएँ',
@@ -37974,7 +37979,7 @@ const ar: UiStrings = {
     settlementRequests: 'تأكيدات التسوية',
     settlementRequestsBody: 'حين يقول أحدهم إنه دفع لك، كي يبقى باقيك صحيحًا.',
     nudges: 'التذكيرات',
-    nudgesBody: 'تذكير لطيف بالمال المستحق. مرة واحدة لكل شخص يوميًا، بحدٍّ في قاعدة البيانات.',
+    nudgesBody: 'تذكير لطيف بالمال المستحق. مرة واحدة كحدٍّ أقصى لكل شخص يوميًا.',
     digest: 'ملخص المجموعة اليومي',
     digestBody: 'كل ما تبقّى، مجمّعًا في إشعار واحد يوميًا بدل تدفق مستمر.',
     companyUpdates: 'تحديثات الشركة',
@@ -39432,6 +39437,8 @@ const ar: UiStrings = {
     leftToast: 'غادرت {name}',
     leaveQuestion: 'مغادرة هذه المجموعة؟',
     leaveBody: 'تبقى مصروفاتك السابقة في سجل المجموعة.',
+    leaveLastBody:
+      'أنت العضو الوحيد في هذه المجموعة. إذا غادرت فلن يبقى أحد ولن يمكن فتح سجلها بعد ذلك.',
     settleFirstBalance: 'رصيدك',
     leaveAnyway: 'غادر على أي حال',
     settleFirstSettle: 'سوِّ الحساب',

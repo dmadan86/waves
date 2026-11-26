@@ -91,13 +91,13 @@ export default function ExportScreen() {
       }
 
       try {
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(file.uri, {
-            mimeType: result.contentType,
-            dialogTitle: t.exportData.shareTitle,
-            UTI: UTI[format],
-          });
-        }
+        // No share sheet on this device: say so rather than "ready" with nothing to show.
+        if (!(await Sharing.isAvailableAsync())) throw new Error('SHARE_UNAVAILABLE');
+        await Sharing.shareAsync(file.uri, {
+          mimeType: result.contentType,
+          dialogTitle: t.exportData.shareTitle,
+          UTI: UTI[format],
+        });
       } finally {
         // The share sheet has taken its copy; nothing to keep in the cache.
         try {

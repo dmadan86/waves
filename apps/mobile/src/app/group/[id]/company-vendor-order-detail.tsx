@@ -25,7 +25,7 @@ import { renderOrderHtml, shareHtmlAsPdf } from '@/lib/vendorPdf';
 export default function CompanyVendorOrderDetailScreen() {
   const { id = '', orderId = '' } = useLocalSearchParams<{ id: string; orderId?: string }>();
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const s = t.companyVendors;
   const view = useCompanyVendors(id);
   const company = useCompanyEntries(id);
@@ -128,7 +128,7 @@ export default function CompanyVendorOrderDetailScreen() {
           <StandardCard style={{ gap: theme.spacing.sm }}>
             {order.events.map((e, index) => (
               <Text key={index} variant="caption">
-                {`${labels.status[e.status]} · ${new Date(e.at).toLocaleDateString()}`}
+                {`${labels.status[e.status]} · ${new Date(e.at).toLocaleDateString(locale)}`}
               </Text>
             ))}
           </StandardCard>

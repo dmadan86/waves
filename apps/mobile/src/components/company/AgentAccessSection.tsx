@@ -36,7 +36,7 @@ interface AgentWrite {
 
 export function AgentAccessSection({ groupId }: { groupId: string }) {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const queryClient = useQueryClient();
   const [menuLink, setMenuLink] = useState<AgentLink | null>(null);
   const [showActivity, setShowActivity] = useState(false);
@@ -142,7 +142,7 @@ export function AgentAccessSection({ groupId }: { groupId: string }) {
                   subtitle={
                     link.lastUsedAt
                       ? fill(t.company.agentsLastUsed, {
-                          when: new Date(link.lastUsedAt).toLocaleDateString(),
+                          when: new Date(link.lastUsedAt).toLocaleDateString(locale),
                         })
                       : t.company.agentsNeverUsed
                   }
@@ -181,7 +181,7 @@ export function AgentAccessSection({ groupId }: { groupId: string }) {
                     <ListRow
                       key={w.id}
                       title={`${w.person} · ${w.action}`}
-                      subtitle={new Date(w.created_at).toLocaleString()}
+                      subtitle={new Date(w.created_at).toLocaleString(locale)}
                     />
                   ))
               : null}
