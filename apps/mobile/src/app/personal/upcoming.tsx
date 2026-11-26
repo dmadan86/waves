@@ -3,10 +3,21 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { format, money, pickUpcoming } from '@waves/core';
-import { Badge, Button, iconSize, Row, Sheet, Text, useTabBarClearance, useTheme } from '@waves/ui';
+import {
+  Badge,
+  Button,
+  IconButton,
+  iconSize,
+  Row,
+  Sheet,
+  Text,
+  useTabBarClearance,
+  useTheme,
+} from '@waves/ui';
 
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { GroupRow } from '@/components/home/GroupRow';
+import { EmptyStateCta } from '@/components/EmptyStateCta';
 import { AddReminderSheet } from '@/components/personal/AddReminderSheet';
 import { ICON_FOR, useWealthRows } from '@/components/personal/PersonalHomeParts';
 import { PlainHeader } from '@/components/standard';
@@ -145,22 +156,11 @@ export default function PersonalUpcomingScreen() {
       <PlainHeader
         title={h.upcomingTitle}
         trailing={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={h.addReminder}
-            onPress={() => setAdding(true)}
-            hitSlop={10}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.color.brandSoft,
-            }}
-          >
-            <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
-          </Pressable>
+          view.rows.length > 0 ? (
+            <IconButton label={h.addReminder} onPress={() => setAdding(true)}>
+              <Ionicons name="add" size={iconSize.xl} color={theme.color.brand} />
+            </IconButton>
+          ) : null
         }
       />
       <ScrollView
@@ -235,9 +235,22 @@ export default function PersonalUpcomingScreen() {
           ) : null,
         )}
         {!rows.length ? (
-          <Text variant="caption" tone="muted" style={{ textAlign: 'center' }}>
-            {h.upcomingEmpty}
-          </Text>
+          view.rows.length === 0 ? (
+            <EmptyStateCta
+              compact
+              title={h.upcomingTitle}
+              body={h.upcomingEmpty}
+              action={h.addReminder}
+              onAdd={() => setAdding(true)}
+            />
+          ) : (
+            <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+              <Text variant="caption" tone="muted" style={{ textAlign: 'center' }}>
+                No entries match these filters
+              </Text>
+              <Button label="Clear filters" variant="ghost" onPress={() => setTab('all')} />
+            </View>
+          )
         ) : null}
       </ScrollView>
       <Sheet visible={acting !== null} onClose={() => setActing(null)} closeLabel={t.common.close}>
