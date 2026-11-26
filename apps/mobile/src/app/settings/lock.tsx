@@ -9,7 +9,7 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
@@ -44,6 +44,7 @@ import { describeGrace, GRACE_CHOICES, useLock } from '@/lib/lock';
 import { router } from '@/lib/navigation';
 import { useConnectedApps } from '@/lib/useConnectedApps';
 import { useTwoStepAvailable } from '@/lib/useTwoStep';
+import { settingsRoute } from '@/lib/settingsRoute';
 
 import { deviceGlyph } from './devices';
 
@@ -51,6 +52,7 @@ export default function LockSettingsScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
+  const { space } = useLocalSearchParams<{ space?: string }>();
   const connectedApps = useConnectedApps();
   const twoStepAvailable = useTwoStepAvailable();
   const { enabled, supported, graceSeconds, setEnabled, setGraceSeconds } = useLock();
@@ -135,7 +137,7 @@ export default function LockSettingsScreen() {
           {chevron}
         </Row>
       }
-      onPress={() => router.push('/settings/account')}
+      onPress={() => router.push(settingsRoute('/settings/account', space) as never)}
     />
   );
 
@@ -223,7 +225,7 @@ export default function LockSettingsScreen() {
                 <ListRow
                   leading={tile('mail-outline')}
                   title={t.lock.addContact}
-                  onPress={() => router.push('/settings/account')}
+                  onPress={() => router.push(settingsRoute('/settings/account', space) as never)}
                 />
               ) : null}
             </StandardCard>
@@ -233,7 +235,10 @@ export default function LockSettingsScreen() {
             <View style={{ gap: theme.spacing.sm }}>
               <SectionHeader
                 title={t.devices.title}
-                action={{ label: t.lock.seeAll, onPress: () => router.push('/settings/devices') }}
+                action={{
+                  label: t.lock.seeAll,
+                  onPress: () => router.push(settingsRoute('/settings/devices', space) as never),
+                }}
               />
               <Text variant="caption" tone="muted">
                 {t.lock.devicesSub}
@@ -273,7 +278,7 @@ export default function LockSettingsScreen() {
                         {t.devices.lastActive.replace('{when}', day(Date.parse(other.lastSeenAt)))}
                       </Text>
                     }
-                    onPress={() => router.push('/settings/devices')}
+                    onPress={() => router.push(settingsRoute('/settings/devices', space) as never)}
                   />
                 ) : null}
               </StandardCard>
@@ -295,7 +300,7 @@ export default function LockSettingsScreen() {
                     ? t.lock.backupOn.replace('{date}', day(lastBackup))
                     : t.lock.backupNever
                 }
-                onPress={() => router.push('/settings/backup')}
+                onPress={() => router.push(settingsRoute('/settings/backup', space) as never)}
               />
               <ListRow
                 divider
@@ -321,7 +326,9 @@ export default function LockSettingsScreen() {
                 }
                 trailing={chevron}
                 divider
-                onPress={() => router.push('/settings/connected-apps')}
+                onPress={() =>
+                  router.push(settingsRoute('/settings/connected-apps', space) as never)
+                }
               />
               {twoStepAvailable ? (
                 <ListRow
@@ -330,7 +337,7 @@ export default function LockSettingsScreen() {
                   title={t.twoStep.row}
                   subtitle={t.twoStep.rowHint}
                   trailing={chevron}
-                  onPress={() => router.push('/settings/two-step')}
+                  onPress={() => router.push(settingsRoute('/settings/two-step', space) as never)}
                 />
               ) : null}
               <ListRow
@@ -338,7 +345,9 @@ export default function LockSettingsScreen() {
                 leading={tile('trash-outline', theme.color.negativeSoft, theme.color.negative)}
                 title={t.lock.deleteRow}
                 subtitle={t.lock.deleteHint}
-                onPress={() => router.push('/settings/delete-account')}
+                onPress={() =>
+                  router.push(settingsRoute('/settings/delete-account', space) as never)
+                }
               />
             </StandardCard>
           </View>

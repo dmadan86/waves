@@ -31,8 +31,16 @@ const state = vi.hoisted(() => ({
   mutate: vi.fn(async () => undefined),
 }));
 
-vi.mock('react', () => ({ useMemo: (fn: () => unknown) => fn() }));
-vi.mock('@tanstack/react-query', () => ({ useMutation: (options: unknown) => options }));
+vi.mock('react', () => ({
+  useMemo: (fn: () => unknown) => fn(),
+  useEffect: (fn: () => void) => fn(),
+}));
+vi.mock('@tanstack/react-query', () => ({
+  useMutation: (options: { mutationFn: (input: never) => unknown }) => ({
+    ...options,
+    mutate: (input: never) => void options.mutationFn(input),
+  }),
+}));
 vi.mock('expo-crypto', () => ({ randomUUID: () => 'minted-uuid' }));
 vi.mock('@/lib/auth', () => ({ useAuth: () => ({ session: state.session }) }));
 vi.mock('@/sync', () => ({
@@ -179,6 +187,33 @@ describe('usePersonalLedger', () => {
     // Then the id set remembers the deletion, the list does not show it
     expect([...personal.usePersonalRecordIds()].sort()).toEqual(['gone', 'live']);
     expect(personal.usePersonalRecords().map((r) => r.id)).toEqual(['live']);
+  });
+
+  it('soft-deletes linked transactions only when the local parent is tombstoned', () => {
+    state.mirror = mirrorWith([
+      record('deleted-loan', 'loan', {}, { deleted_at: '2026-09-02T00:00:00.000Z' }),
+      record(
+        'orphan',
+        'txn',
+        encodeTxn({ ...TXN_BASE, date: '2026-09-01', loanId: 'deleted-loan' }),
+      ),
+      record(
+        'waiting',
+        'txn',
+        encodeTxn({ ...TXN_BASE, date: '2026-09-01', loanId: 'not-arrived' }),
+      ),
+    ]);
+
+    personal.usePersonalLedger();
+
+    expect(state.mutate).toHaveBeenCalledWith(MutationKind.PersonalDelete, personalScope(OWNER), {
+      recordId: 'orphan',
+    });
+    expect(state.mutate).not.toHaveBeenCalledWith(
+      MutationKind.PersonalDelete,
+      personalScope(OWNER),
+      { recordId: 'waiting' },
+    );
   });
 
   it('shows a queued upsert straight away (offline first)', () => {

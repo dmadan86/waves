@@ -8,7 +8,7 @@
  * `@waves/core` (personal/compute), never on the server.
  */
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 
@@ -33,6 +33,7 @@ import {
 } from '@waves/core';
 
 import { useAuth } from '@/lib/auth';
+import { claimOrphanDeletes, orphanedPersonalTxnIds } from '@/lib/personalOrphans';
 import { useSync } from '@/sync';
 
 /** A Date as a LOCAL YYYY-MM-DD — the calendar day the person is looking at, not
@@ -72,13 +73,14 @@ const NO_RECORDS: readonly MirrorPersonalRecord[] = [];
  * cloud backup (`lib/backup`) has to keep what it does not understand, so it
  * reads the rows instead. Empty when signed out.
  */
-export function usePersonalRecords(): readonly MirrorPersonalRecord[] {
+export function usePersonalRecords(includeDeleted = false): readonly MirrorPersonalRecord[] {
   const { mirror, queue } = useSync();
   const { session } = useAuth();
   const ownerId = session?.user?.id ?? '';
   return useMemo(
-    () => (ownerId ? materialisePersonalRecords(mirror, queue, { ownerId }) : NO_RECORDS),
-    [mirror, queue, ownerId],
+    () =>
+      ownerId ? materialisePersonalRecords(mirror, queue, { ownerId, includeDeleted }) : NO_RECORDS,
+    [mirror, queue, ownerId, includeDeleted],
   );
 }
 
@@ -105,7 +107,14 @@ export function usePersonalRecordIds(): ReadonlySet<string> {
  * first. Empty (not an error) when signed out — personal finance is per-account.
  */
 export function usePersonalLedger(): PersonalLedger {
-  const records = usePersonalRecords();
+  const records = usePersonalRecords(true);
+  const remove = useDeletePersonalRecord();
+  const deleteRecord = remove.mutate;
+
+  const orphanIds = useMemo(() => orphanedPersonalTxnIds(records), [records]);
+  useEffect(() => {
+    for (const id of claimOrphanDeletes(orphanIds)) deleteRecord(id);
+  }, [orphanIds, deleteRecord]);
 
   return useMemo(() => {
     if (records.length === 0) return EMPTY;
@@ -114,6 +123,7 @@ export function usePersonalLedger(): PersonalLedger {
     const loans: PersonalLoan[] = [];
     const budgets: PersonalBudget[] = [];
     for (const record of records) {
+      if (record.deleted_at !== null) continue;
       switch (record.record_kind) {
         case 'txn':
           txns.push(decodeTxn(record.id, record.data));

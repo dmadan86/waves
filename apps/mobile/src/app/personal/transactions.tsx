@@ -53,6 +53,7 @@ import { personalTxnCategoryLabel } from '@/lib/personalTxnCategoryLabel';
 import { filterTxns, groupByDay, type TxnTab } from '@/lib/txnLedger';
 import { CategoryBadge, CategoryPicker } from '@/components/Category';
 import { usePersonalLedger } from '@/data/personal';
+import { monthlySpendEntries } from '@/lib/monthlySpend';
 import { deviceCountry, plural, useStrings } from '@/i18n';
 import { paymentMethodLabel } from '@/lib/paymentMethodLabel';
 import { PersonalGuard } from '@/components/PersonalGuard';
@@ -176,6 +177,10 @@ function PersonalTransactionsScreenBody() {
       kindParam === 'income' && month && currencyParam
         ? new Set(monthlyIncomeEntries(txns, month, currencyParam).map((entry) => entry.id))
         : null;
+    const spendIds =
+      kindParam === 'expense' && month && currencyParam
+        ? new Set(monthlySpendEntries(txns, month, currencyParam).map((entry) => entry.id))
+        : null;
     const matchesCategory = (category: string | null | undefined): boolean =>
       (!uncategorizedOnly || !category) &&
       (!filter ||
@@ -196,7 +201,9 @@ function PersonalTransactionsScreenBody() {
     }).filter((txn) =>
       incomeIds
         ? incomeIds.has(txn.id)
-        : !(kindParam === 'income' && isInvestmentCategory(txn.category)),
+        : spendIds
+          ? spendIds.has(txn.id)
+          : !(kindParam === 'income' && isInvestmentCategory(txn.category)),
     );
     const list: LedgerItem[] = [];
     for (const { rows, ...day } of groupByDay(shown)) {
@@ -216,12 +223,13 @@ function PersonalTransactionsScreenBody() {
     return list;
   }, [
     month,
+    currencyParam,
+    kindParam,
     txns,
     filter,
     picked,
     bucketed,
     creditOnly,
-    currencyParam,
     uncategorizedOnly,
     loanId,
     params.loans,
@@ -230,7 +238,6 @@ function PersonalTransactionsScreenBody() {
     fromDate,
     toDate,
     tab,
-    kindParam,
     debouncedQuery,
     locale,
     t,
@@ -331,23 +338,6 @@ function PersonalTransactionsScreenBody() {
         >
           <Ionicons name="sparkles-outline" size={iconSize.xl} color={accent} />
         </IconButton>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.personal.add}
-          onPress={addExpense}
-          hitSlop={4}
-          style={({ pressed }) => ({
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            backgroundColor: accent,
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: pressed ? 0.8 : 1,
-          })}
-        >
-          <Ionicons name="add" size={26} color="#FFFFFF" />
-        </Pressable>
       </Row>
 
       <View style={{ paddingHorizontal: theme.spacing.lg, gap: 10, paddingTop: 6 }}>
@@ -508,15 +498,15 @@ function PersonalTransactionsScreenBody() {
           <View style={{ paddingTop: theme.spacing.xxxl }}>
             <EmptyStateCta
               title={
-                filter || query || monthEnabled || kindParam
+                filter || query || tab !== 'all' || drillIn
                   ? 'No entries match these filters'
-                  : t.personal.empty
+                  : `No entries in ${monthLabel(browseMonth, locale)}`
               }
               body={t.personal.transactionsSubtitle}
               action={
-                filter || query || monthEnabled || kindParam ? 'Clear filters' : t.personal.add
+                filter || query || tab !== 'all' || drillIn ? 'Clear filters' : t.personal.add
               }
-              onAdd={filter || query || monthEnabled || kindParam ? clearFilters : addExpense}
+              onAdd={filter || query || tab !== 'all' || drillIn ? clearFilters : addExpense}
             />
           </View>
         }

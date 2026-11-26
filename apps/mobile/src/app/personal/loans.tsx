@@ -502,24 +502,26 @@ function LoansScreenBody() {
         )}
       </ScrollView>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t.personal.addLoan}
-        onPress={() => setCreating(true)}
-        style={{
-          position: 'absolute',
-          end: theme.spacing.lg,
-          bottom: clearance,
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.color.brand,
-        }}
-      >
-        <Ionicons name="add" size={iconSize.xl} color={theme.color.onBrand} />
-      </Pressable>
+      {sorted.length > 0 ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.personal.addLoan}
+          onPress={() => setCreating(true)}
+          style={{
+            position: 'absolute',
+            end: theme.spacing.lg,
+            bottom: clearance,
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.brand,
+          }}
+        >
+          <Ionicons name="add" size={iconSize.xl} color={theme.color.onBrand} />
+        </Pressable>
+      ) : null}
       {reminding ? (
         <AddReminderSheet
           visible
@@ -952,9 +954,6 @@ function LoanEditor({
 
         {loan ? (
           <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text variant="body" style={{ flex: 1 }}>
-              {t.personal.closeLoan}
-            </Text>
             <Button
               label={closed ? t.personal.reopenLoan : t.personal.closeLoan}
               size="sm"
@@ -1004,7 +1003,7 @@ function LoanEditor({
               <Pressable
                 key={p.id}
                 accessibilityRole="button"
-                accessibilityLabel={`${p.date} ${format(money(p.amount, p.currency), { locale })}`}
+                accessibilityLabel={`${formatLoanPaymentDate(p.date, locale)} ${format(money(p.amount, p.currency), { locale })}`}
                 onPress={() => {
                   // Leave first: a sheet left over the pushed screen has to be dismissed twice.
                   onClose();
@@ -1056,12 +1055,12 @@ function LoanEditor({
               void confirm({
                 title: t.common.delete,
                 body: loan.synced
-                  ? `${t.personal.deleteConfirm} Linked payment entries will also be deleted. ${
+                  ? `Delete this loan and its payments? ${
                       unlinkable
                         ? t.personal.deleteSharedBody
                         : fill(t.personal.deleteSharedKept, { name: loan.counterpart })
                     }`
-                  : `${t.personal.deleteConfirm} Linked payment entries will also be deleted.`,
+                  : `Delete this loan and its payments?`,
                 confirmLabel: t.common.delete,
                 tone: 'danger',
               }).then(async (ok) => {

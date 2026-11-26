@@ -20,6 +20,7 @@ import {
   rememberSetup,
   setupSummary,
   existingSetupAmount,
+  setupPrefillForUntouched,
   setupAmountChanged,
   type SetupContext,
 } from '@/lib/personalSetup';
@@ -33,6 +34,14 @@ const ctx: SetupContext = {
 const rupees = (n: number): bigint => BigInt(n) * 100n;
 
 describe('rerunning Personal setup preserves existing recurring amounts', () => {
+  it('hydrates a late prefill only while the answer is untouched', () => {
+    const incoming = { kind: 'salary' as const, amount: 50000n, day: 1 };
+    expect(setupPrefillForUntouched(null, incoming, false)).toEqual(incoming);
+    expect(setupPrefillForUntouched({ ...incoming, amount: 60000n }, incoming, true)).toEqual({
+      ...incoming,
+      amount: 60000n,
+    });
+  });
   const salary = (active = true): PersonalRecurring => ({
     id: deterministicId('psetup:u1:income:salary'),
     txnKind: 'income',

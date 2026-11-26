@@ -4,7 +4,15 @@
  * so leaving midway loses nothing, and every step can be skipped. The last
  * thing on the screen is the reveal: what comes in, what is fixed, what is free.
  */
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type ReactNode,
+} from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
@@ -43,6 +51,7 @@ import {
   SETUP_STEPS,
   setupSummary,
   setupAmountChanged,
+  setupPrefillForUntouched,
   existingSetupAmount,
   setupSlotId,
   type BillAnswer,
@@ -275,6 +284,15 @@ function IncomeStep({ s, currency, save, skip, index, total, incomePrefill }: St
   const [kind, setKind] = useState<IncomeKind | null>(incomePrefill?.kind ?? null);
   const [amount, setAmount] = useState(incomePrefill?.amount ?? 0n);
   const [day, setDay] = useState(incomePrefill?.day ?? 1);
+  const touched = useRef(false);
+  useEffect(() => {
+    const next = setupPrefillForUntouched(null, incomePrefill, touched.current);
+    if (next) {
+      setKind(next.kind);
+      setAmount(next.amount);
+      setDay(next.day);
+    }
+  }, [incomePrefill]);
   if (!kind) {
     return (
       <Shell s={s} title={s.incomeQ} index={index} total={total} onSkip={skip} privateLine>
@@ -289,7 +307,7 @@ function IncomeStep({ s, currency, save, skip, index, total, incomePrefill }: St
           onPick={(v) =>
             v === 'none'
               ? void save('income', { income: { kind: 'none', amount: 0n, day: 1 } })
-              : setKind(v)
+              : ((touched.current = true), setKind(v))
           }
         />
       </Shell>
@@ -302,8 +320,14 @@ function IncomeStep({ s, currency, save, skip, index, total, incomePrefill }: St
         currency={currency}
         amount={amount}
         day={day}
-        onAmount={setAmount}
-        onDay={setDay}
+        onAmount={(v) => {
+          touched.current = true;
+          setAmount(v);
+        }}
+        onDay={(v) => {
+          touched.current = true;
+          setDay(v);
+        }}
       />
       <Button
         label={s.cont}
@@ -318,6 +342,15 @@ function HomeStep({ s, region, currency, save, skip, index, total, homePrefill }
   const [kind, setKind] = useState<HomeKind | null>(homePrefill?.kind ?? null);
   const [amount, setAmount] = useState(homePrefill?.amount ?? 0n);
   const [day, setDay] = useState(homePrefill?.day ?? 1);
+  const touched = useRef(false);
+  useEffect(() => {
+    const next = setupPrefillForUntouched(null, homePrefill, touched.current);
+    if (next) {
+      setKind(next.kind);
+      setAmount(next.amount);
+      setDay(next.day);
+    }
+  }, [homePrefill]);
   if (!kind) {
     return (
       <Shell s={s} title={s.homeQ} index={index} total={total} onSkip={skip}>
@@ -335,7 +368,7 @@ function HomeStep({ s, region, currency, save, skip, index, total, homePrefill }
           onPick={(v) =>
             v === 'none'
               ? void save('home', { home: { kind: 'none', amount: 0n, day: 1 } })
-              : setKind(v)
+              : ((touched.current = true), setKind(v))
           }
         />
       </Shell>
@@ -348,8 +381,14 @@ function HomeStep({ s, region, currency, save, skip, index, total, homePrefill }
         currency={currency}
         amount={amount}
         day={day}
-        onAmount={setAmount}
-        onDay={setDay}
+        onAmount={(v) => {
+          touched.current = true;
+          setAmount(v);
+        }}
+        onDay={(v) => {
+          touched.current = true;
+          setDay(v);
+        }}
       />
       <Button
         label={s.cont}
@@ -373,6 +412,13 @@ function BillsStep({
   const theme = useTheme();
   const [picked, setPicked] = useState<BillId[]>(billPrefill.map((row) => row.id));
   const [rows, setRows] = useState<BillAnswer[] | null>(billPrefill.length ? billPrefill : null);
+  const touched = useRef(false);
+  useEffect(() => {
+    if (!touched.current && billPrefill.length) {
+      setPicked(billPrefill.map((row) => row.id));
+      setRows(billPrefill);
+    }
+  }, [billPrefill]);
   const name = (id: BillId): string => {
     const hintId =
       id === 'building_fees'
@@ -397,7 +443,10 @@ function BillsStep({
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
                 accessibilityLabel={name(id)}
-                onPress={() => setPicked((p) => (on ? p.filter((x) => x !== id) : [...p, id]))}
+                onPress={() => {
+                  touched.current = true;
+                  setPicked((p) => (on ? p.filter((x) => x !== id) : [...p, id]));
+                }}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -421,17 +470,26 @@ function BillsStep({
         </View>
         <Button
           label={s.cont}
-          onPress={() =>
-            picked.length
-              ? setRows(picked.map((id) => ({ id, amount: 0n, day: 5 })))
-              : void save('bills', { bills: [] })
-          }
+          onPress={() => {
+            touched.current = true;
+            if (picked.length) {
+              setRows(
+                picked.map(
+                  (id) => billPrefill.find((row) => row.id === id) ?? { id, amount: 0n, day: 5 },
+                ),
+              );
+            } else {
+              void save('bills', { bills: [] });
+            }
+          }}
         />
       </Shell>
     );
   }
-  const patch = (id: BillId, change: Partial<BillAnswer>): void =>
+  const patch = (id: BillId, change: Partial<BillAnswer>): void => {
+    touched.current = true;
     setRows((r) => r?.map((x) => (x.id === id ? { ...x, ...change } : x)) ?? r);
+  };
   return (
     <Shell s={s} title={s.billsDetailsQ} index={index} total={total} onSkip={skip}>
       {rows.map((row) => (
@@ -636,7 +694,7 @@ const BILL_LABEL: Record<BillId, PlainKey> = {
   investment_contribution: 'billSip',
 };
 
-const STEP_VIEW: Record<SetupStep, (p: StepProps & Pos) => ReactNode> = {
+const STEP_VIEW: Record<SetupStep, ComponentType<StepProps & Pos>> = {
   income: (p) => <IncomeStep {...p} />,
   home: (p) => <HomeStep {...p} />,
   bills: (p) => <BillsStep {...p} />,
@@ -802,6 +860,7 @@ function SetupBody() {
     );
   }
   const step = order[index]!;
+  const StepView = STEP_VIEW[step];
   const incomePrefill =
     (['salary', 'business', 'freelance', 'pension'] as const)
       .map((kind) => {
@@ -836,20 +895,20 @@ function SetupBody() {
   return (
     <BackContext.Provider value={index > 0 ? () => setIndex((i) => i - 1) : null}>
       <View style={{ flex: 1 }} key={step}>
-        {STEP_VIEW[step]({
-          s,
-          region,
-          currency,
-          locale,
-          save,
-          skip,
-          free: setupSummary(ledger.recurrings, today, currency).free,
-          index,
-          total: order.length,
-          incomePrefill,
-          homePrefill,
-          billPrefill,
-        })}
+        <StepView
+          s={s}
+          region={region}
+          currency={currency}
+          locale={locale}
+          save={save}
+          skip={skip}
+          free={setupSummary(ledger.recurrings, today, currency).free}
+          index={index}
+          total={order.length}
+          incomePrefill={incomePrefill}
+          homePrefill={homePrefill}
+          billPrefill={billPrefill}
+        />
       </View>
     </BackContext.Provider>
   );

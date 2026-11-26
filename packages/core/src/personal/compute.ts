@@ -575,6 +575,23 @@ export function monthlyIncomeEntries(
   );
 }
 
+/** Entries counted by Personal Home's monthly Spent figure. */
+export function monthlySpendEntries(
+  txns: readonly PersonalTxn[],
+  month: string,
+  currency: CurrencyCode,
+): PersonalTxn[] {
+  return txns.filter(
+    (txn) =>
+      txn.kind === 'expense' &&
+      txn.currency === currency &&
+      monthKey(txn.date) === month &&
+      !isInvestmentCategory(txn.category) &&
+      txn.loanId === null &&
+      !(txn as PersonalTxn & { deletedAt?: string | null }).deletedAt,
+  );
+}
+
 /** Income, expense and net for one month and currency. */
 export function monthlySummary(
   txns: readonly PersonalTxn[],
@@ -743,14 +760,7 @@ export function personalHomeSpent(
   month: string,
   currency: CurrencyCode,
 ): bigint {
-  let spent = 0n;
-  for (const txn of txns) {
-    if ((txn as PersonalTxn & { deletedAt?: string | null }).deletedAt) continue;
-    if (txn.kind !== 'expense' || isInvestmentCategory(txn.category) || txn.loanId !== null)
-      continue;
-    if (txn.currency === currency && monthKey(txn.date) === month) spent += txn.amount;
-  }
-  return spent;
+  return monthlySpendEntries(txns, month, currency).reduce((sum, txn) => sum + txn.amount, 0n);
 }
 
 /**

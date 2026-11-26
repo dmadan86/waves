@@ -196,6 +196,15 @@ export function existingSetupAmount(
   return recurrings.find((r) => r.id === id && r.active)?.amount ?? null;
 }
 
+/** A late ledger hydration may seed untouched answers, but never replace edits. */
+export function setupPrefillForUntouched<T>(
+  current: T,
+  incoming: T | null | undefined,
+  touched: boolean,
+): T {
+  return !touched && incoming !== null && incoming !== undefined ? incoming : current;
+}
+
 /** A rerun should preserve a matching active rule unless its amount changed. */
 export function setupAmountChanged(existing: bigint | null, proposed: bigint): boolean {
   return existing === null || existing !== proposed;
