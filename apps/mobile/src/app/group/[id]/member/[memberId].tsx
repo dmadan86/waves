@@ -54,7 +54,7 @@ import { classifyDepartedExpenses } from '@/lib/departedExpenses';
 import { friendlyError } from '@/lib/errors';
 import { directionForViewer } from '@/lib/groupBalanceList';
 import { expenseTitle } from '@/data/expenseTitle';
-import { removeMemberBody } from '@/data/removeMemberConfirm';
+import { openBalances, removeMemberBody } from '@/data/removeMemberConfirm';
 import { personKeyOf } from '@/data/peopleBalances';
 import { useBlockedUsers } from '@/data/blocked';
 import {
@@ -526,6 +526,7 @@ function MemberScreen() {
       body: removeMemberBody({
         name: realName,
         balance,
+        open: openBalances(ledger.net, member.id),
         currency,
         locale,
         strings: {

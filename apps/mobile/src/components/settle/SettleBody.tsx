@@ -12,6 +12,7 @@
  * other members, the payment history and the who-pays-whom view sit below.
  */
 
+import { randomUUID } from 'expo-crypto';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, Linking, Pressable, View } from 'react-native';
@@ -64,6 +65,7 @@ import { friendlyError } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 import { useDialog } from '@/lib/dialog';
 import { useGuestGuard } from '@/lib/guestGuard';
+import { createSubmitGuard } from '@/lib/submitGuard';
 import { router } from '@/lib/navigation';
 import { groupDebtsByPerson, joinAmounts, type PersonAmount } from '@/lib/debtsByPerson';
 import { isRatelessTransfer } from '@/lib/settleCurrency';
@@ -100,6 +102,7 @@ export function useSettleFlow(
 
   const { group, members, everyone, expenses, settlements } = useGroup(groupId);
   const recordSettlement = useRecordSettlement(groupId);
+  const submitGuard = useRef(createSubmitGuard(randomUUID)).current;
   const guard = useGuestGuard();
 
   const [error, setError] = useState<string | null>(null);
@@ -175,20 +178,28 @@ export function useSettleFlow(
       receivables.length > 0
         ? allocateSettlement({ amount: transfer.amount }, receivables)
         : { allocations: [], unallocated: transfer.amount };
-    try {
-      await recordSettlement.mutateAsync({
-        groupId,
-        fromMemberId: transfer.from,
-        toMemberId: transfer.to,
-        amount: transfer.amount,
-        rail,
-        currency: transfer.currency,
-        allocations: allocation.allocations,
-      });
-      onRecorded();
-    } catch (caught) {
-      setError(friendlyError(caught, t.couldNotSave, 'settle.record'));
-    }
+    // One intent per transfer + rail: a second tap is ignored and a retry re-sends the same id.
+    const intent = `${transfer.from}|${transfer.to}|${transfer.currency}|${transfer.amount}|${rail}`;
+    await submitGuard
+      .run(intent, async (id) => {
+        try {
+          await recordSettlement.mutateAsync({
+            groupId,
+            fromMemberId: transfer.from,
+            toMemberId: transfer.to,
+            amount: transfer.amount,
+            rail,
+            currency: transfer.currency,
+            allocations: allocation.allocations,
+            clientMutationId: id,
+          });
+          onRecorded();
+        } catch (caught) {
+          setError(friendlyError(caught, t.couldNotSave, 'settle.record'));
+          throw caught;
+        }
+      })
+      .catch(() => undefined);
   };
 
   /** Somebody paid me: ask before writing, it is easy to mis-tap a row. */

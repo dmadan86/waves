@@ -1018,6 +1018,29 @@ describe('signing out', () => {
     expect(world.order).toEqual(['revoke', 'mark', 'signOut']);
   });
 
+  it('still ends the session on this device when the server cannot be reached', async () => {
+    session = user('u1');
+    world.db = tableOf({ u1: profileRow('u1') }) as never;
+    world.auth.signOut!.mockRejectedValueOnce(new Error('Network request failed'));
+    const auth = await mount();
+
+    await auth.value.signOut();
+
+    expect(world.auth.signOut).toHaveBeenCalledTimes(2);
+    expect(world.auth.signOut).toHaveBeenLastCalledWith({ scope: 'local' });
+  });
+
+  it('falls back to a local sign-out when the server answers with an error', async () => {
+    session = user('u1');
+    world.db = tableOf({ u1: profileRow('u1') }) as never;
+    world.auth.signOut!.mockResolvedValueOnce({ error: { message: 'offline' } });
+    const auth = await mount();
+
+    await auth.value.signOut();
+
+    expect(world.auth.signOut).toHaveBeenLastCalledWith({ scope: 'local' });
+  });
+
   it('signs out with no account id to clear when nobody was signed in', async () => {
     const auth = await mount();
     await auth.value.signOut();

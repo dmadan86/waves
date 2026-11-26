@@ -13,7 +13,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { MutationKind, SyncTable, categoryTagsScope } from '@waves/core';
+import { MutationKind, SyncTable, categoryTagsScope, type QueuedMutation } from '@waves/core';
 
 import {
   memberRow,
@@ -214,6 +214,23 @@ describe('groups', () => {
     expect(sync.forgetGroup).toHaveBeenCalledWith('g-1');
     await settled();
     expect(syncModule.engineFlush).toHaveBeenCalledWith({ groupIds: ['g-1'] });
+  });
+
+  it('flushes pending group writes and blocks leaving if they did not drain', async () => {
+    sync.queue = [{ groupId: 'g-1' } as unknown as QueuedMutation];
+    sync.flushGroup.mockResolvedValue(false);
+    const leave = mutation<string>(() => hooks.useLeaveGroup('g-1'));
+    await expect(leave.mutationFn('m-1')).rejects.toThrow(/unsent changes/i);
+    expect(sync.flushGroup).toHaveBeenCalledWith('g-1');
+    expect(api.leaveGroup).not.toHaveBeenCalled();
+  });
+
+  it('leaves once the pending group writes have drained', async () => {
+    sync.queue = [{ groupId: 'g-1' } as unknown as QueuedMutation];
+    sync.flushGroup.mockResolvedValue(true);
+    const leave = mutation<string>(() => hooks.useLeaveGroup('g-1'));
+    await leave.mutationFn('m-1');
+    expect(api.leaveGroup).toHaveBeenCalledWith('m-1');
   });
 
   it.each(['delete', 'leave'] as const)(

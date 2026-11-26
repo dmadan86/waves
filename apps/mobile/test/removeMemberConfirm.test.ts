@@ -5,7 +5,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { removeMemberBody } from '../src/data/removeMemberConfirm';
+import { openBalances, removeMemberBody } from '../src/data/removeMemberConfirm';
 import { STRINGS_BY_LANGUAGE } from '../src/i18n';
 
 // The i18n module imports expo-localization, which needs a native host.
@@ -18,6 +18,24 @@ const strings = {
 };
 
 const base = { name: 'Ravi', currency: 'INR', locale: 'en-IN', strings };
+
+describe('openBalances', () => {
+  const net = new Map([
+    ['INR', new Map([['u1', 0n]])],
+    ['USD', new Map([['u1', -500n]])],
+  ]);
+
+  it('sees a USD debt even when the default currency is square', () => {
+    expect(openBalances(net, 'u1')).toEqual([{ currency: 'USD', balance: -500n }]);
+    expect(openBalances(net, 'nobody')).toEqual([]);
+    expect(openBalances(net, null)).toEqual([]);
+  });
+
+  it('the remove confirm names the USD debt', () => {
+    const text = removeMemberBody({ ...base, balance: 0n, open: openBalances(net, 'u1') });
+    expect(text).toMatch(/^Ravi still owes .*5/);
+  });
+});
 
 describe('removeMemberBody', () => {
   it('is just the history note when the balance is square', () => {

@@ -437,6 +437,12 @@ export class SyncEngine {
     await this.dropGroup(groupId);
   }
 
+  /** Flush before a membership change and report whether that group's queue drained. */
+  async flushGroup(groupId: string): Promise<boolean> {
+    await this.flush({ groupIds: [groupId] });
+    return !this.state.queue.some((item) => item.groupId === groupId);
+  }
+
   /** `forgetGroup` without the wait, for a flush that is itself the one in flight. */
   private async dropGroup(groupId: string): Promise<void> {
     const tables = {} as Record<SyncTable, Record<string, MirrorRow>>;

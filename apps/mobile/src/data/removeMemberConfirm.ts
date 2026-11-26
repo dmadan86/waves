@@ -9,6 +9,26 @@ export interface RemoveMemberStrings {
   readonly isOwed: string;
 }
 
+export interface OpenBalance {
+  readonly currency: string;
+  /** Minor units; positive means owed to them, negative means they owe. */
+  readonly balance: bigint;
+}
+
+/** Every non-zero balance a member holds, in any currency (not just the group default). */
+export function openBalances(
+  net: ReadonlyMap<string, ReadonlyMap<string, bigint>>,
+  memberId: string | null,
+): OpenBalance[] {
+  if (memberId === null) return [];
+  const open: OpenBalance[] = [];
+  for (const [currency, perMember] of net) {
+    const balance = perMember.get(memberId) ?? 0n;
+    if (balance !== 0n) open.push({ currency, balance });
+  }
+  return open;
+}
+
 /**
  * The body of "Remove {name}?". When the person's balance in this group is not
  * square, it leads with what is still open — they owe, or they are owed —
@@ -20,15 +40,21 @@ export function removeMemberBody(input: {
   /** Minor units; positive means owed to them, negative means they owe. */
   balance: bigint;
   currency: string;
+  /** Balances in every currency; when given it replaces `balance`/`currency`. */
+  open?: readonly OpenBalance[];
   locale: string;
   strings: RemoveMemberStrings;
 }): string {
   const { name, balance, currency, locale, strings } = input;
   const base = fill(strings.body, { name });
-  if (balance === 0n) return base;
-  const amount = format(money(balance < 0n ? -balance : balance, currency as CurrencyCode), {
-    locale,
+  const open = input.open ?? (balance === 0n ? [] : [{ currency, balance }]);
+  if (open.length === 0) return base;
+  const leads = open.map((entry) => {
+    const amount = format(
+      money(entry.balance < 0n ? -entry.balance : entry.balance, entry.currency as CurrencyCode),
+      { locale },
+    );
+    return fill(entry.balance < 0n ? strings.stillOwes : strings.isOwed, { name, amount });
   });
-  const lead = fill(balance < 0n ? strings.stillOwes : strings.isOwed, { name, amount });
-  return `${lead} ${base}`;
+  return `${leads.join(' ')} ${base}`;
 }
