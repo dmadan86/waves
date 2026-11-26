@@ -151,6 +151,7 @@ export const fakeSync = {
   useLastSyncedAt: () => syncModule.lastSyncedAt,
   syncEngine: {
     flush: (options?: unknown) => syncModule.engineFlush(options),
+    getState: () => ({ mirror: sync.mirror, queue: sync.queue }),
   },
 };
 

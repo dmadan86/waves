@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { PaymentWithdrawnError } from '@/lib/paymentWithdrawn';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   I18nManager,
@@ -129,7 +130,7 @@ export function GroupHero({
       ? formatShortDateRange(group.start_date, group.end_date, locale)
       : null;
   const typeTag = useGroupTypeTag(group.type, group.event_template, group.custom_tag);
-  const convertedNote = convertedCaption(convertedFrom, locale, t.fx.convertedCaption);
+  const convertedNote = convertedCaption(convertedFrom, t.fx.convertedCaption);
   const { confirm } = useDialog();
   const goBack = useGoBack();
   const { hidden, ready } = useBalanceHidden();
@@ -545,6 +546,13 @@ export function GroupHero({
                     onPress={() =>
                       confirmSettlement.mutate(settlement.id, {
                         onSuccess: () => toast.show(t.group.paymentConfirmedToast),
+                        onError: (error) => {
+                          if (error instanceof PaymentWithdrawnError)
+                            toast.show(
+                              fill(t.group.paymentWithdrawnToast, { name: error.payerName }),
+                              'info',
+                            );
+                        },
                       })
                     }
                   />

@@ -550,7 +550,7 @@ const rpcCases: [string, () => Promise<unknown>, string, unknown, unknown, unkno
     'waves_person_profile',
     { p_person_key: 'pk' },
     [{ person_key: 'pk' }, { person_key: 'other' }],
-    { person_key: 'pk' },
+    { person_key: 'pk', email: null },
   ],
   [
     'findPerson',

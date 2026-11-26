@@ -12,16 +12,12 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import {
-  defaultRailForCurrency,
-  format,
-  money,
-  type CurrencyCode,
-  fallbackCurrency,
-} from '@waves/core';
+import { format, money, type CurrencyCode, fallbackCurrency } from '@waves/core';
 import { Button, Text, useTheme } from '@waves/ui';
 
+import { payableAt } from '@/data/types';
 import { SettleConfirmSheet } from '@/components/settle/SettleConfirmSheet';
+import { defaultSettleMethod, type SettleMethod } from '@/lib/settleMethod';
 import { useBlockedUsers } from '@/data/blocked';
 import {
   memberLookup,
@@ -79,15 +75,15 @@ export function InlineSettle({ groupId }: { groupId: string }) {
   const keyOf = (tr: PlanTransfer): string => `${tr.from}>${tr.to}>${tr.currency}>${tr.amount}`;
 
   const record = useCallback(
-    async (tr: PlanTransfer): Promise<void> => {
+    async (tr: PlanTransfer, method: SettleMethod): Promise<void> => {
       if (guard.blockWrite()) return;
       setError(null);
       const write = settlementFor(
         groupId,
         tr,
         receivablesFor(toLedgerSnapshots(expenses.rows, group.data), tr.from, tr.to, tr.currency),
-        // The ways to pay back follow the group's currency, not a country.
-        defaultRailForCurrency(group.data?.default_currency ?? null),
+        // How the money moved, as the person said in the confirm sheet.
+        method,
       );
       if (!write) return;
       const out = await recordInline(lock, () => recordSettlement.mutateAsync(write));
@@ -136,7 +132,7 @@ export function InlineSettle({ groupId }: { groupId: string }) {
             busy={recordSettlement.isPending}
             // The lock is read when the button is pressed, never while rendering.
             // eslint-disable-next-line react-hooks/refs
-            onRecord={() => record(tr)}
+            onRecord={(method) => record(tr, method)}
           />
         ))
       )}
@@ -190,7 +186,7 @@ function SettleRow({
   name: string;
   amountText: string;
   busy: boolean;
-  onRecord: () => Promise<void>;
+  onRecord: (method: SettleMethod) => Promise<void>;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -243,9 +239,13 @@ function SettleRow({
       <SettleConfirmSheet
         visible={asking}
         onClose={() => setAsking(false)}
-        onConfirm={() => {
+        defaultMethod={defaultSettleMethod({
+          handoff: false,
+          payeeHasUpi: member ? payableAt(member)?.rail === 'upi' : false,
+        })}
+        onConfirm={(method) => {
           setAsking(false);
-          void onRecord();
+          void onRecord(method);
         }}
         title={fill(receive ? t.misc.settleReceivedTitle : t.misc.settleConfirmPaidTitle, {
           amount: amountText,

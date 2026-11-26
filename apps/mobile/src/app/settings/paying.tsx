@@ -11,6 +11,9 @@
  * It writes only the payment fields, so saving here never touches the name.
  */
 
+import { syncEngine } from '@/sync';
+import { ownRailHint } from '@/lib/ownRailHint';
+import { useTabBarStandDown } from '@/lib/useTabBarStandDown';
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
@@ -76,6 +79,8 @@ export default function PayingScreen() {
 function PayingForm() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
+  // The raised mic sat over Save; this form has the bottom of the phone to itself.
+  useTabBarStandDown(true);
   const { t } = useStrings();
   const { profile, updateProfile } = useAuth();
   const currency = useDefaultCurrency();
@@ -133,6 +138,8 @@ function PayingForm() {
         // other rail is not a UPI ID and must not masquerade as one.
         default_vpa: rail === 'upi' && hasHandle ? trimmed : null,
       });
+      // Pull now so this phone's own member rows carry the new handle too.
+      void syncEngine.flush().catch(() => undefined);
       setStatus(t.account.saved);
     } catch (caught) {
       setStatus(friendlyError(caught, t.couldNotSave, 'paying.save'));
@@ -334,7 +341,7 @@ function PayingForm() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   accessibilityLabel={t.account.yourRailDetails.replace('{rail}', railInfo.label)}
-                  placeholder={railInfo.handleHint}
+                  placeholder={ownRailHint(railInfo.handleHint)}
                   placeholderTextColor={theme.color.textFaint}
                   style={{
                     flex: 1,
@@ -366,7 +373,10 @@ function PayingForm() {
                   style={{ flex: 1 }}
                 >
                   {!handleValid
-                    ? t.account.handleWrong.replace('{hint}', railInfo.handleHint.toLowerCase())
+                    ? t.account.handleWrong.replace(
+                        '{hint}',
+                        ownRailHint(railInfo.handleHint).toLowerCase(),
+                      )
                     : railInfo.link
                       ? t.account.railLinkNote
                       : t.account.railManualNote}

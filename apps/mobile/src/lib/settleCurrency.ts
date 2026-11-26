@@ -4,8 +4,6 @@
  * what a screen says about it.
  */
 
-import { currencySymbol, type CurrencyCode } from '@waves/core';
-
 import type { ExpenseRow } from '../data/types';
 import { canRewrite, needsRate, selectBackfill } from './fxAutoRate';
 
@@ -129,22 +127,11 @@ export function convertSwitchBlocks(input: {
 }
 
 /**
- * "Includes ₫ bills at their recorded rates" — or null when nothing was
+ * "Includes VND bills at their recorded rates" — or null when nothing was
  * converted, so the caption only appears when it explains something.
  */
-export function convertedCaption(
-  currencies: readonly string[],
-  locale: string,
-  template: string,
-): string | null {
+export function convertedCaption(currencies: readonly string[], template: string): string | null {
   if (currencies.length === 0) return null;
-  const symbols = currencies.map((code) => {
-    try {
-      return currencySymbol(code as CurrencyCode, locale);
-    } catch {
-      return code;
-    }
-  });
   // A plain replace rather than i18n's `fill`, so this stays a pure module.
-  return template.replace('{currencies}', symbols.join(' '));
+  return template.replace('{currencies}', currencies.join(' '));
 }

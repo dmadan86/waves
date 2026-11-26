@@ -586,7 +586,11 @@ export function materialiseSettlements(
         continue;
       }
       const existing = byId.get(settlementId);
-      if (existing) {
+      // Only a still-pending payment can move (the server's rule). A refused
+      // change, or one aimed at a row the other side already withdrew, must not
+      // rewrite the ledger: it showed a confirmed payment, and a balance
+      // ₹300 short, for money the server never counted.
+      if (existing && !mutation.rejection && existing.status === 'initiated') {
         byId.set(settlementId, {
           ...existing,
           status: next,

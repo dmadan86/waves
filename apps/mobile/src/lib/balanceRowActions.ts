@@ -2,6 +2,8 @@ export interface BalanceRowActionState {
   readonly balance: bigint;
   readonly memberId: string;
   readonly myMemberId: string | null;
+  /** The settle plan has this member paying the viewer, in the row's currency. */
+  readonly owesViewer: boolean;
 }
 
 /**
@@ -12,5 +14,6 @@ export interface BalanceRowActionState {
  * accessibility affordances cannot drift apart.
  */
 export function canRemindFromBalanceRow(state: BalanceRowActionState): boolean {
-  return state.balance < 0n && state.memberId !== state.myMemberId;
+  // Owing the group is not owing the viewer: only a debt to the viewer can be nudged.
+  return state.balance < 0n && state.memberId !== state.myMemberId && state.owesViewer;
 }

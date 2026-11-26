@@ -151,7 +151,7 @@ import { TimelineBody } from '@/components/timeline/TimelineBody';
 import { draftsForGroup } from '@/lib/groupDrafts';
 import { amountMatches } from '@/lib/expenseSearch';
 import { memberNameById, memberNameFor } from '@/lib/memberName';
-import { directionForViewer, memberBalanceStatus } from '@/lib/groupBalanceList';
+import { directionForViewer, memberBalanceStatus, spokenRowBalance } from '@/lib/groupBalanceList';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
 enum Tab {
@@ -204,6 +204,7 @@ const SWITCH_WINDOW = 24;
  * the same sheet.
  */
 function RemindChip({
+  quiet,
   groupId,
   member,
   currency,
@@ -214,6 +215,8 @@ function RemindChip({
   requested,
   onRequestHandled,
 }: {
+  /** No visible chip (the payments card has the bell); the screen-reader action still opens the sheet. */
+  quiet: boolean;
   groupId: string;
   member: MemberRow;
   currency: string;
@@ -245,6 +248,7 @@ function RemindChip({
   }, [requested, onRequestHandled, open]);
   const note = remind.outcome?.label ?? (remind.reminded ? t.people.reminded : null);
 
+  if (quiet && !note) return remind.sheet;
   if (note) {
     return (
       <>
@@ -1494,10 +1498,14 @@ function LedgerGroupScreen() {
         leftLabel: t.misc.memberLeft,
       });
       const personKey = personKeyFor(member);
+      const owesViewer = settleFlow.split.owesMe.some(
+        (transfer) => transfer.from === member.id && transfer.currency === currency,
+      );
       const canRemind = canRemindFromBalanceRow({
         balance,
         memberId: member.id,
         myMemberId: ledger.myMemberId,
+        owesViewer,
       });
       // What a screen reader hears once the row is one button: who, then the
       // amount in the words `MoneyText` would have spoken on its own, then —
@@ -1505,11 +1513,22 @@ function LedgerGroupScreen() {
       // groups its text, so anything worth hearing has to be said here.
       const rowLabel = [
         shownName,
-        moneyAccessibilityLabel(
-          { minor: balance, currency },
-          directionForViewer(balance, member.id === ledger.myMemberId),
-          copyFor(locale).money,
-          { locale },
+        spokenRowBalance(
+          balance,
+          member.id === ledger.myMemberId,
+          shownName,
+          format(money(balance < 0n ? -balance : balance, currency as CurrencyCode), { locale }),
+          {
+            own: moneyAccessibilityLabel(
+              { minor: balance, currency },
+              directionForViewer(balance, true),
+              copyFor(locale).money,
+              { locale },
+            ),
+            isOwed: t.expense.rowOwed,
+            owes: t.expense.rowOwes,
+            square: t.expense.rowSquare,
+          },
         ),
         isGhost(member) ? t.notJoinedYet : '',
       ]
@@ -1600,9 +1619,9 @@ function LedgerGroupScreen() {
                   nested accessible button can be hidden by an accessible parent. */}
               {/* The bell on the payments card above already reminds anyone in
                   "owes you"; the chip stays only where that card has no row. */}
-              {canRemind &&
-              !settleFlow.split.owesMe.some((transfer) => transfer.from === member.id) ? (
+              {canRemind ? (
                 <RemindChip
+                  quiet={settleFlow.split.owesMe.some((transfer) => transfer.from === member.id)}
                   groupId={groupId}
                   member={member}
                   currency={currency}

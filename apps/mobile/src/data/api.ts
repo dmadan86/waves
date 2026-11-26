@@ -7,6 +7,7 @@
  * the server must own share computation and authorization (TDR §4).
  */
 
+import { withoutCoMemberEmail } from '@/lib/personPrivacy';
 import {
   parseClaimOutcome,
   parseMyReferral,
@@ -1938,7 +1939,7 @@ export async function fetchPersonProfile(personKey: string): Promise<PersonProfi
   });
   if (error) throw new Error(error.message);
   const rows = (data ?? []) as PersonProfileRow[];
-  return rows[0] ?? null;
+  return rows[0] ? withoutCoMemberEmail(rows[0]) : null;
 }
 
 /** A person found by an exact email address or phone number. */
