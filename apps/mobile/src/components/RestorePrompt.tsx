@@ -58,7 +58,12 @@ import { Button, Popup, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
-import { loadRestorePromptDismissed, markRestorePromptDismissed } from '@/lib/backup/settings';
+import {
+  armRestorePending,
+  loadRestorePending,
+  loadRestorePromptDismissed,
+  markRestorePromptDismissed,
+} from '@/lib/backup/settings';
 import { restoreOffer, RestoreOffer } from '@/lib/backup/restorePrompt';
 import { PRIMARY_PROVIDER } from '@/lib/backup/engine';
 import { providerFor } from '@/lib/cloud/providers';
@@ -86,6 +91,8 @@ interface AccountReads {
   readonly owner: string;
   /** This account has already answered the offer on this device. */
   readonly dismissed: boolean;
+  /** Seen empty after sign-in and not yet restored or started fresh. */
+  readonly restorePending: boolean;
   /** A Drive account is linked. Chooses the copy, never the answer. */
   readonly linked: boolean;
 }
@@ -110,17 +117,19 @@ interface AccountReads {
 function useAccountReads(ownerId: string): {
   reads: AccountReads | null;
   dismiss: () => void;
+  arm: () => void;
 } {
   const [reads, setReads] = useState<AccountReads | null>(null);
 
   useEffect(() => {
     let alive = true;
     void (async () => {
-      const [dismissed, tokens] = await Promise.all([
+      const [dismissed, tokens, restorePending] = await Promise.all([
         loadRestorePromptDismissed(ownerId).catch(() => false),
         loadTokens(PRIMARY_PROVIDER, ownerId).catch(() => null),
+        loadRestorePending(ownerId),
       ]);
-      if (alive) setReads({ owner: ownerId, dismissed, linked: tokens !== null });
+      if (alive) setReads({ owner: ownerId, dismissed, linked: tokens !== null, restorePending });
     })();
     return () => {
       alive = false;
@@ -134,7 +143,16 @@ function useAccountReads(ownerId: string): {
     void markRestorePromptDismissed(ownerId).catch(() => {});
   }, [ownerId]);
 
-  return { reads, dismiss };
+  const arm = useCallback(() => {
+    void armRestorePending(ownerId)
+      .then((pending) => {
+        if (pending)
+          setReads((current) => (current ? { ...current, restorePending: true } : current));
+      })
+      .catch(() => {});
+  }, [ownerId]);
+
+  return { reads, dismiss, arm };
 }
 
 export function RestorePrompt(): React.JSX.Element | null {
@@ -145,7 +163,7 @@ export function RestorePrompt(): React.JSX.Element | null {
 
   const records = usePersonalRecords();
   const { hydrated, status, hasSynced } = useSync();
-  const { reads, dismiss } = useAccountReads(ownerId);
+  const { reads, dismiss, arm } = useAccountReads(ownerId);
 
   // A build with no OAuth client id can neither back up nor restore, so there is
   // nothing here to offer. Synchronous — it is a compiled-in constant plus a
@@ -175,8 +193,18 @@ export function RestorePrompt(): React.JSX.Element | null {
     recordCount: records.length,
     settled,
     dismissed: reads?.dismissed ?? false,
+    restorePending: reads?.restorePending ?? false,
   });
   const wants = offer !== RestoreOffer.None;
+
+  // An empty, settled phone is a fresh one: remember it, so adding an entry does
+  // not quietly end the chance to restore.
+  const fresh = settled && Boolean(session) && !isGuest && configured && records.length === 0;
+  useEffect(() => {
+    // Not re-armed after a decision: 'done' reads back as not pending and the
+    // store keeps it done.
+    if (fresh && reads?.owner === ownerId && !reads.restorePending) arm();
+  }, [fresh, reads, ownerId, arm]);
 
   // Take a turn in the shared prompt queue rather than firing on its own, and
   // claim only while the offer genuinely stands — so a phone with data never

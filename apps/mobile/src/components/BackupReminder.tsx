@@ -24,6 +24,7 @@ import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { PRIMARY_PROVIDER } from '@/lib/backup/engine';
 import { wantsBackupReminder } from '@/lib/backup/reminder';
+import { BackupFrequency } from '@/lib/backup/schedule';
 import {
   loadBackupReminderDay,
   loadBackupSettings,
@@ -53,6 +54,7 @@ const PROMPT_DELAY_MS = 600;
 interface Reads {
   readonly owner: string;
   readonly lastBackupAt: number | null;
+  readonly frequency: BackupFrequency;
   readonly answeredOn: string | null;
   /** When the reads landed — the "now" and "today" the decision is made at. */
   readonly checkedAt: number;
@@ -82,6 +84,7 @@ export function BackupReminder(): React.JSX.Element | null {
           setReads({
             owner: ownerId,
             lastBackupAt: settings?.last?.at ?? null,
+            frequency: settings?.frequency ?? BackupFrequency.Off,
             answeredOn,
             checkedAt: Date.now(),
             today: localDay(),
@@ -112,6 +115,7 @@ export function BackupReminder(): React.JSX.Element | null {
     configured: providerFor(PRIMARY_PROVIDER).isConfigured(),
     recordCount: records.length,
     lastBackupAt: reads?.lastBackupAt ?? null,
+    frequency: reads?.frequency ?? BackupFrequency.Off,
     answeredOn: reads?.answeredOn ?? null,
     today,
     now: reads?.checkedAt ?? 0,

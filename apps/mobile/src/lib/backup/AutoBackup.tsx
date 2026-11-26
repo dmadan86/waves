@@ -25,6 +25,7 @@ import { AppState } from 'react-native';
 import { usePersonalRecords } from '@/data/personal';
 import { useAuth } from '@/lib/auth';
 import { reportHandled } from '@/lib/observability';
+import { useSync } from '@/sync';
 
 import { recoverBackground } from './background';
 import { runBackup } from './engine';
@@ -40,6 +41,11 @@ export function AutoBackup() {
   const { session } = useAuth();
   const ownerId = session?.user?.id ?? '';
   const records = usePersonalRecords();
+  // Until the mirror is off disk and the first sync has landed (or given up),
+  // an empty ledger means "not looked yet", and sealing it would replace a good
+  // backup with a blank one.
+  const { hydrated, status, hasSynced } = useSync();
+  const settled = hydrated && !(!hasSynced && (status === 'idle' || status === 'syncing'));
 
   // The newest ledger, read at the moment a check fires rather than captured
   // when the effect was set up — the effect must not re-subscribe to AppState
@@ -52,7 +58,7 @@ export function AutoBackup() {
   const lastCheckRef = useRef(0);
 
   useEffect(() => {
-    if (!ownerId) return;
+    if (!ownerId || !settled) return;
     let alive = true;
 
     const check = async (): Promise<void> => {
@@ -61,6 +67,8 @@ export function AutoBackup() {
       lastCheckRef.current = now;
 
       await recoverBackground(ownerId);
+      // Nothing to protect, and an empty seal is the one thing that must never go out.
+      if (recordsRef.current.length === 0) return;
       const settings = await loadBackupSettings(ownerId);
       if (!isDue(settings.last?.at ?? null, settings.frequency, now)) return;
 
@@ -84,6 +92,7 @@ export function AutoBackup() {
         network: settings.network,
         // The whole point of the network preference is to gate *this* run.
         manual: false,
+        knownBackupAt: settings.last?.at ?? null,
       });
       if (!alive || !result.ok) return;
       await saveLastBackup(ownerId, result.last);
@@ -105,7 +114,7 @@ export function AutoBackup() {
       alive = false;
       subscription.remove();
     };
-  }, [ownerId]);
+  }, [ownerId, settled]);
 
   return null;
 }

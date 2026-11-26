@@ -114,6 +114,11 @@ export interface RestorePromptInput {
   readonly settled: boolean;
   /** This account has already answered the offer on this device. */
   readonly dismissed: boolean;
+  /**
+   * This phone was seen empty after sign-in and the person has not yet restored
+   * or chosen to start fresh, so one new entry does not end the offer.
+   */
+  readonly restorePending?: boolean;
 }
 
 export function restoreOffer(input: RestorePromptInput): RestoreOffer {
@@ -121,6 +126,6 @@ export function restoreOffer(input: RestorePromptInput): RestoreOffer {
   if (!input.signedIn || input.isGuest) return RestoreOffer.None;
   if (!input.configured) return RestoreOffer.None;
   if (input.dismissed) return RestoreOffer.None;
-  if (input.recordCount > 0) return RestoreOffer.None;
+  if (input.recordCount > 0 && !input.restorePending) return RestoreOffer.None;
   return input.connected ? RestoreOffer.Restore : RestoreOffer.LinkFirst;
 }

@@ -133,11 +133,22 @@ export type BackupRefusal =
   /** The stored tokens were rejected; the link has to be made again. */
   | 'auth'
   /** Nothing on Drive to restore from. */
-  | 'no-backup';
+  | 'no-backup'
+  /** The Drive backup holds more, or newer, than this phone: ask before replacing it. */
+  | 'would-overwrite';
+
+/** What the backup already on Drive says about itself, for the overwrite choice. */
+export interface ExistingBackup {
+  readonly records: number;
+  /** ISO, when that backup was taken. */
+  readonly createdAt: string;
+  /** Records on this phone, for the same sentence. */
+  readonly local: number;
+}
 
 export type BackupResult =
   | { readonly ok: true; readonly last: LastBackup }
-  | { readonly ok: false; readonly refusal: BackupRefusal };
+  | { readonly ok: false; readonly refusal: BackupRefusal; readonly existing?: ExistingBackup };
 
 export interface BackupRunInput {
   readonly ownerId: string;
@@ -159,6 +170,10 @@ export interface BackupRunInput {
   readonly onPhase?: (phase: BackupPhase) => void;
   /** A manual run the person confirmed to send over mobile data. */
   readonly allowMobileData?: boolean;
+  /** When this phone last backed up (epoch ms). A Drive backup newer than this came from elsewhere. */
+  readonly knownBackupAt?: number | null;
+  /** The person saw the "Drive has more" choice and picked Replace. */
+  readonly replaceExisting?: boolean;
 }
 
 // One run at a time, process-wide. The automatic check and a button press can
@@ -360,7 +375,9 @@ async function keyForRun(
   // the one read — which happens only in this narrow case, never on an ordinary
   // run where the escrow is sitting right there.
   if (input.tier === BackupTier.Standard && folder.blob && !folder.escrow) {
-    const remoteTier = parseFile(await provider.read(tokens, folder.blob.remoteId, signal)).tier;
+    const remoteTier = fileTier(
+      parseFile(await provider.read(tokens, folder.blob.remoteId, signal)),
+    );
     // The file's tier beats the phone's — the phone may simply not have heard
     // yet. Answering `needs-key` sends the screen to "I already have a key",
     // which is exactly what this phone needs from its owner.
@@ -395,17 +412,70 @@ async function keyForRun(
       return key;
     }
     case KeySource.Mint: {
+      // Another fresh phone may have minted since this run listed the folder.
+      // Look once more and adopt its key rather than writing a second one.
+      const raced = await provider.find(tokens, escrowFileName(input.ownerId));
+      const racedKey = raced ? await openEscrow(provider, tokens, raced) : null;
+      if (racedKey) {
+        await saveRecoveryKey(input.ownerId, racedKey);
+        return racedKey;
+      }
       const key = mintRecoveryKey();
       // Escrow first. A key on the phone with no copy in the folder is the one
       // state Standard must never be in, because the screen is at that moment
       // telling the person a new phone will find it.
       await writeEscrow(provider, tokens, input.ownerId, key, folder.escrow);
-      await saveRecoveryKey(input.ownerId, key);
-      return key;
+      // If two phones still wrote together, the newest escrow wins on every
+      // later `find`; adopt whatever it holds so both seal with the same key.
+      const winner = await provider.find(tokens, escrowFileName(input.ownerId));
+      const winnerKey = winner ? await openEscrow(provider, tokens, winner) : null;
+      const final = winnerKey ?? key;
+      await saveRecoveryKey(input.ownerId, final);
+      return final;
     }
     default:
       return null;
   }
+}
+
+/**
+ * Open the backup already on Drive with the key about to be used, to say how
+ * much it holds. `'unreadable'` means it does not open with this key.
+ */
+async function peekExisting(
+  provider: CloudProvider,
+  tokens: CloudTokens,
+  blob: CloudFile,
+  key: Uint8Array,
+  ownerId: string,
+  signal?: AbortSignal,
+): Promise<{ createdAt: string; ids: readonly string[] } | 'unreadable'> {
+  const envelope = parseFile(await provider.read(tokens, blob.remoteId, signal));
+  try {
+    const body = parseBody(openBackup(key, envelope.sealed, backupAad(ownerId)), ownerId);
+    return { createdAt: envelope.createdAt || body.createdAt, ids: body.records.map((r) => r.id) };
+  } catch {
+    return 'unreadable';
+  }
+}
+
+/**
+ * Would replacing Drive's backup with these records lose something? Yes when
+ * this phone is empty, when the backup is somebody else's newer one that holds
+ * rows this phone lacks (or more of them), or when it has shrunk by half.
+ */
+function wouldLose(
+  existing: { createdAt: string; ids: readonly string[] },
+  local: readonly SourceRecord[],
+  knownBackupAt: number | null,
+): boolean {
+  if (existing.ids.length === 0) return false;
+  if (local.length === 0) return true;
+  const have = new Set(local.map((r) => r.id));
+  const missing = existing.ids.some((id) => !have.has(id));
+  const foreign = Date.parse(existing.createdAt) > (knownBackupAt ?? 0);
+  if (foreign && (missing || existing.ids.length > local.length)) return true;
+  return existing.ids.length >= 10 && local.length < existing.ids.length / 2;
 }
 
 /**
@@ -482,6 +552,35 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
       // only copy, and the screen's job is to ask for it rather than mint a
       // second one that would seal the next backup away from the first.
       if (!key) return { ok: false, refusal: 'no-key' };
+
+      if (folder.blob) {
+        const existing = await peekExisting(
+          provider,
+          tokens,
+          folder.blob,
+          key,
+          input.ownerId,
+          controller.signal,
+        );
+        // A key that does not open the file on Extra would seal over somebody's
+        // good backup (a wrong key typed in). Standard is the repair path.
+        if (existing === 'unreadable') {
+          if (input.tier === BackupTier.Extra) return { ok: false, refusal: 'needs-key' };
+        } else if (
+          !input.replaceExisting &&
+          wouldLose(existing, input.records, input.knownBackupAt ?? null)
+        ) {
+          return {
+            ok: false,
+            refusal: 'would-overwrite',
+            existing: {
+              records: existing.ids.length,
+              createdAt: existing.createdAt,
+              local: input.records.length,
+            },
+          };
+        }
+      }
 
       checkCancelled();
       input.onPhase?.('collecting');
@@ -758,6 +857,29 @@ export async function scanBackup(input: RestoreScanInput): Promise<RestoreScan> 
   }
 }
 
+/**
+ * Does this key open the backup on Drive? `'unchecked'` when there is nothing to
+ * check against (no backup, not linked, offline): the caller may accept the key,
+ * because `runBackup` refuses an Extra run whose key cannot open the file.
+ */
+export async function keyOpensBackup(
+  ownerId: string,
+  key: Uint8Array,
+): Promise<'opens' | 'wrong' | 'unchecked'> {
+  const provider = providerFor(PRIMARY_PROVIDER);
+  if (!provider.isConfigured()) return 'unchecked';
+  try {
+    const lookup = await freshTokens(PRIMARY_PROVIDER, ownerId);
+    if (lookup.kind !== 'ok') return 'unchecked';
+    const blob = await provider.find(lookup.tokens, backupFileName(ownerId));
+    if (!blob) return 'unchecked';
+    const opened = await peekExisting(provider, lookup.tokens, blob, key, ownerId);
+    return opened === 'unreadable' ? 'wrong' : 'opens';
+  } catch {
+    return 'unchecked';
+  }
+}
+
 // ──────────────────────────────────────── turning Extra protection on ──
 
 export interface UpgradeInput {
@@ -856,12 +978,25 @@ export async function upgradeToExtra(input: UpgradeInput): Promise<UpgradeResult
       backupAad(input.ownerId),
     );
     const content = JSON.stringify(buildFile(sealed, outgoing.createdAt, BackupTier.Extra));
-    const stored = await provider.put(
-      tokens,
-      backupFileName(input.ownerId),
-      content,
-      folder.blob?.remoteId ?? null,
-    );
+    // Staged like an ordinary run: a kill mid-upload must not truncate the only blob.
+    const blobName = backupFileName(input.ownerId);
+    const stagingName = `${blobName}.pending`;
+    const abandoned = await provider.find(tokens, stagingName);
+    if (abandoned) await provider.remove(tokens, abandoned.remoteId);
+    const staged = await provider.put(tokens, stagingName, content, null);
+    let stored: CloudFile;
+    let committed = false;
+    try {
+      if ((await provider.read(tokens, staged.remoteId)) !== content) {
+        throw new Error('Backup verification failed');
+      }
+      if (!provider.commit) throw new Error('Backup provider cannot commit safely');
+      stored = await provider.commit(tokens, staged.remoteId, blobName);
+      committed = true;
+    } finally {
+      if (!committed) await provider.remove(tokens, staged.remoteId).catch(() => undefined);
+    }
+    if (folder.blob) await provider.remove(tokens, folder.blob.remoteId).catch(() => undefined);
     state = advanceUpgrade(state, 'ok');
 
     // The tier is now true of the file, so it is written down before the escrow

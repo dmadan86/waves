@@ -34,11 +34,13 @@ import type { SyncNetworkPreference } from '../syncNetwork';
 import {
   clearBackupState,
   PRIMARY_PROVIDER,
+  keyOpensBackup,
   runBackup,
   scanBackup,
   upgradeToExtra,
   type BackupPhase,
   type BackupRefusal,
+  type ExistingBackup,
   type RestoreScan,
 } from './engine';
 import {
@@ -50,8 +52,11 @@ import {
 } from './recoveryKey';
 import { BackupFrequency } from './schedule';
 import {
+  armRestorePending,
   loadBackupSettings,
+  loadRestorePending,
   markKeySeen,
+  resolveRestorePending,
   NO_BACKUP_SETTINGS,
   saveFrequency,
   saveLastBackup,
@@ -64,7 +69,12 @@ import { backupStanding, BackupTier, resolveTier, type BackupStanding } from './
 /** What the screen says after a run: nothing yet, done, or a named refusal. */
 export type BackupOutcome =
   | { readonly kind: 'ok'; readonly records: number }
-  | { readonly kind: 'refused'; readonly refusal: BackupRefusal };
+  | {
+      readonly kind: 'refused';
+      readonly refusal: BackupRefusal;
+      /** Set for `would-overwrite`: what Drive already holds. */
+      readonly existing?: ExistingBackup;
+    };
 
 export interface BackupState {
   /**
@@ -108,7 +118,7 @@ export interface BackupActions {
   disconnect: () => Promise<void>;
   progress: import('./progress').RunProgress;
   cancel: () => void;
-  backupNow: (allowMobileData?: boolean) => Promise<BackupOutcome>;
+  backupNow: (allowMobileData?: boolean, replaceExisting?: boolean) => Promise<BackupOutcome>;
   setFrequency: (frequency: BackupFrequency) => Promise<void>;
   setNetwork: (network: SyncNetworkPreference) => Promise<void>;
   /** Mint a key for this device and hand back its hex, for showing once. */
@@ -126,8 +136,17 @@ export interface BackupActions {
   commitExtra: (keyHex: string) => Promise<BackupOutcome>;
   /** The key this device holds, as hex, or null. For "show it to me again". */
   revealKey: () => Promise<string | null>;
-  /** Accept a key typed in from another device. False when it is not a key. */
-  acceptKey: (input: string) => Promise<boolean>;
+  /**
+   * Accept a key typed in from another device. 'invalid' when it is not a key,
+   * 'wrong-key' when it does not open the backup on Drive (nothing is stored).
+   */
+  acceptKey: (input: string) => Promise<'ok' | 'invalid' | 'wrong-key'>;
+  /** True while a fresh phone has neither restored nor chosen to start fresh. */
+  restorePending: boolean;
+  /** Choose not to restore: the screen goes back to "Back up now". */
+  startFresh: () => Promise<void>;
+  /** Call when the phone is settled and empty. */
+  armRestore: () => Promise<void>;
   /** Confirm the key has been written down. Backups refuse until this is set. */
   confirmKeySeen: () => Promise<void>;
   /** Read the Drive backup and say what restoring it would write. */
@@ -166,6 +185,7 @@ export function useBackup(): BackupState & BackupActions {
     ? (localPhase ?? (progress.status === 'preparing' ? 'collecting' : 'uploading'))
     : null;
   const [outcome, setOutcome] = useState<BackupOutcome | null>(null);
+  const [restorePending, setRestorePending] = useState(false);
 
   const provider = providerFor(PRIMARY_PROVIDER);
   const configured = provider.isConfigured();
@@ -244,12 +264,14 @@ export function useBackup(): BackupState & BackupActions {
   useEffect(() => {
     let alive = true;
     void (async () => {
-      const [stored, key, tokens] = await Promise.all([
+      const [stored, key, tokens, pending] = await Promise.all([
         loadBackupSettings(ownerId),
         ownerId ? loadRecoveryKey(ownerId) : Promise.resolve(null),
         ownerId ? loadTokens(PRIMARY_PROVIDER, ownerId) : Promise.resolve(null),
+        loadRestorePending(ownerId),
       ]);
       if (!alive) return;
+      setRestorePending(pending);
       // The one-time migration. A phone that set a backup up under the build
       // before tiers has a key and no stored tier, and that key *is* Extra
       // protection; a phone with neither is a fresh setup and gets the default.
@@ -307,8 +329,18 @@ export function useBackup(): BackupState & BackupActions {
     await refreshLink();
   }, [ownerId, provider, refreshLink]);
 
+  const startFresh = useCallback(async (): Promise<void> => {
+    setRestorePending(false);
+    await resolveRestorePending(ownerId).catch(() => undefined);
+  }, [ownerId]);
+
+  /** A settled, empty phone may have a backup waiting: keep Restore on offer. */
+  const armRestore = useCallback(async (): Promise<void> => {
+    if (await armRestorePending(ownerId).catch(() => false)) setRestorePending(true);
+  }, [ownerId]);
+
   const backupNow = useCallback(
-    async (allowMobileData = false): Promise<BackupOutcome> => {
+    async (allowMobileData = false, replaceExisting = false): Promise<BackupOutcome> => {
       setOutcome(null);
       try {
         // No key is loaded here any more. Where it comes from depends on the tier
@@ -322,10 +354,16 @@ export function useBackup(): BackupState & BackupActions {
           network: settings.network,
           manual: true,
           allowMobileData,
+          knownBackupAt: settings.last?.at ?? null,
+          replaceExisting,
           onPhase: setPhase,
         });
         if (!result.ok) {
-          const refused: BackupOutcome = { kind: 'refused', refusal: result.refusal };
+          const refused: BackupOutcome = {
+            kind: 'refused',
+            refusal: result.refusal,
+            existing: result.existing,
+          };
           setOutcome(refused);
           // A dead grant clears the tokens inside the engine; reflect that here so
           // the screen swaps to "Connect" instead of offering a retry that cannot
@@ -335,6 +373,8 @@ export function useBackup(): BackupState & BackupActions {
         }
         await saveLastBackup(ownerId, result.last);
         setSettings((current) => ({ ...current, last: result.last }));
+        // Replacing Drive's backup was the person's explicit choice to start fresh.
+        if (replaceExisting) await startFresh();
         // A Standard run may have minted the key itself; the screen's "this phone
         // holds a key" is only true after that, and nothing else would say so.
         setHasKey(true);
@@ -345,7 +385,7 @@ export function useBackup(): BackupState & BackupActions {
         setPhase(null);
       }
     },
-    [ownerId, records, tier, settings.network, refreshLink],
+    [ownerId, records, tier, settings.network, settings.last?.at, refreshLink, startFresh],
   );
 
   const setFrequencyAction = useCallback(
@@ -377,9 +417,12 @@ export function useBackup(): BackupState & BackupActions {
   }, [ownerId]);
 
   const acceptKey = useCallback(
-    async (input: string): Promise<boolean> => {
+    async (input: string): Promise<'ok' | 'invalid' | 'wrong-key'> => {
       const key = parseRecoveryKey(input);
-      if (!key) return false;
+      if (!key) return 'invalid';
+      // Prove it opens what is on Drive before it is stored or the tier flips:
+      // a wrong key saved here would seal over the good backup on the next run.
+      if ((await keyOpensBackup(ownerId, key)) === 'wrong') return 'wrong-key';
       await saveRecoveryKey(ownerId, key);
       setHasKey(true);
       // A key typed in from elsewhere has self-evidently been kept somewhere,
@@ -392,7 +435,7 @@ export function useBackup(): BackupState & BackupActions {
       // restore would read as "the key is lost".
       await saveTier(ownerId, BackupTier.Extra);
       setSettings((current) => ({ ...current, keySeen: true, tier: BackupTier.Extra }));
-      return true;
+      return 'ok';
     },
     [ownerId],
   );
@@ -462,9 +505,10 @@ export function useBackup(): BackupState & BackupActions {
       }
       // Durable on disk already; this only asks the queue to leave sooner.
       void flush([scope]);
+      await startFresh();
       return result.plan.restore.length;
     },
-    [ownerId, mutate, flush],
+    [ownerId, mutate, flush, startFresh],
   );
 
   return {
@@ -491,6 +535,9 @@ export function useBackup(): BackupState & BackupActions {
     commitExtra,
     revealKey,
     acceptKey,
+    restorePending,
+    startFresh,
+    armRestore,
     confirmKeySeen,
     scan,
     applyRestore,

@@ -55,6 +55,14 @@ const RESTORE_PROMPT_KEY = 'waves.backup.restore_prompt';
  */
 const REMINDER_DAY_KEY = 'waves.backup.reminder_day';
 
+/**
+ * 'pending' once this phone has been seen empty after sign-in (so a Drive backup
+ * may be waiting), 'done' once the person restored or chose to start fresh.
+ * Keeps Restore on offer after the first new entry instead of flipping the
+ * screen to "Back up now" over the old backup.
+ */
+const RESTORE_PENDING_KEY = 'waves.backup.restore_pending';
+
 /** Every stored key, for the sign-out wipe. */
 const ALL_KEYS = [
   FREQUENCY_KEY,
@@ -64,6 +72,7 @@ const ALL_KEYS = [
   TIER_KEY,
   RESTORE_PROMPT_KEY,
   REMINDER_DAY_KEY,
+  RESTORE_PENDING_KEY,
 ] as const;
 
 const scoped = (base: string, ownerId: string): string => `${base}.${ownerId}`;
@@ -204,6 +213,26 @@ export async function loadRestorePromptDismissed(ownerId: string): Promise<boole
 export async function markRestorePromptDismissed(ownerId: string): Promise<void> {
   if (!ownerId) return;
   await AsyncStorage.setItem(scoped(RESTORE_PROMPT_KEY, ownerId), '1');
+}
+
+export async function loadRestorePending(ownerId: string): Promise<boolean> {
+  if (!ownerId) return false;
+  const raw = await AsyncStorage.getItem(scoped(RESTORE_PENDING_KEY, ownerId)).catch(() => null);
+  return raw === 'pending';
+}
+
+/** Arms the pending state once; never re-arms after the person has decided. */
+export async function armRestorePending(ownerId: string): Promise<boolean> {
+  if (!ownerId) return false;
+  const key = scoped(RESTORE_PENDING_KEY, ownerId);
+  const stored = await AsyncStorage.getItem(key);
+  if (stored === null) await AsyncStorage.setItem(key, 'pending');
+  return stored === null || stored === 'pending';
+}
+
+export async function resolveRestorePending(ownerId: string): Promise<void> {
+  if (!ownerId) return;
+  await AsyncStorage.setItem(scoped(RESTORE_PENDING_KEY, ownerId), 'done');
 }
 
 /** The day the backup reminder was last answered, or null if never. */

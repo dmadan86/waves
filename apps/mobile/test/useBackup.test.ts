@@ -49,6 +49,7 @@ const h = vi.hoisted(() => ({
   scanBackup: vi.fn(),
   upgradeToExtra: vi.fn(),
   clearBackupState: vi.fn(async (_owner: string) => undefined),
+  keyOpensBackup: vi.fn(async (): Promise<'opens' | 'wrong' | 'unchecked'> => 'unchecked'),
 }));
 
 vi.mock('expo-secure-store', () => ({
@@ -80,6 +81,7 @@ vi.mock('@/lib/backup/engine', () => ({
   scanBackup: h.scanBackup,
   upgradeToExtra: h.upgradeToExtra,
   clearBackupState: h.clearBackupState,
+  keyOpensBackup: h.keyOpensBackup,
 }));
 
 async function settle(): Promise<void> {
@@ -349,7 +351,7 @@ describe('the recovery key', () => {
 
   it('accepts a key typed in from elsewhere, and moves the account to Extra', async () => {
     const rendered = await mount();
-    expect(await rendered.result.current.acceptKey(KEY_HEX)).toBe(true);
+    expect(await rendered.result.current.acceptKey(KEY_HEX)).toBe('ok');
     expect(bytesToHex((await loadRecoveryKey('alice'))!)).toBe(KEY_HEX);
     expect(rendered.result.current.hasKey).toBe(true);
     expect(rendered.result.current.tier).toBe(BackupTier.Extra);
@@ -359,9 +361,19 @@ describe('the recovery key', () => {
     expect(stored.keySeen).toBe(true);
   });
 
+  it('rejects a key that does not open the backup on Drive: not stored, tier unchanged', async () => {
+    h.keyOpensBackup.mockResolvedValueOnce('wrong');
+    const rendered = await mount();
+    expect(await rendered.result.current.acceptKey(KEY_HEX)).toBe('wrong-key');
+    expect(await loadRecoveryKey('alice')).toBeNull();
+    expect(rendered.result.current.hasKey).toBe(false);
+    expect(rendered.result.current.tier).toBe(BackupTier.Standard);
+    expect((await loadBackupSettings('alice')).tier).not.toBe(BackupTier.Extra);
+  });
+
   it('refuses something that is not a key, and stores nothing', async () => {
     const rendered = await mount();
-    expect(await rendered.result.current.acceptKey('not a key')).toBe(false);
+    expect(await rendered.result.current.acceptKey('not a key')).toBe('invalid');
     expect(await loadRecoveryKey('alice')).toBeNull();
   });
 });

@@ -5782,6 +5782,13 @@ export interface UiStrings {
     restorePromptLater: string;
     restorePromptLaterLabel: string;
     restorePromptWhere: string;
+    /** Restore-or-replace choice, wrong-key line, start-fresh action. */
+    keyWrongForBackup: string;
+    overwriteTitle: string;
+    overwriteBody: string;
+    overwriteRestore: string;
+    overwriteReplace: string;
+    startFresh: string;
     /** The daily "back up" reminder on Home. */
     reminderTitle: string;
     reminderBodyNever: string;
@@ -14267,8 +14274,16 @@ const en: UiStrings = {
     restorePromptLater: 'Not now',
     restorePromptLaterLabel: 'Not now. Restore later from the Backup screen.',
     restorePromptWhere: 'You can do this later: tap the ••• menu on Home, then Backup.',
+    keyWrongForBackup: "That key doesn't open your backup.",
+    overwriteTitle: 'Drive already has a backup',
+    overwriteBody:
+      'Your Drive backup has {count} entries from {date}; this phone has {local}. Restore instead, or replace the backup (the old one is erased).',
+    overwriteRestore: 'Restore instead',
+    overwriteReplace: 'Replace backup',
+    startFresh: 'Start fresh instead',
     reminderTitle: 'Back up your records',
-    reminderBodyNever: 'Your records live only on this phone. Back up to Drive to keep them safe.',
+    reminderBodyNever:
+      'Your records are saved to your Waves account. A Drive backup adds a private second copy that you hold.',
     reminderBodyStale: 'Your last backup was over a day ago. Back up now to stay safe.',
     reminderAction: 'Back up now',
     reminderLater: 'Not now',
@@ -22530,9 +22545,16 @@ const ta: UiStrings = {
     restorePromptLaterLabel: 'இப்போது வேண்டாம். பின்னர் காப்புப்பிரதி திரையிலிருந்து மீட்டெடுக்கலாம்.',
     restorePromptWhere:
       'இதைப் பின்னரும் செய்யலாம்: முகப்பில் ••• மெனுவைத் தட்டி, காப்புப்பிரதி என்பதைத் தேர்ந்தெடுங்கள்.',
+    keyWrongForBackup: 'அந்த விசை உங்கள் காப்புப்பிரதியைத் திறக்கவில்லை.',
+    overwriteTitle: 'Drive-இல் ஏற்கனவே காப்புப்பிரதி உள்ளது',
+    overwriteBody:
+      'உங்கள் Drive காப்புப்பிரதியில் {date} முதல் {count} பதிவுகள் உள்ளன; இந்த போனில் {local} உள்ளன. மீட்டெடுக்கலாம், அல்லது காப்புப்பிரதியை மாற்றலாம் (பழையது அழிக்கப்படும்).',
+    overwriteRestore: 'மீட்டெடு',
+    overwriteReplace: 'காப்புப்பிரதியை மாற்று',
+    startFresh: 'புதிதாகத் தொடங்கு',
     reminderTitle: 'உங்கள் பதிவுகளைக் காப்புப்பிரதி எடுங்கள்',
     reminderBodyNever:
-      'உங்கள் பதிவுகள் இந்த போனில் மட்டுமே உள்ளன. பாதுகாப்பாக Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
+      'உங்கள் பதிவுகள் உங்கள் Waves கணக்கில் சேமிக்கப்படுகின்றன. Drive காப்புப்பிரதி உங்கள் வசமுள்ள தனிப்பட்ட இரண்டாம் நகலைச் சேர்க்கிறது.',
     reminderBodyStale:
       'உங்கள் கடைசி காப்புப்பிரதி ஒரு நாளுக்கு மேல் பழையது. இப்போதே Google Drive-இல் காப்புப்பிரதி எடுங்கள்.',
     reminderAction: 'இப்போது காப்புப்பிரதி எடு',
@@ -30773,8 +30795,16 @@ const hi: UiStrings = {
     restorePromptLater: 'अभी नहीं',
     restorePromptLaterLabel: 'अभी नहीं। बाद में बैकअप स्क्रीन से वापस ला सकते हैं।',
     restorePromptWhere: 'यह बाद में भी कर सकते हैं: होम पर ••• मेन्यू दबाएँ, फिर बैकअप चुनें।',
+    keyWrongForBackup: 'यह कुंजी आपके बैकअप को नहीं खोलती।',
+    overwriteTitle: 'Drive में पहले से बैकअप है',
+    overwriteBody:
+      'आपके Drive बैकअप में {date} की {count} एंट्री हैं; इस फ़ोन पर {local} हैं। वापस लाएँ, या बैकअप बदलें (पुराना मिट जाएगा)।',
+    overwriteRestore: 'वापस लाएँ',
+    overwriteReplace: 'बैकअप बदलें',
+    startFresh: 'नए सिरे से शुरू करें',
     reminderTitle: 'अपने रिकॉर्ड का बैकअप लें',
-    reminderBodyNever: 'आपके रिकॉर्ड सिर्फ़ इस फ़ोन पर हैं। सुरक्षित रखने के लिए Google Drive पर बैकअप करें।',
+    reminderBodyNever:
+      'आपके रिकॉर्ड आपके Waves खाते में सहेजे जाते हैं। Drive बैकअप आपके पास एक निजी दूसरी कॉपी रखता है।',
     reminderBodyStale: 'आपका पिछला बैकअप एक दिन से पुराना है। अभी Google Drive पर बैकअप लें।',
     reminderAction: 'अभी बैकअप लें',
     reminderLater: 'अभी नहीं',
@@ -39284,8 +39314,16 @@ const ar: UiStrings = {
     restorePromptLaterLabel: 'ليس الآن. يمكنك الاستعادة لاحقًا من شاشة النسخ الاحتياطي.',
     restorePromptWhere:
       'يمكنك فعل ذلك لاحقًا: اضغط قائمة ••• في الصفحة الرئيسية، ثم النسخ الاحتياطي.',
+    keyWrongForBackup: 'هذا المفتاح لا يفتح نسختك الاحتياطية.',
+    overwriteTitle: 'لدى Drive نسخة احتياطية بالفعل',
+    overwriteBody:
+      'نسختك الاحتياطية في Drive تحتوي على {count} إدخالًا بتاريخ {date}، وهذا الهاتف فيه {local}. استعدها بدلًا من ذلك، أو استبدل النسخة (ستُمحى القديمة).',
+    overwriteRestore: 'استعادة بدلًا من ذلك',
+    overwriteReplace: 'استبدال النسخة',
+    startFresh: 'ابدأ من جديد',
     reminderTitle: 'انسخ سجلاتك احتياطيًا',
-    reminderBodyNever: 'سجلاتك موجودة على هذا الهاتف فقط. احفظها بأمان في Google Drive.',
+    reminderBodyNever:
+      'تُحفظ سجلاتك في حساب Waves الخاص بك. النسخة في Drive تضيف نسخة ثانية خاصة بك.',
     reminderBodyStale: 'آخر نسخة احتياطية مضى عليها أكثر من يوم. انسخ الآن للحفاظ على بياناتك.',
     reminderAction: 'انسخ الآن',
     reminderLater: 'ليس الآن',
