@@ -5,6 +5,8 @@ import {
   DEFAULT_RECENT_COUNT,
   encodePhoneToWatch,
   parseWatchToPhone,
+  watchExpenseDate,
+  watchPlaceSource,
   WATCH_RELAY_VERSION,
 } from '../src/watch/relay';
 
@@ -371,5 +373,87 @@ describe('parseWatchToPhone voiceClip', () => {
     expect(parseWatchToPhone({ t: 'voiceClip', id: 'c1' })).toBeNull();
     expect(parseWatchToPhone({ t: 'voiceClip', id: 'c1', durationMs: 0 })).toBeNull();
     expect(parseWatchToPhone({ t: 'voiceClip', id: 'c1', durationMs: -5 })).toBeNull();
+  });
+});
+
+describe('watch add time and place', () => {
+  const quick = { t: 'quickAdd', id: 'w1', amount: '100', currency: 'INR', note: '' };
+
+  it('decodes madeAt, the zone offset and a location', () => {
+    expect(
+      parseWatchToPhone({
+        ...quick,
+        madeAt: 1_764_183_000_000,
+        tzOffsetMin: 330,
+        location: { lat: 12.97, lng: 77.59, accuracy: 65, capturedAt: 1_764_182_990_000 },
+      }),
+    ).toMatchObject({
+      t: 'quickAdd',
+      madeAt: 1_764_183_000_000,
+      tzOffsetMin: 330,
+      location: { lat: 12.97, lng: 77.59, accuracy: 65, capturedAt: 1_764_182_990_000 },
+    });
+  });
+
+  it('decodes an older watch with none of them', () => {
+    const msg = parseWatchToPhone(quick) as Record<string, unknown>;
+    expect(msg.t).toBe('quickAdd');
+    expect(msg).not.toHaveProperty('madeAt');
+    expect(msg).not.toHaveProperty('location');
+  });
+
+  it('drops a bad field but keeps the add', () => {
+    const msg = parseWatchToPhone({
+      ...quick,
+      madeAt: -5,
+      tzOffsetMin: 99999,
+      location: { lat: 200, lng: 5 },
+    }) as Record<string, unknown>;
+    expect(msg.t).toBe('quickAdd');
+    expect(msg).not.toHaveProperty('madeAt');
+    expect(msg).not.toHaveProperty('tzOffsetMin');
+    expect(msg).not.toHaveProperty('location');
+  });
+
+  it('carries the same fields on a voice add and a voice clip', () => {
+    const meta = { madeAt: 1_764_183_000_000, location: { lat: 1, lng: 2 } };
+    expect(
+      parseWatchToPhone({ t: 'voiceAdd', id: 'v', transcript: 'tea 5', ...meta }),
+    ).toMatchObject(meta);
+    expect(parseWatchToPhone({ t: 'voiceClip', id: 'v', durationMs: 900, ...meta })).toMatchObject(
+      meta,
+    );
+  });
+
+  it('dates an add by the watch clock and zone, across midnight', () => {
+    const made = Date.parse('2026-11-26T18:50:00Z');
+    const now = made + 9 * 3600_000;
+    expect(watchExpenseDate({ madeAt: made, tzOffsetMin: 330 }, now, '2026-11-26')).toBe(
+      '2026-11-27',
+    );
+    expect(watchExpenseDate({ madeAt: made, tzOffsetMin: -300 }, now, '2026-11-27')).toBe(
+      '2026-11-26',
+    );
+    expect(watchExpenseDate({ madeAt: made, tzOffsetMin: 0 }, now, '2026-11-27')).toBe(
+      '2026-11-26',
+    );
+  });
+
+  it('falls back to the phone day with no time, or a time from the far future', () => {
+    const now = Date.parse('2026-11-26T10:00:00Z');
+    expect(watchExpenseDate({}, now, '2026-11-26')).toBe('2026-11-26');
+    expect(
+      watchExpenseDate({ madeAt: now + 3 * 86_400_000, tzOffsetMin: 0 }, now, '2026-11-26'),
+    ).toBe('2026-11-26');
+  });
+
+  it('picks the watch place, else the phone only for a fresh delivery, else none', () => {
+    const now = 10_000_000;
+    expect(watchPlaceSource({ location: { lat: 1, lng: 2 }, madeAt: now - 9e6 }, now)).toBe(
+      'watch',
+    );
+    expect(watchPlaceSource({ madeAt: now - 119_000 }, now)).toBe('phone');
+    expect(watchPlaceSource({ madeAt: now - 121_000 }, now)).toBe('none');
+    expect(watchPlaceSource({}, now)).toBe('phone');
   });
 });

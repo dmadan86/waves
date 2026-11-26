@@ -124,6 +124,7 @@ dependencies {
     implementation "androidx.wear.compose:compose-navigation:1.4.0"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1"
     implementation "com.google.android.gms:play-services-wearable:18.2.0"
+    implementation "com.google.android.gms:play-services-location:21.3.0"
 }
 `;
 
@@ -132,6 +133,11 @@ const manifest = `<?xml version="1.0" encoding="utf-8"?>
 
     <uses-feature android:name="android.hardware.type.watch" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Voice notes are recorded on the watch and sent to the phone to transcribe. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Coarse is enough to pin where an expense was made; asked for only when
+         the phone's location-for-expenses setting is on. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:allowBackup="false"
@@ -168,7 +174,12 @@ const manifest = `<?xml version="1.0" encoding="utf-8"?>
 
 const relayKt = `package ${WEAR_PACKAGE}
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.net.Uri
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.CoroutineScope
@@ -180,6 +191,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
+import java.util.TimeZone
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -191,15 +204,34 @@ data class RecentItem(
     val whenText: String,
 )
 
+/** An add stored on this watch: still to sync, or a voice note the phone has taken. */
+data class PendingItem(val title: String, val status: String, val delivered: Boolean)
+
 /**
  * The Wear end of the relay. A process-wide holder the UI observes and the
  * listener service writes to. Messages match @waves/core's relay contract.
+ *
+ * Offline-first: every add (quick-add and voice note) is written to disk FIRST
+ * with a client id and the time it was made, shown at once in Recent as
+ * "Saved on watch", and sent whenever a phone is connected. A quick-add leaves
+ * the list when the phone acks its id; a voice note stays (as "sent to phone")
+ * once its audio has reached the phone, which transcribes it into Review.
  */
 object WearRelay {
     const val PATH = "/waves"
+    // A voice clip travels as a Channel file on CLIP_PATH/<url-encoded metadata json>.
+    const val CLIP_PATH = "/waves/clip"
+    // Longest voice note, matching @waves/core's WATCH_VOICE_CLIP_MAX_MS.
+    const val MAX_CLIP_MS = 30_000
+    // How long a fix may delay an add before it is saved without a place.
+    private const val LOCATION_TIMEOUT_S = 3L
+    private const val KEEP_DELIVERED = 5
 
     private val _recent = MutableStateFlow<List<RecentItem>>(emptyList())
     val recent: StateFlow<List<RecentItem>> = _recent
+
+    private val _pendingItems = MutableStateFlow<List<PendingItem>>(emptyList())
+    val pendingItems: StateFlow<List<PendingItem>> = _pendingItems
 
     private val _recentCount = MutableStateFlow(5)
     val recentCount: StateFlow<Int> = _recentCount
@@ -207,6 +239,11 @@ object WearRelay {
     // The currency a quick-add is booked in, relayed from the phone's default.
     private val _currency = MutableStateFlow("USD")
     val currency: StateFlow<String> = _currency
+
+    // The phone's location-for-expenses setting. Off until the phone says so; the
+    // watch asks for its own location permission only once it is on.
+    private val _locationEnabled = MutableStateFlow(false)
+    val locationEnabled: StateFlow<Boolean> = _locationEnabled
 
     // Why the last expense is not (yet) on the phone, shown on Home; null when all is well.
     private val _status = MutableStateFlow<String?>(null)
@@ -217,7 +254,7 @@ object WearRelay {
     private val _phoneConnected = MutableStateFlow<Boolean?>(null)
     val phoneConnected: StateFlow<Boolean?> = _phoneConnected
 
-    private const val NOT_CONNECTED = "Phone not connected. Saved here, will send when it is."
+    private const val NOT_CONNECTED = "Saved on watch. Will sync when your phone is near."
     private const val REFUSED = "Your phone couldn't add that. Open Waves to check."
 
     // Expenses outlive the screen that made them, so sending is not tied to a composition.
@@ -226,7 +263,7 @@ object WearRelay {
 
     /** Called by PhoneListenerService for every inbound message. Fails closed on
      *  a malformed or version-skewed payload rather than crashing the binder. */
-    fun onMessage(json: String) {
+    fun onMessage(context: Context, json: String) {
         val obj = try {
             JSONObject(json)
         } catch (e: Exception) {
@@ -253,10 +290,28 @@ object WearRelay {
             "settings" -> {
                 _recentCount.value = obj.optInt("recentCount", _recentCount.value)
                 obj.optString("currency").takeIf { it.isNotEmpty() }?.let { _currency.value = it }
+                // An older phone sends no flag, which reads as off.
+                _locationEnabled.value = obj.optBoolean("locationEnabled", false)
             }
             "ack" -> {
-                if (!obj.optBoolean("ok", false)) _status.value = REFUSED
+                val ok = obj.optBoolean("ok", false)
+                if (!ok) _status.value = REFUSED
                 else if (_status.value == REFUSED) _status.value = null
+                // The ack names the add it answers; an older phone's does not, and
+                // then the oldest sent quick-add is the one it means.
+                val id = obj.optString("id").takeIf { it.isNotEmpty() }
+                synchronized(lock) {
+                    val arr = loadPending(context)
+                    val target = if (id != null) indexOfId(arr, id) else firstSentQuick(arr)
+                    if (target >= 0) {
+                        savePending(context, removeAt(arr, target))
+                    }
+                }
+            }
+            "voiceResult" -> {
+                // The phone has the clip and has filed (or refused) it; either way
+                // the audio is no longer needed here.
+                obj.optString("id").takeIf { it.isNotEmpty() }?.let { markDelivered(context, it) }
             }
             else -> {}
         }
@@ -286,6 +341,33 @@ object WearRelay {
         }
     }
 
+    /** Send a recorded clip to the connected phone as a Channel file. */
+    private fun trySendClip(context: Context, entry: JSONObject, file: File): Boolean {
+        return try {
+            val nodes = Tasks.await(
+                Wearable.getNodeClient(context).connectedNodes,
+                10,
+                TimeUnit.SECONDS,
+            )
+            if (nodes.isEmpty()) return false
+            val channels = Wearable.getChannelClient(context)
+            val path = CLIP_PATH + "/" + Uri.encode(wire(entry).toString())
+            var sent = false
+            for (node in nodes) {
+                val channel = Tasks.await(channels.openChannel(node.id, path), 10, TimeUnit.SECONDS)
+                try {
+                    Tasks.await(channels.sendFile(channel, Uri.fromFile(file)), 60, TimeUnit.SECONDS)
+                    sent = true
+                } finally {
+                    channels.close(channel)
+                }
+            }
+            sent
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences("waves_relay", Context.MODE_PRIVATE)
 
@@ -296,34 +378,142 @@ object WearRelay {
             JSONArray()
         }
 
-    /** Expenses are written to disk before any send, so none can vanish with the phone away. */
-    private fun enqueue(context: Context, message: JSONObject) {
+    private fun clipDir(context: Context) =
+        File(context.applicationContext.filesDir, "pending-clips").apply { mkdirs() }
+
+    private fun indexOfId(arr: JSONArray, id: String): Int {
+        for (i in 0 until arr.length()) if (arr.getJSONObject(i).optString("id") == id) return i
+        return -1
+    }
+
+    private fun firstSentQuick(arr: JSONArray): Int {
+        for (i in 0 until arr.length()) {
+            val o = arr.getJSONObject(i)
+            if (o.optString("t") == "quickAdd" && o.optBoolean("sent", false)) return i
+        }
+        return -1
+    }
+
+    private fun removeAt(arr: JSONArray, index: Int): JSONArray {
+        val out = JSONArray()
+        for (i in 0 until arr.length()) if (i != index) out.put(arr.getJSONObject(i))
+        return out
+    }
+
+    /** What the phone reads: the add without this watch's bookkeeping. */
+    private fun wire(entry: JSONObject): JSONObject {
+        val out = JSONObject()
+        for (key in listOf("t", "id", "amount", "currency", "note", "durationMs", "madeAt", "tzOffsetMin", "location")) {
+            if (entry.has(key)) out.put(key, entry.get(key))
+        }
+        out.put("version", RELAY_VERSION)
+        return out
+    }
+
+    /** Persist, trim delivered voice notes, and refresh what the UI shows. */
+    private fun savePending(context: Context, arr: JSONArray) {
+        var deliveredSeen = 0
+        val kept = JSONArray()
+        // Newest are at the end; keep the last KEEP_DELIVERED delivered ones.
+        for (i in arr.length() - 1 downTo 0) {
+            val o = arr.getJSONObject(i)
+            if (o.optBoolean("delivered", false) && ++deliveredSeen > KEEP_DELIVERED) continue
+            kept.put(o)
+        }
+        val ordered = JSONArray()
+        for (i in kept.length() - 1 downTo 0) ordered.put(kept.getJSONObject(i))
+        prefs(context).edit().putString("pending", ordered.toString()).commit()
+        publish(ordered)
+    }
+
+    private fun publish(arr: JSONArray) {
+        val items = ArrayList<PendingItem>(arr.length())
+        // Newest first.
+        for (i in arr.length() - 1 downTo 0) {
+            val o = arr.getJSONObject(i)
+            val voice = o.optString("t") == "voiceClip"
+            val delivered = o.optBoolean("delivered", false)
+            items.add(
+                PendingItem(
+                    title = if (voice) "Voice note" else o.optString("currency") + " " + o.optString("amount"),
+                    status = when {
+                        voice && delivered -> "Voice note · sent to phone"
+                        voice -> "Voice note · will sync"
+                        else -> "Saved on watch · will sync"
+                    },
+                    delivered = delivered,
+                )
+            )
+        }
+        _pendingItems.value = items
+    }
+
+    /** Show what is stored when the app opens (the list survives a restart). */
+    fun load(context: Context) {
+        synchronized(lock) { publish(loadPending(context)) }
+    }
+
+    /** Written to disk before any send, so no add can vanish with the phone away. */
+    private fun enqueue(context: Context, entry: JSONObject) {
         synchronized(lock) {
             val arr = loadPending(context)
-            arr.put(message)
-            prefs(context).edit().putString("pending", arr.toString()).commit()
+            arr.put(entry)
+            savePending(context, arr)
         }
         _status.value = NOT_CONNECTED
     }
 
+    private fun update(context: Context, id: String, change: (JSONObject) -> Unit) {
+        synchronized(lock) {
+            val arr = loadPending(context)
+            val i = indexOfId(arr, id)
+            if (i < 0) return
+            change(arr.getJSONObject(i))
+            savePending(context, arr)
+        }
+    }
+
+    private fun markDelivered(context: Context, id: String) {
+        update(context, id) { o ->
+            o.put("delivered", true)
+            o.optString("clipFile").takeIf { it.isNotEmpty() }?.let { File(clipDir(context), it).delete() }
+            o.remove("clipFile")
+        }
+    }
+
     /**
-     * Send everything waiting, oldest first, stopping at the first failure. A message
-     * the phone already took is safe to resend: it dedupes on the intent \`id\`.
+     * Send everything waiting, oldest first. A quick-add the phone took stays listed
+     * until its ack arrives; resending an unacked one is safe because the phone
+     * dedupes on the intent \`id\`. Stops at the first failure (the phone is away).
      */
     fun flush(context: Context) {
         synchronized(lock) {
             val arr = loadPending(context)
-            if (arr.length() == 0) return
-            val remaining = JSONArray()
             var failed = false
+            var anyWaiting = false
             for (i in 0 until arr.length()) {
                 val item = arr.getJSONObject(i)
-                if (!failed && trySend(context, item)) continue
-                failed = true
-                remaining.put(item)
+                if (item.optBoolean("delivered", false)) continue
+                // Holding for a fix (at most a few seconds); a stale flag is ignored.
+                if (item.optBoolean("awaiting", false) &&
+                    System.currentTimeMillis() - item.optLong("madeAt") < 15_000
+                ) { anyWaiting = true; continue }
+                if (failed) { anyWaiting = true; continue }
+                val voice = item.optString("t") == "voiceClip"
+                val ok = if (voice) {
+                    val file = File(clipDir(context), item.optString("clipFile"))
+                    if (!file.exists()) { item.put("delivered", true); true }
+                    else if (trySendClip(context, item, file)) {
+                        item.put("delivered", true)
+                        file.delete()
+                        item.remove("clipFile")
+                        true
+                    } else false
+                } else trySend(context, wire(item)).also { if (it) item.put("sent", true) }
+                if (!ok) { failed = true; anyWaiting = true }
             }
-            prefs(context).edit().putString("pending", remaining.toString()).commit()
-            if (remaining.length() > 0) _status.value = NOT_CONNECTED
+            savePending(context, arr)
+            if (anyWaiting) _status.value = NOT_CONNECTED
             else if (_status.value == NOT_CONNECTED) _status.value = null
         }
     }
@@ -345,27 +535,92 @@ object WearRelay {
         }
     }
 
-    /** \`amount\` is whole units as dialled; the phone scales it to the currency's minor units. */
-    fun quickAdd(context: Context, amount: Long, currency: String, note: String) {
-        enqueue(
-            context,
-            // A stable id per intent so a transport retry is idempotent on the phone.
-            JSONObject().put("t", "quickAdd").put("version", RELAY_VERSION)
-                .put("id", UUID.randomUUID().toString())
-                .put("amount", amount.toString())
-                .put("currency", currency).put("note", note),
-        )
-        flushAsync(context)
+    /**
+     * The watch's position now, as {lat, lng, accuracy, capturedAt}, or null.
+     * Only when the phone's setting is on AND this watch has location permission;
+     * never asks for permission here, and gives up after a few seconds so an add
+     * is never held up by it. Reduced accuracy (balanced power) is plenty.
+     */
+    private fun captureLocation(context: Context): JSONObject? {
+        if (!_locationEnabled.value) return null
+        val granted = context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        if (!granted) return null
+        return try {
+            val client = LocationServices.getFusedLocationProviderClient(context)
+            val current = try {
+                Tasks.await(
+                    client.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null),
+                    LOCATION_TIMEOUT_S,
+                    TimeUnit.SECONDS,
+                )
+            } catch (e: Exception) {
+                null
+            }
+            val fix = current ?: Tasks.await(client.lastLocation, 500, TimeUnit.MILLISECONDS)
+            fix?.let {
+                JSONObject().put("lat", it.latitude).put("lng", it.longitude)
+                    .put("accuracy", it.accuracy.toDouble()).put("capturedAt", it.time)
+            }
+        } catch (e: Exception) {
+            null
+        }
     }
 
-    fun voiceAdd(context: Context, transcript: String) {
-        enqueue(
-            context,
-            JSONObject().put("t", "voiceAdd").put("version", RELAY_VERSION)
-                .put("id", UUID.randomUUID().toString()).put("transcript", transcript),
-        )
-        flushAsync(context)
+    private fun newEntry(type: String): JSONObject {
+        val now = System.currentTimeMillis()
+        return JSONObject().put("t", type)
+            // A stable id per intent so a transport retry is idempotent on the phone.
+            .put("id", UUID.randomUUID().toString())
+            .put("madeAt", now)
+            .put("tzOffsetMin", TimeZone.getDefault().getOffset(now) / 60_000)
+            .put("awaiting", _locationEnabled.value)
     }
+
+    /** Store the add now, then add a fix if one arrives in time, then send. */
+    private fun store(context: Context, entry: JSONObject) {
+        val id = entry.getString("id")
+        val awaiting = entry.optBoolean("awaiting", false)
+        enqueue(context, entry)
+        ioScope.launch {
+            if (awaiting) {
+                val place = captureLocation(context)
+                update(context, id) { o ->
+                    if (place != null) o.put("location", place)
+                    o.put("awaiting", false)
+                }
+            }
+            flush(context)
+        }
+    }
+
+    /** \`amount\` is whole units as dialled; the phone scales it to the currency's minor units. */
+    fun quickAdd(context: Context, amount: Long, currency: String, note: String) {
+        store(
+            context,
+            newEntry("quickAdd").put("amount", amount.toString()).put("currency", currency)
+                .put("note", note),
+        )
+    }
+
+    /** A finished recording: kept on the watch, sent to the phone when it can be. */
+    fun voiceClip(context: Context, recorded: File, durationMs: Long, startedAt: Long) {
+        val entry = newEntry("voiceClip")
+        val name = entry.getString("id") + ".m4a"
+        val dest = File(clipDir(context), name)
+        if (!recorded.renameTo(dest)) {
+            recorded.copyTo(dest, overwrite = true)
+            recorded.delete()
+        }
+        // The note was made when the person started speaking.
+        entry.put("madeAt", startedAt)
+            .put("tzOffsetMin", TimeZone.getDefault().getOffset(startedAt) / 60_000)
+            .put("clipFile", name)
+            .put("durationMs", durationMs.coerceIn(1L, MAX_CLIP_MS.toLong()))
+        store(context, entry)
+    }
+
+    fun clipFileFor(context: Context): File = File(clipDir(context), "rec-" + UUID.randomUUID() + ".m4a")
 }
 `;
 
@@ -378,7 +633,7 @@ import com.google.android.gms.wearable.WearableListenerService
 class PhoneListenerService : WearableListenerService() {
     override fun onMessageReceived(event: MessageEvent) {
         if (event.path != WearRelay.PATH) return
-        WearRelay.onMessage(String(event.data, Charsets.UTF_8))
+        WearRelay.onMessage(applicationContext, String(event.data, Charsets.UTF_8))
         // The phone just spoke, so it is connected: send anything that was waiting.
         WearRelay.flushAsync(applicationContext)
     }
@@ -387,10 +642,11 @@ class PhoneListenerService : WearableListenerService() {
 
 const mainActivityKt = `package ${WEAR_PACKAGE}
 
-import android.app.Activity
-import android.content.Intent
+import android.Manifest
+import android.content.pm.PackageManager
+import android.media.MediaRecorder
+import android.os.Build
 import android.os.Bundle
-import android.speech.RecognizerIntent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -403,6 +659,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -439,6 +696,7 @@ fun WearApp() {
             composable("home") { HomeScreen(nav) }
             composable("add") { QuickAddScreen(nav) }
             composable("recent") { RecentScreen() }
+            composable("record") { RecordScreen(nav) }
         }
     }
 }
@@ -448,22 +706,30 @@ fun HomeScreen(nav: NavHostController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val voiceLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val spoken = result.data
-                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                ?.firstOrNull()
-                ?.trim()
-                .orEmpty()
-            if (spoken.isNotEmpty()) WearRelay.voiceAdd(context, spoken)
+    // Voice is never recognised on the watch: Speak records a short clip that is
+    // stored here and sent to the phone, which transcribes it into Review.
+    val micLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> if (granted) nav.navigate("record") }
+
+    // Ask for this watch's own location only once the phone's setting is on.
+    val locationEnabled by WearRelay.locationEnabled.collectAsState()
+    val locationLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { }
+    LaunchedEffect(locationEnabled) {
+        if (locationEnabled &&
+            context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            locationLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
         }
     }
 
     val status by WearRelay.status.collectAsState()
     // Anything saved while the phone was away goes out as soon as the app opens.
     androidx.compose.runtime.LaunchedEffect(Unit) {
+        WearRelay.load(context)
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { WearRelay.flush(context) }
     }
 
@@ -475,14 +741,10 @@ fun HomeScreen(nav: NavHostController) {
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Speak") },
                 onClick = {
-                    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                        putExtra(
-                            RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                            RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
-                        )
-                        putExtra(RecognizerIntent.EXTRA_PROMPT, "Say what you spent")
-                    }
-                    voiceLauncher.launch(intent)
+                    if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) ==
+                        PackageManager.PERMISSION_GRANTED
+                    ) nav.navigate("record")
+                    else micLauncher.launch(Manifest.permission.RECORD_AUDIO)
                 },
                 colors = ChipDefaults.primaryChipColors(),
             )
@@ -559,12 +821,23 @@ fun RecentScreen() {
     val scope = rememberCoroutineScope()
     val recent by WearRelay.recent.collectAsState()
     val connected by WearRelay.phoneConnected.collectAsState()
+    val pending by WearRelay.pendingItems.collectAsState()
 
     androidx.compose.runtime.LaunchedEffect(Unit) { WearRelay.requestRecent(context, scope) }
 
     ScalingLazyColumn(modifier = Modifier.fillMaxSize()) {
         item { Text("Recent") }
-        if (recent.isEmpty()) {
+        // Stored on this watch: still to sync, or a voice note already sent.
+        items(pending) { row ->
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(row.title, maxLines = 1)
+                Text(row.status, style = MaterialTheme.typography.caption2)
+            }
+        }
+        if (recent.isEmpty() && pending.isEmpty()) {
             item { Text(if (connected == false) "Phone not connected" else "Nothing yet") }
         } else {
             items(recent) { row ->
@@ -579,6 +852,70 @@ fun RecentScreen() {
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun RecordScreen(nav: NavHostController) {
+    val context = LocalContext.current
+    var elapsedMs by remember { mutableStateOf(0L) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val recorder = remember { arrayOfNulls<MediaRecorder>(1) }
+    val file = remember { WearRelay.clipFileFor(context) }
+    val startedAt = remember { System.currentTimeMillis() }
+    var finished by remember { mutableStateOf(false) }
+
+    fun finish(keep: Boolean, leave: Boolean = true) {
+        if (finished) return
+        finished = true
+        val r = recorder[0]
+        recorder[0] = null
+        val ok = try { r?.stop(); true } catch (e: Exception) { false }
+        try { r?.release() } catch (e: Exception) { }
+        val ms = System.currentTimeMillis() - startedAt
+        if (keep && ok && ms >= 500) WearRelay.voiceClip(context, file, ms, startedAt)
+        else file.delete()
+        if (leave) nav.popBackStack()
+    }
+
+    LaunchedEffect(Unit) {
+        try {
+            @Suppress("DEPRECATION")
+            val r = if (Build.VERSION.SDK_INT >= 31) MediaRecorder(context) else MediaRecorder()
+            r.setAudioSource(MediaRecorder.AudioSource.MIC)
+            r.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            r.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            r.setAudioChannels(1)
+            r.setAudioSamplingRate(16000)
+            r.setAudioEncodingBitRate(24000)
+            r.setMaxDuration(WearRelay.MAX_CLIP_MS)
+            r.setOutputFile(file.absolutePath)
+            r.prepare()
+            r.start()
+            recorder[0] = r
+            while (!finished) {
+                kotlinx.coroutines.delay(200)
+                elapsedMs = System.currentTimeMillis() - startedAt
+                // The recorder stops itself at the cap; keep what was said.
+                if (elapsedMs >= WearRelay.MAX_CLIP_MS) finish(true)
+            }
+        } catch (e: Exception) {
+            error = "Couldn't start the mic"
+        }
+    }
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        // Leaving the screen any other way (swipe back) throws the take away.
+        onDispose { if (!finished) finish(false, leave = false) }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize().padding(8.dp),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(error ?: "Listening  0:" + (elapsedMs / 1000).toString().padStart(2, '0'))
+        Button(onClick = { finish(error == null) }, modifier = Modifier.fillMaxWidth()) {
+            Text(if (error == null) "Done" else "Close")
         }
     }
 }

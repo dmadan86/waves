@@ -19,6 +19,7 @@ import {
   format as formatMoney,
   money as toMoney,
   parseWatchToPhone,
+  watchExpenseDate,
   type WatchRecentItem,
 } from '@waves/core';
 
@@ -43,8 +44,13 @@ import {
   sweepStaleClips,
   transcribeFile,
 } from './voiceClip';
-import { captureLocationIfGranted } from '@/lib/location';
-import { parseWatchClip, placeForCapture, processClip } from './voiceClipPure';
+import {
+  captureLocationIfGranted,
+  locationAvailable,
+  locationPermission,
+  LocationPermission,
+} from '@/lib/location';
+import { parseWatchClip, placeForWatchAdd, processClip, watchCaptureParsed } from './voiceClipPure';
 import {
   onWatchFile,
   onWatchMessage,
@@ -127,6 +133,7 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
     agentEnabled,
   });
   const createRef = useRef(createCapture);
+  const sendSettingsRef = useRef<() => Promise<void>>(async () => undefined);
   /** The last recent payload sent, so an unchanged list is not re-sent. */
   const lastRecentRef = useRef<string | null>(null);
 
@@ -246,6 +253,8 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
         try {
           switch (msg.t) {
             case 'quickAdd': {
+              const now = Date.now();
+              const location = await placeForWatchAdd(msg, now, captureLocationIfGranted);
               await createRef.current.mutateAsync({
                 // The watch's per-intent id becomes the capture id, so a
                 // transport retry of the same tap is a no-op upsert, not a dup.
@@ -253,13 +262,16 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
                 amount: BigInt(msg.amountMinor),
                 currency: msg.currency,
                 description: msg.note,
-                expenseDate: localDate(Date.now()),
+                // The day the WATCH made it, not the day it was delivered.
+                expenseDate: watchExpenseDate(msg, now, localDate(now)),
                 rawText: msg.note || null,
+                parsed: watchCaptureParsed('quick', msg.id, msg.madeAt),
+                location,
               });
               // No recent relay here: the write is only queued at this point,
               // so the list would still be the pre-write one. The effect above
               // sends it when the mirror actually changes.
-              sendToWatch({ t: 'ack', ok: true });
+              sendToWatch({ t: 'ack', ok: true, id: msg.id });
               break;
             }
             case 'voiceAdd': {
@@ -269,11 +281,11 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
               // "Madan paid 500": a capture has nowhere to keep who paid, and the
               // wrist cannot ask — so it is not booked as the wearer's own.
               if (result.intent?.payer.explicit && result.intent.payer.kind === 'member') {
-                sendToWatch({ t: 'ack', ok: false, error: 'no-amount' });
+                sendToWatch({ t: 'ack', ok: false, error: 'no-amount', id: msg.id });
                 break;
               }
               if (items.length === 0) {
-                sendToWatch({ t: 'ack', ok: false, error: 'no-amount' });
+                sendToWatch({ t: 'ack', ok: false, error: 'no-amount', id: msg.id });
                 break;
               }
               // Always land as unassigned captures — the safe group-less path;
@@ -285,19 +297,22 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
               // multi-expense utterance keeps server-generated ids — a replay of
               // that rarer case can duplicate, a documented v1 limitation.
               const single = items.length === 1;
-              const location = await placeForCapture(captureLocationIfGranted);
+              const now = Date.now();
+              const location = await placeForWatchAdd(msg, now, captureLocationIfGranted);
+              const expenseDate = watchExpenseDate(msg, now, localDate(now));
               for (const item of items) {
                 await createRef.current.mutateAsync({
                   captureId: single ? msg.id : undefined,
                   amount: item.amountMinor,
                   currency: item.currency ?? s.defaultCurrency,
                   description: item.note,
-                  expenseDate: localDate(Date.now()),
+                  expenseDate,
                   rawText: msg.transcript,
+                  parsed: watchCaptureParsed('voice', msg.id, msg.madeAt),
                   location,
                 });
               }
-              sendToWatch({ t: 'ack', ok: true });
+              sendToWatch({ t: 'ack', ok: true, id: msg.id });
               break;
             }
             case 'voiceClip':
@@ -306,6 +321,9 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
               break;
             case 'requestRecent':
               relayRecent(coerceRecentCount(msg.count), { force: true });
+              // The wearer may have changed the location permission since the
+              // last settings message; the watch asks whenever it is opened.
+              void sendSettingsRef.current();
               break;
             case 'notifAction':
               // Wired in the notification-actions phase; acknowledge for now.
@@ -313,7 +331,12 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
               break;
           }
         } catch {
-          sendToWatch({ t: 'ack', ok: false, error: 'failed' });
+          sendToWatch({
+            t: 'ack',
+            ok: false,
+            error: 'failed',
+            ...('id' in msg && { id: msg.id }),
+          });
         }
       })();
     });
@@ -341,7 +364,8 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
       handledClips.current.add(clip.id);
       void (async () => {
         const s = stateRef.current;
-        const today = localDate(Date.now());
+        const now = Date.now();
+        const today = watchExpenseDate(clip, now, localDate(now));
         try {
           const outcome = await processClip(clip, {
             agentEnabled: s.agentEnabled,
@@ -355,7 +379,7 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
             transcribe: (uri) => transcribeFile(uri, s.locale),
           });
           const single = outcome.captures.length === 1;
-          const location = await placeForCapture(captureLocationIfGranted);
+          const location = await placeForWatchAdd(clip, now, captureLocationIfGranted);
           for (const item of outcome.captures) {
             await createRef.current.mutateAsync({
               captureId: single ? clip.id : undefined,
@@ -364,6 +388,7 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
               description: item.note,
               expenseDate: today,
               rawText: outcome.rawText,
+              parsed: watchCaptureParsed('voice', clip.id, clip.madeAt),
               location,
             });
           }
@@ -387,13 +412,27 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
 
   // Keep the watch's copy of the settings (list size + the currency a quick-add
   // is booked in) in step with the phone.
+  // `locationEnabled` is the phone's own rule for stamping a place (permission
+  // already granted, never prompted), so the watch captures only when the phone
+  // would have.
   useEffect(() => {
-    if (!watchAvailable()) return;
-    sendToWatch({
-      t: 'settings',
-      recentCount: coerceRecentCount(count),
-      currency: defaultCurrency,
-    });
+    sendSettingsRef.current = async () => {
+      if (!watchAvailable()) return;
+      let locationEnabled = false;
+      try {
+        locationEnabled =
+          locationAvailable() && (await locationPermission()) === LocationPermission.Granted;
+      } catch {
+        locationEnabled = false;
+      }
+      sendToWatch({
+        t: 'settings',
+        recentCount: coerceRecentCount(count),
+        currency: defaultCurrency,
+        locationEnabled,
+      });
+    };
+    void sendSettingsRef.current();
   }, [count, defaultCurrency]);
 
   return <>{children ?? null}</>;

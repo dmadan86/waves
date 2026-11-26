@@ -5,7 +5,7 @@ import WatchConnectivity
 //
 // Sends intents to the paired phone over WatchConnectivity and shows what the
 // phone relays back. The wire shapes match @waves/core's relay contract:
-//   watch → phone: {t:"quickAdd"|"voiceAdd"|"requestRecent", ...}
+//   watch → phone: {t:"quickAdd"|"requestRecent", ...} (+ id, madeAt, tzOffsetMin, location?)
 //                  and a recorded clip as a file (transferFile) with metadata
 //                  {t:"voiceClip", id, durationMs}
 //   phone → watch: {t:"recent", items:[...]} | {t:"settings", recentCount} | {t:"ack", ok}
@@ -23,14 +23,13 @@ struct RecentItem: Identifiable {
   let whenText: String
 }
 
-/// Where a recorded clip is on its way to becoming an expense.
+/// Where the latest voice note is, shown on the Speak screen.
 enum VoiceOutcome: Equatable {
   case idle
-  case sending
-  /// Handed to WatchConnectivity but no answer yet — the phone is out of reach.
-  case queued
-  case added(String)
-  case review
+  /// Recorded and stored on the watch; goes to the phone when it can.
+  case saved
+  /// The phone has it (it lands in Review there).
+  case sent
   case failed(String)
 }
 
@@ -40,12 +39,15 @@ final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
   @Published var currency: String = "USD"
   @Published var lastAckOk: Bool? = nil
   @Published var reachable: Bool = false
-  /// An expense this watch sent that WatchConnectivity could not deliver.
+  /// A send WatchConnectivity reported as failed. The add itself is safe in
+  /// `pending` and is retried, so this is only a hint.
   @Published var lastSendFailed: Bool = false
-  /// The latest voice clip's journey, shown on the Speak screen.
+  /// Adds stored on this watch, newest first: pending, plus recently sent voice notes.
+  @Published var pending: [PendingAdd] = PendingStore.load()
   @Published var voiceOutcome: VoiceOutcome = .idle
   private var currentClipId: String?
-  private var queuedTimer: Timer?
+  /// Fixes for new adds; on only while the phone's `locationEnabled` setting is.
+  let locator = WatchLocator()
 
   private var session: WCSession? { WCSession.isSupported() ? WCSession.default : nil }
 
@@ -63,64 +65,121 @@ final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
     send(["t": "requestRecent", "count": recentCount])
   }
 
+  // MARK: Offline-first adds
+
+  private func persist() { PendingStore.save(pending) }
+
+  private func newEntry(_ kind: PendingAdd.Kind) -> PendingAdd {
+    let now = Date()
+    return PendingAdd(
+      id: UUID().uuidString, kind: kind, amount: 0, currency: currency, note: "",
+      madeAt: Int64(now.timeIntervalSince1970 * 1000),
+      tzOffsetMin: TimeZone.current.secondsFromGMT(for: now) / 60,
+      lat: nil, lng: nil, accuracy: nil, capturedAt: nil, clipFile: nil, durationMs: 0,
+      queued: false, delivered: false, awaitingLocation: locator.enabled)
+  }
+
+  /// Store the add now (shown at once), then wait at most ~3 s for a fix before sending.
+  private func store(_ entry: PendingAdd) {
+    pending.insert(entry, at: 0)
+    persist()
+    guard entry.awaitingLocation else { return flush() }
+    locator.current { [weak self] fix in
+      guard let self, let i = self.pending.firstIndex(where: { $0.id == entry.id }) else { return }
+      if let fix {
+        self.pending[i].lat = fix.lat
+        self.pending[i].lng = fix.lng
+        self.pending[i].accuracy = fix.accuracy
+        self.pending[i].capturedAt = fix.capturedAt
+      }
+      self.pending[i].awaitingLocation = false
+      self.persist()
+      self.flush()
+    }
+  }
+
   /// `amount` is what was dialled, in whole units. No minor-unit scaling here: the
   /// watch knows nothing of a currency's decimals (JPY has none, KWD three), so the
   /// phone scales it for the currency it books in.
   func quickAdd(amount: Int, currency: String, note: String) {
     lastAckOk = nil
-    // Clear the warning only if the payload was actually accepted for delivery.
-    // Clearing up front and then hitting the guard in `send` — session not yet
-    // activated right after launch — dropped the expense and left no warning,
-    // the silent loss this whole change exists to stop.
-    lastSendFailed = !send([
-      "t": "quickAdd",
-      // A stable id per intent so a transport retry of the same tap is
-      // idempotent on the phone rather than creating a duplicate expense.
-      "id": UUID().uuidString,
-      "amount": String(amount),
-      "currency": currency,
-      "note": note,
-    ])
+    var e = newEntry(.quick)
+    e.amount = amount
+    e.currency = currency
+    e.note = note
+    store(e)
   }
 
-  func voiceAdd(_ transcript: String) {
-    lastAckOk = nil
-    lastSendFailed = !send(["t": "voiceAdd", "id": UUID().uuidString, "transcript": transcript])
-  }
-
-  /// Send a recorded clip to the phone with `transferFile`, which is queued and
-  /// survives the phone being out of reach. The outcome comes back as a
-  /// `voiceResult` message — immediately when the phone is reachable, otherwise
-  /// whenever it next runs Waves.
+  /// A finished recording: keep the audio on the watch, then send it when the
+  /// phone can take it. The phone transcribes it and files a draft in Review.
   func sendClip(_ url: URL, durationMs: Int) {
-    guard let session, session.activationState == .activated else {
-      voiceOutcome = .failed("Phone not connected")
+    var e = newEntry(.voice)
+    let name = "\(e.id).m4a"
+    do {
+      try FileManager.default.moveItem(
+        at: url, to: PendingStore.clipDirectory.appendingPathComponent(name))
+    } catch {
+      voiceOutcome = .failed("Couldn't save the recording")
       try? FileManager.default.removeItem(at: url)
       return
     }
-    let id = UUID().uuidString
-    currentClipId = id
-    voiceOutcome = .sending
-    session.transferFile(
-      url,
-      metadata: ["t": "voiceClip", "id": id, "durationMs": durationMs, "version": relayVersion]
-    )
-    // transferFile alone waits until Waves next runs on the phone. A live message
-    // wakes the iOS app in the background, which then takes the queued file now.
-    if session.isReachable {
-      session.sendMessage(["t": "voiceClip", "id": id, "version": relayVersion], replyHandler: nil)
+    e.clipFile = name
+    e.durationMs = durationMs
+    currentClipId = e.id
+    voiceOutcome = .saved
+    store(e)
+  }
+
+  /// Send everything not yet delivered. Safe to call any time and as often as
+  /// wanted: the phone dedupes on the add's id, and nothing is re-queued with
+  /// the OS while a queued copy is still outstanding.
+  func flush() {
+    guard let session, session.activationState == .activated else { return }
+    var changed = false
+    for i in pending.indices.reversed() where !pending[i].delivered && !pending[i].awaitingLocation {
+      let e = pending[i]
+      var wire = e.wire
+      wire["version"] = relayVersion
+      if e.kind == .quick {
+        if session.isReachable {
+          session.sendMessage(wire, replyHandler: nil) { _ in }
+        }
+        if !e.queued {
+          session.transferUserInfo(wire)
+          pending[i].queued = true
+          changed = true
+        }
+      } else if !e.queued, let url = PendingStore.clipURL(e),
+        FileManager.default.fileExists(atPath: url.path)
+      {
+        session.transferFile(url, metadata: wire)
+        pending[i].queued = true
+        changed = true
+        // transferFile alone waits until Waves next runs on the phone. A live message
+        // wakes the iOS app in the background, which then takes the queued file now.
+        if session.isReachable {
+          session.sendMessage(["t": "voiceClip", "id": e.id, "version": relayVersion], replyHandler: nil)
+        }
+      }
     }
-    // Not reachable: say so rather than spin on "Sending…" for minutes. The
-    // transfer stays queued and the answer still lands when it arrives.
-    queuedTimer?.invalidate()
-    queuedTimer = Timer.scheduledTimer(withTimeInterval: 12, repeats: false) { [weak self] _ in
-      guard let self, self.currentClipId == id, self.voiceOutcome == .sending else { return }
-      self.voiceOutcome = .queued
-    }
+    if changed { persist() }
   }
 
   func resetVoiceOutcome() {
-    if voiceOutcome != .sending && voiceOutcome != .queued { voiceOutcome = .idle }
+    // The note itself lives in `pending`; this only clears the Speak screen.
+    voiceOutcome = .idle
+  }
+
+  private func markDelivered(_ id: String) {
+    guard let i = pending.firstIndex(where: { $0.id == id }) else { return }
+    if pending[i].kind == .voice {
+      pending[i].delivered = true
+      PendingStore.deleteClip(pending[i])
+      if currentClipId == id, voiceOutcome == .saved { voiceOutcome = .sent }
+    } else {
+      pending.remove(at: i)
+    }
+    persist()
   }
 
   private static func voiceErrorText(_ code: String?, _ text: String) -> String {
@@ -134,10 +193,8 @@ final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
   }
 
   /// Hand a message to WatchConnectivity for delivery. Returns whether it was
-  /// accepted: `false` means there was no activated session to take it, so the
-  /// caller (an expense send) must surface that rather than assume it left.
-  /// `requestRecent` ignores the result — a missed recent-list refresh is not a
-  /// lost expense and must not raise the expense-drop warning.
+  /// accepted: `false` means there was no activated session to take it.
+  /// Only used for `requestRecent`; adds go through `pending` and `flush`.
   @discardableResult
   private func send(_ message: [String: Any]) -> Bool {
     guard let session, session.activationState == .activated else { return false }
@@ -162,7 +219,10 @@ final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
   ) {
     DispatchQueue.main.async {
       self.reachable = session.isReachable
-      if activationState == .activated { self.requestRecent() }
+      if activationState == .activated {
+        self.requestRecent()
+        self.flush()
+      }
     }
   }
 
@@ -179,47 +239,44 @@ final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
   }
 
   func sessionReachabilityDidChange(_ session: WCSession) {
-    DispatchQueue.main.async { self.reachable = session.isReachable }
+    DispatchQueue.main.async {
+      self.reachable = session.isReachable
+      // The phone is back: send whatever was stored while it was away.
+      if session.isReachable { self.flush() }
+    }
   }
 
-  /**
-   * The outcome of a `transferUserInfo` — the path every intent takes whenever
-   * the phone is not reachable, which on a wrist is most of the time.
-   *
-   * Without this method WatchConnectivity has nowhere to report a failed
-   * transfer, so an expense spoken or dialled here could disappear between the
-   * watch and the phone with nothing shown: the view dismisses on tap and the
-   * only other signal, `ack`, comes from a phone that never got the message.
-   *
-   * Only the intents that carry an expense raise the warning. A lost
-   * `requestRecent` costs nothing — the list simply stays as it was, which the
-   * Recent screen already shows honestly.
-   */
+  /// A queued `transferUserInfo` finished. A failure only clears the `queued` flag
+  /// so the next `flush` queues it again; the add itself is never dropped.
   func session(
     _ session: WCSession,
     didFinish userInfoTransfer: WCSessionUserInfoTransfer,
     error: Error?
   ) {
-    let kind = userInfoTransfer.userInfo["t"] as? String
-    guard kind == "quickAdd" || kind == "voiceAdd" else { return }
-    let failed = error != nil
-    DispatchQueue.main.async { self.lastSendFailed = failed }
+    guard let id = userInfoTransfer.userInfo["id"] as? String else { return }
+    DispatchQueue.main.async {
+      if error != nil, let i = self.pending.firstIndex(where: { $0.id == id }) {
+        self.pending[i].queued = false
+        self.persist()
+      }
+      self.lastSendFailed = error != nil
+    }
   }
 
-  /// A clip's file transfer finished. Success only means it reached the phone;
-  /// the outcome is the `voiceResult`. A failure is terminal.
+  /// A clip's file transfer finished. Success means the audio reached the phone
+  /// (it then transcribes it into a Review draft); a failure is retried by `flush`.
   func session(
     _ session: WCSession,
     didFinish fileTransfer: WCSessionFileTransfer,
     error: Error?
   ) {
-    try? FileManager.default.removeItem(at: fileTransfer.file.fileURL)
-    guard error != nil else { return }
+    guard let id = fileTransfer.file.metadata?["id"] as? String else { return }
     DispatchQueue.main.async {
-      self.queuedTimer?.invalidate()
-      self.lastSendFailed = true
-      if self.voiceOutcome == .sending || self.voiceOutcome == .queued {
-        self.voiceOutcome = .failed("Couldn't reach your phone")
+      if error == nil {
+        self.markDelivered(id)
+      } else if let i = self.pending.firstIndex(where: { $0.id == id }) {
+        self.pending[i].queued = false
+        self.persist()
       }
     }
   }
@@ -241,19 +298,19 @@ final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
       case "settings":
         if let n = message["recentCount"] as? Int { self.recentCount = n }
         if let c = message["currency"] as? String, !c.isEmpty { self.currency = c }
+        // Asks for the watch's own location permission only once this is on.
+        self.locator.enabled = message["locationEnabled"] as? Bool ?? false
       case "voiceResult":
-        // Ignore an answer for a clip that is not the current one.
-        guard (message["id"] as? String) == self.currentClipId else { break }
-        self.queuedTimer?.invalidate()
-        let text = message["text"] as? String ?? ""
-        switch message["status"] as? String {
-        case "added": self.voiceOutcome = .added(text)
-        case "review": self.voiceOutcome = .review
-        default:
-          self.voiceOutcome = .failed(Self.voiceErrorText(message["error"] as? String, text))
-        }
+        // The phone has taken the clip, whatever it made of it.
+        if let id = message["id"] as? String { self.markDelivered(id) }
       case "ack":
-        self.lastAckOk = message["ok"] as? Bool ?? false
+        let ok = message["ok"] as? Bool ?? false
+        self.lastAckOk = ok
+        // An ack names the add it answers; an older phone's does not, and then
+        // the oldest queued quick-add is the one it means.
+        let id = message["id"] as? String
+          ?? self.pending.last(where: { $0.kind == .quick && $0.queued })?.id
+        if let id { self.markDelivered(id) }
       default:
         break
       }

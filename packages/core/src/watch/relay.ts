@@ -44,6 +44,34 @@ export interface WatchRecentItem {
   whenText: string;
 }
 
+/**
+ * Where the WATCH was when an expense was made (its own GPS, or the fix it last
+ * had). Optional on every add: an older watch, or one with location off or not
+ * allowed, sends none.
+ */
+export interface WatchLocation {
+  lat: number;
+  lng: number;
+  /** Metres, when the watch knows it. */
+  accuracy?: number;
+  /** Epoch ms the fix was taken. */
+  capturedAt?: number;
+}
+
+/**
+ * When and where an add was made on the watch. An add can be delivered hours
+ * after it was made (the watch stores it while the phone is away), so the phone
+ * must not stamp its own clock or position at the moment it processes it.
+ * All three are optional: an older watch sends none of them.
+ */
+export interface WatchAddMeta {
+  /** Epoch ms the add was made on the watch. */
+  madeAt?: number;
+  /** The watch's UTC offset then, in minutes east of UTC (IST = 330). */
+  tzOffsetMin?: number;
+  location?: WatchLocation;
+}
+
 /** Messages the watch sends to the phone. */
 export type WatchToPhone =
   // `id` is a stable per-intent key (a UUID the watch mints once per send). The
@@ -52,11 +80,17 @@ export type WatchToPhone =
   // The decoded form always carries `amountMinor` in the CURRENCY's minor units
   // (see `parseWatchToPhone`); the wire carries either `amount` (whole units, sent
   // by current watches) or legacy `amountMinor` (whole units x 100).
-  | { t: 'quickAdd'; id: string; amountMinor: string; currency: string; note: string }
-  | { t: 'voiceAdd'; id: string; transcript: string }
+  | ({
+      t: 'quickAdd';
+      id: string;
+      amountMinor: string;
+      currency: string;
+      note: string;
+    } & WatchAddMeta)
+  | ({ t: 'voiceAdd'; id: string; transcript: string } & WatchAddMeta)
   // The metadata of a recorded clip sent as a file (`transferFile`); the audio
   // itself travels as the file, not in this message.
-  | { t: 'voiceClip'; id: string; durationMs: number }
+  | ({ t: 'voiceClip'; id: string; durationMs: number } & WatchAddMeta)
   | { t: 'requestRecent'; count: number }
   | { t: 'notifAction'; actionId: string; objectId: string };
 
@@ -65,8 +99,12 @@ export type PhoneToWatch =
   | { t: 'recent'; items: WatchRecentItem[] }
   // `currency` is the phone's default (ISO code); the watch has no currency
   // knowledge of its own, so it books a quick-add in whatever the phone relays.
-  | { t: 'settings'; recentCount: RecentCount; currency: string }
-  | { t: 'ack'; ok: boolean; error?: string }
+  // `locationEnabled`: the person has location for expenses on (permission granted
+  // on the phone), so a watch may capture its own position with each add. Absent
+  // from an older phone, which a watch reads as off.
+  | { t: 'settings'; recentCount: RecentCount; currency: string; locationEnabled?: boolean }
+  // `id` names the add being answered, so the watch can mark that one synced.
+  | { t: 'ack'; ok: boolean; error?: string; id?: string }
   // The outcome of a voice clip, keyed by the clip's id. `text` is preformatted
   // on the phone ("₹8,000 · Renny") so the watch needs no money formatting; a failure
   // carries a short `error` code the watch words itself.
@@ -123,6 +161,74 @@ function isValidCurrency(value: unknown): value is string {
   return typeof value === 'string' && /^[A-Za-z]{3}$/.test(value);
 }
 
+function finiteNumber(value: unknown): number | undefined {
+  const n = typeof value === 'string' && value.trim() !== '' ? Number(value) : value;
+  return typeof n === 'number' && Number.isFinite(n) ? n : undefined;
+}
+
+/** The optional when/where of an add; a field that fails validation is dropped, never the add. */
+function parseAddMeta(raw: Record<string, unknown>): WatchAddMeta {
+  const meta: WatchAddMeta = {};
+  const madeAt = finiteNumber(raw.madeAt);
+  if (madeAt !== undefined && madeAt > 0) meta.madeAt = Math.round(madeAt);
+  const tz = finiteNumber(raw.tzOffsetMin);
+  if (tz !== undefined && Number.isInteger(tz) && Math.abs(tz) <= 14 * 60) meta.tzOffsetMin = tz;
+  const loc = raw.location;
+  if (isRecord(loc)) {
+    const lat = finiteNumber(loc.lat);
+    const lng = finiteNumber(loc.lng);
+    if (lat !== undefined && lng !== undefined && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+      const place: WatchLocation = { lat, lng };
+      const accuracy = finiteNumber(loc.accuracy);
+      if (accuracy !== undefined && accuracy >= 0) place.accuracy = accuracy;
+      const capturedAt = finiteNumber(loc.capturedAt);
+      if (capturedAt !== undefined && capturedAt > 0) place.capturedAt = Math.round(capturedAt);
+      meta.location = place;
+    }
+  }
+  return meta;
+}
+
+/** How fresh a delivery must be for the phone's own position to stand in for a missing watch one. */
+export const WATCH_PHONE_PLACE_MAX_AGE_MS = 2 * 60 * 1000;
+
+/**
+ * Whose position an add gets: the watch's when it sent one; else the phone's, but
+ * only if the add arrived within two minutes of being made (the wearer is still
+ * where the phone is); else none, since a position read hours later is wrong. An
+ * add with no `madeAt` (an older watch) counts as just made, as it always did.
+ */
+export function watchPlaceSource(
+  meta: Pick<WatchAddMeta, 'madeAt' | 'location'>,
+  now: number,
+): 'watch' | 'phone' | 'none' {
+  if (meta.location) return 'watch';
+  if (meta.madeAt === undefined || now - meta.madeAt <= WATCH_PHONE_PLACE_MAX_AGE_MS)
+    return 'phone';
+  return 'none';
+}
+
+/**
+ * The calendar day (YYYY-MM-DD) an add was made, in the WATCH's zone.
+ * `fallbackDate` is the phone's today, used when the watch sent no time (older
+ * watch) or one that cannot be right (over a day ahead of the phone's clock).
+ * With a time but no offset, the phone's own zone is the best guess.
+ */
+export function watchExpenseDate(
+  meta: Pick<WatchAddMeta, 'madeAt' | 'tzOffsetMin'>,
+  now: number,
+  fallbackDate: string,
+): string {
+  const { madeAt, tzOffsetMin } = meta;
+  if (madeAt === undefined || madeAt > now + 24 * 60 * 60 * 1000) return fallbackDate;
+  if (tzOffsetMin === undefined) {
+    const d = new Date(madeAt);
+    const pad = (n: number) => (n < 10 ? `0${n}` : String(n));
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+  return new Date(madeAt + tzOffsetMin * 60_000).toISOString().slice(0, 10);
+}
+
 /**
  * Decode an untrusted message from the watch, rejecting anything malformed.
  *
@@ -152,7 +258,14 @@ export function parseWatchToPhone(raw: unknown): WatchToPhone | null {
       if (raw.note.length > 500) return null;
       const amountMinor = quickAddMinor(raw, raw.currency);
       return amountMinor
-        ? { t: 'quickAdd', id, amountMinor, currency: raw.currency, note: raw.note }
+        ? {
+            t: 'quickAdd',
+            id,
+            amountMinor,
+            currency: raw.currency,
+            note: raw.note,
+            ...parseAddMeta(raw),
+          }
         : null;
     }
     case 'voiceAdd':
@@ -160,14 +273,19 @@ export function parseWatchToPhone(raw: unknown): WatchToPhone | null {
         typeof raw.transcript === 'string' &&
         raw.transcript.trim().length > 0 &&
         raw.transcript.length <= 2000
-        ? { t: 'voiceAdd', id, transcript: raw.transcript }
+        ? { t: 'voiceAdd', id, transcript: raw.transcript, ...parseAddMeta(raw) }
         : null;
     case 'voiceClip': {
       // WatchConnectivity metadata is a property list: a number may arrive as
       // an Int or a Double, never a string — but accept a numeric string too.
       const ms = typeof raw.durationMs === 'string' ? Number(raw.durationMs) : raw.durationMs;
       return id && typeof ms === 'number' && Number.isFinite(ms) && ms > 0
-        ? { t: 'voiceClip', id, durationMs: Math.min(Math.round(ms), WATCH_VOICE_CLIP_MAX_MS) }
+        ? {
+            t: 'voiceClip',
+            id,
+            durationMs: Math.min(Math.round(ms), WATCH_VOICE_CLIP_MAX_MS),
+            ...parseAddMeta(raw),
+          }
         : null;
     }
     case 'requestRecent':

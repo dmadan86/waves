@@ -15,13 +15,16 @@ import {
   format as formatMoney,
   money as toMoney,
   parseWatchToPhone,
+  watchPlaceSource,
+  type ExpenseLocation,
   type VoiceAgentResponse,
+  type WatchAddMeta,
   type WatchVoiceStatus,
 } from '@waves/core';
 
 import { parseVoiceExpenses, type VoiceGroupRef } from '@/lib/voiceExpense';
 
-export interface WatchClip {
+export interface WatchClip extends WatchAddMeta {
   id: string;
   durationMs: number;
   uri: string;
@@ -34,7 +37,15 @@ export function parseWatchClip(event: unknown): WatchClip | null {
   if (typeof uri !== 'string' || uri.length === 0) return null;
   const msg = parseWatchToPhone(metadata);
   if (!msg || msg.t !== 'voiceClip') return null;
-  return { id: msg.id, durationMs: msg.durationMs, uri };
+  const { madeAt, tzOffsetMin, location } = msg;
+  return {
+    id: msg.id,
+    durationMs: msg.durationMs,
+    uri,
+    ...(madeAt !== undefined && { madeAt }),
+    ...(tzOffsetMin !== undefined && { tzOffsetMin }),
+    ...(location && { location }),
+  };
 }
 
 export interface ClipCapture {
@@ -236,4 +247,50 @@ export async function placeForCapture<T>(
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * The place for an add made on the watch: the watch's own fix when it sent one;
+ * the phone's only when the add arrived within two minutes of being made; else
+ * none (see `watchPlaceSource`). `readPhone` is only called in the middle case.
+ */
+export async function placeForWatchAdd(
+  meta: Pick<WatchAddMeta, 'madeAt' | 'location'>,
+  now: number,
+  readPhone: () => Promise<ExpenseLocation | null>,
+): Promise<ExpenseLocation | null> {
+  const source = watchPlaceSource(meta, now);
+  if (source === 'watch' && meta.location) {
+    return { lat: meta.location.lat, lng: meta.location.lng, name: null };
+  }
+  return source === 'phone' ? placeForCapture(readPhone) : null;
+}
+
+/** The `parsed.source` that marks a Review draft as made on a watch. */
+export const WATCH_CAPTURE_SOURCE = 'watch';
+
+/**
+ * The `parsed` blob a watch-made draft carries, so Review can badge it. Not a
+ * device-only source (see `DEVICE_DRAFT_SOURCES`): it syncs like any capture.
+ */
+export function watchCaptureParsed(
+  kind: 'quick' | 'voice',
+  id: string,
+  madeAt?: number,
+): Record<string, unknown> {
+  return {
+    source: WATCH_CAPTURE_SOURCE,
+    kind,
+    watchId: id,
+    ...(madeAt !== undefined && { madeAt }),
+  };
+}
+
+/** True when a capture's `parsed` blob says a watch made it. */
+export function isFromWatch(parsed: unknown): boolean {
+  return (
+    typeof parsed === 'object' &&
+    parsed !== null &&
+    (parsed as { source?: unknown }).source === WATCH_CAPTURE_SOURCE
+  );
 }

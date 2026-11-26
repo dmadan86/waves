@@ -30,6 +30,11 @@ const h = vi.hoisted(() => ({
   unsubscribed: vi.fn(),
   unsubscribedFailure: vi.fn(),
   place: null as { lat: number; lng: number; name: null } | null,
+  phoneReads: 0,
+  fileHandler: null as ((event: unknown) => void) | null,
+  transcript: '500 rupees tea' as string | null,
+  deleted: [] as string[],
+  locationGranted: false,
   mutateAsync: vi.fn(async (_input: Record<string, unknown>) => undefined),
   groups: [{ id: 'g1', name: 'Goa trip' }] as { id: string; name: string }[] | undefined,
   mirror: { tables: {} } as unknown,
@@ -46,7 +51,10 @@ vi.mock('@/lib/watch/nativeModule', () => ({
     h.sent.push(message);
     return h.sendResult;
   },
-  onWatchFile: () => () => undefined,
+  onWatchFile: (handler: (event: unknown) => void) => {
+    h.fileHandler = handler;
+    return () => undefined;
+  },
   onWatchMessage: (handler: (raw: unknown) => void) => {
     h.messageHandler = handler;
     return h.unsubscribed;
@@ -63,10 +71,12 @@ vi.mock('@/data/hooks', () => ({
 }));
 vi.mock('@/lib/watch/voiceClip', () => ({
   agentCall: () => async () => ({ kind: 'error' }),
-  deleteClip: () => undefined,
+  deleteClip: (uri: string) => {
+    h.deleted.push(uri);
+  },
   readClipBase64: async () => '',
   sweepStaleClips: () => undefined,
-  transcribeFile: async () => null,
+  transcribeFile: async () => h.transcript,
 }));
 vi.mock('@/data/recentActivity', () => ({
   recentActivity: (_mirror: unknown, _profile: unknown, limit: number) => h.rows.slice(0, limit),
@@ -77,7 +87,15 @@ vi.mock('@/i18n', () => ({
     locale: 'en-IN',
   }),
 }));
-vi.mock('@/lib/location', () => ({ captureLocationIfGranted: async () => h.place }));
+vi.mock('@/lib/location', () => ({
+  captureLocationIfGranted: async () => {
+    h.phoneReads += 1;
+    return h.place;
+  },
+  locationAvailable: () => true,
+  locationPermission: async () => (h.locationGranted ? 'granted' : 'denied'),
+  LocationPermission: { Granted: 'granted', Denied: 'denied', Undetermined: 'undetermined' },
+}));
 vi.mock('@/lib/auth', () => ({ useAuth: () => ({ session: h.session }) }));
 vi.mock('@/lib/currency', () => ({ useDefaultCurrency: () => h.currency }));
 vi.mock('@/lib/recentCount', () => ({ useRecentCount: () => ({ count: h.count }) }));
@@ -119,6 +137,12 @@ beforeEach(() => {
   h.session = { user: { id: 'me' } };
   h.currency = 'INR';
   h.rows = [activity('a1')];
+  h.place = null;
+  h.phoneReads = 0;
+  h.locationGranted = false;
+  h.fileHandler = null;
+  h.transcript = '500 rupees tea';
+  h.deleted = [];
 });
 
 describe('buildRecentItems', () => {
@@ -168,11 +192,14 @@ describe('WatchBridgeProvider', () => {
     expect(h.failureHandler).toBeNull();
   });
 
-  it('sends the settings and the recent list on mount', () => {
+  it('sends the settings and the recent list on mount', async () => {
     h.count = 3;
     h.currency = 'AED';
     renderHook(() => WatchBridgeProvider({}));
-    expect(sentOf('settings')).toEqual([{ t: 'settings', recentCount: 3, currency: 'AED' }]);
+    await settle();
+    expect(sentOf('settings')).toEqual([
+      { t: 'settings', recentCount: 3, currency: 'AED', locationEnabled: false },
+    ]);
     expect(sentOf('recent')).toHaveLength(1);
     expect((sentOf('recent')[0]!.items as unknown[]).length).toBe(1);
   });
@@ -255,7 +282,7 @@ describe('WatchBridgeProvider', () => {
           expenseDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
         }),
       );
-      expect(sentOf('ack')).toEqual([{ t: 'ack', ok: true }]);
+      expect(sentOf('ack')).toEqual([{ t: 'ack', ok: true, id: 'intent-1' }]);
     });
 
     it.each([
@@ -299,7 +326,7 @@ describe('WatchBridgeProvider', () => {
           rawText: '500 rupees tea',
         }),
       );
-      expect(sentOf('ack')).toEqual([{ t: 'ack', ok: true }]);
+      expect(sentOf('ack')).toEqual([{ t: 'ack', ok: true, id: 'intent-2' }]);
     });
 
     it('attaches the place to a spoken expense, and saves without one when there is none', async () => {
@@ -334,7 +361,7 @@ describe('WatchBridgeProvider', () => {
       h.messageHandler!({ t: 'voiceAdd', id: 'i', transcript: 'hello there' });
       await settle();
       expect(h.mutateAsync).not.toHaveBeenCalled();
-      expect(sentOf('ack')).toEqual([{ t: 'ack', ok: false, error: 'no-amount' }]);
+      expect(sentOf('ack')).toEqual([{ t: 'ack', ok: false, error: 'no-amount', id: 'i' }]);
     });
 
     it('answers a request for the list even when it is unchanged, and clamps the count', async () => {
@@ -358,6 +385,7 @@ describe('WatchBridgeProvider', () => {
 
     it('ignores a malformed message', async () => {
       renderHook(() => WatchBridgeProvider({}));
+      await settle();
       h.sent = [];
       h.messageHandler!({ t: 'quickAdd', id: 'i', amountMinor: '0', currency: 'INR', note: '' });
       h.messageHandler!('garbage');
@@ -366,12 +394,172 @@ describe('WatchBridgeProvider', () => {
       expect(h.mutateAsync).not.toHaveBeenCalled();
     });
 
+    describe('a voice clip from the watch', () => {
+      const MADE = Date.parse('2026-11-26T18:50:00Z');
+      const clipEvent = (extra: Record<string, unknown> = {}) => ({
+        uri: 'file:///cache/c1.m4a',
+        metadata: { t: 'voiceClip', id: 'c1', durationMs: 4000, version: 1, ...extra },
+      });
+
+      it('files exactly one Review draft from the watch, with its transcript, time and place', async () => {
+        renderHook(() => WatchBridgeProvider({}));
+        h.fileHandler!(
+          clipEvent({
+            madeAt: MADE,
+            tzOffsetMin: 330,
+            location: { lat: 12.9, lng: 77.6, accuracy: 50 },
+          }),
+        );
+        await settle();
+        expect(h.mutateAsync).toHaveBeenCalledTimes(1);
+        expect(h.mutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({
+            captureId: 'c1',
+            amount: 50000n,
+            rawText: '500 rupees tea',
+            expenseDate: '2026-11-27',
+            location: { lat: 12.9, lng: 77.6, name: null },
+            parsed: expect.objectContaining({ source: 'watch', kind: 'voice', watchId: 'c1' }),
+          }),
+        );
+        expect(sentOf('voiceResult')).toHaveLength(1);
+      });
+
+      it('does not file a resent clip twice', async () => {
+        renderHook(() => WatchBridgeProvider({}));
+        h.fileHandler!(clipEvent());
+        await settle();
+        h.fileHandler!(clipEvent());
+        await settle();
+        expect(h.mutateAsync).toHaveBeenCalledTimes(1);
+        // The duplicate's file is still cleaned up.
+        expect(h.deleted).toEqual(['file:///cache/c1.m4a', 'file:///cache/c1.m4a']);
+      });
+
+      it('removes the clip file once it has been handled, and when it fails', async () => {
+        renderHook(() => WatchBridgeProvider({}));
+        h.fileHandler!(clipEvent());
+        await settle();
+        expect(h.deleted).toEqual(['file:///cache/c1.m4a']);
+        h.deleted = [];
+        h.mutateAsync.mockRejectedValueOnce(new Error('queue full'));
+        h.fileHandler!({ ...clipEvent({ id: 'c2' }), uri: 'file:///cache/c2.m4a' });
+        await settle();
+        expect(h.deleted).toEqual(['file:///cache/c2.m4a']);
+        expect(sentOf('voiceResult')[1]).toMatchObject({ id: 'c2', status: 'error' });
+      });
+    });
+
+    describe('watch time and place', () => {
+      const MADE = Date.parse('2026-11-26T18:50:00Z'); // 00:20 on the 27th in IST
+      const quick = (extra: Record<string, unknown> = {}) => ({
+        t: 'quickAdd',
+        id: 'w1',
+        amount: '100',
+        currency: 'INR',
+        note: '',
+        ...extra,
+      });
+
+      it('books the day the watch made it, in the watch zone, even when delivered later', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(MADE + 9 * 3600_000); // delivered nine hours on
+        renderHook(() => WatchBridgeProvider({}));
+        h.messageHandler!(quick({ madeAt: MADE, tzOffsetMin: 330 }));
+        await settle();
+        expect(h.mutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({ expenseDate: '2026-11-27' }),
+        );
+        h.mutateAsync.mockClear();
+        h.messageHandler!(quick({ id: 'w2', madeAt: MADE, tzOffsetMin: -300 })); // New York
+        await settle();
+        expect(h.mutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({ expenseDate: '2026-11-26' }),
+        );
+        vi.useRealTimers();
+      });
+
+      it('uses the watch location, and never reads the phone for it', async () => {
+        h.place = { lat: 1, lng: 2, name: null };
+        renderHook(() => WatchBridgeProvider({}));
+        h.messageHandler!(quick({ location: { lat: 12.97, lng: 77.59, accuracy: 80 } }));
+        await settle();
+        expect(h.mutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({ location: { lat: 12.97, lng: 77.59, name: null } }),
+        );
+        expect(h.phoneReads).toBe(0);
+      });
+
+      it('falls back to the phone only for a fresh add with no watch location', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(MADE + 60_000);
+        h.place = { lat: 1, lng: 2, name: null };
+        renderHook(() => WatchBridgeProvider({}));
+        h.messageHandler!(quick({ madeAt: MADE }));
+        await settle();
+        expect(h.mutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({ location: { lat: 1, lng: 2, name: null } }),
+        );
+        // Delivered hours later: the phone is not where the watch was.
+        h.mutateAsync.mockClear();
+        vi.setSystemTime(MADE + 3 * 3600_000);
+        h.messageHandler!(quick({ id: 'w2', madeAt: MADE }));
+        await settle();
+        expect(h.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ location: null }));
+        vi.useRealTimers();
+      });
+
+      it('treats an older watch (no time, no place) as made just now, as before', async () => {
+        h.place = { lat: 1, lng: 2, name: null };
+        renderHook(() => WatchBridgeProvider({}));
+        h.messageHandler!(quick());
+        await settle();
+        expect(h.mutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({ location: { lat: 1, lng: 2, name: null } }),
+        );
+      });
+
+      it('files a watch add as a Review draft marked as from the watch', async () => {
+        renderHook(() => WatchBridgeProvider({}));
+        h.messageHandler!(quick({ madeAt: MADE }));
+        h.messageHandler!({ t: 'voiceAdd', id: 'v1', transcript: '500 rupees tea' });
+        await settle();
+        const parsed = h.mutateAsync.mock.calls.map(([input]) => input.parsed);
+        expect(parsed[0]).toMatchObject({ source: 'watch', kind: 'quick', watchId: 'w1' });
+        expect(parsed[1]).toMatchObject({ source: 'watch', kind: 'voice', watchId: 'v1' });
+      });
+
+      it('books a resent add under the same capture id, so the queue upserts it once', async () => {
+        renderHook(() => WatchBridgeProvider({}));
+        h.messageHandler!(quick({ madeAt: MADE }));
+        h.messageHandler!(quick({ madeAt: MADE }));
+        await settle();
+        const ids = h.mutateAsync.mock.calls.map(([input]) => input.captureId);
+        expect(ids).toEqual(['w1', 'w1']);
+        expect(sentOf('ack')).toEqual([
+          { t: 'ack', ok: true, id: 'w1' },
+          { t: 'ack', ok: true, id: 'w1' },
+        ]);
+      });
+
+      it('tells the watch whether location is on, and again whenever it asks', async () => {
+        h.locationGranted = true;
+        renderHook(() => WatchBridgeProvider({}));
+        await settle();
+        expect(sentOf('settings')[0]).toMatchObject({ locationEnabled: true });
+        h.locationGranted = false;
+        h.messageHandler!({ t: 'requestRecent', count: 5 });
+        await settle();
+        expect(sentOf('settings')[1]).toMatchObject({ locationEnabled: false });
+      });
+    });
+
     it('acks a failure when the write throws', async () => {
       h.mutateAsync.mockRejectedValueOnce(new Error('queue full'));
       renderHook(() => WatchBridgeProvider({}));
       h.messageHandler!({ t: 'quickAdd', id: 'i', amountMinor: '100', currency: 'INR', note: 'x' });
       await settle();
-      expect(sentOf('ack')).toEqual([{ t: 'ack', ok: false, error: 'failed' }]);
+      expect(sentOf('ack')).toEqual([{ t: 'ack', ok: false, error: 'failed', id: 'i' }]);
     });
   });
 });

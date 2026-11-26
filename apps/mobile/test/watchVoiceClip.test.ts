@@ -14,6 +14,9 @@ import {
   outcomeFromTranscript,
   parseWatchClip,
   placeForCapture,
+  placeForWatchAdd,
+  isFromWatch,
+  watchCaptureParsed,
   processClip,
   type ClipContext,
   type ClipDeps,
@@ -239,5 +242,52 @@ describe('placeForCapture', () => {
     expect(await placeForCapture(async () => null)).toBeNull();
     expect(await placeForCapture(async () => Promise.reject(new Error('x')))).toBeNull();
     expect(await placeForCapture(() => new Promise<typeof fix>(() => {}), 20)).toBeNull();
+  });
+});
+
+describe('watch clip metadata', () => {
+  it('carries the watch time and location from the clip metadata', () => {
+    const clip = parseWatchClip({
+      uri: 'file:///c/a.m4a',
+      metadata: {
+        t: 'voiceClip',
+        id: 'c1',
+        durationMs: 3000,
+        madeAt: 1_764_183_000_000,
+        tzOffsetMin: 330,
+        location: { lat: 12.9, lng: 77.6 },
+      },
+    });
+    expect(clip).toMatchObject({
+      madeAt: 1_764_183_000_000,
+      tzOffsetMin: 330,
+      location: { lat: 12.9, lng: 77.6 },
+    });
+  });
+});
+
+describe('placeForWatchAdd', () => {
+  const phone = { lat: 1, lng: 2, name: null };
+
+  it('uses the watch fix without reading the phone', async () => {
+    const read = vi.fn(async () => phone);
+    const place = await placeForWatchAdd({ madeAt: 0, location: { lat: 9, lng: 8 } }, 1e9, read);
+    expect(place).toEqual({ lat: 9, lng: 8, name: null });
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  it('reads the phone only for a delivery within two minutes', async () => {
+    const read = vi.fn(async () => phone);
+    expect(await placeForWatchAdd({ madeAt: 1_000_000 }, 1_060_000, read)).toEqual(phone);
+    expect(await placeForWatchAdd({ madeAt: 1_000_000 }, 1_200_000, read)).toBeNull();
+    expect(read).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('watch capture marker', () => {
+  it('marks a draft as from the watch', () => {
+    expect(isFromWatch(watchCaptureParsed('voice', 'c1', 5))).toBe(true);
+    expect(isFromWatch({ source: 'sms' })).toBe(false);
+    expect(isFromWatch(null)).toBe(false);
   });
 });

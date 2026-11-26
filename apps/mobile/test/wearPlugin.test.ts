@@ -87,14 +87,72 @@ describe('withWavesWear — emitted :wear module', () => {
     expect(relay).toContain('const val PATH = "/waves"');
     expect(relay).toContain(`package ${WEAR_PACKAGE}`);
     expect(listener).toContain('WearRelay.onMessage');
-    // The three intents the phone bridge understands.
-    for (const t of ['quickAdd', 'voiceAdd', 'requestRecent']) {
-      expect(relay).toContain(`"t", "${t}"`);
+    // The intents the phone bridge understands; voice is a clip, never text.
+    for (const t of ['quickAdd', 'voiceClip', 'requestRecent']) {
+      expect(relay).toContain(`"${t}"`);
     }
     // Quick-add sends what was dialled; the phone scales it for the currency.
     expect(relay).toContain('.put("amount", amount.toString())');
     expect(relay).not.toContain('amountMinor');
     // Intents are persisted before any send, so no phone means queued, not lost.
     expect(relay).toContain('fun enqueue(');
+  });
+});
+
+describe('withWavesWear — offline-first adds', () => {
+  const root = mkdtempSync(join(tmpdir(), 'waves-wear-offline-'));
+  writeWearModule(root);
+  const wear = join(root, 'android', 'wear');
+  const pkgDir = join(wear, 'src', 'main', 'java', ...WEAR_PACKAGE.split('.'));
+  const relay = readFileSync(join(pkgDir, 'WearRelay.kt'), 'utf8');
+  const main = readFileSync(join(pkgDir, 'MainActivity.kt'), 'utf8');
+  const manifest = readFileSync(join(wear, 'src', 'main', 'AndroidManifest.xml'), 'utf8');
+
+  it('stores every add on the watch first, with a client id and the time it was made', () => {
+    expect(relay).toContain('private fun enqueue(');
+    expect(relay).toContain('UUID.randomUUID()');
+    expect(relay).toContain('.put("madeAt", now)');
+    expect(relay).toContain('.put("tzOffsetMin"');
+    expect(relay).toContain('getSharedPreferences("waves_relay"');
+    // Pending until the phone acks the id; shown as saved on the watch.
+    expect(relay).toContain('"ack" ->');
+    expect(relay).toContain('Saved on watch · will sync');
+    expect(relay).toContain('Voice note · will sync');
+    expect(relay).toContain('Voice note · sent to phone');
+    expect(main).toContain('WearRelay.pendingItems');
+  });
+
+  it('captures the watch location only when the phone setting is on and permission is held', () => {
+    expect(relay).toContain('if (!_locationEnabled.value) return null');
+    expect(relay).toContain('ACCESS_COARSE_LOCATION');
+    expect(relay).toContain('getCurrentLocation(');
+    expect(relay).toContain('LOCATION_TIMEOUT_S = 3L');
+    expect(relay).toContain('obj.optBoolean("locationEnabled", false)');
+    // Permission is requested only once the setting is on.
+    expect(main).toMatch(/if \(locationEnabled &&/);
+    expect(manifest).toContain('android.permission.ACCESS_COARSE_LOCATION');
+  });
+
+  it('records voice as a clip and never runs speech recognition on the watch', () => {
+    expect(main).toContain('MediaRecorder');
+    expect(main).toContain('AudioEncoder.AAC');
+    expect(main).toContain('OutputFormat.MPEG_4');
+    expect(main).not.toContain('RecognizerIntent');
+    expect(relay).not.toContain('"voiceAdd"');
+    expect(relay).toContain('MAX_CLIP_MS = 30_000');
+    expect(relay).toContain('sendFile(');
+    expect(relay).toContain('CLIP_PATH');
+    expect(manifest).toContain('android.permission.RECORD_AUDIO');
+  });
+
+  it('the phone module receives the clip channel', () => {
+    const phone = join(__dirname, '..', 'modules', 'waves-watch', 'android', 'src', 'main');
+    const svc = readFileSync(
+      join(phone, 'java', 'expo', 'modules', 'waveswatch', 'WavesWatchListenerService.kt'),
+      'utf8',
+    );
+    expect(svc).toContain('onChannelOpened');
+    expect(svc).toContain('receiveFile(');
+    expect(readFileSync(join(phone, 'AndroidManifest.xml'), 'utf8')).toContain('CHANNEL_EVENT');
   });
 });

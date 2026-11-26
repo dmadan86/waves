@@ -154,6 +154,7 @@ import { useReducedMotion } from '@/lib/reducedMotion';
 import { reviewMomentFor } from '@/lib/reviewScene';
 import { useSmsAutoRead } from '@/lib/smsAutoRead';
 import { isSmsDerived } from '@/lib/smsLocalDrafts';
+import { isFromWatch } from '@/lib/watch/voiceClipPure';
 import { recoveredVoiceDraftAmount } from '@/lib/voiceDraftPure';
 import { requestScanOnReturn } from '@/lib/smsReadBridge';
 import { useSmsInboxReader } from '@/lib/smsFeature';
@@ -505,6 +506,9 @@ function CaptureListRow({
               gap: theme.spacing.xs,
             }}
           >
+            {isFromWatch(capture.parsed) ? (
+              <Ionicons name="watch-outline" size={iconSize.xs} color={theme.color.textMuted} />
+            ) : null}
             {bare ? null : <DestinationChip name={destinationName} t={t} />}
             {/* An icon as well as the words, so the uncertainty is not carried
                 by colour (#191) — and the words themselves, so "check this"

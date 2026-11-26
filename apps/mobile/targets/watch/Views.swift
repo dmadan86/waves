@@ -22,18 +22,16 @@ struct HomeView: View {
           Label("Recent", systemImage: "clock.fill")
         }
 
-        // The one place a dropped intent can be seen. Quick-add and Speak both
-        // dismiss the moment they send, and the phone's `ack` never arrives when
-        // the message itself did not, so without this row an expense entered
-        // here could vanish with nothing to show for it.
-        if relay.lastSendFailed {
+        // Adds are stored on the watch first, so nothing is lost while the phone
+        // is away; this just says how many are still waiting to sync.
+        if relay.pending.contains(where: { !$0.delivered }) {
           Label {
-            Text("Last expense didn't reach your phone. Open Waves there and try again.")
+            Text("Saved on watch · will sync when your phone is near.")
               .font(.caption2)
           } icon: {
-            Image(systemName: "exclamationmark.triangle.fill")
+            Image(systemName: "arrow.triangle.2.circlepath")
           }
-          .foregroundStyle(.orange)
+          .foregroundStyle(.secondary)
         }
         // The phone got the expense but refused it (an `ack` with ok: false).
         if relay.lastAckOk == false {
@@ -58,23 +56,41 @@ struct RecentView: View {
 
   var body: some View {
     Group {
-      if relay.recent.isEmpty {
+      if relay.recent.isEmpty && relay.pending.isEmpty {
         VStack(spacing: 6) {
           Image(systemName: "clock").font(.title3).foregroundStyle(.secondary)
-          Text("Nothing yet").font(.footnote).foregroundStyle(.secondary)
+          Text(relay.reachable ? "Nothing yet" : "Phone not connected")
+            .font(.footnote).foregroundStyle(.secondary)
         }
       } else {
-        List(relay.recent) { item in
-          VStack(alignment: .leading, spacing: 2) {
-            HStack {
-              Text(item.title).font(.body).lineLimit(1)
-              Spacer()
-              Text(item.amountText).font(.body).bold()
+        List {
+          // Stored on this watch: still to sync, or a voice note already sent.
+          ForEach(relay.pending) { entry in
+            VStack(alignment: .leading, spacing: 2) {
+              HStack {
+                Text(entry.title).font(.body).lineLimit(1)
+                Spacer()
+                Image(systemName: entry.delivered ? "checkmark.circle" : "clock.arrow.circlepath")
+                  .foregroundStyle(entry.delivered ? .secondary : accent)
+              }
+              Text(entry.statusText)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
             }
-            Text("\(item.subtitle) · \(item.whenText)")
-              .font(.caption2)
-              .foregroundStyle(.secondary)
-              .lineLimit(1)
+          }
+          ForEach(relay.recent) { item in
+            VStack(alignment: .leading, spacing: 2) {
+              HStack {
+                Text(item.title).font(.body).lineLimit(1)
+                Spacer()
+                Text(item.amountText).font(.body).bold()
+              }
+              Text("\(item.subtitle) · \(item.whenText)")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            }
           }
         }
       }
@@ -122,18 +138,18 @@ struct VoiceView: View {
       switch relay.voiceOutcome {
       case .idle:
         recordingBody
-      case .sending:
-        status(icon: "paperplane.fill", text: "Sending…", detail: nil, spinner: true)
-      case .queued:
+      case .saved:
         status(
-          icon: "iphone.radiowaves.left.and.right",
-          text: "Queued",
-          detail: "Will add when your phone is near",
+          icon: "clock.arrow.circlepath",
+          text: "Voice note · will sync",
+          detail: "Saved on watch. Sent to your phone when it is near.",
           spinner: false)
-      case .added(let text):
-        status(icon: "checkmark.circle.fill", text: "Added \(text)", detail: nil, spinner: false)
-      case .review:
-        status(icon: "tray.and.arrow.down.fill", text: "Saved for review", detail: "Check it on your phone", spinner: false)
+      case .sent:
+        status(
+          icon: "checkmark.circle.fill",
+          text: "Voice note · sent to phone",
+          detail: "Check it in Review on your phone",
+          spinner: false)
       case .failed(let text):
         status(icon: "exclamationmark.triangle.fill", text: text, detail: nil, spinner: false)
       }
@@ -156,7 +172,7 @@ struct VoiceView: View {
   private var recordingBody: some View {
     switch recorder.phase {
     case .idle:
-      // Back from "Type instead" (or a take that was cancelled): not recording.
+      // A take that was cancelled: not recording.
       Button {
         recorder.start()
       } label: {
@@ -164,7 +180,6 @@ struct VoiceView: View {
       }
       .buttonStyle(.borderedProminent)
       .tint(accent)
-      typeInstead
     case .recording:
       Image(systemName: "mic.fill")
         .font(.system(size: 40))
@@ -182,13 +197,11 @@ struct VoiceView: View {
       }
       .buttonStyle(.borderedProminent)
       .tint(accent)
-      typeInstead
     case .denied:
       Image(systemName: "mic.slash.fill").font(.title2).foregroundStyle(.orange)
-      Text("Allow the microphone for Waves in the Watch app's settings, or type instead.")
+      Text("Allow the microphone for Waves in the Watch app's settings.")
         .font(.caption2)
         .multilineTextAlignment(.center)
-      typeInstead
     case .failed(let text):
       Image(systemName: "waveform.slash").font(.title2).foregroundStyle(.orange)
       Text(text).font(.footnote)
@@ -199,17 +212,7 @@ struct VoiceView: View {
       }
       .buttonStyle(.borderedProminent)
       .tint(accent)
-      typeInstead
     }
-  }
-
-  private var typeInstead: some View {
-    NavigationLink(destination: TypeInsteadView(onSent: { dismiss() })) {
-      Text("Type instead").font(.caption2)
-    }
-    .buttonStyle(.plain)
-    .foregroundStyle(.secondary)
-    .simultaneousGesture(TapGesture().onEnded { recorder.cancel() })
   }
 
   private func status(icon: String, text: String, detail: String?, spinner: Bool) -> some View {
@@ -231,62 +234,5 @@ struct VoiceView: View {
         .buttonStyle(.bordered)
       }
     }
-  }
-}
-
-// The keyboard path, kept for when speaking is not an option (noisy room,
-// microphone refused). TextFieldLink opens the system input sheet.
-struct TypeInsteadView: View {
-  @EnvironmentObject var relay: WatchRelay
-  /// Closes the Speak screen this was opened from, so a send lands back on Home.
-  var onSent: () -> Void
-  @State private var text: String = ""
-
-  private var transcript: String {
-    text.trimmingCharacters(in: .whitespacesAndNewlines)
-  }
-
-  var body: some View {
-    ScrollView {
-      VStack(spacing: 10) {
-        // A plain TextField reaches dictation in two taps — open the field, then
-        // pick the mic out of the input menu — which is a strange way to enter a
-        // screen called "Speak". TextFieldLink presents that same system input
-        // controller straight from this button, so the screen opens speaking.
-        // Whatever comes back (dictated, scribbled, or typed on a Mac keyboard in
-        // the Simulator, which has no dictation) lands in `text` to be read back
-        // before it is sent, since a misheard amount is worth catching here
-        // rather than on the phone.
-        TextFieldLink(prompt: Text("Say what you spent")) {
-          Label(transcript.isEmpty ? "Speak" : "Say again", systemImage: "mic.fill")
-            .frame(maxWidth: .infinity)
-        } onSubmit: { spoken in
-          text = spoken
-        }
-        .buttonStyle(.borderedProminent)
-        .tint(accent)
-
-        if transcript.isEmpty {
-          Text("e.g. add 500 to Goa")
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-        } else {
-          Text(transcript)
-            .font(.footnote)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-
-        Button {
-          relay.voiceAdd(transcript)
-          onSent()
-        } label: {
-          Label("Send", systemImage: "paperplane.fill").frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.bordered)
-        .disabled(transcript.isEmpty)
-      }
-      .padding(.horizontal, 4)
-    }
-    .navigationTitle("Type")
   }
 }

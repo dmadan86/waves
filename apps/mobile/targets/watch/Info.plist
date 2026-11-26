@@ -4,5 +4,7 @@
   <dict>
     <key>NSMicrophoneUsageDescription</key>
     <string>Waves listens while you speak an expense on your watch, then sends the recording to your iPhone to add it.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Waves adds where you were to an expense you make on your watch, if you turned location on for expenses in the app.</string>
   </dict>
 </plist>
