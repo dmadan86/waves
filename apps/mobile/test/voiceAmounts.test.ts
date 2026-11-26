@@ -69,9 +69,9 @@ describe('spoken amounts through the whole parser', () => {
     expect(result.items[0].amountMajor).toBe(500);
   });
 
-  it('still reads two spoken amounts as two expenses', () => {
+  it('still reads two spoken amounts as two items of one expense', () => {
     const result = parseVoiceExpenses('5 rupees snacks 10 rupees tea', groups);
-    expect(result.items.map((item) => item.amountMajor)).toEqual([5, 10]);
+    expect(result.items.map((item) => item.amountMajor)).toEqual([15]);
   });
 
   it('keeps the description free of the amount words', () => {

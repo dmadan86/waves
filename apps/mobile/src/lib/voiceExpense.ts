@@ -34,11 +34,12 @@ import {
   resolveSpokenDollar,
   spokenNumberValue,
   unmaskDigits,
-  type CategoryId,
+  CategoryId,
   type VoiceAmountReading,
   type VoiceIntent,
   type VoiceIntentContext,
 } from '@waves/core';
+import { groupByCurrency, itemList, largest } from '@/lib/voiceItemList';
 
 /** Above this, a voice parse is more likely corrupted or misheard than safe to book. */
 export const MAX_VOICE_AMOUNT_MAJOR = 1_000_000_000;
@@ -1698,6 +1699,10 @@ const MINOR_UNIT_AFTER = /^(?:paise|paisa|cents?|pence|fils)\b/i;
 /** The word before a number that says it is what was paid: "paid fifty", "cost twenty". */
 const MONEY_VERB_BEFORE = /^(?:paid|spent|spend|cost|costs|charged|worth)$/i;
 
+/** Words a number can follow without being a price ("table for two", "at five", "I am twenty"). */
+const NOT_A_PRICE_LEAD =
+  /^(?:for|with|of|to|at|in|on|by|from|about|around|than|and|the|are|was|were|you|our|over|under|nearly|almost|only|just|upto|till|until|since|after|before|between|among|amongst)$/i;
+
 /** Nothing but filler around a run: "fifty", "uh, fifty." — the number is the whole message. */
 const ONLY_FILLER = /^[\s\p{P}\p{S}]*(?:(?:um+|uh+|er+|hmm+|ok|okay|so)[\s\p{P}\p{S}]*)*$/iu;
 
@@ -1943,8 +1948,16 @@ export function normalizeSpokenNumbers(text: string): string {
     const wholeDecimal = hasDecimal && !/^\s*(?:point|dot|decimal)\b/i.test(run);
     const paidBefore = MONEY_VERB_BEFORE.test(prevWord);
     const alone = ONLY_FILLER.test(before) && ONLY_FILLER.test(after);
+    // "lunch fifty", "tea twenty and cab fifty": a number that closes a clause right
+    // after a plain word is its price. Single digits ("lunch for two") stay words.
+    const priceAfterNoun =
+      /^(?:$|[,;.]|(?:and|then)\b)/i.test(after) &&
+      /^[a-z]{3,}$/i.test(prevWord) &&
+      !NOT_A_PRICE_LEAD.test(prevWord) &&
+      (spokenRunToNumber(run) ?? 0) >= 10;
     if (
       !hasMultiplier &&
+      !priceAfterNoun &&
       !nextIsCurrency &&
       !prevIsCurrency &&
       !splitContext &&
@@ -2274,6 +2287,60 @@ const MAX_ALTERNATIVES = 4;
 /** "3 days ago" stays readable for the date reader; every other date is hidden. */
 const keepDaysAgo = (_span: unknown, after: string): boolean => /^\s*days?\s+ago\b/i.test(after);
 
+/**
+ * A group's own name said in the sentence ("snacks, QA Goa Trip") is where the
+ * expense goes, not what it was for, even when the sentence did not settle on
+ * that group. Whole multi-word names only: a one-word group may be a real note.
+ */
+function withoutGroupNames(note: string, groups: readonly VoiceGroupRef[]): string {
+  let out = note;
+  for (const group of groups) {
+    const words = tokenize(group.name ?? '');
+    if (words.length < 2) continue;
+    const name = words.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+');
+    out = out.replace(new RegExp(`(?<![\\p{L}\\p{N}])${name}(?![\\p{L}\\p{N}])`, 'giu'), ' ');
+  }
+  return out === note ? note : out.replace(/\s{2,}/g, ' ').trim();
+}
+
+/**
+ * "one lakh twenty": the other reading of a lakh/crore followed by a bare tens
+ * word or number, as minor units. Spoken, it is 1,20,000 as often as 1,00,020.
+ */
+function lakhTailRival(text: string, currency: string | null): bigint | null {
+  const m =
+    /\b(\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:lakhs?|lacs?|crores?)\s+(\d{1,2}|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)\b(?!\s*(?:thousand|hundred|k\b|lakh|crore))/i.exec(
+      text,
+    );
+  if (!m) return null;
+  const num = (word: string): number => NUMBER_WORDS.get(word.toLowerCase()) ?? Number(word);
+  const scale = /^cr/i.test(/(lakhs?|lacs?|crores?)/i.exec(m[0])?.[0] ?? '') ? 10_000_000 : 100_000;
+  return toVoiceMinorUnits(num(m[1]) * scale + (num(m[2]) * scale) / 100, currency);
+}
+
+/**
+ * Several priced items in one sentence become one expense per currency (the
+ * amounts add up, the note lists them), unless the sentence says who owes what
+ * ("Alice owes 300"): that is one split, not a list.
+ */
+function mergeItemsByCurrency(items: VoiceExpenseItem[], sentence: string): VoiceExpenseItem[] {
+  // Bare numbers ("5 10") name no items, so nothing says they belong together.
+  if (items.length < 2 || items.some((item) => !item.note.trim())) return items;
+  if (/\bowes?\b|\bowed\b/i.test(sentence)) return items;
+  return groupByCurrency(items).map((group) => {
+    if (group.length === 1) return group[0];
+    const currency = group[0].currency;
+    const amountMinor = group.reduce((sum, item) => sum + item.amountMinor, 0n);
+    return {
+      ...largest(group),
+      amountMinor,
+      amountMajor: Number(minorToDecimal(amountMinor, currency)),
+      note: itemList(group, currency, MAX_VOICE_NOTE_CHARS),
+      category: largest(group).category ?? CategoryId.Other,
+    };
+  });
+}
+
 export function parseVoiceExpenses(
   transcript: string,
   groups: readonly VoiceGroupRef[],
@@ -2418,7 +2485,7 @@ export function parseVoiceExpenses(
     if (amountMajor === null) continue;
     const currency: string | null = currencyOf(segment) ?? carriedCurrency;
     if (currency) carriedCurrency = currency;
-    const note = finalizeNote(buildNote(segment, matchedName));
+    const note = withoutGroupNames(finalizeNote(buildNote(segment, matchedName)), groups);
     const statedCategory = parseVoiceCategory(segment);
     const itemCategory =
       statedCategory ??
@@ -2452,7 +2519,7 @@ export function parseVoiceExpenses(
         amountMinor: toVoiceMinorUnits(major ?? one.amountMajor, currency),
         amountMajor: major ?? one.amountMajor,
         currency,
-        note: finalizeNote(one.note),
+        note: withoutGroupNames(finalizeNote(one.note), groups),
         category,
       });
     }
@@ -2461,7 +2528,7 @@ export function parseVoiceExpenses(
   const namedCurrencies = new Set(
     items.map((item) => item.currency).filter((currency) => currency),
   );
-  const finalItems =
+  const namedItems =
     namedCurrencies.size === 1
       ? items.map((item) => {
           const currency = item.currency ?? [...namedCurrencies][0] ?? null;
@@ -2470,6 +2537,7 @@ export function parseVoiceExpenses(
             : { ...item, currency, amountMinor: toVoiceMinorUnits(item.amountMajor, currency) };
         })
       : items;
+  const finalItems = mergeItemsByCurrency(namedItems, sentence);
 
   // Solo means nobody to split with, so no people and no split count survive to
   // the review — they would only muddy a private "Me" expense.
@@ -2506,6 +2574,17 @@ export function parseVoiceExpenses(
       alternativeMinors,
       currencyOptions,
     });
+    // "one lakh twenty" is 1,00,020 or 1,20,000: ask, never pick silently.
+    const rival = lakhTailRival(preNormalizeVoiceInput(transcript), item.currency);
+    if (rival !== null && amount.ambiguity === 'none' && item.amountMinor !== rival)
+      amount = {
+        ...amount,
+        ambiguity: 'decimal-or-hundreds',
+        options: [
+          { minor: item.amountMinor, role: 'total' },
+          { minor: rival, role: 'total' },
+        ],
+      };
     // "500 each for 3 people" is a 1500 bill; the share stays on `amount`.
     if (amount.role === 'each' && amount.totalMinor !== null) {
       const totalMinor = amount.totalMinor;

@@ -19,7 +19,8 @@ describe('heardCaptureInput', () => {
       'INR',
     );
     expect(input.amount).toBe(9100n);
-    expect(input.description).toBe('80 rupees for food, 10 for petrol and 1 for tea');
+    expect(input.description).toBe('food 80, petrol 10, tea 1');
+    expect(input.rawText).toBe('80 rupees for food, 10 for petrol and 1 for tea');
   });
 
   it('files the sentence with no amount, kept as the words too', () => {

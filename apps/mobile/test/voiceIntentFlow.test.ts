@@ -79,11 +79,10 @@ describe('parseVoiceExpenses with a payer, people and a split', () => {
     expect(result.items[0].note).toBe('dinner');
   });
 
-  it('gives each of several items the same payer and people', () => {
+  it('gives the one expense made of several items the payer and people', () => {
     const result = parse('Madan paid 500 for dinner and 200 for cab split with Arjun');
     expect(result.items.map((item) => [item.amountMajor, item.note])).toEqual([
-      [500, 'dinner'],
-      [200, 'cab'],
+      [700, 'dinner 500, cab 200'],
     ]);
     expect(result.intent?.payer.memberId).toBe('m-madan');
     expect(result.intent?.participants?.map((person) => person.memberId)).toEqual([

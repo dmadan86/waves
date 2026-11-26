@@ -295,18 +295,16 @@ describe('WatchBridgeProvider', () => {
       expect(h.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ location: null }));
     });
 
-    it('books several spoken expenses with ids of their own, in the default currency', async () => {
+    it('books several spoken items as one expense, in the default currency', async () => {
       h.groups = undefined;
       h.currency = 'INR';
       renderHook(() => WatchBridgeProvider({}));
       h.messageHandler!({ t: 'voiceAdd', id: 'intent-3', transcript: 'tea 50 and lunch 200' });
       await settle();
       const calls = h.mutateAsync.mock.calls.map(([input]) => input);
-      expect(calls.length).toBeGreaterThan(1);
-      for (const call of calls) {
-        expect(call.captureId).toBeUndefined();
-        expect(call.currency).toBe('INR');
-      }
+      expect(calls).toHaveLength(1);
+      expect(calls[0].currency).toBe('INR');
+      expect(calls[0].amount).toBe(25000n);
     });
 
     it('refuses a voice-add with no amount instead of booking a zero', async () => {

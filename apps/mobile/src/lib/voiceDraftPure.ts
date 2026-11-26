@@ -76,16 +76,25 @@ export function recoveredVoiceDraftAmount(capture: {
   return recovered.amount > 0n ? { amount: recovered.amount, currency: recovered.currency } : null;
 }
 
-/** Is a sentence worth filing? Two characters is a cough, not a command. */
-export const worthFiling = (transcript: string): boolean => transcript.trim().length >= 2;
+/**
+ * Is a sentence worth filing on arrival? Two characters is a cough, not a
+ * command; typed text is never filed behind the reader's back.
+ */
+export const worthFiling = (transcript: string, typed = false): boolean =>
+  !typed && transcript.trim().length >= 2;
 
 /**
  * Leaving the screen: only a review whose rows are all savable is written over
- * the heard draft (with its amounts and group). In every other state the
+ * the heard draft (with its amounts and group); typed text leaves nothing. In every other state the
  * draft filed on arrival already holds the sentence, so closing just leaves.
  */
-export function leaveUpdatesDraft(phase: string, rows: number, allSavable: boolean): boolean {
-  return phase === 'review' && rows > 0 && allSavable;
+export function leaveUpdatesDraft(
+  phase: string,
+  rows: number,
+  allSavable: boolean,
+  typed = false,
+): boolean {
+  return !typed && phase === 'review' && rows > 0 && allSavable;
 }
 
 /** An answer to "How much was it?" as the number to speak back to the parser, or null. */

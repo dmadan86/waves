@@ -522,13 +522,15 @@ describe('matchMemberNames', () => {
 });
 
 describe('parseVoiceExpenses (several in one breath)', () => {
-  it('splits a comma-and-and list into one expense each', () => {
+  it('adds a comma-and-and list up into one expense that lists the items', () => {
     const result = parseVoiceExpenses(
       '5 rupees for snacks, 10 rupee for tea, shopping 1000, others 100',
       groups,
     );
-    expect(result.items.map((item) => item.amountMajor)).toEqual([5, 10, 1000, 100]);
-    expect(result.items.map((item) => item.note)).toEqual(['snacks', 'tea', 'shopping', 'others']);
+    expect(result.items.map((item) => item.amountMajor)).toEqual([1115]);
+    expect(result.items.map((item) => item.note)).toEqual([
+      'snacks 5, tea 10, shopping 1000, others 100',
+    ]);
   });
 
   it('does not cut a grouped number in half at its thousands comma', () => {
@@ -550,11 +552,13 @@ describe('parseVoiceExpenses (several in one breath)', () => {
     expect(result.items[0].amountMajor).toBe(120000);
   });
 
-  it('still splits on a comma that separates two expenses', () => {
+  it('still splits on a comma that separates two items', () => {
     // The guard is only against a digit hard against the comma. A separator has
-    // a space after it, and that must keep working next to a grouped amount.
+    // a space after it, and that must keep working next to a grouped amount: the
+    // two items are told apart, then listed in one expense.
     const result = parseVoiceExpenses('rent 60,000 rupees, tea 50', groups);
-    expect(result.items.map((item) => item.amountMajor)).toEqual([60000, 50]);
+    expect(result.items.map((item) => item.amountMajor)).toEqual([60050]);
+    expect(result.items[0].note).toBe('rent 60000, tea 50');
   });
 
   it('carries a currency named once to the later items that name none', () => {
@@ -593,10 +597,10 @@ describe('parseVoiceExpenses (several in one breath)', () => {
     expect(result.items[0].note).toBe('coffee and tax');
   });
 
-  it('still splits a genuine priced list on "and"', () => {
+  it('still splits a genuine priced list on "and", into one listed expense', () => {
     const result = parseVoiceExpenses('5 snacks and 10 tea', groups);
-    expect(result.items.map((item) => item.amountMajor)).toEqual([5, 10]);
-    expect(result.items.map((item) => item.note)).toEqual(['snacks', 'tea']);
+    expect(result.items.map((item) => item.amountMajor)).toEqual([15]);
+    expect(result.items.map((item) => item.note)).toEqual(['snacks 5, tea 10']);
   });
 
   it('reads two things bought on one bill as one grammatical description', () => {
@@ -618,12 +622,12 @@ describe('parseVoiceExpenses (several in one breath)', () => {
     expect(result.items[0].note).toBe('tea and coffee');
   });
 
-  it('still makes two expenses when each half carries its own price', () => {
+  it('still lists two items when each half carries its own price', () => {
     // The near neighbour of the bug: the same sentence with a second amount is
-    // two expenses, and neither description picks up the other's words.
+    // two items, and neither picks up the other's words.
     const result = parseVoiceExpenses('800 rupees for dress and 200 for biscuits', groups);
-    expect(result.items.map((item) => item.amountMajor)).toEqual([800, 200]);
-    expect(result.items.map((item) => item.note)).toEqual(['dress', 'biscuits']);
+    expect(result.items.map((item) => item.amountMajor)).toEqual([1000]);
+    expect(result.items.map((item) => item.note)).toEqual(['dress 800, biscuits 200']);
   });
 
   it('keeps a comma-and-and list readable inside one priced description', () => {
@@ -781,9 +785,10 @@ describe('parseVoiceExpenses (several in one breath)', () => {
     expect(result.items[0].note).toBe('petrol');
   });
 
-  it('still splits a bare run of digits into separate expenses (5 10 ≠ 15)', () => {
+  it('keeps the amounts apart in the list (5 10 is not fifteen)', () => {
     const result = parseVoiceExpenses('5 rupees snacks 10 rupees tea', groups);
-    expect(result.items.map((item) => item.amountMajor)).toEqual([5, 10]);
+    expect(result.items.map((item) => item.note)).toEqual(['snacks 5, tea 10']);
+    expect(result.items.map((item) => item.amountMajor)).toEqual([15]);
   });
 
   it('assigns the named group even with "split equally" phrasing', () => {
@@ -819,14 +824,14 @@ describe('parseVoiceExpenses (several in one breath)', () => {
 
   it('carries non-rupee currencies through the multi-expense path', () => {
     const result = parseVoiceExpenses('20 euros coffee, 15 euros cake', groups);
-    expect(result.items.map((item) => item.currency)).toEqual(['EUR', 'EUR']);
-    expect(result.items.map((item) => item.amountMajor)).toEqual([20, 15]);
+    expect(result.items.map((item) => item.currency)).toEqual(['EUR']);
+    expect(result.items.map((item) => item.amountMajor)).toEqual([35]);
   });
 
   it('backfills a single named currency to earlier bare items', () => {
     const result = parseVoiceExpenses('5 snacks, 10 rupees tea', groups);
-    expect(result.items.map((item) => item.currency)).toEqual(['INR', 'INR']);
-    expect(result.items.map((item) => item.amountMinor)).toEqual([500n, 1000n]);
+    expect(result.items.map((item) => item.currency)).toEqual(['INR']);
+    expect(result.items.map((item) => item.amountMinor)).toEqual([1500n]);
   });
 
   it('carries deterministic spoken dates without leaking them into notes', () => {
@@ -864,18 +869,18 @@ describe('parseVoiceExpenses (several in one breath)', () => {
     expect(parseVoiceCategory('tag as food')).toBe('food');
   });
 
-  it('keeps explicit categories item-specific in multi-expense transcripts', () => {
+  it('takes the category of the largest item when explicit categories differ', () => {
     const result = parseVoiceExpenses(
       '500 rupees airport cab category travel, 300 rupees dinner tag food',
       groups,
     );
-    expect(result.items.map((item) => item.category)).toEqual(['travel', 'food']);
-    expect(result.items.map((item) => item.note)).toEqual(['airport cab', 'dinner']);
+    expect(result.items.map((item) => item.category)).toEqual(['travel']);
+    expect(result.items.map((item) => item.note)).toEqual(['airport cab 500, dinner 300']);
   });
 
   it('uses a trailing category as a global fallback when items do not name one', () => {
     const result = parseVoiceExpenses('500 rupees cab, 300 rupees bus category travel', groups);
-    expect(result.items.map((item) => item.category)).toEqual(['travel', 'travel']);
+    expect(result.items.map((item) => item.category)).toEqual(['travel']);
   });
 
   it('ignores unknown category phrases safely', () => {
@@ -928,8 +933,8 @@ describe('parseVoiceExpenses (several in one breath)', () => {
       '500 rupees dinner, Ravi paid me back 200 rupees, 300 rupees cab, Priya paid 50 rupees snacks',
       groups,
     );
-    expect(result.items.map((item) => item.amountMajor)).toEqual([500, 300]);
-    expect(result.items.map((item) => item.note)).toEqual(['dinner', 'cab']);
+    expect(result.items.map((item) => item.amountMajor)).toEqual([800]);
+    expect(result.items.map((item) => item.note)).toEqual(['dinner 500, cab 300']);
   });
 
   it('still rejects global removal commands instead of partially parsing them', () => {
@@ -1051,9 +1056,10 @@ describe('spoken addition ("plus")', () => {
     expect(result.items[0].amountMajor).toBe(225);
   });
 
-  it('does NOT sum plain comma-separated items with their own descriptions', () => {
+  it('sums comma-separated items with their own descriptions into one listed expense', () => {
     const result = parseVoiceExpenses('5 rupees for snacks, 10 for tea', groups);
-    expect(result.items.map((item) => item.amountMajor)).toEqual([5, 10]);
+    expect(result.items.map((item) => item.amountMajor)).toEqual([15]);
+    expect(result.items[0].note).toBe('snacks 5, tea 10');
   });
 
   it('does NOT read the compositional "and" as an addition', () => {
@@ -1290,9 +1296,9 @@ describe('voiceAutoAction', () => {
     expect(voiceAutoAction(result)).toBeNull();
   });
 
-  it('holds for review with several expenses in one breath', () => {
+  it('holds for review with several items in one breath', () => {
     const result = parseVoiceExpenses('add 500 dinner and 300 cab to the Goa trip', groups);
-    expect(result.items.length).toBeGreaterThan(1);
+    expect(result.items.map((item) => item.amountMajor)).toEqual([800]);
     expect(voiceAutoAction(result)).toBeNull();
   });
 
