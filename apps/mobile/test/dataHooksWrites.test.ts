@@ -434,6 +434,7 @@ describe('settlements', () => {
       'g-1',
       {
         settlementId: 'uuid-1',
+        confirmed: false,
         from: 'a',
         to: 'b',
         amount: '12345',
@@ -481,9 +482,13 @@ describe('settlements', () => {
       amount: 100n,
       rail: 'cash',
     });
+    // One mutation: the server mints its own settlement id, so a follow-up transition naming
+    // this one would be refused. The server confirms a payee-recorded payment itself.
     expect(sync.mutate.mock.calls.map((call) => [call[0], call[2]])).toEqual([
-      [MutationKind.SettlementCreate, expect.objectContaining({ settlementId: 'uuid-1' })],
-      [MutationKind.SettlementTransition, { settlementId: 'uuid-1', to: 'confirmed' }],
+      [
+        MutationKind.SettlementCreate,
+        expect.objectContaining({ settlementId: 'uuid-1', confirmed: true }),
+      ],
     ]);
   });
 

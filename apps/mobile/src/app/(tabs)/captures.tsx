@@ -2837,7 +2837,8 @@ function CapturesScreen() {
                 refused is worse than no button. */}
             {personalOffered ? (
               <Button
-                label={t.captures.justMePersonal}
+                label={t.captures.justMePersonalShort}
+                accessibilityLabel={t.captures.justMePersonal}
                 variant="secondary"
                 style={{ flex: 1 }}
                 onPress={() => {

@@ -44,6 +44,7 @@ import { AgentAccessSection } from '@/components/company/AgentAccessSection';
 import { CompanyRules } from '@/components/company/CompanyRules';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { removeImage } from '@/lib/storage';
+import { directionForViewer } from '@/lib/groupBalanceList';
 import { LinkMemberSheet } from '@/components/LinkMemberSheet';
 import { linkReasonText, membersAsPeople, type LinkPerson } from '@/lib/linkMember';
 import {
@@ -1563,6 +1564,10 @@ function GroupSettingsScreen() {
                             currency={currency}
                             locale={locale}
                             mode="balance"
+                            direction={directionForViewer(
+                              ledger.balances.get(member.id) ?? 0n,
+                              isMe,
+                            )}
                           />
                           {isMe ? null : (
                             <Pressable

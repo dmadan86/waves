@@ -530,6 +530,7 @@ export function materialiseSettlements(
     if (mutation.kind === 'settlement.create') {
       const payload = mutation.payload as {
         settlementId?: string;
+        confirmed?: boolean;
         from: string;
         to: string;
         currency?: string | null;
@@ -551,10 +552,11 @@ export function materialiseSettlements(
         amount: payload.amount,
         // `initiated`, not `confirmed`: the other person has still not agreed,
         // and a settlement that counts itself confirmed on the way out would
-        // clear a debt nobody acknowledged.
-        status: 'initiated',
+        // clear a debt nobody acknowledged. The payee's own entry is the
+        // acknowledgement, so theirs is confirmed.
+        status: payload.confirmed ? 'confirmed' : 'initiated',
         initiated_at: mutation.clientCreatedAt,
-        confirmed_at: null,
+        confirmed_at: payload.confirmed ? mutation.clientCreatedAt : null,
         paid_at: payload.paidAt ?? null,
         reminded_at: null,
         note: payload.note ?? null,

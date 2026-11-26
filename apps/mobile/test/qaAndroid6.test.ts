@@ -51,7 +51,9 @@ describe('Review', () => {
     expect(reviewSubtitle([], strings)).toBe('waiting for a group');
   });
   it('the bar button names Personal', () => {
-    expect(src('app/(tabs)/captures.tsx')).toContain('label={t.captures.justMePersonal}');
+    expect(src('app/(tabs)/captures.tsx')).toContain(
+      'accessibilityLabel={t.captures.justMePersonal}',
+    );
   });
 });
 

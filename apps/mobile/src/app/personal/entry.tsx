@@ -349,12 +349,10 @@ function EntryForm({
 
   return (
     <Screen edges={[]}>
-      {/* Save is pinned under the scroll, and the keyboard lifts both (iOS padding; Android
-          resizes the window), so it stays reachable while typing, as in the group form. */}
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      {/* Save is pinned under the scroll, and the keyboard lifts both so it stays reachable
+          while typing. Padding on Android too: the app is edge-to-edge, so the window no
+          longer resizes for the keyboard (adjustResize is ignored) and nothing else lifts it. */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: theme.spacing.lg }}

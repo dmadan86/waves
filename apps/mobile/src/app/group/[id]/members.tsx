@@ -26,6 +26,7 @@ import { EMPLOYEE_ID_MAX, fallbackCurrency } from '@waves/core';
 
 import { withScenicGroup } from '@/components/ScenicScope';
 import { familyOf } from '@/lib/families';
+import { directionForViewer } from '@/lib/groupBalanceList';
 import { useFlagEnabled } from '@/lib/flags';
 import { type PickedContact } from '@/components/ContactPicker';
 import {
@@ -452,6 +453,10 @@ function MembersScreen() {
                       currency={currency}
                       locale={locale}
                       mode="balance"
+                      direction={directionForViewer(
+                        ledger.balances.get(member.id) ?? 0n,
+                        member.id === ledger.myMemberId,
+                      )}
                     />
                     <Pressable
                       accessibilityRole="button"
