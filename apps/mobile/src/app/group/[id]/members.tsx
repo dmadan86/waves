@@ -26,7 +26,7 @@ import { EMPLOYEE_ID_MAX, fallbackCurrency } from '@waves/core';
 
 import { withScenicGroup } from '@/components/ScenicScope';
 import { familyOf } from '@/lib/families';
-import { directionForViewer } from '@/lib/groupBalanceList';
+import { balanceWord, directionForViewer } from '@/lib/groupBalanceList';
 import { useFlagEnabled } from '@/lib/flags';
 import { type PickedContact } from '@/components/ContactPicker';
 import {
@@ -448,16 +448,31 @@ function MembersScreen() {
                         )}
                       />
                     ) : null}
-                    <MoneyText
-                      amount={ledger.balances.get(member.id) ?? 0n}
-                      currency={currency}
-                      locale={locale}
-                      mode="balance"
-                      direction={directionForViewer(
-                        ledger.balances.get(member.id) ?? 0n,
-                        member.id === ledger.myMemberId,
-                      )}
-                    />
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text variant="micro" tone="muted">
+                        {balanceWord(
+                          ledger.balances.get(member.id) ?? 0n,
+                          member.id === ledger.myMemberId,
+                          {
+                            youAreOwed: t.youAreOwed,
+                            youOwe: t.youOwe,
+                            owesYou: t.tabs.owesYou,
+                            youOweThem: t.tabs.youOweThem,
+                            allSquare: t.tabs.allSquare,
+                          },
+                        )}
+                      </Text>
+                      <MoneyText
+                        amount={ledger.balances.get(member.id) ?? 0n}
+                        currency={currency}
+                        locale={locale}
+                        mode="balance"
+                        direction={directionForViewer(
+                          ledger.balances.get(member.id) ?? 0n,
+                          member.id === ledger.myMemberId,
+                        )}
+                      />
+                    </View>
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={displayName(

@@ -1,4 +1,4 @@
-import { balanceDirection, type BalanceDirection } from '@waves/core';
+import { BalanceDirection, balanceDirection } from '@waves/core';
 
 import type { PersonDebts } from './debtsByPerson';
 import type { PlanTransfer } from './settlePlan';
@@ -38,4 +38,23 @@ export function memberBalanceStatus(balance: bigint, viewer: boolean, owesViewer
  */
 export function directionForViewer(balance: bigint, isViewerRow: boolean): BalanceDirection {
   return balanceDirection(isViewerRow ? balance : -balance);
+}
+
+/** The words beside a member's balance, from the viewer's side ("owes you", "you owe", "you are owed"). */
+export function balanceWord(
+  balance: bigint,
+  isViewerRow: boolean,
+  words: {
+    youAreOwed: string;
+    youOwe: string;
+    owesYou: string;
+    youOweThem: string;
+    allSquare: string;
+  },
+): string {
+  const direction = directionForViewer(balance, isViewerRow);
+  if (direction === BalanceDirection.OwedToYou)
+    return isViewerRow ? words.youAreOwed : words.owesYou;
+  if (direction === BalanceDirection.YouOwe) return isViewerRow ? words.youOwe : words.youOweThem;
+  return words.allSquare;
 }
