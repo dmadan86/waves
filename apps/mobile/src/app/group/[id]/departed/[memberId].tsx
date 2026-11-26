@@ -42,7 +42,10 @@ import {
   sortDepartedExpenses,
   type DepartedSort,
   classifyDepartedExpenses,
+  departedIds,
+  RESPLIT_MODES,
   summarizeDepartedExpenses,
+  type ResplitMode,
   type Expense,
 } from '@/lib/departedExpenses';
 import { useDialog } from '@/lib/dialog';
@@ -67,6 +70,8 @@ function DepartedExpensesScreen() {
   const { confirm } = useDialog();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [category, setCategory] = useState<string | null>(null);
+  const [mode, setMode] = useState<ResplitMode>('share_equally');
+  const [modeById, setModeById] = useState<Map<string, ResplitMode>>(() => new Map());
   const [sort, setSort] = useState<DepartedSort>('newest');
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const member = everyone.data?.find((m) => m.id === memberId);
@@ -77,6 +82,7 @@ function DepartedExpensesScreen() {
     expenses.rows,
     memberId,
     ledger.myMemberId ?? undefined,
+    departedIds(everyone.data),
   );
   const candidates = [...equal, ...custom];
   const byId = new Map(candidates.map((candidate) => [candidate.expense.id, candidate]));
@@ -114,15 +120,40 @@ function DepartedExpensesScreen() {
       return next;
     });
   };
-  const items = selected.flatMap((c) => buildResplitItem(c, memberId) ?? []);
+  const modeOf = (expenseId: string) => modeById.get(expenseId) ?? mode;
+  const items = selected.flatMap((c) => buildResplitItem(c, memberId, modeOf(c.expense.id)) ?? []);
+  const modeLabels: Record<ResplitMode, string> = {
+    keep: s.modeKeep,
+    share_equally: s.modeShare,
+    proportional: s.modeProportion,
+    equal: s.modeEqual,
+  };
+  const modeHints: Record<ResplitMode, string> = {
+    keep: s.modeKeepHint,
+    share_equally: s.modeShareHint,
+    proportional: s.modeProportionHint,
+    equal: s.modeEqualHint,
+  };
+  const chooseMode = (next: ResplitMode) => {
+    setMode(next);
+    // A choice applies to everything ticked, overriding earlier per-bill picks.
+    setModeById(new Map());
+  };
+  const cycleMode = (expenseId: string) =>
+    setModeById((previous) => {
+      const next = new Map(previous);
+      const at = RESPLIT_MODES.indexOf(modeOf(expenseId));
+      next.set(expenseId, RESPLIT_MODES[(at + 1) % RESPLIT_MODES.length]!);
+      return next;
+    });
   const fmt = (amount: bigint, currency = group.data?.default_currency ?? fallbackCurrency()) =>
     format(money(amount, currency as CurrencyCode), { locale });
   const totals = (rows: Expense[]) => summarizeDepartedExpenses(rows, memberId, group.data).totals;
   const showTotals = (values: Map<string, bigint>) =>
     [...values].map(([currency, amount]) => fmt(amount, currency)).join(' · ') || fmt(0n);
-  const moved = totals(selected.map((c) => c.expense));
-  const recipients = new Set(selected.flatMap((c) => c.remainingParticipants));
-  const onlyViewer = recipients.size === 1 && recipients.has(ledger.myMemberId ?? '');
+  const moved = totals(
+    selected.filter((c) => modeOf(c.expense.id) !== 'keep').map((c) => c.expense),
+  );
   const count = items.length;
   const offline =
     status === SyncStatus.Offline ||
@@ -139,16 +170,27 @@ function DepartedExpensesScreen() {
         (balances.get(memberId) ?? 0n) + (moved.get(currency) ?? 0n),
       ]),
     );
-    const body = fill(onlyViewer ? s.onlyViewerDialog : s.dialog, {
+    const nameOf = (id: string) => {
+      const row = everyone.data?.find((m) => m.id === id);
+      return row ? displayName(row, viewerId, undefined, t.misc.someone) : t.misc.someone;
+    };
+    const lines = items.slice(0, 6).map((item) => {
+      const version = byId.get(item.expense_id)!.expense.currentVersion!;
+      const parts = item.shares
+        .map(
+          (entry) =>
+            `${nameOf(entry.member_id)} ${fmt(BigInt(entry.amount_minor), version.currency)}`,
+        )
+        .join(', ');
+      return `${expenseTitle(version.description, version.category, t)}: ${parts}`;
+    });
+    if (items.length > 6) lines.push(fill(s.previewMore, { n: items.length - 6 }));
+    const body = fill(s.previewDialog, {
       name,
-      amount: showTotals(moved),
-      n: recipients.size,
-      perEach: showTotals(
-        new Map(
-          [...moved].map(([currency, amount]) => [currency, amount / BigInt(recipients.size || 1)]),
-        ),
-      ),
-      balance: showTotals(balance),
+      status:
+        amountLine(new Map([...balance].map(([currency, amount]) => [currency, -amount]))) ||
+        fill(plural(locale, listed.length, s.owed), { name, amount: fmt(0n) }),
+      preview: lines.join('\n'),
     });
     if (!(await confirm({ title: label, body, confirmLabel: plural(locale, count, s.confirm) })))
       return;
@@ -345,6 +387,43 @@ function DepartedExpensesScreen() {
               <Text variant="caption">{sortLabels[sort]}</Text>
             </Pressable>
           </Row>
+          <View
+            style={{
+              backgroundColor: theme.color.surface,
+              borderRadius: theme.radius.lg,
+              padding: theme.spacing.sm,
+              gap: 2,
+            }}
+          >
+            <Text variant="subheading">{fill(s.modeTitle, { name })}</Text>
+            {RESPLIT_MODES.map((option) => (
+              <Pressable
+                key={option}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: mode === option, disabled: mutation.isPending }}
+                disabled={mutation.isPending}
+                onPress={() => chooseMode(option)}
+                style={{
+                  minHeight: 48,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.spacing.sm,
+                }}
+              >
+                <Ionicons
+                  name={mode === option ? 'radio-button-on' : 'radio-button-off'}
+                  size={22}
+                  color={mode === option ? theme.color.brand : theme.color.textMuted}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text variant="caption">{modeLabels[option]}</Text>
+                  <Text variant="micro" tone="muted">
+                    {fill(modeHints[option], { name })}
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
           {[...sections].map(([date, rows]) => (
             <View
               key={date}
@@ -450,6 +529,24 @@ function DepartedExpensesScreen() {
                                 amount: fmt(share, version.currency),
                               })}
                             </Text>
+                            {!isPaid && selectedIds.has(expense.id) && !candidate.noneRemaining && (
+                              <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel={s.modeChange}
+                                disabled={mutation.isPending}
+                                onPress={() => cycleMode(expense.id)}
+                                hitSlop={8}
+                              >
+                                <Text variant="micro" style={{ color: theme.color.brand }}>
+                                  {modeLabels[modeOf(expense.id)]}
+                                </Text>
+                              </Pressable>
+                            )}
+                            {!isPaid && candidate.noneRemaining && (
+                              <Text variant="micro" tone="muted">
+                                {s.nobodyLeft}
+                              </Text>
+                            )}
                             {isPaid && (
                               <Text
                                 variant="micro"

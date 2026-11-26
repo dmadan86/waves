@@ -4868,6 +4868,19 @@ export interface UiStrings {
     activity: PluralForms;
     activityUndone: string;
     undo: string;
+    modeTitle: string;
+    modeKeep: string;
+    modeKeepHint: string;
+    modeShare: string;
+    modeShareHint: string;
+    modeProportion: string;
+    modeProportionHint: string;
+    modeEqual: string;
+    modeEqualHint: string;
+    modeChange: string;
+    nobodyLeft: string;
+    previewDialog: string;
+    previewMore: string;
   };
   activityScreen: {
     /** Names an expense with no description and no category: "Added an expense". */
@@ -13589,6 +13602,21 @@ const en: UiStrings = {
     },
     activityUndone: 'Undid split after {name} left',
     undo: 'Undo',
+    modeTitle: "What should happen to {name}'s share?",
+    modeKeep: 'Keep as is',
+    modeKeepHint: '{name} still owes it. Nothing changes.',
+    modeShare: 'Split their part equally',
+    modeShareHint: "Only {name}'s part is shared out evenly among the others on the bill.",
+    modeProportion: 'Split their part in proportion',
+    modeProportionHint:
+      'The others take it on in the same ratio as their own shares. 50% and 30% become 62.5% and 37.5%.',
+    modeEqual: 'Split the whole bill equally',
+    modeEqualHint: 'Everyone left on the bill pays the same.',
+    modeChange: 'Change how this bill is split',
+    nobodyLeft: 'Nobody else is on this bill, so there is no one to give their part to.',
+    previewDialog:
+      "Re-split {name}'s bills like this? Afterwards: {status}. You can undo this for 7 days from Activity.\n\n{preview}",
+    previewMore: '…and {n} more',
   },
   activityScreen: {
     anExpense: 'an expense',
@@ -21845,6 +21873,21 @@ const ta: UiStrings = {
     },
     activityUndone: '{name} வெளியேறிய பின் செய்த பிரிப்பு செயல்தவிர்க்கப்பட்டது',
     undo: 'செயல்தவிர்',
+    modeTitle: "What should happen to {name}'s share?",
+    modeKeep: 'Keep as is',
+    modeKeepHint: '{name} still owes it. Nothing changes.',
+    modeShare: 'Split their part equally',
+    modeShareHint: "Only {name}'s part is shared out evenly among the others on the bill.",
+    modeProportion: 'Split their part in proportion',
+    modeProportionHint:
+      'The others take it on in the same ratio as their own shares. 50% and 30% become 62.5% and 37.5%.',
+    modeEqual: 'Split the whole bill equally',
+    modeEqualHint: 'Everyone left on the bill pays the same.',
+    modeChange: 'Change how this bill is split',
+    nobodyLeft: 'Nobody else is on this bill, so there is no one to give their part to.',
+    previewDialog:
+      "Re-split {name}'s bills like this? Afterwards: {status}. You can undo this for 7 days from Activity.\n\n{preview}",
+    previewMore: '…and {n} more',
   },
   activityScreen: {
     anExpense: 'ஒரு செலவு',
@@ -30120,6 +30163,21 @@ const hi: UiStrings = {
     },
     activityUndone: '{name} के जाने के बाद का बँटवारा वापस लिया',
     undo: 'वापस लें',
+    modeTitle: "What should happen to {name}'s share?",
+    modeKeep: 'Keep as is',
+    modeKeepHint: '{name} still owes it. Nothing changes.',
+    modeShare: 'Split their part equally',
+    modeShareHint: "Only {name}'s part is shared out evenly among the others on the bill.",
+    modeProportion: 'Split their part in proportion',
+    modeProportionHint:
+      'The others take it on in the same ratio as their own shares. 50% and 30% become 62.5% and 37.5%.',
+    modeEqual: 'Split the whole bill equally',
+    modeEqualHint: 'Everyone left on the bill pays the same.',
+    modeChange: 'Change how this bill is split',
+    nobodyLeft: 'Nobody else is on this bill, so there is no one to give their part to.',
+    previewDialog:
+      "Re-split {name}'s bills like this? Afterwards: {status}. You can undo this for 7 days from Activity.\n\n{preview}",
+    previewMore: '…and {n} more',
   },
   activityScreen: {
     anExpense: 'एक ख़र्च',
@@ -38529,6 +38587,21 @@ const ar: UiStrings = {
     },
     activityUndone: 'تم التراجع عن التقسيم بعد مغادرة {name}',
     undo: 'تراجع',
+    modeTitle: "What should happen to {name}'s share?",
+    modeKeep: 'Keep as is',
+    modeKeepHint: '{name} still owes it. Nothing changes.',
+    modeShare: 'Split their part equally',
+    modeShareHint: "Only {name}'s part is shared out evenly among the others on the bill.",
+    modeProportion: 'Split their part in proportion',
+    modeProportionHint:
+      'The others take it on in the same ratio as their own shares. 50% and 30% become 62.5% and 37.5%.',
+    modeEqual: 'Split the whole bill equally',
+    modeEqualHint: 'Everyone left on the bill pays the same.',
+    modeChange: 'Change how this bill is split',
+    nobodyLeft: 'Nobody else is on this bill, so there is no one to give their part to.',
+    previewDialog:
+      "Re-split {name}'s bills like this? Afterwards: {status}. You can undo this for 7 days from Activity.\n\n{preview}",
+    previewMore: '…and {n} more',
   },
   activityScreen: {
     anExpense: 'مصروف',

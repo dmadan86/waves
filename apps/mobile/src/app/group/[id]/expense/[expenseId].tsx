@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ScrollView as RNScrollView } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { withScenicGroup } from '@/components/ScenicScope';
+import { departedIds } from '@/lib/departedExpenses';
 import { familyOf } from '@/lib/families';
 import { useFlagEnabled } from '@/lib/flags';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -1423,6 +1424,7 @@ function ExpenseDetailScreen() {
                   expenseId={expense.id}
                   myMemberId={myMemberId}
                   iAmAdmin={iAmAdmin}
+                  goneIds={departedIds(everyone.data)}
                   nameOf={nameOf}
                   avatarNameOf={avatarNameOf}
                   photoOf={(memberId) =>

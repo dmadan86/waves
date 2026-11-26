@@ -62,7 +62,7 @@ import { offerFromOtherGroups } from '@/lib/addFromAnotherGroup';
 import { requestAddFromAnotherGroup } from '@/lib/addFromAnotherGroupBridge';
 import { addSomeoneRoutes, type AddSomeoneRoute } from '@/lib/addSomeoneRoutes';
 import { addPickedBatch } from '@/lib/addPickedBatch';
-import { classifyDepartedExpenses } from '@/lib/departedExpenses';
+import { classifyDepartedExpenses, departedIds } from '@/lib/departedExpenses';
 import { syncEngine } from '@/sync';
 import { friendlyError } from '@/lib/errors';
 import { isLastMember } from '@/lib/leaveGroup';
@@ -172,7 +172,7 @@ function GroupSettingsScreen() {
   const viewerId = useViewerId();
   const guestGuard = useGuestGuard();
 
-  const { group, members, expenses, settlements } = useGroup(groupId);
+  const { group, members, everyone, expenses, settlements } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, viewerId);
   const updateGroup = useUpdateGroup(groupId);
   const removeDemo = useRemoveDemo(() => router.dismissTo('/'));
@@ -656,7 +656,8 @@ function GroupSettingsScreen() {
    */
   const outstandingDebts = (): DialogRow[] => {
     const nameFor = (memberId: string): string => {
-      const member = (members.data ?? []).find((row) => row.id === memberId);
+      // `everyone`, not `members`: a person who has left still owes, and is named.
+      const member = (everyone.data ?? []).find((row) => row.id === memberId);
       // The label for a member with no name of their own is passed in rather
       // than left to the default, which is the English word: this dialog is the
       // last thing somebody reads before destroying a record, and half of it
@@ -835,7 +836,12 @@ function GroupSettingsScreen() {
         try {
           await removeFromGroup.mutateAsync(member.id);
           toast.show(fill(t.people.removedToast, { name: realName }));
-          const { equal, custom } = classifyDepartedExpenses(expenses.rows, member.id);
+          const { equal, custom } = classifyDepartedExpenses(
+            expenses.rows,
+            member.id,
+            undefined,
+            departedIds(everyone.data),
+          );
           if (!equal.length && !custom.some((c) => !c.noneRemaining)) return true;
           // The member list comes from the mirror; pull the successful removal before opening it.
           await syncEngine.flush({ groupIds: [groupId] }).catch(() => undefined);

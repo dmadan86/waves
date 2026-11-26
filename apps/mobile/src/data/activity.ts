@@ -488,6 +488,15 @@ export function describeActivity(
       return `${who} agreed ${description ?? 'an expense'} needs fixing`;
     case 'rejected_dispute':
       return `${who} says ${description ?? 'an expense'} is correct as it stands`;
+    case 'commented': {
+      const text =
+        typeof payload.body === 'string' && payload.body.trim() ? payload.body.trim() : null;
+      return `${who} commented on ${description ?? 'an expense'}${text ? ` — "${text}"` : ''}`;
+    }
+    case 'comment_deleted': {
+      const author = typeof payload.author === 'string' && payload.author ? payload.author : null;
+      return `${who} deleted ${author ? `${author}'s` : 'a'} comment on ${description ?? 'an expense'}`;
+    }
     case 'settled':
       return `${who} recorded a settlement`;
     case 'confirmed':
@@ -596,6 +605,10 @@ export function activityHeadline(
       return `Restored ${item}`;
     case 'superseded':
       return 'Edit replaced';
+    case 'commented':
+      return `Commented on ${item}`;
+    case 'comment_deleted':
+      return 'Comment deleted';
     case 'disputed':
       return `Flagged ${item}`;
     case 'withdrew_dispute':
@@ -680,6 +693,7 @@ export function activityTarget(entry: ActivityRow): string {
   if (entry.verb === 'member_removed' || entry.verb === 'member_left') return `${group}/members`;
   switch (entry.object_type) {
     case 'expense':
+    case 'comment': // object_id is the expense the comment is on
       return `${group}/expense/${entry.object_id}`;
     case 'member':
       return `${group}/member/${entry.object_id}`;
@@ -708,6 +722,10 @@ export function verbIcon(verb: string): React.ComponentProps<typeof Ionicons>['n
       return 'trash-outline';
     case 'restored':
       return 'arrow-undo-outline';
+    case 'commented':
+      return 'chatbubble-outline';
+    case 'comment_deleted':
+      return 'trash-outline';
     case 'settled':
       return 'card-outline';
     case 'confirmed':
@@ -820,6 +838,7 @@ export function verbTint(verb: string): ActivityTint {
     case 'withdrew_dispute':
       return 'mint';
     case 'deleted':
+    case 'comment_deleted':
     case 'disputed':
     case 'settle_disputed':
     case 'cancelled':

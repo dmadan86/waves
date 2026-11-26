@@ -38,6 +38,7 @@ import { CommentMarkdown } from '@/components/CommentMarkdown';
 import { RichCommentInput } from '@/components/RichCommentInput';
 import { useStrings } from '@/i18n';
 import { syncEngine } from '@/sync';
+import { canDeleteComment } from '@/lib/departedExpenses';
 import { useDialog } from '@/lib/dialog';
 import { useToast } from '@/lib/toast';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -83,6 +84,7 @@ export function ExpenseComments({
   expenseId,
   myMemberId,
   iAmAdmin,
+  goneIds,
   nameOf,
   avatarNameOf,
   photoOf,
@@ -91,6 +93,8 @@ export function ExpenseComments({
   expenseId: string;
   myMemberId: string | null;
   iAmAdmin: boolean;
+  /** Members who have left or been removed: anyone may delete their comments. */
+  goneIds?: ReadonlySet<string>;
   nameOf: (memberId: string | null) => string;
   /** The real name to seed an avatar's initial/colour (not the "You" label). */
   avatarNameOf?: (memberId: string | null) => string;
@@ -118,6 +122,8 @@ export function ExpenseComments({
   const remove = useDeleteExpenseComment();
   const flag = useFlagExpenseComment();
 
+  const isGone = (row: ExpenseCommentRow) =>
+    row.authorMemberId !== null && !!goneIds?.has(row.authorMemberId);
   const avatarName = (memberId: string | null): string => (avatarNameOf ?? nameOf)(memberId);
   const photo = (memberId: string | null): string | null => photoOf?.(memberId) ?? null;
 
@@ -272,7 +278,7 @@ export function ExpenseComments({
     if (mine) {
       options.push({ id: 'edit', label: t.comments.edit });
     }
-    if (mine || iAmAdmin) {
+    if (canDeleteComment(mine, iAmAdmin, isGone(row))) {
       options.push({ id: 'delete', label: t.comments.delete, tone: 'danger' });
     }
     if (!mine && !flagged) {
@@ -292,7 +298,7 @@ export function ExpenseComments({
 
   const hasActions = (row: ExpenseCommentRow): boolean => {
     const mine = myMemberId !== null && row.authorMemberId === myMemberId;
-    return mine || iAmAdmin || row.flaggedAt === null;
+    return canDeleteComment(mine, iAmAdmin, isGone(row)) || row.flaggedAt === null;
   };
 
   // Ionicons has no bold/italic/strike glyph, so those three read as a styled

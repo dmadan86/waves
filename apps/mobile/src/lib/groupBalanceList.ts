@@ -40,21 +40,24 @@ export function directionForViewer(balance: bigint, isViewerRow: boolean): Balan
   return balanceDirection(isViewerRow ? balance : -balance);
 }
 
-/** The words beside a member's balance, from the viewer's side ("owes you", "you owe", "you are owed"). */
+/**
+ * The words beside a member's balance. Your own row speaks to you ("you are owed"
+ * / "you owe"); somebody else's says what is true of them ("is owed" / "owes"),
+ * because their balance is with the whole group, not necessarily with you, so
+ * "you owe" on their row would claim a debt that may not exist.
+ */
 export function balanceWord(
   balance: bigint,
   isViewerRow: boolean,
   words: {
     youAreOwed: string;
     youOwe: string;
-    owesYou: string;
-    youOweThem: string;
+    isOwed: string;
+    owes: string;
     allSquare: string;
   },
 ): string {
-  const direction = directionForViewer(balance, isViewerRow);
-  if (direction === BalanceDirection.OwedToYou)
-    return isViewerRow ? words.youAreOwed : words.owesYou;
-  if (direction === BalanceDirection.YouOwe) return isViewerRow ? words.youOwe : words.youOweThem;
-  return words.allSquare;
+  if (balance === 0n) return words.allSquare;
+  if (isViewerRow) return balance > 0n ? words.youAreOwed : words.youOwe;
+  return balance > 0n ? words.isOwed : words.owes;
 }

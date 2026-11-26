@@ -50,7 +50,7 @@ import {
   useUpdateMember,
 } from '@/data/hooks';
 import { syncEngine } from '@/sync';
-import { classifyDepartedExpenses } from '@/lib/departedExpenses';
+import { classifyDepartedExpenses, departedIds } from '@/lib/departedExpenses';
 import { friendlyError } from '@/lib/errors';
 import { directionForViewer } from '@/lib/groupBalanceList';
 import { expenseTitle } from '@/data/expenseTitle';
@@ -542,7 +542,12 @@ function MemberScreen() {
         try {
           await removeFromGroup.mutateAsync(member.id);
           toast.show(fill(t.people.removedToast, { name: realName }));
-          const { equal, custom } = classifyDepartedExpenses(expenses.rows, member.id);
+          const { equal, custom } = classifyDepartedExpenses(
+            expenses.rows,
+            member.id,
+            undefined,
+            departedIds(everyone.data),
+          );
           if (equal.length || custom.some((c) => !c.noneRemaining)) {
             await syncEngine.flush({ groupIds: [groupId] }).catch(() => undefined);
             router.replace(`/group/${groupId}/departed/${member.id}`);
@@ -574,7 +579,12 @@ function MemberScreen() {
    * rather than drawing a heading over nothing. That is the case for yourself,
    * and for a ghost seen by a non-admin.
    */
-  const departed = classifyDepartedExpenses(expenses.rows, member.id);
+  const departed = classifyDepartedExpenses(
+    expenses.rows,
+    member.id,
+    undefined,
+    departedIds(everyone.data),
+  );
   const manageRows: SettingsRow[] = [
     ...(iAmAdmin &&
     !myRow?.left_at &&

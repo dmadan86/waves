@@ -456,8 +456,8 @@ function MembersScreen() {
                           {
                             youAreOwed: t.youAreOwed,
                             youOwe: t.youOwe,
-                            owesYou: t.tabs.owesYou,
-                            youOweThem: t.tabs.youOweThem,
+                            isOwed: t.misc.balanceIsOwed,
+                            owes: t.misc.balanceOwes,
                             allSquare: t.tabs.allSquare,
                           },
                         )}

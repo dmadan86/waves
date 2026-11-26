@@ -6,7 +6,7 @@ import { useGroup, useGroupLedger } from '@/data/hooks';
 import { displayName, type MemberRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
-import { classifyDepartedExpenses } from '@/lib/departedExpenses';
+import { classifyDepartedExpenses, departedIds } from '@/lib/departedExpenses';
 import { useDismissed } from '@/lib/dismissed';
 import { router } from '@/lib/navigation';
 
@@ -88,7 +88,12 @@ export function DepartedExpensesBanner({ groupId }: { groupId: string }) {
             [...ledger.net.values()].some((balances) => (balances.get(m.id) ?? 0n) !== 0n),
         )
         .map((member) => {
-          const { equal, custom } = classifyDepartedExpenses(expenses.rows, member.id);
+          const { equal, custom } = classifyDepartedExpenses(
+            expenses.rows,
+            member.id,
+            undefined,
+            departedIds(everyone.data),
+          );
           const count = equal.length + custom.filter((c) => !c.noneRemaining).length;
           return count ? (
             <DepartedBanner key={member.id} groupId={groupId} member={member} count={count} />

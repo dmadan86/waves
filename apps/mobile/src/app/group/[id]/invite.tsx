@@ -95,7 +95,7 @@ function InviteScreenInner() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
 
-  const { group, members } = useGroup(groupId);
+  const { group, members, everyone } = useGroup(groupId);
   const { profile } = useAuth();
   const { flush } = useSync();
   const { confirm } = useDialog();
@@ -577,7 +577,7 @@ function InviteScreenInner() {
             <Text variant="micro" tone="muted" align="center" numberOfLines={2}>
               {fill(t.people.inviteTrust, { group: label })}
             </Text>
-            {offerNewInviteLink(members.data ?? [], iAmAdmin) ? (
+            {offerNewInviteLink(everyone.data ?? [], iAmAdmin) ? (
               <Button
                 label={t.people.newLink}
                 variant="ghost"
