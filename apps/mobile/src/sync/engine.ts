@@ -40,6 +40,7 @@ import {
 
 import { reportHandled } from '@/lib/observability';
 import { backend } from '@/lib/backend';
+import { endSessionIfRevoked, isAuthRejection } from '@/lib/sessionLost';
 import { loadSyncNetworkPreference, networkAllows, SyncNetworkPreference } from '@/lib/syncNetwork';
 
 import type { RetainedWork } from './retention';
@@ -632,7 +633,11 @@ export class SyncEngine {
         SYNC_TIMEOUT_MS,
         'sync',
       );
-      if (error) throw new Error(await describeFunctionError(error));
+      if (error) {
+        const detail = new Error(await describeFunctionError(error));
+        if (isAuthRejection(error) || isAuthRejection(detail)) await endSessionIfRevoked();
+        throw detail;
+      }
 
       const response = data as SyncResponseBody;
       const gated = response.twoStepRequired ?? [];

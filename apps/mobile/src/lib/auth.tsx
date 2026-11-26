@@ -41,6 +41,7 @@ import { backend, peekSession } from './backend';
 // A leaf module with no imports of its own, reached directly rather than
 // through `@/sync` — the sync barrel pulls in `SyncProvider`, which imports
 // this file, and that circle is not worth one function.
+import { clearSessionLost } from '@/lib/sessionLost';
 import { markDeliberateSignOut } from '@/sync/retention';
 
 /**
@@ -469,6 +470,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: subscription } = backend.auth.onAuthStateChange((_event, next) => {
       settled = true;
+      if (next) clearSessionLost();
       setSession(next);
     });
 
@@ -619,10 +621,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // could be mistaken for a later involuntary loss is as narrow as the
     // call itself. See `sync/retention.ts`.
     markDeliberateSignOut();
-    // Revoke on the server when we can. Offline that call fails and the library
-    // keeps the session, so fall back to a local sign-out: the person must
+    // Sign out THIS device only: the default scope is 'global', which revoked the
+    // user's sessions on every other phone too and left them silently broken.
+    // Offline that call fails and the library keeps the session, so fall back to a local sign-out: the person must
     // never stay half signed out (pushes and reminders already switched off).
-    const revoked = await backend.auth.signOut().then(
+    const revoked = await backend.auth.signOut({ scope: 'local' }).then(
       ({ error }) => !error,
       () => false,
     );

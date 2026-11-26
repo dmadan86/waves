@@ -39,6 +39,7 @@ import { deviceDefaultCurrency, Language, LANGUAGE_NAMES, useStrings } from '@/i
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
+import { useSessionLost } from '@/lib/sessionLost';
 import { COMPACT_TYPE_CAP } from '@/lib/typeCap';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { phoneSignInAvailable } from '@/lib/phoneAuth';
@@ -111,6 +112,7 @@ export default function WelcomeScreen() {
   // time, and whatever comes back said in words rather than in the SDK's.
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const sessionLost = useSessionLost();
 
   const reduceMotion = useReducedMotion();
 
@@ -393,6 +395,9 @@ export default function WelcomeScreen() {
           ]}
         >
           {error ? <Callout tone="negative">{error}</Callout> : null}
+          {sessionLost && !error ? (
+            <Callout tone="negative">{t.signOutSheet.sessionLost}</Callout>
+          ) : null}
 
           <Pressable
             testID="welcome-provider"

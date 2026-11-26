@@ -1439,6 +1439,8 @@ export interface UiStrings {
     refused: PluralForms;
     /** Why a refusal is not waiting for a better signal. */
     refusedHint: string;
+    /** Shown on the door after the server ended this phone's session. */
+    sessionLost: string;
     receiptsUnsent: PluralForms;
     draftsUnsent: PluralForms;
     /** Drafts made from bank messages. They never sync, so this phone holds
@@ -10228,10 +10230,11 @@ const en: UiStrings = {
       other: '{n} personal records have not been sent',
     },
     refused: {
-      one: '{n} change the server would not accept',
-      other: '{n} changes the server would not accept',
+      one: "{n} change hasn't synced",
+      other: "{n} changes haven't synced",
     },
     refusedHint: 'Waiting longer will not send these. Save a copy to keep them.',
+    sessionLost: 'You were signed out. Sign in again to keep syncing.',
     receiptsUnsent: {
       one: '{n} receipt photo is still only on this phone',
       other: '{n} receipt photos are still only on this phone',
@@ -18463,10 +18466,11 @@ const ta: UiStrings = {
       other: '{n} தனிப்பட்ட பதிவுகள் அனுப்பப்படவில்லை',
     },
     refused: {
-      one: 'சர்வர் ஏற்க மறுத்த {n} மாற்றம்',
-      other: 'சர்வர் ஏற்க மறுத்த {n} மாற்றங்கள்',
+      one: '{n} மாற்றம் ஒத்திசைக்கப்படவில்லை',
+      other: '{n} மாற்றங்கள் ஒத்திசைக்கப்படவில்லை',
     },
     refusedHint: 'காத்திருந்தாலும் இவை அனுப்பப்படாது. வைத்திருக்க ஒரு நகலைச் சேமியுங்கள்.',
+    sessionLost: 'நீங்கள் வெளியேற்றப்பட்டீர்கள். ஒத்திசைவைத் தொடர மீண்டும் உள்நுழையுங்கள்.',
     receiptsUnsent: {
       one: '{n} ரசீதுப் படம் இன்னும் இந்தத் தொலைபேசியில் மட்டுமே உள்ளது',
       other: '{n} ரசீதுப் படங்கள் இன்னும் இந்தத் தொலைபேசியில் மட்டுமே உள்ளன',
@@ -26755,10 +26759,11 @@ const hi: UiStrings = {
       other: '{n} निजी प्रविष्टियाँ नहीं भेजी गईं',
     },
     refused: {
-      one: '{n} बदलाव जिसे सर्वर ने स्वीकार नहीं किया',
-      other: '{n} बदलाव जिन्हें सर्वर ने स्वीकार नहीं किया',
+      one: '{n} बदलाव सिंक नहीं हुआ',
+      other: '{n} बदलाव सिंक नहीं हुए',
     },
     refusedHint: 'और इंतज़ार करने से ये नहीं भेजे जाएँगे। रखना है तो एक कॉपी सहेज लें।',
+    sessionLost: 'आप साइन आउट हो गए। सिंक जारी रखने के लिए फिर से साइन इन करें।',
     receiptsUnsent: {
       one: '{n} रसीद की फ़ोटो अब भी सिर्फ़ इसी फ़ोन पर है',
       other: '{n} रसीदों की फ़ोटो अब भी सिर्फ़ इसी फ़ोन पर हैं',
@@ -35002,14 +35007,15 @@ const ar: UiStrings = {
       other: '{n} سجل شخصي لم يُرسَل',
     },
     refused: {
-      zero: 'لا تغييرات رفضها الخادم',
-      one: 'تغيير واحد رفضه الخادم',
-      two: 'تغييران رفضهما الخادم',
-      few: '{n} تغييرات رفضها الخادم',
-      many: '{n} تغييرًا رفضه الخادم',
-      other: '{n} تغيير رفضه الخادم',
+      zero: 'لا تغييرات لم تتم مزامنتها',
+      one: 'تغيير واحد لم تتم مزامنته',
+      two: 'تغييران لم تتم مزامنتهما',
+      few: '{n} تغييرات لم تتم مزامنتها',
+      many: '{n} تغييرًا لم تتم مزامنته',
+      other: '{n} تغيير لم تتم مزامنته',
     },
     refusedHint: 'الانتظار أطول لن يُرسلها. احفظ نسخة إن أردت الاحتفاظ بها.',
+    sessionLost: 'تم تسجيل خروجك. سجّل الدخول مرة أخرى لمواصلة المزامنة.',
     receiptsUnsent: {
       zero: 'لا صور إيصالات على هذا الهاتف وحده',
       one: 'صورة إيصال واحدة ما زالت على هذا الهاتف وحده',

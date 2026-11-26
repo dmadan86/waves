@@ -1018,6 +1018,17 @@ describe('signing out', () => {
     expect(world.order).toEqual(['revoke', 'mark', 'signOut']);
   });
 
+  it('signs out this device only, never every phone the account is on', async () => {
+    session = user('u1');
+    world.db = tableOf({ u1: profileRow('u1') }) as never;
+    const auth = await mount();
+
+    await auth.value.signOut();
+
+    expect(world.auth.signOut).toHaveBeenCalledTimes(1);
+    expect(world.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+  });
+
   it('still ends the session on this device when the server cannot be reached', async () => {
     session = user('u1');
     world.db = tableOf({ u1: profileRow('u1') }) as never;

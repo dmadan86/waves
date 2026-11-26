@@ -29,6 +29,8 @@ const h = vi.hoisted(() => ({
   net: vi.fn(),
   syncPreference: vi.fn(),
   invoke: vi.fn(),
+  refresh: vi.fn(),
+  signOut: vi.fn(),
   report: vi.fn(),
   /** Make the next disk writes/reads fail, to reach the engine's error paths. */
   faults: { writeQueue: null as Error | null, readRows: null as Error | null },
@@ -51,7 +53,10 @@ vi.mock('expo-network', () => ({
 }));
 
 vi.mock('@/lib/backend', () => ({
-  backend: { functions: { invoke: h.invoke } },
+  backend: {
+    functions: { invoke: h.invoke },
+    auth: { refreshSession: h.refresh, signOut: h.signOut },
+  },
   backendConfigured: true,
 }));
 
@@ -172,6 +177,8 @@ beforeEach(() => {
   // clearAllMocks keeps a mock's queued responses; the heal and double-failure
   // tests set them, so reset invoke outright or they leak into the next test.
   h.invoke.mockReset();
+  h.refresh.mockReset();
+  h.signOut.mockReset().mockResolvedValue({ error: null });
   h.syncPreference.mockResolvedValue('both');
   h.disk.rows.clear();
   h.disk.cursors = {};
@@ -1599,5 +1606,40 @@ describe('catchUpProgress', () => {
     expect(catchUpProgress(mirror(['a']), ['a', 'b'], false)).toBeNull();
     expect(catchUpProgress(mirror(['a', 'b']), ['a', 'b'], true)).toBeNull();
     expect(catchUpProgress(mirror([]), undefined, true)).toBeNull();
+  });
+});
+
+describe('a session the server has ended', () => {
+  const unauthorized = () => ({
+    data: null,
+    error: Object.assign(new Error('Edge Function returned a non-2xx status code'), {
+      context: { status: 401, json: async () => ({ message: 'Invalid JWT' }) },
+    }),
+  });
+
+  it('is ended locally (queue kept) and the door says so, instead of retrying forever', async () => {
+    const { hasLostSession, clearSessionLost } = await import('../src/lib/sessionLost');
+    clearSessionLost();
+    online();
+    h.invoke.mockResolvedValue(unauthorized());
+    h.refresh.mockResolvedValue({
+      error: Object.assign(new Error('Invalid Refresh Token: Session Not Found'), { status: 400 }),
+    });
+    const engine = new SyncEngine();
+    await engine.flush();
+    expect(h.refresh).toHaveBeenCalledTimes(1);
+    expect(h.signOut).toHaveBeenCalledWith({ scope: 'local' });
+    expect(hasLostSession()).toBe(true);
+  });
+
+  it('stays signed in when the refresh works', async () => {
+    const { hasLostSession, clearSessionLost } = await import('../src/lib/sessionLost');
+    clearSessionLost();
+    online();
+    h.invoke.mockResolvedValue(unauthorized());
+    h.refresh.mockResolvedValue({ error: null });
+    await new SyncEngine().flush();
+    expect(h.signOut).not.toHaveBeenCalled();
+    expect(hasLostSession()).toBe(false);
   });
 });
