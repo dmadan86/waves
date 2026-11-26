@@ -20,7 +20,7 @@
  * thread stays uncluttered.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { Button, Callout, iconSize, Popup, Row, Text, useTheme } from '@waves/ui';
@@ -37,6 +37,7 @@ import { MAX_COMMENT_LENGTH, sanitizeCommentMarkdown } from '@waves/core';
 import { CommentMarkdown } from '@/components/CommentMarkdown';
 import { RichCommentInput } from '@/components/RichCommentInput';
 import { useStrings } from '@/i18n';
+import { syncEngine } from '@/sync';
 import { useDialog } from '@/lib/dialog';
 import { useToast } from '@/lib/toast';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -107,6 +108,11 @@ export function ExpenseComments({
   // text still in it, so there is a right place to put the sentence.
   const [composerError, setComposerError] = useState<string | null>(null);
   const comments = useExpenseComments(expenseId);
+  // Opening (or reopening) the thread pulls it, so a comment made while this phone was
+  // not listening shows now rather than after a restart.
+  useEffect(() => {
+    void syncEngine.flush({ groupIds: [groupId] }).catch(() => undefined);
+  }, [groupId, expenseId]);
   const add = useAddExpenseComment(groupId, expenseId);
   const edit = useEditExpenseComment();
   const remove = useDeleteExpenseComment();
