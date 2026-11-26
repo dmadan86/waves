@@ -340,6 +340,7 @@ function AddExpenseScreen() {
   // bar. Read here rather than in the bar's style so the whole screen agrees on
   // one number, and so the hook is not buried in a `return`.
   const clearance = useScreenClearance(theme.spacing.md);
+  const [footerHeight, setFooterHeight] = useState(0);
   const { t, locale } = useStrings();
   const { confirm } = useDialog();
   // The capture params are the inbox handoff (A34): assigning a capture opens
@@ -1975,15 +1976,18 @@ function AddExpenseScreen() {
     previewValues.length > 0 && previewValues.every((value) => value === previewValues[0])
       ? previewValues[0]
       : null;
-  const savePreview =
-    participants.length === 0
-      ? t.extras.savedStraightAway
-      : evenEach !== null && amount > 0n
-        ? plural(locale, participants.length, t.expense.oweEach).replace(
-            '{amount}',
-            format(money(evenEach, currency), { locale, trimZeros: true }),
-          )
-        : plural(locale, participants.length, t.memberCount);
+  const savePreview = onlyMe
+    ? t.spacePrivacy.onlyMeTitle
+    : poolDefault && !splitThis
+      ? t.household.splitThisOneHint
+      : participants.length === 0
+        ? t.extras.savedStraightAway
+        : evenEach !== null && amount > 0n
+          ? plural(locale, participants.length, t.expense.oweEach).replace(
+              '{amount}',
+              format(money(evenEach, currency), { locale, trimZeros: true }),
+            )
+          : plural(locale, participants.length, t.memberCount);
 
   return (
     // No safe-area edges: this screen reserves neither end itself. The hero pads
@@ -2022,7 +2026,7 @@ function AddExpenseScreen() {
             paddingHorizontal: theme.spacing.xl,
             // The banner runs to the top edge, under the status bar.
             paddingTop: 0,
-            paddingBottom: theme.spacing.md,
+            paddingBottom: footerHeight + clearance,
             gap: theme.spacing.md,
           }}
           keyboardShouldPersistTaps="handled"
@@ -2831,6 +2835,7 @@ function AddExpenseScreen() {
           that saves it. A submit error surfaces here too, next to the button
           that raised it, rather than lost up the scroll. */}
         <View
+          onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
           style={{
             paddingHorizontal: theme.spacing.xl,
             paddingTop: theme.spacing.sm,
@@ -2846,6 +2851,8 @@ function AddExpenseScreen() {
             borderTopWidth: 1,
             borderTopColor: theme.color.border,
             backgroundColor: theme.color.surface,
+            zIndex: 10,
+            elevation: 10,
           }}
         >
           {error ? <Callout tone="negative">{error}</Callout> : null}
