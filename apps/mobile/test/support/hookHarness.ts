@@ -136,6 +136,7 @@ export const sync = {
   status: 'idle' as string,
   hasSynced: true,
   flush: vi.fn(() => Promise.resolve()),
+  flushGroup: vi.fn(() => Promise.resolve(true)),
   mutate: vi.fn((..._args: unknown[]) => Promise.resolve()),
   forgetGroup: vi.fn((_groupId: string) => Promise.resolve()),
 };
@@ -160,6 +161,8 @@ export function resetSync(): void {
   sync.status = 'idle';
   sync.hasSynced = true;
   sync.flush.mockClear();
+  sync.flushGroup.mockReset();
+  sync.flushGroup.mockImplementation(() => Promise.resolve(true));
   sync.mutate.mockClear();
   sync.forgetGroup.mockClear();
   syncModule.lastSyncedAt = null;

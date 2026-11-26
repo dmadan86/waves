@@ -67,6 +67,7 @@ interface SyncContextValue extends Omit<SyncState, 'lastSyncedAt'> {
     clientMutationId?: string,
   ) => Promise<string>;
   flush: (groupIds?: string[]) => Promise<void>;
+  flushGroup: (groupId: string) => Promise<boolean>;
   retry: (clientMutationId: string) => Promise<void>;
   discard: (clientMutationId: string) => Promise<void>;
   /** Forget a group locally after leaving it — see `SyncEngine.forgetGroup`. */
@@ -395,6 +396,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     () => ({
       mutate,
       flush: (groupIds?: string[]) => syncEngine.flush({ groupIds }),
+      flushGroup: (groupId: string) => syncEngine.flushGroup(groupId),
       retry: (id: string) => syncEngine.retry(id),
       discard: (id: string) => syncEngine.discard(id),
       // A group this device forgets takes its kept images with it.

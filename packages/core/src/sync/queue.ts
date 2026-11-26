@@ -43,7 +43,7 @@ export interface QueuedMutation extends MutationEnvelope {
   readonly rejection?: { readonly code: SyncRejectionCode; readonly message: string } | null;
 }
 
-/** Mutations that failed this many times stop retrying and ask the user. */
+/** Kept for stale-overlay diagnostics; transport failures retry indefinitely. */
 export const MAX_ATTEMPTS = 8;
 
 /** Roughly 2s, 4s, 8s … capped at five minutes. Deterministic: no jitter, so tests can assert it. */
@@ -477,7 +477,6 @@ export function unwrittenExpenseIds(queue: readonly QueuedMutation[]): Set<strin
 export interface BatchOptions {
   readonly now: number;
   readonly limit?: number;
-  readonly maxAttempts?: number;
 }
 
 /**
@@ -514,7 +513,7 @@ export function nextBatch(
  */
 export function blockedBy(
   queue: readonly QueuedMutation[],
-  options: { readonly now: number; readonly maxAttempts?: number },
+  options: { readonly now: number },
 ): Map<string, QueuedMutation> {
   return scanQueue(queue, { ...options, limit: Infinity }).blockedBy;
 }
@@ -547,7 +546,7 @@ function scanQueue(
   queue: readonly QueuedMutation[],
   options: BatchOptions,
 ): { batch: QueuedMutation[]; blockedBy: Map<string, QueuedMutation> } {
-  const { now, limit = 50, maxAttempts = MAX_ATTEMPTS } = options;
+  const { now, limit = 50 } = options;
   const blocked = new Map<string, QueuedMutation>();
   const heldBy = new Map<string, QueuedMutation>();
   const batch: QueuedMutation[] = [];
@@ -578,9 +577,8 @@ function scanQueue(
       blocked.set(key, item);
       continue;
     }
-    // A task change is a plain "set to this", safe to send again: it never gives up, it just keeps backing off (5 minutes at most).
-    const gaveUp = item.attempts >= maxAttempts && !item.kind.startsWith('company_work.');
-    if (gaveUp || item.nextAttemptAt > now) {
+    // Transport failures (offline, 5xx) never give up: they back off, 5 minutes at most.
+    if (item.nextAttemptAt > now) {
       blocked.set(key, item);
       continue;
     }
@@ -622,12 +620,9 @@ export function pendingMutations(queue: readonly QueuedMutation[]): QueuedMutati
   return queue.filter((item) => !item.rejection);
 }
 
-/** Mutations that have given up retrying and need the user to decide. */
-export function deadLettered(
-  queue: readonly QueuedMutation[],
-  maxAttempts = MAX_ATTEMPTS,
-): QueuedMutation[] {
-  return queue.filter((item) => item.attempts >= maxAttempts);
+/** Mutations that need the user to decide: permanent (4xx) refusals. Transient failures retry forever. */
+export function deadLettered(queue: readonly QueuedMutation[]): QueuedMutation[] {
+  return rejectedMutations(queue);
 }
 
 export interface OutcomeResult {

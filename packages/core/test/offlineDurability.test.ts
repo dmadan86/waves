@@ -9,15 +9,14 @@
  *     render-time `useMemo`. The payload is on disk, so the throw repeated on
  *     every launch — a crash loop the user cannot escape without reinstalling,
  *     which takes the rest of the queue with it.
- *  2. A mutation that exhausts `MAX_ATTEMPTS` stops being sent and blocks
- *     everything queued behind it in its group. `deadLettered` has always
- *     described that set; nothing ever called it, so the app said "sending 1
- *     change…" forever and offered no way out.
+ *  2. A transient failure (offline, 5xx) must retry forever, with backoff
+ *     capped at five minutes; only a permanent refusal is dead-lettered.
  */
 
 import { describe, expect, it } from 'vitest';
 
 import {
+  applyOutcomes,
   backoffMs,
   deadLettered,
   discard,
@@ -29,6 +28,7 @@ import {
   overlayPending,
   parseAmount,
   retryNow,
+  SyncRejectionCode,
   type MirrorExpense,
   type MutationEnvelope,
   type QueuedMutation,
@@ -156,67 +156,64 @@ describe('a queued mutation the overlay cannot materialise', () => {
   });
 });
 
-describe('a mutation that has stopped retrying', () => {
-  /** Fail the whole queue until it gives up — how a dead transport really does
-   *  it: the batch goes out together and comes back failed together. */
-  const exhaust = (queue: QueuedMutation[]): QueuedMutation[] => {
+describe('a mutation that keeps failing', () => {
+  /** Fail the whole queue `times` times: the batch goes out and comes back failed together. */
+  const fail = (queue: QueuedMutation[], times: number): QueuedMutation[] => {
     let current = queue;
-    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+    for (let attempt = 0; attempt < times; attempt += 1) {
       // Far enough past each backoff that the batch is eligible again.
-      const now = attempt * backoffMs(MAX_ATTEMPTS);
+      const now = (attempt + 1) * backoffMs(1000);
       current = markFailed(current, nextBatch(current, { now }), 'network', now);
     }
     return current;
   };
 
-  /** One mutation already at a given attempt count — the state the queue is
-   *  actually restored into from disk, without replaying the failures. */
   const at = (id: string, attempts: number, groupId = GROUP): QueuedMutation => ({
     ...envelope(id, goodPayload(`e-${id}`), groupId),
     seq: Number(id.replace(/\D/g, '')),
     attempts,
-    nextAttemptAt: attempts === 0 ? 0 : backoffMs(attempts),
-    lastError: attempts === 0 ? null : 'network',
+    nextAttemptAt: 0,
+    lastError: null,
   });
 
-  it('reaches the ceiling through ordinary transport failures', () => {
-    const exhausted = exhaust(queued([envelope('m1', goodPayload('e1'))]));
+  const refuse = (queue: QueuedMutation[], id: string): QueuedMutation[] =>
+    applyOutcomes(queue, [
+      {
+        clientMutationId: id,
+        status: 'rejected',
+        code: SyncRejectionCode.ValidationFailed,
+        message: 'bad',
+      },
+    ]).queue;
 
-    expect(exhausted[0]?.attempts).toBe(MAX_ATTEMPTS);
-    expect(deadLettered(exhausted).map((item) => item.clientMutationId)).toEqual(['m1']);
-    // ~8.5 minutes of trying, and then nothing ever again without a person.
-    expect(nextBatch(exhausted, { now: Number.MAX_SAFE_INTEGER })).toEqual([]);
+  it('keeps retrying a network or 5xx failure past the old 8-attempt cap', () => {
+    const failed = fail(queued([envelope('m1', goodPayload('e1'))]), MAX_ATTEMPTS + 4);
+
+    expect(failed[0]?.attempts).toBe(MAX_ATTEMPTS + 4);
+    expect(deadLettered(failed)).toEqual([]);
+    expect(
+      nextBatch(failed, { now: Number.MAX_SAFE_INTEGER }).map((i) => i.clientMutationId),
+    ).toEqual(['m1']);
   });
 
-  it('blocks its own group and nothing else — which is why it needs surfacing', () => {
-    const queue = [at('m1', MAX_ATTEMPTS), at('m2', 0, OTHER)];
-
-    const stuck = deadLettered(queue);
-    expect(stuck).toHaveLength(1);
-    expect(stuck[0]?.groupId).toBe(GROUP);
-
-    // The other group keeps syncing, so the app never looks broken — which is
-    // exactly how this stayed invisible.
-    const later = nextBatch(queue, { now: Number.MAX_SAFE_INTEGER });
-    expect(later.map((item) => item.clientMutationId)).toEqual(['m2']);
+  it('caps the backoff at five minutes however many attempts', () => {
+    expect(backoffMs(1)).toBe(2000);
+    expect(backoffMs(9)).toBe(5 * 60_000);
+    expect(backoffMs(1000)).toBe(5 * 60_000);
+    const failed = fail(queued([envelope('m1', goodPayload('e1'))]), 30);
+    expect((failed[0]?.nextAttemptAt ?? 0) - 30 * backoffMs(1000)).toBe(5 * 60_000);
   });
 
-  it('holds everything queued behind it in the same group', () => {
-    const queue = [at('m1', MAX_ATTEMPTS), at('m2', 0)];
+  it('dead-letters a permanent (4xx) refusal, and holds its own group only', () => {
+    const queue = refuse([at('m1', 0), at('m2', 0), at('m3', 0, OTHER)], 'm1');
 
-    // `m2` never left the phone, so it is not itself dead — it is just stuck,
-    // and there was nothing on screen to say so.
     expect(deadLettered(queue).map((item) => item.clientMutationId)).toEqual(['m1']);
-    expect(nextBatch(queue, { now: Number.MAX_SAFE_INTEGER })).toEqual([]);
+    expect(nextBatch(queue, { now: 0 }).map((item) => item.clientMutationId)).toEqual(['m3']);
   });
 
-  it('moves again once the user retries the head', () => {
-    const queue = [at('m1', MAX_ATTEMPTS), at('m2', 0)];
-
-    // The banner acts on the head, because within a group that is the one row
-    // blocking the rest.
-    const head = deadLettered(queue)[0];
-    const retried = retryNow(queue, head?.clientMutationId ?? '');
+  it('moves again once the user retries the refused head', () => {
+    const queue = refuse([at('m1', 0), at('m2', 0)], 'm1');
+    const retried = retryNow(queue, 'm1');
 
     expect(deadLettered(retried)).toEqual([]);
     expect(nextBatch(retried, { now: 0 }).map((item) => item.clientMutationId)).toEqual([
@@ -225,11 +222,9 @@ describe('a mutation that has stopped retrying', () => {
     ]);
   });
 
-  it('moves again once the user discards the head', () => {
-    const queue = [at('m1', MAX_ATTEMPTS), at('m2', 0)];
-
-    const head = deadLettered(queue)[0];
-    const dropped = discard(queue, head?.clientMutationId ?? '');
+  it('moves again once the user discards the refused head', () => {
+    const queue = refuse([at('m1', 0), at('m2', 0)], 'm1');
+    const dropped = discard(queue, 'm1');
 
     expect(deadLettered(dropped)).toEqual([]);
     expect(nextBatch(dropped, { now: 0 }).map((item) => item.clientMutationId)).toEqual(['m2']);

@@ -1892,8 +1892,10 @@ export function useWriteExpense(groupId: string) {
   const { mutate } = useSync();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Omit<WriteExpenseInput, 'groupId'>) => {
-      const expenseId = input.expenseId ?? randomUUID();
+    mutationFn: async (input: Omit<WriteExpenseInput, 'groupId'> & { intentId?: string }) => {
+      // `intentId`: a new expense's id, minted once per save intent so a double
+      // tap or a retry re-sends the same expense instead of making another.
+      const expenseId = input.expenseId ?? input.intentId ?? randomUUID();
       await mutate(
         input.expenseId ? MutationKind.ExpenseUpdate : MutationKind.ExpenseCreate,
         groupId,
@@ -1901,6 +1903,7 @@ export function useWriteExpense(groupId: string) {
           ...serialiseExpense(input),
           expenseId,
         },
+        input.expenseId ? undefined : input.intentId,
       );
       if (input.expenseId) {
         await syncEngine.flush({ groupIds: [groupId] }).catch(() => undefined);
@@ -2416,10 +2419,20 @@ export function useRemoveMember(groupId: string) {
 
 export function useLeaveGroup(groupId: string, onLeft?: () => void) {
   const queryClient = useQueryClient();
-  const { forgetGroup } = useSync();
+  const { forgetGroup, flushGroup, queue } = useSync();
   return useMutation({
-    mutationFn: (memberId: string) =>
-      isDemoGroupId(groupId) ? rejectDemoWrite<void>() : leaveGroup(memberId),
+    mutationFn: async (memberId: string) => {
+      if (isDemoGroupId(groupId)) return rejectDemoWrite<void>();
+      const pending = queue.some((item) => item.groupId === groupId);
+      if (pending) {
+        // A flush can resolve while offline, while retry backoff is pending, or
+        // after a permanent refusal. Never commit the leave while work remains.
+        if (!(await flushGroup(groupId))) {
+          throw new Error('This group has unsent changes. Connect and sync them before leaving.');
+        }
+      }
+      return leaveGroup(memberId);
+    },
     // Leaving hides the group server-side (RLS), so it can never be pulled again
     // to signal its removal — the client must forget it locally, or it lingers
     // on the dashboard forever. Purge the mirror first, then refresh what is left.

@@ -619,7 +619,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // could be mistaken for a later involuntary loss is as narrow as the
     // call itself. See `sync/retention.ts`.
     markDeliberateSignOut();
-    await backend.auth.signOut();
+    // Revoke on the server when we can. Offline that call fails and the library
+    // keeps the session, so fall back to a local sign-out: the person must
+    // never stay half signed out (pushes and reminders already switched off).
+    const revoked = await backend.auth.signOut().then(
+      ({ error }) => !error,
+      () => false,
+    );
+    if (!revoked) await backend.auth.signOut({ scope: 'local' });
   }, [session]);
 
   const value = useMemo<AuthValue>(

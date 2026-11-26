@@ -66,7 +66,7 @@ import { classifyDepartedExpenses } from '@/lib/departedExpenses';
 import { syncEngine } from '@/sync';
 import { friendlyError } from '@/lib/errors';
 import { isLastMember } from '@/lib/leaveGroup';
-import { removeMemberBody } from '@/data/removeMemberConfirm';
+import { openBalances, removeMemberBody } from '@/data/removeMemberConfirm';
 import { groupDeleteWarning, orderDebtsForWarning } from '@/lib/groupDeleteWarning';
 import { normaliseGroupDescription } from '@/lib/groupDescription';
 import { pickGroupPhoto, type PickedImage } from '@/lib/image';
@@ -536,7 +536,7 @@ function GroupSettingsScreen() {
     return <GroupNotFound groupId={groupId} />;
   }
 
-  const settled = ledger.myBalance === 0n;
+  const settled = openBalances(ledger.net, ledger.myMemberId).length === 0;
   const currency = group.data.default_currency;
 
   // Deleting a group is an admin power (like changing roles). A non-admin never
@@ -819,6 +819,7 @@ function GroupSettingsScreen() {
       body: removeMemberBody({
         name: realName,
         balance: ledger.balances.get(member.id) ?? 0n,
+        open: openBalances(ledger.net, member.id),
         currency,
         locale,
         strings: {

@@ -52,6 +52,8 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
+
+import { createSubmitGuard } from '@/lib/submitGuard';
 import { Image } from 'expo-image';
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 
@@ -753,6 +755,7 @@ function QuickExpenseFooter({
   onSaved: () => void;
 }) {
   const labelOf = useGroupLabeller();
+  const guard = useRef(createSubmitGuard(randomUUID)).current;
   const theme = useTheme();
   const { t } = useStrings();
   const toast = useToast();
@@ -825,13 +828,12 @@ function QuickExpenseFooter({
   // the buttons is allowed to promise.
   const canWriteExpense = myMemberId !== null && participants.length > 0;
 
-  const writeDraft = async (): Promise<void> => {
+  const writeDraft = async (captureId: string): Promise<void> => {
     // A capture is not an expense yet (A34), so the kept-bill path above —
     // keyed by groupId/expenseId — has nothing to attach to. Its own photo
     // field is a direct upload under the capture's own id instead, exactly as
     // the inbox's own capture screen keeps one; the id is minted here, ahead
     // of the write, so the upload and the capture row agree on it.
-    const captureId = randomUUID();
     let photoPath: string | null = null;
     if (receipt && viewerId) {
       try {
@@ -869,69 +871,74 @@ function QuickExpenseFooter({
 
   const keepDraft = async (): Promise<void> => {
     if (!canSave) return;
-    setSaving(true);
-    try {
-      await writeDraft();
-    } finally {
-      setSaving(false);
-    }
+    await guard.run('draft', async (id) => {
+      setSaving(true);
+      try {
+        await writeDraft(id);
+      } finally {
+        setSaving(false);
+      }
+    });
   };
 
   const save = async (): Promise<void> => {
     if (!canSave) return;
-    setSaving(true);
-    try {
-      // An expense needs somebody to have paid it, and that somebody is the
-      // reader. Where their membership cannot be found there is no payer to
-      // record, so the money is kept against the group as a draft rather than
-      // the sheet arguing with them about it — the row syncs, shows on the
-      // group, and opens the full form when they come back. Silent on purpose:
-      // this is a state the reader did not cause and cannot act on.
-      if (!myMemberId || participants.length === 0) {
-        await writeDraft();
-        return;
+    await guard.run('save', async (id) => {
+      setSaving(true);
+      try {
+        // An expense needs somebody to have paid it, and that somebody is the
+        // reader. Where their membership cannot be found there is no payer to
+        // record, so the money is kept against the group as a draft rather than
+        // the sheet arguing with them about it — the row syncs, shows on the
+        // group, and opens the full form when they come back. Silent on purpose:
+        // this is a state the reader did not cause and cannot act on.
+        if (!myMemberId || participants.length === 0) {
+          await writeDraft(id);
+          return;
+        }
+        const expenseId = await write.mutateAsync({
+          intentId: id,
+          description: note.trim(),
+          expenseDate: todayIso(),
+          currency,
+          amount,
+          category,
+          categoryMeta,
+          splitParams: { kind: 'equal' },
+          participants,
+          payers: { [myMemberId]: amount },
+          location: place,
+          // The group's own rate when it has one for this pair, and nothing when
+          // it does not. `undefined` is not "convert it somehow", it is "this row
+          // is in the currency it says" — which the per-currency balances handle.
+          fx: tripRate ? toFxRecord(tripRate) : undefined,
+          // The same engine the server runs, seeded with nothing yet — the id is
+          // minted inside the write, so the preview here is only a check that the
+          // split is computable at all.
+          expectedShares: undefined,
+        });
+        if (receipt) {
+          // After the write, not beside it — the kept bill (E2) is keyed by
+          // groupId/expenseId, and the expense has to exist first. Not awaited:
+          // the money is already saved and the sheet is closing, so this runs
+          // past that point rather than holding Save open for an upload. Unlike
+          // `lib/receiptQueue` this has no retry queue behind it, so a failure
+          // here is a real, permanent loss — the one thing the sheet still owes
+          // the reader is saying so, in a toast that outlives it, rather than
+          // leaving them to discover a missing bill later with no idea why.
+          void uploadExpenseReceipt({
+            groupId: group.id,
+            expenseId,
+            base64: receipt.base64,
+            mimeType: receipt.mimeType,
+          }).catch(() => toast.show(t.receipts.couldNotAdd, 'negative'));
+        }
+        noteDestination(groupDestination(group.id));
+        onSaved();
+      } finally {
+        setSaving(false);
       }
-      const expenseId = await write.mutateAsync({
-        description: note.trim(),
-        expenseDate: todayIso(),
-        currency,
-        amount,
-        category,
-        categoryMeta,
-        splitParams: { kind: 'equal' },
-        participants,
-        payers: { [myMemberId]: amount },
-        location: place,
-        // The group's own rate when it has one for this pair, and nothing when
-        // it does not. `undefined` is not "convert it somehow", it is "this row
-        // is in the currency it says" — which the per-currency balances handle.
-        fx: tripRate ? toFxRecord(tripRate) : undefined,
-        // The same engine the server runs, seeded with nothing yet — the id is
-        // minted inside the write, so the preview here is only a check that the
-        // split is computable at all.
-        expectedShares: undefined,
-      });
-      if (receipt) {
-        // After the write, not beside it — the kept bill (E2) is keyed by
-        // groupId/expenseId, and the expense has to exist first. Not awaited:
-        // the money is already saved and the sheet is closing, so this runs
-        // past that point rather than holding Save open for an upload. Unlike
-        // `lib/receiptQueue` this has no retry queue behind it, so a failure
-        // here is a real, permanent loss — the one thing the sheet still owes
-        // the reader is saying so, in a toast that outlives it, rather than
-        // leaving them to discover a missing bill later with no idea why.
-        void uploadExpenseReceipt({
-          groupId: group.id,
-          expenseId,
-          base64: receipt.base64,
-          mimeType: receipt.mimeType,
-        }).catch(() => toast.show(t.receipts.couldNotAdd, 'negative'));
-      }
-      noteDestination(groupDestination(group.id));
-      onSaved();
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   return (
@@ -1011,6 +1018,7 @@ function QuickPersonalFooter({
   const upsert = useUpsertPersonalRecord();
   const createCapture = useCreateCapture();
   const [saving, setSaving] = useState(false);
+  const guard = useRef(createSubmitGuard(randomUUID)).current;
 
   const canSave = amount > 0n && !saving;
 
@@ -1018,51 +1026,56 @@ function QuickPersonalFooter({
   // group, which waits in Review until a destination is chosen.
   const keepDraft = async (): Promise<void> => {
     if (!canSave) return;
-    setSaving(true);
-    try {
-      await createCapture.mutateAsync({
-        captureId: randomUUID(),
-        description: note.trim(),
-        expenseDate: todayIso(),
-        currency,
-        amount,
-        category,
-        categoryMeta,
-        targetGroupId: null,
-        location: null,
-        photoPath: null,
-      });
-      onSaved();
-    } finally {
-      setSaving(false);
-    }
+    await guard.run('draft', async (id) => {
+      setSaving(true);
+      try {
+        await createCapture.mutateAsync({
+          captureId: id,
+          description: note.trim(),
+          expenseDate: todayIso(),
+          currency,
+          amount,
+          category,
+          categoryMeta,
+          targetGroupId: null,
+          location: null,
+          photoPath: null,
+        });
+        onSaved();
+      } finally {
+        setSaving(false);
+      }
+    });
   };
 
   const save = async (): Promise<void> => {
     if (!canSave) return;
-    setSaving(true);
-    try {
-      await upsert.mutateAsync({
-        recordKind: 'txn',
-        data: encodeTxn({
-          kind: 'expense',
-          amount,
-          currency,
-          // Undescribed and uncategorised on purpose: the sheet asks for an
-          // amount and a place, and the ledger already names a record with no
-          // description by its category rather than inventing a word for it.
-          category: null,
-          note: note.trim() || null,
-          date: todayIso(),
-          loanId: null,
-          recurringId: null,
-        }),
-      });
-      noteDestination(PERSONAL_DESTINATION);
-      onSaved();
-    } finally {
-      setSaving(false);
-    }
+    await guard.run('save', async (id) => {
+      setSaving(true);
+      try {
+        await upsert.mutateAsync({
+          recordId: id,
+          recordKind: 'txn',
+          data: encodeTxn({
+            kind: 'expense',
+            amount,
+            currency,
+            // Undescribed and uncategorised on purpose: the sheet asks for an
+            // amount and a place, and the ledger already names a record with no
+            // description by its category rather than inventing a word for it.
+            category: null,
+            note: note.trim() || null,
+            date: todayIso(),
+            loanId: null,
+            recurringId: null,
+          }),
+        });
+        noteDestination(PERSONAL_DESTINATION);
+        onSaved();
+      } finally {
+        setSaving(false);
+      }
+    });
   };
 
   return (
