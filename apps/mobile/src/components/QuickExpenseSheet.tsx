@@ -94,6 +94,7 @@ import {
   useRecentDestinations,
 } from '@/lib/recentDestinations';
 import { PersonAvatar } from '@/components/PersonAvatar';
+import { defaultDestination, quickSummary } from '@/lib/quickExpense';
 
 // Only pulled in when the in-app camera opens (and only reachable when the
 // binary has the native module — see `useQuickReceipt`).
@@ -286,7 +287,12 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
 
   const personalOffered = usePersonalOffered();
   // Nothing tapped yet: the most recent destination is pre-picked so Save is live on open.
-  const effectiveId = chosenId ?? chips[0]?.id ?? null;
+  const effectiveId =
+    chosenId ??
+    defaultDestination(
+      chips.map((chip) => chip.id),
+      personalOffered,
+    );
   const personalPicked = effectiveId === 'personal';
   const chosen = effectiveId && !personalPicked ? byId.get(effectiveId) : undefined;
 
@@ -375,6 +381,18 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
             gap: theme.spacing.sm,
           }}
         >
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: soft,
+            }}
+          >
+            <Ionicons name="wallet-outline" size={22} color={accent} />
+          </View>
           <View style={{ flex: 1 }}>
             <Text variant="title">{t.quickExpense.title}</Text>
             <Text variant="caption" tone="muted">
@@ -591,6 +609,8 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                 amount={amount}
                 currency={currency}
                 note={note}
+                category={category}
+                categoryMeta={categoryMeta}
                 onSaved={closeAndReset}
               />
             ) : chosen ? (
@@ -900,7 +920,7 @@ function QuickExpenseFooter({
           each of them is about the money rather than about the form: it
           converts at the group's own rate, or it stays in the currency it was
           paid in until somebody gives it one, or it splits. */}
-      <Text variant="caption" tone="muted">
+      <SummaryBar>
         {tripRate
           ? fill(t.quickExpense.atGroupRate, {
               currency,
@@ -915,9 +935,9 @@ function QuickExpenseFooter({
               // draft instead (see `save`). "Split equally between 4" here
               // would be a sentence about money that does not happen.
               canWriteExpense
-              ? fill(t.quickExpense.splitEqually, { count: String(participants.length) })
+              ? quickSummary(t.quickExpense.splitEqually, participants.length)
               : fill(t.quickExpense.keptForGroup, { group: labelOf(group) })}
-      </Text>
+      </SummaryBar>
       {/* Side by side, because they are two answers to the same question and
           neither is the other's fallback. Save is the one with the weight;
           Draft keeps its own, since in a foreign currency it is the only thing
@@ -955,19 +975,48 @@ function QuickPersonalFooter({
   amount,
   currency,
   note,
+  category,
+  categoryMeta,
   onSaved,
 }: {
   amount: bigint;
   currency: string;
   note: string;
+  category: string | null;
+  categoryMeta: CategoryMeta | null;
   onSaved: () => void;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
   const upsert = useUpsertPersonalRecord();
+  const createCapture = useCreateCapture();
   const [saving, setSaving] = useState(false);
 
   const canSave = amount > 0n && !saving;
+
+  // Personal has no draft of its own; the existing one is a capture with no
+  // group, which waits in Review until a destination is chosen.
+  const keepDraft = async (): Promise<void> => {
+    if (!canSave) return;
+    setSaving(true);
+    try {
+      await createCapture.mutateAsync({
+        captureId: randomUUID(),
+        description: note.trim(),
+        expenseDate: todayIso(),
+        currency,
+        amount,
+        category,
+        categoryMeta,
+        targetGroupId: null,
+        location: null,
+        photoPath: null,
+      });
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const save = async (): Promise<void> => {
     if (!canSave) return;
@@ -998,21 +1047,50 @@ function QuickPersonalFooter({
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
-      <Text variant="caption" tone="muted">
-        {t.quickExpense.justMeHint}
-      </Text>
+      <SummaryBar>{t.quickExpense.onlyYouPersonal}</SummaryBar>
       {/* One button, not the pair the group footer shows: a draft is a capture,
           and a capture waits in Review for a group to be chosen. Offering one
           here would file a spend that is nobody else's business into the place
           for spends that are. */}
-      <Button
-        label={t.quickExpense.save}
-        fullWidth
-        disabled={!canSave}
-        style={{ height: 46 }}
-        onPress={() => void save()}
-      />
+      <Row style={{ gap: theme.spacing.sm }}>
+        <Button
+          label={t.quickExpense.saveDraft}
+          accessibilityLabel={t.quickExpense.saveDraftLong}
+          variant="secondary"
+          style={{ flex: 1, height: 46 }}
+          disabled={!canSave}
+          onPress={() => void keepDraft()}
+        />
+        <Button
+          label={t.quickExpense.save}
+          style={{ flex: 1, height: 46 }}
+          disabled={!canSave}
+          onPress={() => void save()}
+        />
+      </Row>
     </View>
+  );
+}
+
+/** The one-line "what will happen" bar above Save and Draft. */
+function SummaryBar({ children }: { children: string }) {
+  const theme = useTheme();
+  return (
+    <Row
+      style={{
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        minHeight: 36,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        backgroundColor: theme.color.brandSoft,
+      }}
+    >
+      <Ionicons name="people-outline" size={18} color={theme.color.textMuted} />
+      <Text variant="caption" style={{ flex: 1 }}>
+        {children}
+      </Text>
+    </Row>
   );
 }
 
