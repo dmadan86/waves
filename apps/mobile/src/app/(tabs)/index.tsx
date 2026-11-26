@@ -57,6 +57,7 @@ import { ComingUpChips, NeedsYouCard } from '@/components/home/HomeToday';
 import { SpacesGrid } from '@/components/home/HomeSpaces';
 import { useHomeSpaceFigures } from '@/data/homeSpaces';
 import { todayIso, usePersonalLedger } from '@/data/personal';
+import { personalHomeIdentity } from '@/data/personalHomeIdentity';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { DateReminderCard } from '@/components/dates/DateReminderCard';
 import { TipSheet } from '@/components/home/TipSheet';
@@ -129,7 +130,7 @@ function HomeScreen() {
   const defaultCurrency = useDefaultCurrency();
   // The eye toggle: hide the money on a shared screen, remembered across opens.
   const { hidden: balanceHidden, ready: balanceReady, toggle: toggleBalance } = useBalanceHidden();
-  const displayName = profile?.display_name ?? t.account.you;
+  const displayName = personalHomeIdentity(profile, [], [], defaultCurrency, t.account.you).name;
   const firstName = displayName.trim().split(/\s+/)[0];
   const h = t.personalHome;
   const [spaceSwitchOpen, setSpaceSwitchOpen] = useState(false);
@@ -464,6 +465,13 @@ function HomeScreen() {
   // Home's feed: the personal ledger (for Personal's tile and the bills that
   // need paying), the pooled groups' figures, and whether there is anything yet.
   const ledger = usePersonalLedger();
+  const personalCurrency = personalHomeIdentity(
+    profile,
+    ledger.txns,
+    ledger.budgets,
+    defaultCurrency,
+    t.account.you,
+  ).currency;
   const [today] = useState(() => todayIso());
   const figures = useHomeSpaceFigures();
   const { hidden: personalHidden, ready: personalReady } = usePersonalAmountsHidden();
@@ -472,7 +480,7 @@ function HomeScreen() {
     txns: ledger.txns,
     recurrings: ledger.recurrings,
     budgets: ledger.budgets,
-    currency: defaultCurrency,
+    currency: personalCurrency,
     today,
   };
   const newUser =

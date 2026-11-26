@@ -119,6 +119,13 @@ export const leftToday = (input: PlanInput): bigint | null => dayPlan(input)?.le
 export const leftThisWeek = (input: PlanInput): bigint | null =>
   dayPlan(input)?.leftThisWeek ?? null;
 
+/** Budget remainder spread across the remaining calendar days, including today. */
+export function budgetDailyPace(left: bigint | null, today: string): bigint | null {
+  const range = monthRange(monthKey(today));
+  if (left === null || left < 0n || !range) return null;
+  return left / BigInt(dayDelta(today, range.to) + 1);
+}
+
 // ───────────────────────────────────────────────────────────── recaps ──
 
 export interface WeekVsUsual {

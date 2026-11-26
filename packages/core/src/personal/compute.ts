@@ -737,6 +737,22 @@ export interface PersonalBudgetProgress {
   readonly ratio: number;
 }
 
+/** The single spend figure used throughout Personal Home and its monthly budget. */
+export function personalHomeSpent(
+  txns: readonly PersonalTxn[],
+  month: string,
+  currency: CurrencyCode,
+): bigint {
+  let spent = 0n;
+  for (const txn of txns) {
+    if ((txn as PersonalTxn & { deletedAt?: string | null }).deletedAt) continue;
+    if (txn.kind !== 'expense' || isInvestmentCategory(txn.category) || txn.loanId !== null)
+      continue;
+    if (txn.currency === currency && monthKey(txn.date) === month) spent += txn.amount;
+  }
+  return spent;
+}
+
 /**
  * Spend against one budget for a month: everyday expense txns in the budget's
  * currency, in that month, matching its category (or all categories for an
@@ -748,16 +764,20 @@ export function personalBudgetProgress(
   txns: readonly PersonalTxn[],
   month: string,
 ): PersonalBudgetProgress {
-  let spent = 0n;
-  for (const txn of txns) {
-    if (txn.kind !== 'expense') continue;
-    if (isInvestmentCategory(txn.category)) continue;
-    if (txn.loanId !== null) continue;
-    if (txn.currency !== budget.currency) continue;
-    if (monthKey(txn.date) !== month) continue;
-    if (budget.category !== null && txn.category !== budget.category) continue;
-    spent += txn.amount;
-  }
+  let spent = budget.category === null ? personalHomeSpent(txns, month, budget.currency) : 0n;
+  if (budget.category !== null)
+    for (const txn of txns) {
+      if (
+        txn.kind === 'expense' &&
+        !isInvestmentCategory(txn.category) &&
+        txn.loanId === null &&
+        txn.currency === budget.currency &&
+        monthKey(txn.date) === month &&
+        txn.category === budget.category
+      ) {
+        spent += txn.amount;
+      }
+    }
   const remaining = budget.limit - spent;
   const ratio = budget.limit > 0n ? Number(spent) / Number(budget.limit) : 0;
   return { spent, limit: budget.limit, remaining, ratio };

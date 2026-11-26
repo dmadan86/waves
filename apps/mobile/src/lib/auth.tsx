@@ -8,6 +8,8 @@ import {
   type ReactNode,
 } from 'react';
 import type { Session } from '@/lib/backend';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { profileFromCache, toProfileCache, type CachedProfile } from '@/lib/profileCache';
 import { makeRedirectUri } from 'expo-auth-session';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
@@ -401,6 +403,7 @@ interface AuthValue {
  * not a sign-out that never happens.
  */
 const SIGN_OUT_TIDY_UP_MS = 5000;
+const cachedProfileKey = (id: string): string => `waves.profile.${id}`;
 
 const AuthContext = createContext<AuthValue | null>(null);
 
@@ -556,12 +559,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!session?.user) return;
     const user = session.user;
     let active = true;
+    void AsyncStorage.getItem(cachedProfileKey(user.id))
+      .then((raw) => {
+        if (!active || !raw) return;
+        try {
+          const cached = JSON.parse(raw) as CachedProfile;
+          // Only the name and currency are kept on device (no address or UPI id): enough for an
+          // offline first screen; the full profile replaces it as soon as it loads.
+          if (cached.id === user.id)
+            setProfileState((current) =>
+              current.owner === user.id && current.profile
+                ? current
+                : { owner: user.id, profile: profileFromCache(cached), settled: false },
+            );
+        } catch {
+          /* Ignore an invalid old cache and fetch the profile. */
+        }
+      })
+      .catch(() => undefined);
     // `profileSettled` is already false here — reset during render when the
     // account changes, and by `reloadProfile` on a retry — so this effect only
     // ever has to record the giving-up, never the starting.
     void (async () => {
       const loaded = await loadProfile(user, (next) => {
-        if (active) setProfileState({ owner: user.id, profile: next, settled: false });
+        if (active) {
+          setProfileState({ owner: user.id, profile: next, settled: false });
+          void AsyncStorage.setItem(
+            cachedProfileKey(user.id),
+            JSON.stringify(toProfileCache(next)),
+          ).catch(() => undefined);
+        }
       });
       if (active && !loaded) {
         setProfileState((current) =>
@@ -606,6 +633,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearCaptureNudge(leaving),
         cancelPlanNudges(),
         clearPlanNudge(leaving),
+        leaving ? AsyncStorage.removeItem(cachedProfileKey(leaving)) : Promise.resolve(),
       ]),
       new Promise((resolve) => setTimeout(resolve, SIGN_OUT_TIDY_UP_MS)),
     ]);
