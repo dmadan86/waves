@@ -42,6 +42,9 @@ import {
   rememberSetup,
   SETUP_STEPS,
   setupSummary,
+  setupAmountChanged,
+  existingSetupAmount,
+  setupSlotId,
   type BillAnswer,
   type BillId,
   type EatFreq,
@@ -71,6 +74,9 @@ interface StepProps {
   skip: () => void;
   /** Income minus fixed bills so far, for the cap's starting figure. */
   free: bigint;
+  incomePrefill?: { kind: IncomeKind; amount: bigint; day: number } | null;
+  homePrefill?: { kind: HomeKind; amount: bigint; day: number } | null;
+  billPrefill?: BillAnswer[];
 }
 
 function Shell({
@@ -265,10 +271,10 @@ function AmountDay({
   );
 }
 
-function IncomeStep({ s, currency, save, skip, index, total }: StepProps & Pos) {
-  const [kind, setKind] = useState<IncomeKind | null>(null);
-  const [amount, setAmount] = useState(0n);
-  const [day, setDay] = useState(1);
+function IncomeStep({ s, currency, save, skip, index, total, incomePrefill }: StepProps & Pos) {
+  const [kind, setKind] = useState<IncomeKind | null>(incomePrefill?.kind ?? null);
+  const [amount, setAmount] = useState(incomePrefill?.amount ?? 0n);
+  const [day, setDay] = useState(incomePrefill?.day ?? 1);
   if (!kind) {
     return (
       <Shell s={s} title={s.incomeQ} index={index} total={total} onSkip={skip} privateLine>
@@ -308,10 +314,10 @@ function IncomeStep({ s, currency, save, skip, index, total }: StepProps & Pos) 
   );
 }
 
-function HomeStep({ s, region, currency, save, skip, index, total }: StepProps & Pos) {
-  const [kind, setKind] = useState<HomeKind | null>(null);
-  const [amount, setAmount] = useState(0n);
-  const [day, setDay] = useState(1);
+function HomeStep({ s, region, currency, save, skip, index, total, homePrefill }: StepProps & Pos) {
+  const [kind, setKind] = useState<HomeKind | null>(homePrefill?.kind ?? null);
+  const [amount, setAmount] = useState(homePrefill?.amount ?? 0n);
+  const [day, setDay] = useState(homePrefill?.day ?? 1);
   if (!kind) {
     return (
       <Shell s={s} title={s.homeQ} index={index} total={total} onSkip={skip}>
@@ -354,10 +360,19 @@ function HomeStep({ s, region, currency, save, skip, index, total }: StepProps &
   );
 }
 
-function BillsStep({ s, region, currency, save, skip, index, total }: StepProps & Pos) {
+function BillsStep({
+  s,
+  region,
+  currency,
+  save,
+  skip,
+  index,
+  total,
+  billPrefill = [],
+}: StepProps & Pos) {
   const theme = useTheme();
-  const [picked, setPicked] = useState<BillId[]>([]);
-  const [rows, setRows] = useState<BillAnswer[] | null>(null);
+  const [picked, setPicked] = useState<BillId[]>(billPrefill.map((row) => row.id));
+  const [rows, setRows] = useState<BillAnswer[] | null>(billPrefill.length ? billPrefill : null);
   const name = (id: BillId): string => {
     const hintId =
       id === 'building_fees'
@@ -756,6 +771,14 @@ function SetupBody() {
   const save: Save = async (step, answers, savings) => {
     if (!session) return;
     for (const record of answersToRecords(answers, ctx)) {
+      if (
+        record.recordKind === 'recurring' &&
+        !setupAmountChanged(
+          ledger.recurrings.find((r) => r.id === record.recordId && r.active)?.amount ?? null,
+          BigInt(String(record.data.amount ?? 0)),
+        )
+      )
+        continue;
       try {
         await upsert.mutateAsync(record);
       } catch {
@@ -779,6 +802,37 @@ function SetupBody() {
     );
   }
   const step = order[index]!;
+  const incomePrefill =
+    (['salary', 'business', 'freelance', 'pension'] as const)
+      .map((kind) => {
+        const amount = existingSetupAmount(ledger.recurrings, ownerId, `income:${kind}`);
+        const rule = ledger.recurrings.find(
+          (r) => r.id === setupSlotId(ownerId, `income:${kind}`) && r.active,
+        );
+        return amount === null
+          ? null
+          : { kind, amount, day: Number(rule?.nextDate.slice(-2) ?? 1) };
+      })
+      .find((entry) => entry !== null) ?? null;
+  const homePrefill =
+    (['rent', 'home_loan'] as const)
+      .map((kind) => {
+        const amount = existingSetupAmount(ledger.recurrings, ownerId, `home:${kind}`);
+        const rule = ledger.recurrings.find(
+          (r) => r.id === setupSlotId(ownerId, `home:${kind}`) && r.active,
+        );
+        return amount === null
+          ? null
+          : { kind, amount, day: Number(rule?.nextDate.slice(-2) ?? 1) };
+      })
+      .find((entry) => entry !== null) ?? null;
+  const billPrefill = BILL_IDS.flatMap((id) => {
+    const amount = existingSetupAmount(ledger.recurrings, ownerId, `bill:${id}`);
+    const rule = ledger.recurrings.find(
+      (r) => r.id === setupSlotId(ownerId, `bill:${id}`) && r.active,
+    );
+    return amount === null ? [] : [{ id, amount, day: Number(rule?.nextDate.slice(-2) ?? 5) }];
+  });
   return (
     <BackContext.Provider value={index > 0 ? () => setIndex((i) => i - 1) : null}>
       <View style={{ flex: 1 }} key={step}>
@@ -792,6 +846,9 @@ function SetupBody() {
           free: setupSummary(ledger.recurrings, today, currency).free,
           index,
           total: order.length,
+          incomePrefill,
+          homePrefill,
+          billPrefill,
         })}
       </View>
     </BackContext.Provider>
