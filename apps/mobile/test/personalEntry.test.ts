@@ -333,7 +333,9 @@ describe('the rooms of the private ledger', () => {
 
     // The rules list writes nothing itself any more: both its "+" and its pencil
     // open the shared form, one with a repeat switched on and one on a rule.
-    expect(source('personal/recurring.tsx')).toContain("params: { repeats: '1' }");
+    expect(source('personal/recurring.tsx')).toContain(
+      "params: { repeats: '1', addRecurring: '1' }",
+    );
     expect(source('personal/recurring.tsx')).toContain('recurringId: menuRule.id');
     expect(source('personal/recurring.tsx')).not.toContain('AmountField');
 

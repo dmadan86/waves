@@ -98,7 +98,13 @@ function SpendingScreenBody() {
   const openMonth = (kind: 'income' | 'expense'): void =>
     router.push({
       pathname: '/personal/transactions',
-      params: { kind, month, currency: dc, ...(kind === 'expense' ? { loans: 'none' } : {}) },
+      params: {
+        kind,
+        month,
+        currency: dc,
+        returnTo: '/personal/spending',
+        ...(kind === 'expense' ? { loans: 'none' } : {}),
+      },
     });
   const index = months.indexOf(month);
   const fmt = (amount: bigint): string => format(money(amount, dc), { locale, trimZeros: true });

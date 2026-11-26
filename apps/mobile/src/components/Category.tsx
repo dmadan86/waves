@@ -142,6 +142,7 @@ export function CategoryPicker({
   value,
   onChange,
   onCreate,
+  wrap = false,
 }: {
   value: string | null;
   /** The chosen category's key and, for a custom tag, its display snapshot to
@@ -149,6 +150,8 @@ export function CategoryPicker({
   onChange: (key: string, meta: CategoryMeta | null) => void;
   /** Opens the create-tag sheet; the "＋ New tag" chip shows only when set. */
   onCreate?: () => void;
+  /** Lay chips out over multiple lines in a bounded sheet. */
+  wrap?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -156,10 +159,15 @@ export function CategoryPicker({
 
   return (
     <ScrollView
-      horizontal
+      horizontal={!wrap}
+      scrollEnabled={!wrap}
       showsHorizontalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{ gap: theme.spacing.sm, paddingRight: theme.spacing.xl }}
+      contentContainerStyle={
+        wrap
+          ? { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }
+          : { gap: theme.spacing.sm, paddingRight: theme.spacing.xl }
+      }
     >
       {visible.map((entry) => {
         const selected = entry.key === value;

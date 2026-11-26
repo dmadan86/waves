@@ -481,7 +481,7 @@ function MeLedger() {
                 onPress={() =>
                   router.push({
                     pathname: '/personal/transactions',
-                    params: { kind: 'income', month },
+                    params: { kind: 'income', month, returnTo: '/(tabs)/me' },
                   })
                 }
               />
@@ -495,7 +495,7 @@ function MeLedger() {
                 onPress={() =>
                   router.push({
                     pathname: '/personal/transactions',
-                    params: { kind: 'expense', month },
+                    params: { kind: 'expense', month, returnTo: '/(tabs)/me' },
                   })
                 }
               />
@@ -709,8 +709,16 @@ function MeLedger() {
         onClose={() => setGearOpen(false)}
         items={[
           { icon: 'sparkles-outline', label: t.personalSetup.title, route: '/personal/setup' },
-          { icon: 'image-outline', label: t.heroScene.title, route: '/settings/scene' },
-          { icon: 'lock-closed-outline', label: t.personal.dash.settings, route: '/settings/lock' },
+          {
+            icon: 'image-outline',
+            label: t.heroScene.title,
+            route: '/settings/scene?space=personal',
+          },
+          {
+            icon: 'lock-closed-outline',
+            label: t.personal.dash.settings,
+            route: '/settings/lock?space=personal',
+          },
         ]}
       />
       <PersonalIntro visible={introOpen} onDone={closeIntro} />
@@ -1002,7 +1010,10 @@ function PrivateNote() {
 function PrivacyFooterPill() {
   const { t } = useStrings();
   return (
-    <PrivacyPill label={t.personal.privateNote} onPress={() => router.push('/settings/backup')} />
+    <PrivacyPill
+      label={t.personal.privateNote}
+      onPress={() => router.push('/settings/backup?space=personal')}
+    />
   );
 }
 
@@ -1148,7 +1159,13 @@ function MonthMoneyCard({
           onPress={() =>
             router.push({
               pathname: '/personal/transactions',
-              params: { kind: 'expense', month, method: 'credit', currency },
+              params: {
+                kind: 'expense',
+                month,
+                method: 'credit',
+                currency,
+                returnTo: '/(tabs)/me',
+              },
             })
           }
         />
@@ -1215,7 +1232,13 @@ function ByCategoryCard({
             onPress={() =>
               router.push({
                 pathname: '/personal/transactions',
-                params: { kind: 'expense', month, category: row.category!, currency },
+                params: {
+                  kind: 'expense',
+                  month,
+                  category: row.category!,
+                  currency,
+                  returnTo: '/(tabs)/me',
+                },
               })
             }
             style={({ pressed }) => ({ gap: 4, minHeight: 40, opacity: pressed ? 0.6 : 1 })}
@@ -1254,7 +1277,13 @@ function ByCategoryCard({
           onPress={() =>
             router.push({
               pathname: '/personal/transactions',
-              params: { kind: 'expense', month, uncategorized: '1', currency },
+              params: {
+                kind: 'expense',
+                month,
+                uncategorized: '1',
+                currency,
+                returnTo: '/(tabs)/me',
+              },
             })
           }
           style={({ pressed }) => ({

@@ -192,7 +192,13 @@ export function AppTabBar() {
   // *into that group*, not the unassigned inbox. `useSegments` gives the route
   // shape (`group/[id]/…`); the id's value comes from the focused route's
   // params. Any non-group screen leaves this null and the mic opens plain.
-  const params = useGlobalSearchParams<{ id?: string; view?: string; tab?: string; hh?: string }>();
+  const params = useGlobalSearchParams<{
+    id?: string;
+    view?: string;
+    tab?: string;
+    hh?: string;
+    space?: string;
+  }>();
   const groupId = segments[0] === 'group' && typeof params.id === 'string' ? params.id : null;
 
   // No session means no bar anywhere — the privacy page opened from the login
@@ -200,7 +206,7 @@ export function AppTabBar() {
   const { hidden, activeKey: sharedKey } = resolveTabBar(segments, !session);
   // On the Personal tab and its screens the bar swaps to the private-money
   // destinations (same look, same mic); leaving them swaps it back. Route-derived.
-  const personal = isPersonalMode(segments);
+  const personal = isPersonalMode(segments, params.space);
   // Company mode: an owner or manager inside their own company gets the company bar
   // (Home · Team · Payments · Vendors · Clients · More) with a floating mic and add button.
   const companyIds = useViewerCompanyIds();

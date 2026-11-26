@@ -44,6 +44,7 @@ import {
   AmountField,
   Button,
   Card,
+  ChipRow,
   directionalIcon,
   IconButton,
   iconSize,
@@ -124,6 +125,20 @@ function BudgetsScreenBody() {
         }}
         showsVerticalScrollIndicator={false}
       >
+        <ChipRow<'recurring' | 'budgets' | 'loans'>
+          value="budgets"
+          onChange={(v) => {
+            if (v !== 'budgets')
+              router.push(v === 'loans' ? '/personal/loans' : '/personal/recurring');
+          }}
+          variant="brand"
+          onCard
+          options={[
+            { value: 'recurring', label: t.personal.recurring },
+            { value: 'budgets', label: t.personal.budgets },
+            { value: 'loans', label: t.personal.loans },
+          ]}
+        />
         <Text
           variant="caption"
           tone="muted"
@@ -148,14 +163,11 @@ function BudgetsScreenBody() {
             <Text variant="body" style={{ fontWeight: '700', minWidth: 120, textAlign: 'center' }}>
               {monthLabel(month, locale)}
             </Text>
-            <IconButton
-              label={t.personal.nextMonth}
-              onPress={month < currentMonth ? () => setMonth(shiftMonth(month, 1)) : undefined}
-            >
+            <IconButton label={t.personal.nextMonth} onPress={() => setMonth(shiftMonth(month, 1))}>
               <Ionicons
                 name={directionalIcon('chevron-forward')}
                 size={iconSize.lg}
-                color={month < currentMonth ? theme.color.text : theme.color.textFaint}
+                color={theme.color.text}
               />
             </IconButton>
           </Row>
@@ -242,6 +254,7 @@ function BudgetsScreenBody() {
                           kind: 'expense',
                           month,
                           ...(budget.category ? { category: budget.category } : { loans: 'none' }),
+                          returnTo: '/personal/budgets',
                         },
                       })
                     }
@@ -379,11 +392,16 @@ function BudgetEditor({
       chosenCategory
         ? {
             pathname: '/personal/transactions',
-            params: { category: chosenCategory, kind: 'expense', month },
+            params: {
+              category: chosenCategory,
+              kind: 'expense',
+              month,
+              returnTo: '/personal/budgets',
+            },
           }
         : {
             pathname: '/personal/transactions',
-            params: { kind: 'expense', month, loans: 'none' },
+            params: { kind: 'expense', month, loans: 'none', returnTo: '/personal/budgets' },
           },
     );
   };
@@ -618,7 +636,7 @@ function BudgetEditor({
             onPress={() =>
               void confirm({
                 title: t.common.delete,
-                body: t.personal.deleteConfirm,
+                body: t.personal.deleteConfirm.replace('this entry', 'this budget'),
                 confirmLabel: t.common.delete,
                 tone: 'danger',
               }).then((ok) => {

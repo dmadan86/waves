@@ -24,13 +24,13 @@ import {
   money,
   type LoanDirection,
   type PersonalLoan,
-  fallbackCurrency,
 } from '@waves/core';
 import {
   AmountField,
   Button,
   directionalIcon,
   Divider,
+  ChipRow,
   IconButton,
   iconSize,
   Row,
@@ -61,7 +61,6 @@ import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
-import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { settleHref } from '@/lib/groupTab';
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
@@ -69,6 +68,7 @@ import { AddReminderSheet } from '@/components/personal/AddReminderSheet';
 import { PlainHeader, StandardCard } from '@/components/standard';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { loanTotals, matchesLoanFilter, repaid, type LoanFilter } from '@/lib/loansSummary';
+import { formatLoanPaymentDate, loanPaymentDefaults } from '@/lib/loanPayment';
 
 function LoansScreenBody() {
   const theme = useTheme();
@@ -124,9 +124,11 @@ function LoansScreenBody() {
         title={t.personal.loans}
         subtitle={t.personal.loansSub}
         trailing={
-          <IconButton label={t.personal.addLoan} onPress={() => setCreating(true)}>
-            <Ionicons name="add" size={iconSize.xl} color={theme.color.brand} />
-          </IconButton>
+          sorted.length ? (
+            <IconButton label={t.personal.addLoan} onPress={() => setCreating(true)}>
+              <Ionicons name="add" size={iconSize.xl} color={theme.color.brand} />
+            </IconButton>
+          ) : null
         }
       />
 
@@ -138,9 +140,23 @@ function LoansScreenBody() {
         }}
         showsVerticalScrollIndicator={false}
       >
+        <ChipRow<'recurring' | 'budgets' | 'loans'>
+          value="loans"
+          onChange={(v) => {
+            if (v !== 'loans')
+              router.push(v === 'budgets' ? '/personal/budgets' : '/personal/recurring');
+          }}
+          variant="brand"
+          onCard
+          options={[
+            { value: 'recurring', label: t.personal.recurring },
+            { value: 'budgets', label: t.personal.budgets },
+            { value: 'loans', label: t.personal.loans },
+          ]}
+        />
         {sorted.length === 0 ? (
           <View style={{ paddingTop: theme.spacing.lg, alignItems: 'center', gap: 8 }}>
-            <WalletArt />
+            <Ionicons name="wallet-outline" size={72} color={theme.color.brand} />
             <Text style={{ fontSize: 20, fontWeight: '800', color: ink, textAlign: 'center' }}>
               {t.personal.noLoans}
             </Text>
@@ -218,12 +234,13 @@ function LoansScreenBody() {
                     accessibilityLabel={text}
                     onPress={() => setFilter(value)}
                     style={{
-                      flex: on ? 1.2 : 1,
+                      flex: 1,
+                      minWidth: 0,
                       flexDirection: 'row',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 4,
-                      height: 36,
+                      minHeight: 40,
                       borderRadius: theme.radius.pill,
                       backgroundColor: on ? theme.color.brand : 'transparent',
                     }}
@@ -237,7 +254,7 @@ function LoansScreenBody() {
                     ) : null}
                     <Text
                       variant="caption"
-                      numberOfLines={1}
+                      numberOfLines={2}
                       style={{
                         fontWeight: '600',
                         flexShrink: 1,
@@ -272,13 +289,21 @@ function LoansScreenBody() {
                     icon: 'card-outline',
                     label: t.personal.recordPayment,
                     primary: true,
-                    onPress: () =>
-                      loan.synced
-                        ? router.push(settleHref(loan.synced.groupId))
-                        : router.push({
-                            pathname: '/personal/entry',
-                            params: { loanId: loan.id, kind: borrowed ? 'expense' : 'income' },
-                          }),
+                    onPress: () => {
+                      if (loan.synced) {
+                        router.push(settleHref(loan.synced.groupId));
+                        return;
+                      }
+                      router.push({
+                        pathname: '/personal/entry',
+                        params: {
+                          loanId: loan.id,
+                          kind: borrowed ? 'expense' : 'income',
+                          recordPayment: '1',
+                          ...loanPaymentDefaults(loan),
+                        },
+                      });
+                    },
                   },
                   {
                     key: 'remind',
@@ -389,7 +414,7 @@ function LoansScreenBody() {
                         onPress={() =>
                           router.push({
                             pathname: '/personal/transactions',
-                            params: { loan: loan.id },
+                            params: { loan: loan.id, returnTo: '/personal/loans' },
                           })
                         }
                       >
@@ -593,6 +618,14 @@ function LoanEditor({
   const [direction, setDirection] = useState<LoanDirection>(loan?.direction ?? 'borrowed');
   const [counterpart, setCounterpart] = useState(loan?.counterpart ?? '');
   const [principal, setPrincipal] = useState<bigint>(loan?.principal ?? 0n);
+  const [emiAmount, setEmiAmount] = useState<bigint>(() => {
+    const amount = loanPaymentDefaults({ carried: loan?.carried }).amount;
+    try {
+      return amount ? BigInt(amount) : 0n;
+    } catch {
+      return 0n;
+    }
+  });
   const [note, setNote] = useState(loan?.note ?? '');
   const [startDate, setStartDate] = useState(loan?.startDate ?? today);
   const [showDate, setShowDate] = useState(false);
@@ -604,8 +637,11 @@ function LoanEditor({
   const onSave = async (): Promise<void> => {
     if (!canSave) return;
     setError(null);
+    const carried = { ...loan?.carried };
+    if (emiAmount > 0n) carried.emiAmount = emiAmount.toString();
+    else delete carried.emiAmount;
     const next = {
-      carried: loan?.carried,
+      carried: Object.keys(carried).length ? carried : undefined,
       direction,
       counterpart: locked ? (loan?.counterpart ?? '') : cleanCounterpart(counterpart),
       principal,
@@ -765,6 +801,26 @@ function LoanEditor({
           </View>
         </View>
 
+        <FieldLabel>{t.personalSetup.emiLabel}</FieldLabel>
+        <View style={fieldBox} pointerEvents={locked ? 'none' : 'auto'}>
+          <Text style={{ fontSize: 22, fontWeight: '600', color: ink }}>
+            {currencySymbol(loanCurrency, locale)}
+          </Text>
+          <View
+            style={{ width: 1, height: 26, backgroundColor: dark ? theme.color.border : '#E0DCF3' }}
+          />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <AmountField
+              currency={loanCurrency}
+              value={emiAmount}
+              onChange={setEmiAmount}
+              size="compact"
+              showSymbol={false}
+              align="start"
+            />
+          </View>
+        </View>
+
         <FieldLabel>{t.personal.counterpart}</FieldLabel>
         <View style={{ gap: 6 }}>
           <View style={fieldBox}>
@@ -878,7 +934,7 @@ function LoanEditor({
           <DetailRow
             icon="calendar-outline"
             label={t.personal.startsOn}
-            value={dateLabel(startDate, locale)}
+            value={formatLoanPaymentDate(startDate, locale)}
             onPress={() => setShowDate(true)}
           />
         </View>
@@ -960,7 +1016,7 @@ function LoanEditor({
                   minHeight: 44,
                 }}
               >
-                <Text variant="body">{p.date}</Text>
+                <Text variant="body">{formatLoanPaymentDate(p.date, locale)}</Text>
                 <Text variant="body" style={{ fontWeight: '700' }}>
                   {format(money(p.amount, p.currency), { locale, trimZeros: true })}
                 </Text>
@@ -1134,102 +1190,6 @@ function FieldLabel({ children }: { children: string }) {
   const { ink } = useLoanInks();
   return (
     <Text style={{ fontSize: 15, fontWeight: '600', color: ink, marginTop: 4 }}>{children}</Text>
-  );
-}
-
-/** "28 Sep 2026", from the ledger's calendar-day string. */
-function dateLabel(day: string, locale: string): string {
-  try {
-    return dateTimeFormat(locale, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      timeZone: 'UTC',
-    }).format(new Date(`${day}T00:00:00Z`));
-  } catch {
-    return day;
-  }
-}
-
-/** The empty list's picture: a wallet with a note tucked in and a rupee coin.
- *  Drawn from views and glyphs, so it themes and costs no asset. */
-function WalletArt() {
-  const theme = useTheme();
-  const dark = theme.scheme === 'dark';
-  const accent = dark ? theme.color.brand : SPEC_ACCENT;
-  return (
-    <View
-      pointerEvents="none"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ width: 150, height: 120 }}
-    >
-      <View
-        style={{
-          position: 'absolute',
-          left: 42,
-          top: 6,
-          width: 56,
-          height: 60,
-          borderRadius: 6,
-          padding: 8,
-          gap: 6,
-          backgroundColor: dark ? theme.color.surface : '#FFFFFF',
-          borderWidth: 2,
-          borderColor: dark ? '#5A52A8' : '#C9C2FA',
-          transform: [{ rotate: '-6deg' }],
-        }}
-      >
-        <View style={{ height: 3, borderRadius: 2, backgroundColor: '#C9C2FA' }} />
-        <View style={{ height: 3, width: 26, borderRadius: 2, backgroundColor: '#C9C2FA' }} />
-      </View>
-      <View
-        style={{
-          position: 'absolute',
-          left: 28,
-          top: 40,
-          width: 84,
-          height: 68,
-          borderRadius: 12,
-          backgroundColor: accent,
-        }}
-      >
-        <View
-          style={{
-            position: 'absolute',
-            right: -6,
-            top: 22,
-            width: 28,
-            height: 22,
-            borderRadius: 8,
-            backgroundColor: dark ? '#4A4290' : '#4D33C9',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: '#C9C2FA' }} />
-        </View>
-      </View>
-      <View
-        style={{
-          position: 'absolute',
-          right: 18,
-          top: 26,
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#F2B233',
-          borderWidth: 3,
-          borderColor: '#E39C18',
-        }}
-      >
-        <Text style={{ fontSize: 18, fontWeight: '800', color: '#FFF6DC' }}>
-          {currencySymbol(fallbackCurrency())}
-        </Text>
-      </View>
-    </View>
   );
 }
 
