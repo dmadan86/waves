@@ -24,6 +24,8 @@ import {
   money,
   type LoanDirection,
   type PersonalLoan,
+  fallbackCurrency,
+  linkedPersonalTxnIds,
 } from '@waves/core';
 import {
   AmountField,
@@ -1055,12 +1057,12 @@ function LoanEditor({
               void confirm({
                 title: t.common.delete,
                 body: loan.synced
-                  ? `${t.personal.deleteConfirm} ${
+                  ? `${t.personal.deleteConfirm} Linked payment entries will also be deleted. ${
                       unlinkable
                         ? t.personal.deleteSharedBody
                         : fill(t.personal.deleteSharedKept, { name: loan.counterpart })
                     }`
-                  : t.personal.deleteConfirm,
+                  : `${t.personal.deleteConfirm} Linked payment entries will also be deleted.`,
                 confirmLabel: t.common.delete,
                 tone: 'danger',
               }).then(async (ok) => {
@@ -1069,6 +1071,8 @@ function LoanEditor({
                   // Take the debt off the other person's side too, but only
                   // while nothing has been repaid on it.
                   if (loan.synced && unlinkable) await unshare.mutateAsync(loan);
+                  for (const txnId of linkedPersonalTxnIds(txns, { loanId: loan.id }))
+                    await remove.mutateAsync(txnId);
                   await remove.mutateAsync(loan.id);
                   onClose();
                 } catch (caught) {

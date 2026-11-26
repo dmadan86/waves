@@ -6,7 +6,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { ScrollView, Share, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
-import { isInvestmentCategory, leaseEndsIn, settleDeposit, type PersonalTxn } from '@waves/core';
+import {
+  isInvestmentCategory,
+  leaseEndsIn,
+  linkedPersonalTxnIds,
+  settleDeposit,
+  type PersonalTxn,
+} from '@waves/core';
 import {
   AmountField,
   Button,
@@ -178,6 +184,8 @@ function DetailBody() {
                 return;
               await writes.deleteTenancy(tn);
               for (const r of v.rules) await del.mutateAsync(r.id);
+              for (const txnId of linkedPersonalTxnIds(ledger.txns, { propertyId: prop.id }))
+                await del.mutateAsync(txnId);
               await del.mutateAsync(prop.id);
               router.back();
             })();
@@ -201,6 +209,8 @@ function DetailBody() {
                 }))
               )
                 return;
+              for (const txnId of linkedPersonalTxnIds(ledger.txns, { propertyId: prop.id }))
+                await del.mutateAsync(txnId);
               await del.mutateAsync(prop.id);
               router.back();
             })(),

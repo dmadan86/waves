@@ -28,7 +28,14 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
-import { format, money, resolveCategory, type PersonalTxn } from '@waves/core';
+import {
+  format,
+  isInvestmentCategory,
+  money,
+  monthlyIncomeEntries,
+  resolveCategory,
+  type PersonalTxn,
+} from '@waves/core';
 import {
   Button,
   directionalIcon,
@@ -42,6 +49,7 @@ import {
 } from '@waves/ui';
 
 import { EmptyStateCta } from '@/components/EmptyStateCta';
+import { personalTxnCategoryLabel } from '@/lib/personalTxnCategoryLabel';
 import { filterTxns, groupByDay, type TxnTab } from '@/lib/txnLedger';
 import { CategoryBadge, CategoryPicker } from '@/components/Category';
 import { usePersonalLedger } from '@/data/personal';
@@ -154,7 +162,7 @@ function PersonalTransactionsScreenBody() {
   const filter = picked === undefined ? paramCategory : picked;
 
   const labelFor = (id: string | null): string | null =>
-    id ? (t.categories[id as keyof typeof t.categories] ?? null) : null;
+    personalTxnCategoryLabel(id, (key) => t.categories[key as keyof typeof t.categories] ?? null);
 
   /**
    * Grouped by day, flattened into one recyclable list — a heading item where
@@ -180,7 +188,11 @@ function PersonalTransactionsScreenBody() {
       month: monthEnabled ? browseMonth : null,
       from: fromDate,
       to: toDate,
-    });
+    }).filter((txn) =>
+      kindParam === 'income' && month && currencyParam
+        ? monthlyIncomeEntries(txns, month, currencyParam).some((entry) => entry.id === txn.id)
+        : !(kindParam === 'income' && isInvestmentCategory(txn.category)),
+    );
     const list: LedgerItem[] = [];
     for (const { rows, ...day } of groupByDay(shown)) {
       list.push({ kind: 'day', key: `day-${day.day}`, ...day });
@@ -212,6 +224,7 @@ function PersonalTransactionsScreenBody() {
     fromDate,
     toDate,
     tab,
+    kindParam,
     debouncedQuery,
     locale,
     t,

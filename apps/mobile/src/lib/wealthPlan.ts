@@ -119,6 +119,7 @@ export function firstDue(today: string, day: number): string {
  * not begun yet starts at its first due day after the start.
  */
 export function rentAnchor(start: string, day: number, today: string, freq: RentFrequency): string {
+  if (start === today) return start;
   const early = start <= today;
   if (freq === 'weekly' || freq === 'fortnightly') return early ? today : start;
   return early ? dateInMonth(today.slice(0, 7), day) : firstDue(start, day);
