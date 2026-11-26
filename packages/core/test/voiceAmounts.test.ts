@@ -12,6 +12,8 @@ import {
   parseVoiceIntent,
   readVoiceAmounts,
   resolveSpokenDollar,
+  defaultDollarMeans,
+  effectiveDollarMeans,
   spokenNumberValue,
 } from '../src';
 
@@ -176,6 +178,38 @@ describe('resolveSpokenDollar', () => {
       options: ['USD', 'AUD'],
     });
     expect(resolveSpokenDollar('20 rupees', null)).toBeNull();
+  });
+});
+
+describe('Dollar means setting', () => {
+  it('a chosen dollar resolves a bare $ without a question', () => {
+    expect(resolveSpokenDollar('$10 coffee', null, 'USD')).toEqual({
+      currency: 'USD',
+      options: [],
+    });
+    expect(resolveSpokenDollar('10 bucks', 'INR', 'CAD')).toEqual({ currency: 'CAD', options: [] });
+  });
+
+  it('"ask" still asks', () => {
+    expect(resolveSpokenDollar('$10 coffee', null, 'ask')).toEqual({
+      currency: 'USD',
+      options: ['USD', 'AUD'],
+    });
+  });
+
+  it('a named dollar beats the setting', () => {
+    expect(resolveSpokenDollar('10 Australian dollars', null, 'USD')).toBeNull();
+    expect(resolveSpokenDollar('A$10', null, 'USD')).toBeNull();
+    expect(resolveSpokenDollar('10 AUD', null, 'USD')).toBeNull();
+  });
+
+  it('defaults to the default currency when it is a dollar, else USD', () => {
+    expect(effectiveDollarMeans(undefined, 'CAD')).toBe('CAD');
+    expect(effectiveDollarMeans(null, 'INR')).toBe('USD');
+    expect(defaultDollarMeans(undefined)).toBe('USD');
+    expect(effectiveDollarMeans('ask', 'CAD')).toBe('ask');
+    expect(effectiveDollarMeans('AUD', 'INR')).toBe('AUD');
+    expect(effectiveDollarMeans('EUR', 'INR')).toBe('USD');
   });
 });
 

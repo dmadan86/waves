@@ -993,7 +993,36 @@ export function unmaskDigits(text: string): string {
 /** The dollars a bare "dollars" could be, in the order the screen offers them. */
 export const VOICE_DOLLAR_CHOICES: readonly string[] = ['USD', 'AUD'];
 
-const DOLLAR_CURRENCIES = new Set(['USD', 'AUD', 'CAD', 'SGD', 'NZD', 'HKD']);
+/** Every "$" currency the app supports, in the order the Settings picker lists them. */
+export const DOLLAR_CURRENCY_CODES: readonly string[] = ['USD', 'AUD', 'CAD', 'NZD', 'SGD', 'HKD'];
+
+const DOLLAR_CURRENCIES = new Set(DOLLAR_CURRENCY_CODES);
+
+/** "ask" asks each time; otherwise the ISO code a bare "$" / "dollars" / "bucks" means. */
+export type DollarMeans = string;
+export const DOLLAR_ASK = 'ask';
+
+/** The setting for someone who never chose: their own dollar currency, else USD. */
+export function defaultDollarMeans(defaultCurrency: string | null | undefined): DollarMeans {
+  return defaultCurrency && DOLLAR_CURRENCIES.has(defaultCurrency) ? defaultCurrency : 'USD';
+}
+
+/** A stored choice if it is still valid, else the default. */
+export function effectiveDollarMeans(
+  stored: unknown,
+  defaultCurrency: string | null | undefined,
+): DollarMeans {
+  return typeof stored === 'string' && (stored === DOLLAR_ASK || DOLLAR_CURRENCIES.has(stored))
+    ? stored
+    : defaultDollarMeans(defaultCurrency);
+}
+
+// shortcut: one process-wide value (the app sets it from the person's preference),
+// not threaded through every parser call; upgrade if a server parses for many people.
+let dollarMeans: DollarMeans = DOLLAR_ASK;
+export function setDollarMeans(value: DollarMeans): void {
+  dollarMeans = value;
+}
 
 const BARE_DOLLAR = /\$|(?<![\p{L}])(?:dollars?|bucks?)(?![\p{L}])/iu;
 const QUALIFIED_DOLLAR =
@@ -1002,7 +1031,8 @@ const QUALIFIED_DOLLAR =
 /**
  * Which dollars a sentence meant. A named one ("US dollars", "AUD", "A$")
  * stands; a bare "dollars", "bucks" or "$" takes the group's currency when the
- * group is in dollars, and otherwise needs asking. The phone's location is
+ * group is in dollars, then the person's "Dollar means" setting, and otherwise
+ * needs asking. The phone's location is
  * never consulted: it says where someone is, not what they paid in.
  *
  * Null when the sentence has no bare dollar to resolve.
@@ -1010,10 +1040,12 @@ const QUALIFIED_DOLLAR =
 export function resolveSpokenDollar(
   text: string,
   groupCurrency: string | null | undefined,
+  means: DollarMeans = dollarMeans,
 ): { currency: string; options: readonly string[] } | null {
   if (!BARE_DOLLAR.test(text) || QUALIFIED_DOLLAR.test(text)) return null;
   if (groupCurrency && DOLLAR_CURRENCIES.has(groupCurrency))
     return { currency: groupCurrency, options: [] };
+  if (DOLLAR_CURRENCIES.has(means)) return { currency: means, options: [] };
   return { currency: 'USD', options: VOICE_DOLLAR_CHOICES };
 }
 

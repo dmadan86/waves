@@ -1597,6 +1597,9 @@ export interface UiStrings {
     notificationsHint: string;
     importSplitwise: string;
     themeRow: string;
+    dollarRow: string;
+    dollarAsk: string;
+    dollarFootnote: string;
     languageFollowingPhone: string;
     languageRestartHint: string;
     languageRestartHintBack: string;
@@ -10383,6 +10386,10 @@ const en: UiStrings = {
     notificationsHint: 'Only what involves me',
     importSplitwise: 'Import your data',
     themeRow: 'Appearance',
+    dollarRow: 'Dollar ($) means',
+    dollarAsk: 'Ask each time',
+    dollarFootnote:
+      'Applies when you type or say $, dollars or bucks. Naming one (A$, US dollars, AUD) always wins.',
     languageFollowingPhone: 'Following your phone — {language}',
     languageRestartHint: '{language} · reopen Waves to mirror it',
     languageRestartHintBack: '{language} · reopen Waves to turn the layout back',
@@ -18613,6 +18620,10 @@ const ta: UiStrings = {
     notificationsHint: 'என்னைச் சார்ந்தவை மட்டும்',
     importSplitwise: 'உங்கள் தரவை இறக்குமதி செய்',
     themeRow: 'தோற்றம்',
+    dollarRow: 'டாலர் ($) என்பது',
+    dollarAsk: 'ஒவ்வொரு முறையும் கேள்',
+    dollarFootnote:
+      '$, டாலர் அல்லது bucks என்று தட்டச்சு செய்யும்போது/சொல்லும்போது இது பொருந்தும். A$, US டாலர், AUD என்று குறிப்பிட்டால் அதுவே செல்லும்.',
     languageFollowingPhone: 'உங்கள் ஃபோனைப் பின்பற்றுகிறது — {language}',
     languageRestartHint: '{language} · பிரதிபலிக்க Waves-ஐ மீண்டும் திற',
     languageRestartHintBack: '{language} · தளவமைப்பை மீட்க Waves-ஐ மீண்டும் திற',
@@ -26901,6 +26912,10 @@ const hi: UiStrings = {
     notificationsHint: 'सिर्फ़ वही जिनसे मेरा वास्ता है',
     importSplitwise: 'अपना डेटा आयात करें',
     themeRow: 'रूप-रंग',
+    dollarRow: 'डॉलर ($) का मतलब',
+    dollarAsk: 'हर बार पूछें',
+    dollarFootnote:
+      '$, डॉलर या bucks लिखने/बोलने पर यह लागू होता है। A$, US डॉलर, AUD जैसा नाम लेने पर वही माना जाएगा।',
     languageFollowingPhone: 'आपके फ़ोन के अनुसार — {language}',
     languageRestartHint: '{language} · दिशा बदलने के लिए Waves दोबारा खोलें',
     languageRestartHintBack: '{language} · दिशा वापस लाने के लिए Waves दोबारा खोलें',
@@ -35165,6 +35180,10 @@ const ar: UiStrings = {
     notificationsHint: 'ما يخصّني فقط',
     importSplitwise: 'استيراد بياناتك',
     themeRow: 'المظهر',
+    dollarRow: 'الدولار ($) يعني',
+    dollarAsk: 'اسأل كل مرة',
+    dollarFootnote:
+      'يُطبَّق عند كتابة أو قول $ أو دولار أو bucks. وإذا ذكرت نوعًا (A$، دولار أمريكي، AUD) فهو المعتمد دائمًا.',
     languageFollowingPhone: 'يتبع هاتفك — {language}',
     languageRestartHint: '{language} · أعد فتح Waves لعكس الاتجاه',
     languageRestartHintBack: '{language} · أعد فتح Waves لإعادة الاتجاه',
