@@ -33,6 +33,26 @@ describe('parseWatchToPhone', () => {
     ).toEqual({ t: 'quickAdd', id: 'w1', amountMinor: '1200', currency: 'INR', note: 'Lunch' });
   });
 
+  it('scales a dialled whole-unit amount by the currency exponent', () => {
+    const minor = (amount: string, currency: string) =>
+      (parseWatchToPhone({ t: 'quickAdd', id: 'w1', amount, currency, note: '' }) as any)
+        ?.amountMinor;
+    expect(minor('500', 'INR')).toBe('50000');
+    expect(minor('500', 'JPY')).toBe('500');
+    expect(minor('5', 'KWD')).toBe('5000');
+    expect(minor('0', 'INR')).toBeUndefined();
+    expect(minor('1'.repeat(10), 'INR')).toBeUndefined();
+  });
+
+  it('rescales a legacy watch amountMinor (units x 100) for non-2-decimal currencies', () => {
+    const minor = (amountMinor: string, currency: string) =>
+      (parseWatchToPhone({ t: 'quickAdd', id: 'w1', amountMinor, currency, note: '' }) as any)
+        ?.amountMinor;
+    expect(minor('50000', 'JPY')).toBe('500');
+    expect(minor('50000', 'KWD')).toBe('500000');
+    expect(minor('50050', 'JPY')).toBeUndefined();
+  });
+
   it('rejects a quickAdd with a non-integer, zero, negative, or empty-currency amount', () => {
     expect(
       parseWatchToPhone({

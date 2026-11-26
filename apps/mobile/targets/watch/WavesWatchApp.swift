@@ -63,7 +63,11 @@ final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
     send(["t": "requestRecent", "count": recentCount])
   }
 
-  func quickAdd(amountMinor: Int, currency: String, note: String) {
+  /// `amount` is what was dialled, in whole units. No minor-unit scaling here: the
+  /// watch knows nothing of a currency's decimals (JPY has none, KWD three), so the
+  /// phone scales it for the currency it books in.
+  func quickAdd(amount: Int, currency: String, note: String) {
+    lastAckOk = nil
     // Clear the warning only if the payload was actually accepted for delivery.
     // Clearing up front and then hitting the guard in `send` — session not yet
     // activated right after launch — dropped the expense and left no warning,
@@ -73,13 +77,14 @@ final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
       // A stable id per intent so a transport retry of the same tap is
       // idempotent on the phone rather than creating a duplicate expense.
       "id": UUID().uuidString,
-      "amountMinor": String(amountMinor),
+      "amount": String(amount),
       "currency": currency,
       "note": note,
     ])
   }
 
   func voiceAdd(_ transcript: String) {
+    lastAckOk = nil
     lastSendFailed = !send(["t": "voiceAdd", "id": UUID().uuidString, "transcript": transcript])
   }
 
