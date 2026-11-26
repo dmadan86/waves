@@ -1116,7 +1116,7 @@ function PersonTile({
               accessible={false}
               disabled={disabled}
               onPress={onPress}
-              style={(state) => [{ alignItems: 'flex-end' }, dim(state)]}
+              style={(state) => [{ alignItems: 'flex-end', flexShrink: 0 }, dim(state)]}
             >
               {amounts.map((amount) => (
                 <MoneyText
