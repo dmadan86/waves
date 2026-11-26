@@ -15,6 +15,7 @@ import {
   Flag,
   Handshake,
   LogOut,
+  MessageSquare,
   Merge,
   Pencil,
   Receipt,
@@ -32,9 +33,17 @@ import {
 
 import { actorName, type ActivityRow } from '@waves/api-client';
 
-export function describeActivity(entry: ActivityRow, myProfileId: string | null): string {
+export function describeActivity(
+  entry: ActivityRow,
+  myProfileId: string | null,
+  /** Expense id to its description: a delete row's payload is empty, so the name comes from here. */
+  expenseNames?: ReadonlyMap<string, string>,
+): string {
   const { payload } = entry;
-  const description = typeof payload?.description === 'string' ? payload.description : null;
+  const description =
+    (typeof payload?.description === 'string' ? payload.description : null) ??
+    (entry.verb === 'deleted' && entry.object_id ? expenseNames?.get(entry.object_id) : null) ??
+    null;
   const who = actorName(entry.actor, myProfileId);
 
   switch (entry.verb) {
@@ -60,8 +69,30 @@ export function describeActivity(entry: ActivityRow, myProfileId: string | null)
       return `${who} agreed ${description ?? 'an expense'} needs fixing`;
     case 'rejected_dispute':
       return `${who} says ${description ?? 'an expense'} is correct as it stands`;
+    case 'commented':
+      return `${who} commented on ${description ?? 'an expense'}`;
     case 'settled':
       return `${who} recorded a settlement`;
+    case 'cancelled':
+      return `${who} cancelled a recorded payment`;
+    case 'settle_disputed': {
+      const reason = text(payload?.reason);
+      return reason
+        ? `${who} says a payment didn't reach them — "${reason}"`
+        : `${who} says a payment didn't reach them`;
+    }
+    case 'group_deleted': {
+      const deletedName = text(payload?.name);
+      return deletedName ? `${who} deleted ${deletedName}` : `${who} deleted the group`;
+    }
+    case 'imported': {
+      const count = typeof payload?.expenses === 'number' ? payload.expenses : null;
+      return entry.object_type === 'import_batch' && count
+        ? `${who} imported ${count} expenses`
+        : `${who} ${entry.verb} ${entry.object_type}`;
+    }
+    case 'import_undone':
+      return `${who} undid an import`;
     case 'confirmed':
       return `${who} confirmed a settlement`;
     case 'joined':
@@ -92,7 +123,10 @@ export function describeActivity(entry: ActivityRow, myProfileId: string | null)
     case 'member_removed':
       return `${who} removed ${name(payload)}`;
     case 'member_left':
-      return `${who} left the group`;
+      // Older removals were logged as "left" with somebody else as the actor.
+      return entry.object_id && entry.actor?.id && entry.object_id !== entry.actor.id
+        ? `${who} removed ${name(payload)}`
+        : `${who} left the group`;
     case 'member_role_changed':
       return payload?.to === 'admin'
         ? `${who} made ${name(payload)} an admin`
@@ -188,9 +222,12 @@ function iconForVerb(verb: string): LucideIcon {
     case 'superseded':
       return Pencil;
     case 'deleted':
+    case 'group_deleted':
       return Trash2;
     case 'restored':
       return Undo2;
+    case 'commented':
+      return MessageSquare;
     case 'settled':
       return Banknote;
     case 'confirmed':

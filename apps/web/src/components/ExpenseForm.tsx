@@ -27,7 +27,6 @@ import {
   unitsFromSnapshot,
   money as coreMoney,
   guessCategory,
-  parseMajor,
   parseSplitParams,
   serialiseSplitParams,
   toMajorString,
@@ -36,7 +35,7 @@ import {
   type SplitParams,
   type UnitsParams,
 } from '@waves/core';
-import { nameOf, type Group, type Member } from '@waves/api-client';
+import type { Group, Member } from '@waves/api-client';
 
 import { waves } from '@/lib/waves';
 import { money as fmtMoney } from '@/lib/money';
@@ -45,6 +44,10 @@ import { captureLocation, coordLabel, geolocationSupported, LocationFailure } fr
 import { fill, plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { parseAmountText } from '@/lib/amount';
+import { goAfterSave } from '@/lib/navigate';
+import { memberLabel } from '@/lib/memberLabel';
+import { splitHint } from '@/lib/splitHint';
 import { familyParamsFor } from '@/lib/families';
 import { useFlagEnabled } from '@/lib/flags';
 import { MapPin } from 'lucide-react';
@@ -307,14 +310,15 @@ export function ExpenseForm({
   const currency = (group?.default_currency ?? 'INR') as CurrencyCode;
 
   const amount = useMemo(() => {
-    const trimmed = amountText.trim();
-    if (!trimmed) return null;
-    try {
-      return parseMajor(trimmed, currency).minor;
-    } catch {
-      return null;
-    }
+    return parseAmountText(amountText, currency);
   }, [amountText, currency]);
+
+  // Your own row says "You", whatever name the profile carries (often the
+  // server's "Guest" placeholder).
+  const who = useCallback(
+    (member: Member) => memberLabel(member, myProfileId, t.add.you),
+    [myProfileId, t.add.you],
+  );
 
   const units = group?.units ?? null;
   const familiesAvail = familiesOn && hasFamilies(units);
@@ -325,7 +329,7 @@ export function ExpenseForm({
     snapshot && !splitTouched
       ? unitsFromSnapshot(snapshot, units, (id) => {
           const member = members.find((row) => row.id === id);
-          return member ? nameOf(member) : t.join.someone;
+          return member ? who(member) : t.join.someone;
         })
       : units;
 
@@ -351,7 +355,7 @@ export function ExpenseForm({
         case SplitKind.Exact: {
           const amounts: Record<string, bigint> = {};
           for (const id of ids) {
-            amounts[id] = parseMajor(exact[id]?.trim() || '0', currency).minor;
+            amounts[id] = parseAmountText(exact[id] ?? '', currency) ?? 0n;
           }
           return { kind: 'exact', amounts };
         }
@@ -449,7 +453,7 @@ export function ExpenseForm({
         reimbursable,
         clientMutationId: crypto.randomUUID(),
       });
-      router.replace(`/g/${groupId}`);
+      goAfterSave(router, `/g/${groupId}`);
     } catch (caught) {
       setError(
         friendlyError(caught, 'web.expenseForm.submit', {
@@ -672,7 +676,7 @@ export function ExpenseForm({
                   setPayerFamily(null);
                 }}
               >
-                {member.profile_id === myProfileId ? t.add.you : nameOf(member)}
+                {who(member)}
               </button>
             ))}
           </div>
@@ -757,7 +761,7 @@ export function ExpenseForm({
                     aria-pressed={participants.includes(member.id)}
                     onClick={() => toggle(member.id)}
                   >
-                    {member.profile_id === myProfileId ? t.add.you : nameOf(member)}
+                    {who(member)}
                     {Object.values(editorUnits ?? {}).some(
                       (unit) => unit.weights?.[member.id] === 0.5,
                     )
@@ -818,7 +822,7 @@ export function ExpenseForm({
                   aria-pressed={participants.includes(member.id)}
                   onClick={() => toggle(member.id)}
                 >
-                  {member.profile_id === myProfileId ? t.add.you : nameOf(member)}
+                  {who(member)}
                 </button>
               ))}
             </div>
@@ -849,7 +853,7 @@ export function ExpenseForm({
                 return (
                   <div key={id} className="split-input">
                     <span className="grow">
-                      {byFamily && units?.[id] ? units[id].name : member ? nameOf(member) : id}
+                      {byFamily && units?.[id] ? units[id].name : member ? who(member) : id}
                     </span>
                     <input
                       value={value}
@@ -859,7 +863,7 @@ export function ExpenseForm({
                         setter((cur) => ({ ...cur, [id]: e.target.value }));
                       }}
                       aria-label={
-                        byFamily && units?.[id] ? units[id].name : member ? nameOf(member) : id
+                        byFamily && units?.[id] ? units[id].name : member ? who(member) : id
                       }
                     />
                     <span className="unit">
@@ -910,7 +914,7 @@ export function ExpenseForm({
               return (
                 <div key={memberId} className="detail-field">
                   <span className="v" style={{ fontWeight: 500 }}>
-                    {member ? nameOf(member) : memberId}
+                    {member ? who(member) : memberId}
                   </span>
                   <span className="amount">{fmtMoney(share, currency, locale)}</span>
                 </div>
@@ -918,7 +922,7 @@ export function ExpenseForm({
             })}
           </div>
         ) : (
-          <p className="detail-empty">{invalid ? t.add.invalidSplit : t.add.splitEquallyNote}</p>
+          <p className="detail-empty">{splitHint(kind === SplitKind.Equal, invalid, t.add)}</p>
         )}
       </aside>
     </div>

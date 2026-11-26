@@ -30,6 +30,8 @@ import { waves } from '@/lib/waves';
 import { fill } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { showFlash } from '@/lib/flash';
+import { removeMember } from '@/lib/groupWrites';
 import { useFlagEnabled } from '@/lib/flags';
 import { familyOf } from '@waves/core';
 
@@ -186,7 +188,14 @@ function Members({ profileId }: { profileId: string }) {
                             !window.confirm(fill(t.members.removeConfirm, { name: nameOf(member) }))
                           )
                             return;
-                          void run(() => waves.leaveGroup(member.id));
+                          const removed = nameOf(member);
+                          void run(
+                            () => removeMember(member.id),
+                            () =>
+                              showFlash({
+                                message: fill(t.members.removedToast, { name: removed }),
+                              }),
+                          );
                         }}
                       >
                         {t.members.remove}

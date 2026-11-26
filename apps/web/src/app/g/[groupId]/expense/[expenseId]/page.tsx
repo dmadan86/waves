@@ -35,6 +35,7 @@ import { money } from '@/lib/money';
 import { coordLabel, mapsUrl } from '@/lib/geo';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { showFlash } from '@/lib/flash';
 import { groupSharesByFamily } from '@/lib/families';
 import { MapPin } from 'lucide-react';
 
@@ -366,7 +367,13 @@ function ExpenseDetail({
             onClick={() => {
               if (confirmDelete)
                 void run(() =>
-                  waves.deleteExpense(expenseId).then(() => router.replace(`/g/${groupId}`)),
+                  waves.deleteExpense(expenseId).then(() => {
+                    showFlash({
+                      message: t.expense.deletedToast,
+                      undo: { label: t.expense.undo, run: () => waves.restoreExpense(expenseId) },
+                    });
+                    router.replace(`/g/${groupId}`);
+                  }),
                 );
               else setConfirmDelete(true);
             }}

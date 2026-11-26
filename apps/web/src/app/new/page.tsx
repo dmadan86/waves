@@ -24,6 +24,7 @@ import { Section } from '@/components/Shell';
 import { waves } from '@/lib/waves';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { goAfterSave } from '@/lib/navigate';
 import { X } from 'lucide-react';
 
 /** The currencies the picker offers. Anything else is set on the phone. */
@@ -96,14 +97,14 @@ function NewGroup() {
     // to the group, where whoever is missing can be added without starting
     // over.
     try {
-      for (const who of people) {
-        await waves.addGhostMember({ groupId, name: who });
-      }
+      // Together, not one after another: each is a round trip and the page is
+      // waiting on all of them before it can leave.
+      await Promise.all(people.map((who) => waves.addGhostMember({ groupId, name: who })));
     } catch {
       // Deliberately swallowed. The group page is the honest place to see who
       // made it in and who did not.
     }
-    router.replace(`/g/${groupId}`);
+    goAfterSave(router, `/g/${groupId}`);
   };
 
   return (

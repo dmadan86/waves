@@ -31,6 +31,7 @@ import { SkeletonRows } from '@/components/Skeleton';
 import { waves } from '@/lib/waves';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { isCurrencyLocked, isCurrencyLockedError } from '@/lib/groupCurrency';
 import { useFlagEnabled } from '@/lib/flags';
 
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'AUD', 'CAD', 'JPY'] as const;
@@ -60,12 +61,19 @@ function GroupSettings({ profileId }: { profileId: string }) {
   const [currency, setCurrency] = useState('INR');
   const [type, setType] = useState<GroupType>(GroupType.Trip);
   const [simplify, setSimplify] = useState(true);
+  const [currencyLocked, setCurrencyLocked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [row, members] = await Promise.all([waves.groupRow(groupId), waves.members(groupId)]);
+    const [row, members, expenses, settlements] = await Promise.all([
+      waves.groupRow(groupId),
+      waves.members(groupId),
+      waves.expenses(groupId),
+      waves.settlements(groupId),
+    ]);
+    setCurrencyLocked(isCurrencyLocked({ expenses, settlements }));
     // RLS answers "not yours" with no row rather than an error, so a stale or
     // borrowed URL lands here. Leaving `group` null is the signal for the
     // missing-group panel below — never an editable form over defaults.
@@ -122,7 +130,11 @@ function GroupSettings({ profileId }: { profileId: string }) {
       // Losing the race is not a failure to save — somebody else saved. Say so,
       // and pull their version in, so the next attempt starts from what is
       // actually in the group rather than overwriting it.
-      if (caught instanceof WavesApiError && caught.code === 'stale_revision') {
+      if (isCurrencyLockedError(caught)) {
+        setError(t.groupSettings.currencyLocked);
+        setCurrencyLocked(true);
+        setCurrency(group?.default_currency ?? currency);
+      } else if (caught instanceof WavesApiError && caught.code === 'stale_revision') {
         setError(t.groupSettings.changedElsewhere);
         await load().catch(() => undefined);
       } else {
@@ -236,14 +248,20 @@ function GroupSettings({ profileId }: { profileId: string }) {
 
           <label className="field">
             <span className="field-label">{t.groupSettings.currencyLabel}</span>
-            <select value={currency} onChange={(event) => setCurrency(event.target.value)}>
+            <select
+              value={currency}
+              disabled={currencyLocked}
+              onChange={(event) => setCurrency(event.target.value)}
+            >
               {CURRENCIES.map((code) => (
                 <option key={code} value={code}>
                   {code}
                 </option>
               ))}
             </select>
-            <span className="faint">{t.groupSettings.currencyNote}</span>
+            <span className="faint">
+              {currencyLocked ? t.groupSettings.currencyLocked : t.groupSettings.currencyNote}
+            </span>
           </label>
 
           <label className="field row-field">
