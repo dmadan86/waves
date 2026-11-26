@@ -1012,7 +1012,7 @@ describe('the mutation queue', () => {
     expect(queue).toEqual([]);
   });
 
-  it('backs off exponentially and gives up rather than retrying forever', () => {
+  it('backs off exponentially and keeps retrying a transport failure', () => {
     expect(backoffMs(1)).toBe(2000);
     expect(backoffMs(2)).toBe(4000);
     expect(backoffMs(99)).toBe(5 * 60_000);
@@ -1023,7 +1023,9 @@ describe('the mutation queue', () => {
     for (let attempt = 0; attempt < 8; attempt += 1) {
       queue = markFailed(queue, queue, 'offline', 0);
     }
-    expect(nextBatch(queue, { now: Number.MAX_SAFE_INTEGER })).toHaveLength(0);
+    // Offline is not a refusal: it waits out the backoff, then goes again.
+    expect(nextBatch(queue, { now: 0 })).toHaveLength(0);
+    expect(nextBatch(queue, { now: Number.MAX_SAFE_INTEGER })).toHaveLength(1);
     expect(queue[0]?.lastError).toBe('offline');
 
     // The user can force it through, or abandon it — nothing is lost silently.
