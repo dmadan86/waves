@@ -17,7 +17,14 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
-import { budgetStep, format, money, type CurrencyCode, type PersonalRecurring } from '@waves/core';
+import {
+  budgetStep,
+  budgetDailyPace,
+  format,
+  money,
+  type CurrencyCode,
+  type PersonalRecurring,
+} from '@waves/core';
 import {
   AmountField,
   Button,
@@ -719,6 +726,7 @@ function Reveal({
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const sum = setupSummary(recurrings, today, currency);
+  const perDay = budgetDailyPace(sum.free, today) ?? sum.perDay;
   const f = (v: bigint): string => format(money(v, currency), { locale });
   const month = new Date(`${today}T12:00:00`).toLocaleDateString(locale, { month: 'long' });
   const next = sum.next;
@@ -762,7 +770,7 @@ function Reveal({
             f(sum.fixedTotal),
             fill(plural(locale, sum.fixedCount, s.fixedBillsCount), { n: sum.fixedCount }),
           )}
-          {row(s.freeToSpend, f(sum.free), fill(s.perDay, { amount: f(sum.perDay) }))}
+          {row(s.freeToSpend, f(sum.free), fill(s.perDay, { amount: f(perDay) }))}
         </Card>
         {nextLine ? (
           <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>

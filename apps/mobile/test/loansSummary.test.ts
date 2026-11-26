@@ -20,6 +20,15 @@ describe('loans summary', () => {
     expect(matchesLoanFilter('lent', 'all')).toBe(true);
   });
 
+  it('excludes closed loans from totals and counts', () => {
+    expect(
+      loanTotals([
+        { direction: 'borrowed', left: 120n },
+        { direction: 'borrowed', left: 80n, status: 'closed' },
+      ]),
+    ).toMatchObject({ owe: 120n, total: 120n, counts: { all: 1, owe: 1, owed: 0 } });
+  });
+
   it('computes repaid share, clamped', () => {
     expect(repaid(200n, 200n)).toEqual({ amount: 0n, percent: 0 });
     expect(repaid(200n, 50n)).toEqual({ amount: 150n, percent: 75 });

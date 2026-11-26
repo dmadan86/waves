@@ -254,7 +254,7 @@ export function AppTabBar() {
     ? companyBarActiveKey(segments)
     : household
       ? householdBarActiveKey(segments, params)
-      : personalActiveKey(segments);
+      : personalActiveKey(segments, params.space);
   const activeKey = alt ? altActive : sharedActive;
   // A screen can also ask the bar to stand down while it is *on* that screen —
   // Review does it while drafts are ticked, so its action bar has the bottom of

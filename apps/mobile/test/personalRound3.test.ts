@@ -44,5 +44,24 @@ describe('one add control per Personal screen', () => {
       expect(personalShowsAddFab(['personal', leaf])).toBe(false);
     expect(personalShowsAddFab(['personal', 'transactions'])).toBe(true);
     expect(personalShowsAddFab(['(tabs)', 'me'])).toBe(true);
+    expect(personalShowsAddFab(['profile'])).toBe(false);
+    expect(personalShowsAddFab(['settings', 'backup'])).toBe(false);
+    expect(personalShowsAddFab(['personal', 'setup'])).toBe(false);
+  });
+
+  it('keeps Me selected on Personal settings routes', () => {
+    expect(personalActiveKey(['settings', 'backup'], 'personal')).toBe('me');
+    expect(personalActiveKey(['settings', 'lock'], 'personal')).toBe('me');
+  });
+});
+
+describe('the phone Back from a drill-down', () => {
+  it('only back actions are redirected to where the drill-down began', async () => {
+    const { isBackAction } = await import('../src/lib/personalLayoutRules');
+    expect(isBackAction('GO_BACK')).toBe(true);
+    expect(isBackAction('POP')).toBe(true);
+    // A tab switch replaces the screen: it must go where it was going.
+    expect(isBackAction('REPLACE')).toBe(false);
+    expect(isBackAction('NAVIGATE')).toBe(false);
   });
 });

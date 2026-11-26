@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { PersonalTxn } from '@waves/core';
-import { dayNet, filterTxns } from '../src/lib/txnLedger';
+import { dayNet, filterTxns, recentTxns } from '../src/lib/txnLedger';
 import { isPersonalMode } from '../src/lib/tabBar';
 import { formatLoanPaymentDate, loanPaymentDefaults } from '../src/lib/loanPayment';
 import { orphanedPersonalTxnIds } from '../src/lib/personalOrphans';
@@ -68,13 +68,39 @@ describe('Android personal finance regressions', () => {
   });
   it('drill-down back returns to the Personal Reports or Budgets screen', () => {
     const txns = src('app/personal/transactions.tsx');
-    expect(txns).toContain(
-      'params.returnTo ? router.replace(params.returnTo as never) : router.back()',
-    );
+    expect(txns).toContain("navigation.addListener('beforeRemove'");
+    expect(txns).toContain('event.preventDefault()');
     expect(src('app/personal/spending.tsx')).toContain("returnTo: '/personal/spending'");
     expect(src('app/personal/budgets.tsx')).toContain("returnTo: '/personal/budgets'");
     expect(src('app/(tabs)/me.tsx')).toContain("returnTo: '/(tabs)/me'");
     expect(src('app/personal/budgets.tsx')).toContain("returnTo: '/personal/budgets'");
+  });
+
+  it('recent transactions omit future recurring posts and stay newest first', () => {
+    expect(
+      recentTxns(
+        [
+          txn({ id: 'future', date: '2026-12-01' }),
+          txn({ id: 'today', date: '2026-11-26' }),
+          txn({ id: 'old', date: '2026-11-20' }),
+        ],
+        '2026-11-26',
+      ).map((row) => row.id),
+    ).toEqual(['today', 'old']);
+  });
+
+  it('setup reveal uses the shared remaining-days pace', () => {
+    expect(src('app/personal/setup.tsx')).toContain('budgetDailyPace(sum.free, today)');
+  });
+
+  it('Personal avatar initials use the cached display name', () => {
+    expect(src('app/(tabs)/me.tsx')).toContain(
+      'name={displayProfile?.display_name ?? t.account.you}',
+    );
+  });
+
+  it('loan card title renders the counterpart name', () => {
+    expect(src('app/personal/loans.tsx')).toContain('{name}</Text>');
   });
 
   it('Me settings keep the Personal tab bar', () => {

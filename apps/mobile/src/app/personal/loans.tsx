@@ -136,7 +136,9 @@ function LoansScreenBody() {
 
   const show = (n: bigint, cur: string = dc): string =>
     hidden ? BALANCE_MASK : format(money(n, cur), { locale });
-  const totals = loanTotals(loans.map((l) => ({ direction: l.direction, left: leftOf(l) })));
+  const totals = loanTotals(
+    loans.map((l) => ({ direction: l.direction, left: leftOf(l), status: l.status })),
+  );
   const sorted = [...loans].sort((a, b) => {
     if (a.status !== b.status) return a.status === 'active' ? -1 : 1;
     return a.startDate < b.startDate ? 1 : -1;
@@ -373,7 +375,7 @@ function LoansScreenBody() {
                             />
                           </View>
                           <View style={{ flex: 1 }}>
-                            <Text variant="body" numberOfLines={1} style={{ fontWeight: '700' }}>
+                            <Text variant="body" numberOfLines={1} style={{ fontWeight: '800' }}>
                               {name}
                             </Text>
                             <Text variant="micro" tone="muted" numberOfLines={1}>

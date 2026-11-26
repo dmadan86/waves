@@ -16,5 +16,15 @@ const HEADER_ADD_SCREENS = new Set(['loans', 'recurring', 'budgets', 'upcoming']
 
 /** Whether the tab bar's round + shows in Personal: tab roots yes, back-header sub-screens no. */
 export function personalShowsAddFab(segments: readonly string[]): boolean {
-  return !(segments[0] === 'personal' && HEADER_ADD_SCREENS.has(segments[1] ?? ''));
+  return !(
+    (segments[0] === 'personal' &&
+      (HEADER_ADD_SCREENS.has(segments[1] ?? '') || segments[1] === 'setup')) ||
+    segments[0] === 'profile' ||
+    segments[0] === 'settings'
+  );
+}
+
+/** Navigation actions that mean "go back" (hardware back, swipe, header back). */
+export function isBackAction(type: string): boolean {
+  return type === 'GO_BACK' || type === 'POP' || type === 'POP_TO_TOP';
 }
