@@ -86,12 +86,16 @@ export function AmountField({
   // together, and a wrong pairing (44pt digits over a 24pt line) is the kind of
   // thing that reads as a clipped number on Android.
   const metrics = hero
-    ? { symbol: 18, digits: 26, line: 32, minWidth: 24 }
+    ? { symbol: 26, digits: 26, line: 32, minWidth: 24 }
     : compact
       ? { symbol: 18, digits: 18, line: 24, minWidth: 40 }
       : { symbol: 30, digits: 44, line: 50, minWidth: 28 };
   const digitInk = onBrand ? theme.color.onBrand : theme.color.text;
-  const symbolInk = onBrand ? 'rgba(255,255,255,0.72)' : theme.color.textMuted;
+  const symbolInk = onBrand
+    ? 'rgba(255,255,255,0.72)'
+    : hero
+      ? theme.color.text
+      : theme.color.textMuted;
   const placeholderInk = onBrand ? 'rgba(255,255,255,0.5)' : theme.color.textFaint;
 
   // The well's rule brightens when the field has the keyboard, the oldest "type

@@ -37,7 +37,6 @@ export function QuickCategoryRow({
   onChange: (key: string | null, meta: CategoryMeta | null) => void;
 }) {
   const theme = useTheme();
-  const dark = theme.scheme === 'dark';
   const soft = theme.color.brandSoft;
   const accent = theme.color.brand;
   const { t } = useStrings();
@@ -76,9 +75,10 @@ export function QuickCategoryRow({
         </Text>
       </Text>
 
-      <Row style={{ gap: theme.spacing.sm }} accessibilityRole="radiogroup">
+      <Row style={{ gap: theme.spacing.xs }} accessibilityRole="radiogroup">
         {shown.map((entry) => {
           const selected = entry.key === value;
+          const tint = theme.tint[entry.tint];
           const entryMeta: CategoryMeta | null = entry.custom
             ? { label: entry.label, icon: entry.icon, tint: entry.tint }
             : null;
@@ -93,6 +93,7 @@ export function QuickCategoryRow({
               accessibilityLabel={entry.label}
               onPress={() => choose(entry.key, entryMeta)}
               style={({ pressed }) => ({
+                flex: 1,
                 alignItems: 'center',
                 gap: 4,
                 opacity: pressed ? 0.7 : 1,
@@ -100,29 +101,30 @@ export function QuickCategoryRow({
             >
               <View
                 style={{
-                  width: 48,
+                  width: '100%',
                   height: 48,
-                  borderRadius: 24,
+                  borderRadius: 12,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: selected ? (dark ? theme.color.brandSoft : '#FFFFFF') : soft,
+                  backgroundColor: tint.bg,
                   borderWidth: selected ? 1.5 : 0,
                   borderColor: accent,
                 }}
               >
                 <Ionicons
                   name={entry.icon as keyof typeof Ionicons.glyphMap}
-                  size={20}
-                  color={selected ? accent : theme.color.textMuted}
+                  size={22}
+                  color={tint.ink}
                 />
               </View>
+              {/* Wraps to two lines rather than truncating: "Food & drink". */}
               <Text
-                numberOfLines={1}
+                numberOfLines={2}
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
+                  textAlign: 'center',
                   fontWeight: selected ? '700' : '500',
                   color: selected ? accent : theme.color.textMuted,
-                  maxWidth: 56,
                 }}
               >
                 {entry.label}
@@ -138,13 +140,18 @@ export function QuickCategoryRow({
           accessibilityRole="button"
           accessibilityLabel={t.quickExpense.moreCategories}
           onPress={() => setSheetOpen(true)}
-          style={({ pressed }) => ({ alignItems: 'center', gap: 4, opacity: pressed ? 0.7 : 1 })}
+          style={({ pressed }) => ({
+            flex: 1,
+            alignItems: 'center',
+            gap: 4,
+            opacity: pressed ? 0.7 : 1,
+          })}
         >
           <View
             style={{
-              width: 48,
+              width: '100%',
               height: 48,
-              borderRadius: 24,
+              borderRadius: 12,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: soft,
@@ -153,8 +160,13 @@ export function QuickCategoryRow({
             <Ionicons name="ellipsis-horizontal" size={20} color={theme.color.textMuted} />
           </View>
           <Text
-            numberOfLines={1}
-            style={{ fontSize: 11, fontWeight: '500', color: theme.color.textMuted, maxWidth: 56 }}
+            numberOfLines={2}
+            style={{
+              fontSize: 12,
+              textAlign: 'center',
+              fontWeight: '500',
+              color: theme.color.textMuted,
+            }}
           >
             {t.quickExpense.moreCategories}
           </Text>

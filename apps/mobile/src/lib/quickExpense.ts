@@ -1,3 +1,5 @@
+import { format, money, type CurrencyCode } from '@waves/core';
+
 /** Pure rules for the quick expense sheet, kept out of the component so they can be tested. */
 
 /** 'personal' is the private ledger; anything else is a group id. */
@@ -18,4 +20,9 @@ export function defaultDestination(
  *  "kept as a draft" cases pass their own copy. */
 export function quickSummary(template: string, count: number): string {
   return template.replace('{count}', String(count));
+}
+
+/** A quick-add chip: "+₹5", "+$5", "+¥5" — symbol first, no decimals on whole amounts. */
+export function quickChipLabel(add: bigint, currency: CurrencyCode, locale: string): string {
+  return `+${format(money(add, currency), { locale, trimZeros: true })}`;
 }
