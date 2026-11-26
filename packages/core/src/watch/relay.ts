@@ -13,6 +13,8 @@
  * form), exactly like the mutation-queue boundary (`serialiseCapture`).
  */
 
+import { minorUnitScale } from '../money/currency';
+
 /** Bumped only on a breaking change to the shapes below. */
 export const WATCH_RELAY_VERSION = 1 as const;
 
@@ -47,6 +49,9 @@ export type WatchToPhone =
   // `id` is a stable per-intent key (a UUID the watch mints once per send). The
   // phone derives the capture id from it, so a transport-level retry of the same
   // tap is idempotent instead of creating a duplicate expense.
+  // The decoded form always carries `amountMinor` in the CURRENCY's minor units
+  // (see `parseWatchToPhone`); the wire carries either `amount` (whole units, sent
+  // by current watches) or legacy `amountMinor` (whole units x 100).
   | { t: 'quickAdd'; id: string; amountMinor: string; currency: string; note: string }
   | { t: 'voiceAdd'; id: string; transcript: string }
   // The metadata of a recorded clip sent as a file (`transferFile`); the audio
@@ -86,6 +91,33 @@ function isPositiveMinor(value: unknown): value is string {
   );
 }
 
+/**
+ * The minor-unit amount of a watch quick-add, for the destination currency.
+ *
+ * Watches send what was dialled: `amount`, whole units. A watch built before
+ * that key sent `amountMinor` as whole units x 100 whatever the currency, which
+ * is right only for two-decimal currencies; for JPY (0) or KWD (3) it is rescaled
+ * here, where the exponent is known. Null when it cannot be read safely.
+ */
+function quickAddMinor(raw: Record<string, unknown>, currency: string): string | null {
+  const scale = minorUnitScale(currency.toUpperCase());
+  let minor: bigint;
+  if (raw.amount !== undefined) {
+    if (typeof raw.amount !== 'string' || raw.amount.length > 9 || !isPositiveMinor(raw.amount)) {
+      return null;
+    }
+    minor = BigInt(raw.amount) * scale;
+  } else {
+    if (!isPositiveMinor(raw.amountMinor)) return null;
+    if (scale === 100n) return raw.amountMinor;
+    const legacy = BigInt(raw.amountMinor);
+    if (legacy % 100n !== 0n) return null;
+    minor = (legacy / 100n) * scale;
+  }
+  const out = minor.toString();
+  return out.length <= 12 ? out : null;
+}
+
 /** ISO 4217-style currency: exactly 3 ASCII letters. */
 function isValidCurrency(value: unknown): value is string {
   return typeof value === 'string' && /^[A-Za-z]{3}$/.test(value);
@@ -100,7 +132,7 @@ function isValidCurrency(value: unknown): value is string {
  *
  * Field length limits:
  *   id            ≤ 64 chars  (all message types)
- *   amountMinor   ≤ 12 digits (quickAdd)
+ *   amount        whole units, ≤ 9 digits, or legacy amountMinor ≤ 12 digits (quickAdd)
  *   currency      exactly 3 ASCII letters, e.g. "INR" (quickAdd)
  *   note          ≤ 500 chars (quickAdd)
  *   transcript    ≤ 2000 chars (voiceAdd)
@@ -115,20 +147,14 @@ export function parseWatchToPhone(raw: unknown): WatchToPhone | null {
   if (raw.version !== undefined && raw.version !== WATCH_RELAY_VERSION) return null;
   const id = typeof raw.id === 'string' && raw.id.length > 0 && raw.id.length <= 64 ? raw.id : null;
   switch (raw.t) {
-    case 'quickAdd':
-      return id &&
-        isPositiveMinor(raw.amountMinor) &&
-        isValidCurrency(raw.currency) &&
-        typeof raw.note === 'string' &&
-        raw.note.length <= 500
-        ? {
-            t: 'quickAdd',
-            id,
-            amountMinor: raw.amountMinor,
-            currency: raw.currency,
-            note: raw.note,
-          }
+    case 'quickAdd': {
+      if (!id || !isValidCurrency(raw.currency) || typeof raw.note !== 'string') return null;
+      if (raw.note.length > 500) return null;
+      const amountMinor = quickAddMinor(raw, raw.currency);
+      return amountMinor
+        ? { t: 'quickAdd', id, amountMinor, currency: raw.currency, note: raw.note }
         : null;
+    }
     case 'voiceAdd':
       return id &&
         typeof raw.transcript === 'string' &&

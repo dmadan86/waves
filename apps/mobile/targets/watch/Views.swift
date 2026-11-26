@@ -35,6 +35,16 @@ struct HomeView: View {
           }
           .foregroundStyle(.orange)
         }
+        // The phone got the expense but refused it (an `ack` with ok: false).
+        if relay.lastAckOk == false {
+          Label {
+            Text("Your phone couldn't add the last expense. Open Waves there to check.")
+              .font(.caption2)
+          } icon: {
+            Image(systemName: "exclamationmark.triangle.fill")
+          }
+          .foregroundStyle(.orange)
+        }
       }
       .tint(accent)
       .navigationTitle("Waves")
@@ -86,10 +96,8 @@ struct QuickAddView: View {
         .focusable(true)
         .digitalCrownRotation($amount, from: 0, through: 1_000_000, by: 1, sensitivity: .medium)
       Button {
-        // The crown value is a major-unit amount; convert to minor (×100) for
-        // the two-decimal currencies the phone defaults to. The phone re-derives
-        // the real currency; this sends its default.
-        relay.quickAdd(amountMinor: Int(amount * 100), currency: relay.currency, note: "")
+        // Whole units as dialled; the phone converts to the currency's minor units.
+        relay.quickAdd(amount: Int(amount), currency: relay.currency, note: "")
         dismiss()
       } label: {
         Text("Add").frame(maxWidth: .infinity)

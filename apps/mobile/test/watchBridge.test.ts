@@ -258,6 +258,28 @@ describe('WatchBridgeProvider', () => {
       expect(sentOf('ack')).toEqual([{ t: 'ack', ok: true }]);
     });
 
+    it.each([
+      ['INR', '500', 50000n],
+      ['JPY', '500', 500n],
+      ['KWD', '5', 5000n],
+    ])('books a dialled whole-unit amount in %s minor units', async (currency, amount, minor) => {
+      renderHook(() => WatchBridgeProvider({}));
+      h.messageHandler!({ t: 'quickAdd', id: 'i1', amount, currency, note: '' });
+      await settle();
+      expect(h.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ amount: minor }));
+    });
+
+    it.each([
+      ['INR', 50000n],
+      ['JPY', 500n],
+      ['KWD', 500000n],
+    ])('rescales an already-installed watch (units x 100) for %s', async (currency, minor) => {
+      renderHook(() => WatchBridgeProvider({}));
+      h.messageHandler!({ t: 'quickAdd', id: 'i1', amountMinor: '50000', currency, note: '' });
+      await settle();
+      expect(h.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ amount: minor }));
+    });
+
     it('sends no raw text for a quick-add with no note', async () => {
       renderHook(() => WatchBridgeProvider({}));
       h.messageHandler!({ t: 'quickAdd', id: 'i', amountMinor: '100', currency: 'INR', note: '' });
