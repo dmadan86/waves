@@ -55,6 +55,9 @@ export function friendlyError(
   }
   // Signed out mid-action, or a token that expired while the screen was open.
   if (/NOT_SIGNED_IN|JWT|not authenticated/i.test(message)) {
+    // A revoked session is ended (and the door says so) instead of failing forever.
+    // Loaded on demand: sessionLost reaches the backend client, which this pure helper must not.
+    void import('@/lib/sessionLost').then((m) => m.endSessionIfRevoked()).catch(() => undefined);
     return fallback;
   }
   // Anything the database rejected by name is still not a sentence.
