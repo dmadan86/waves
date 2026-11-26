@@ -169,6 +169,14 @@
     border-color: var(--w-brand);
   }
 
+  /* The border change alone is too faint to find the caret by. */
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--w-brand);
+    outline-offset: 2px;
+  }
+
   input:disabled,
   select:disabled,
   textarea:disabled {
@@ -878,7 +886,7 @@
     color: var(--w-positive);
   }
   .hero-owe .hero-amount {
-    color: var(--w-negative);
+    color: var(--w-negative-text);
   }
   .hero-label {
     font-size: var(--w-font-caption);
@@ -1647,7 +1655,7 @@
     color: var(--w-positive);
   }
   .diff-now.neg {
-    color: var(--w-negative);
+    color: var(--w-negative-text);
   }
 
   /* ─────────────────────────────────────────────────────────────
@@ -1792,7 +1800,7 @@
     text-decoration: underline;
   }
   .comment-actions .linklike.danger:hover {
-    color: var(--w-negative);
+    color: var(--w-negative-text);
   }
   .comment-actions .linklike[aria-pressed='true'] {
     color: var(--w-warning);
@@ -1843,7 +1851,7 @@
   }
   .amount.neg,
   .money.owe {
-    color: var(--w-negative);
+    color: var(--w-negative-text);
   }
   .amount.zero {
     font-weight: 600;
@@ -2206,7 +2214,7 @@
     color: var(--w-text-muted);
   }
   .budget-gap.over {
-    color: var(--w-negative);
+    color: var(--w-negative-text);
   }
   .budget-actions {
     display: flex;
@@ -2265,7 +2273,7 @@
     display: block;
   }
   .tone-negative {
-    color: var(--w-negative);
+    color: var(--w-negative-text);
   }
   .tone-brand {
     color: var(--w-brand);
@@ -2274,7 +2282,7 @@
      over-budget figure needs to say so at the same weight or it silently loses
      the cascade and reads as plain ink. */
   .plan-total-pair .v.tone-negative {
-    color: var(--w-negative);
+    color: var(--w-negative-text);
   }
 
   /* A word beside a budget's name — "Only me". Quieter than `.chip`, which is a
@@ -2304,7 +2312,7 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    color: var(--w-negative);
+    color: var(--w-negative-text);
   }
 
   /* A switch whose label carries a line of explanation under it. `.grow` only

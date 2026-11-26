@@ -1351,6 +1351,9 @@ export interface WebStrings {
     passwordTooCommon: string;
     couldNotSave: string;
     offline: string;
+    signedOut: string;
+    signIn: string;
+    expenseDeleted: string;
     tooMany: string;
     tryAgain: string;
   };
@@ -2477,6 +2480,10 @@ const en: WebStrings = {
     passwordTooCommon: 'That is one of the first passwords anyone tries.',
     couldNotSave: 'That didn’t save. Try again in a moment.',
     offline: 'You appear to be offline. Check your connection and try again.',
+    signedOut: 'You were signed out. Sign in again, then save.',
+    signIn: 'Sign in',
+    expenseDeleted:
+      'This expense was deleted in another tab or by someone else. Your changes were not saved.',
     tooMany: 'Too many tries in a row. Wait a moment, then try again.',
     tryAgain: 'Try again',
   },
@@ -3600,6 +3607,10 @@ const ta: WebStrings = {
     passwordTooCommon: 'இது யாரும் முதலில் முயற்சிக்கும் கடவுச்சொற்களில் ஒன்று.',
     couldNotSave: 'இது சேமிக்கப்படவில்லை. சிறிது நேரத்தில் மீண்டும் முயலவும்.',
     offline: 'நீங்கள் இணைப்பில் இல்லை போலும். இணைப்பைச் சரிபார்த்து மீண்டும் முயலவும்.',
+    signedOut: 'நீங்கள் வெளியேற்றப்பட்டுள்ளீர்கள். மீண்டும் உள்நுழைந்து சேமிக்கவும்.',
+    signIn: 'உள்நுழை',
+    expenseDeleted:
+      'இந்தச் செலவு வேறொரு தாவலில் அல்லது வேறொருவரால் நீக்கப்பட்டது. உங்கள் மாற்றங்கள் சேமிக்கப்படவில்லை.',
     tooMany: 'தொடர்ச்சியாக அதிக முயற்சிகள். சிறிது காத்திருந்து மீண்டும் முயலவும்.',
     tryAgain: 'மீண்டும் முயலவும்',
   },
@@ -4697,6 +4708,9 @@ const hi: WebStrings = {
     passwordTooCommon: 'यह उन पासवर्ड में से है जो सबसे पहले आज़माए जाते हैं।',
     couldNotSave: 'यह सेव नहीं हुआ। थोड़ी देर में फिर कोशिश करें।',
     offline: 'लगता है आप ऑफ़लाइन हैं। कनेक्शन जाँचकर फिर कोशिश करें।',
+    signedOut: 'आप साइन आउट हो गए हैं। फिर से साइन इन करें, फिर सेव करें।',
+    signIn: 'साइन इन',
+    expenseDeleted: 'यह खर्च किसी दूसरे टैब में या किसी और ने हटा दिया। आपके बदलाव सेव नहीं हुए।',
     tooMany: 'लगातार बहुत सारी कोशिशें। थोड़ा रुककर फिर कोशिश करें।',
     tryAgain: 'फिर कोशिश करें',
   },
@@ -5870,6 +5884,9 @@ const ar: WebStrings = {
     passwordTooCommon: 'هذه من أوّل كلمات المرور التي يجرّبها أي شخص.',
     couldNotSave: 'لم يُحفظ ذلك. حاول بعد قليل.',
     offline: 'يبدو أنك غير متصل. تحقّق من اتصالك وحاول مجدداً.',
+    signedOut: 'تم تسجيل خروجك. سجّل الدخول مجدداً ثم احفظ.',
+    signIn: 'تسجيل الدخول',
+    expenseDeleted: 'تم حذف هذا المصروف في تبويب آخر أو من قبل شخص آخر. لم تُحفظ تغييراتك.',
     tooMany: 'محاولات كثيرة متتالية. انتظر قليلاً ثم حاول مجدداً.',
     tryAgain: 'حاول مجدداً',
   },

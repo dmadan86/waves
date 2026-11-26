@@ -45,7 +45,6 @@ import {
 import {
   computeLedger,
   GroupType,
-  pastNameOf,
   type ActivityRow,
   type ExpenseComment,
   type Expense,
@@ -59,6 +58,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { Section } from '@/components/Shell';
 import { SegmentedTabs } from '@/components/SegmentedTabs';
 import { SkeletonRows } from '@/components/Skeleton';
+import { memberLabel } from '@/lib/memberLabel';
 import { waves } from '@/lib/waves';
 import { money } from '@/lib/money';
 import { groupByMonth, monthLabel } from '@/lib/ledgerFeed';
@@ -292,7 +292,9 @@ function GroupDetail({
   const familyLens = familiesOn && hasFamilies(group.units) && !byPerson;
   const who = (memberId: string) => {
     const member = byId.get(memberId);
-    const name = member ? pastNameOf(member, t.group.memberLeft) : t.join.someone;
+    const name = member
+      ? memberLabel(member, profileId, t.add.you, t.group.memberLeft)
+      : t.join.someone;
     return familyLens ? familyLabel(group.units, memberId, name) : name;
   };
   const transfers = familyLens
@@ -468,7 +470,9 @@ function GroupDetail({
                       style={{ cursor: 'default', paddingInlineStart: indented ? 28 : undefined }}
                     >
                       <span className="grow">
-                        <span className="title">{pastNameOf(member, t.group.memberLeft)}</span>
+                        <span className="title">
+                          {memberLabel(member, profileId, t.add.you, t.group.memberLeft)}
+                        </span>
                       </span>
                       {figure(net(member.id))}
                     </div>

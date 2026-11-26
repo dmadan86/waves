@@ -177,7 +177,7 @@ function MemberDetail({
     <div>
       <section className="panel">
         <div className="panel-head">
-          <h2>{nameOf(member)}</h2>
+          <h2>{isMe ? t.person.you : nameOf(member)}</h2>
         </div>
 
         <div className="member-hero">
@@ -213,7 +213,9 @@ function MemberDetail({
         </div>
 
         {theirs.length === 0 ? (
-          <p className="meta">{fill(t.person.noneHere, { name: nameOf(member) })}</p>
+          <p className="meta">
+            {fill(t.person.noneHere, { name: isMe ? t.person.you : nameOf(member) })}
+          </p>
         ) : (
           <div className="list">
             {theirs.map((expense) => {

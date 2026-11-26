@@ -26,7 +26,8 @@ import { totalsByCurrency, type CurrencyTotals } from '@waves/core';
 import { waves } from '@/lib/waves';
 import { SkeletonRows } from '@/components/Skeleton';
 import { money } from '@/lib/money';
-import { activityAmount, describeActivity, VerbIcon } from '@/lib/activity';
+import { activityAmount, describeActivity, VerbIcon, type ExpenseFigures } from '@/lib/activity';
+import { buildFeed, loadFeedExtras } from '@/lib/globalFeed';
 import { plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
@@ -48,6 +49,8 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
   const [activity, setActivity] = useState<(ActivityRow & { group: ActivityGroup | null })[]>([]);
   const [pendingGroups, setPendingGroups] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [names, setNames] = useState<ReadonlyMap<string, string>>(new Map());
+  const [figures, setFigures] = useState<ExpenseFigures>(new Map());
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -67,6 +70,23 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
         setMembersByGroup(m);
         setActivity(a);
         setPendingGroups(new Set(pending.map((row) => row.group_id)));
+        // Comments and expense names are additions: losing them keeps the plain feed.
+        try {
+          const extras = await loadFeedExtras(a);
+          const built = buildFeed(
+            a,
+            extras.comments,
+            [...m.values()].flat() as never,
+            extras.expenses,
+          );
+          if (active) {
+            setActivity(built.rows);
+            setNames(built.names);
+            setFigures(built.figures);
+          }
+        } catch {
+          /* keep the plain feed */
+        }
       } catch (caught) {
         if (active)
           setError(
@@ -151,8 +171,10 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
   const filteredActivity = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return activity;
-    return activity.filter((entry) => describeActivity(entry, profileId).toLowerCase().includes(q));
-  }, [activity, query, profileId]);
+    return activity.filter((entry) =>
+      describeActivity(entry, profileId, names).toLowerCase().includes(q),
+    );
+  }, [activity, query, profileId, names]);
 
   if (loading) {
     return <OverviewSkeleton />;
@@ -250,7 +272,7 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
           ) : (
             <div className="list">
               {filteredActivity.slice(0, 6).map((entry) => {
-                const figure = activityAmount(entry);
+                const figure = activityAmount(entry, figures);
                 return (
                   <div key={entry.id} className="item" style={{ cursor: 'default' }}>
                     <span className="tile-emoji" aria-hidden>
@@ -258,7 +280,7 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
                     </span>
                     <span className="grow">
                       <span className="title" style={{ fontWeight: 500, whiteSpace: 'normal' }}>
-                        {describeActivity(entry, profileId)}
+                        {describeActivity(entry, profileId, names)}
                       </span>
                       <span className="meta">
                         {entry.group?.name?.trim() ? entry.group.name : ''}

@@ -36,6 +36,8 @@ export interface ErrorWords {
   fallback: string;
   /** The connection is the problem, not what they did. */
   offline?: string;
+  /** Their session is gone: tell them to sign in rather than to retry. */
+  signedOut?: string;
   /** They went too fast, and the request itself was fine. */
   tooMany?: string;
 }
@@ -52,6 +54,16 @@ export function friendlyError(caught: unknown, where: string, words: ErrorWords)
 
   Sentry.captureException(caught, { tags: { where } });
 
+  // A dead session says so; "try again in a moment" would never work.
+  if (
+    words.signedOut &&
+    (error.status === 401 ||
+      String(error.code) === '401' ||
+      /jwt|unauthori[sz]ed|not authenticated|auth session missing|refresh token/i.test(message))
+  ) {
+    return words.signedOut;
+  }
+
   // Too many requests in too short a window — the sign-in buttons hit
   // Supabase's send-rate limit if tapped repeatedly. "Could not sign in" reads
   // as a rejected credential, which is wrong: the request was fine, there were
@@ -67,7 +79,12 @@ export function friendlyError(caught: unknown, where: string, words: ErrorWords)
   // A dropped connection is worth naming — it tells somebody to check their
   // signal rather than doubt what they typed. The raw string still is not safe
   // to echo, so recognise the case and return our own sentence.
-  if (/network|fetch failed|failed to fetch|timeout|offline|tls|secure connection/i.test(message)) {
+  if (
+    (typeof navigator !== 'undefined' && navigator.onLine === false) ||
+    /network|fetch failed|failed to fetch|failed to send a request|timeout|offline|tls|secure connection/i.test(
+      message,
+    )
+  ) {
     return words.offline ?? words.fallback;
   }
 

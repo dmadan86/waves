@@ -50,6 +50,7 @@ import {
 } from 'lucide-react';
 
 import { useStrings } from '@/i18n-context';
+import { initialOf } from '@/lib/memberLabel';
 import { THEME_HIDDEN, useTheme, type ThemeChoice } from '@/lib/theme';
 import { WaveMark } from '@/components/WaveMark';
 
@@ -324,7 +325,7 @@ function Account({
     };
   }, [open]);
 
-  const initial = userName.trim().charAt(0).toUpperCase() || '?';
+  const initial = initialOf(userName);
 
   return (
     <div ref={root} className="acct">

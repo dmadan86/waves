@@ -27,6 +27,7 @@ import type { FoundPerson } from '@waves/api-client';
 import { AppFrame } from '@/components/AppFrame';
 import { Section } from '@/components/Shell';
 import { useStrings } from '@/i18n-context';
+import { initialOf } from '@/lib/memberLabel';
 import { friendlyError } from '@/lib/errors';
 import { channelFor } from '@/lib/lookup';
 import { waves } from '@/lib/waves';
@@ -152,7 +153,7 @@ function Found({ person, typed }: { person: FoundPerson; typed: string }) {
           person's avatar would be the one thing this screen showed that the
           searcher did not already have. */}
       <span className="avatar" aria-hidden style={{ width: 38, height: 38 }}>
-        {person.display_name.trim().charAt(0).toUpperCase() || '?'}
+        {initialOf(person.display_name)}
       </span>
       <span className="grow">
         <span className="title">{person.display_name}</span>

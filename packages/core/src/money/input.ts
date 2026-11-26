@@ -39,17 +39,21 @@ export function sanitiseMinorInput(raw: string, currency: CurrencyCode): string 
     );
   } else if (comma >= 0) {
     const tail = value.length - comma - 1;
-    normalized =
-      exponent > 0 && tail >= 1 && tail <= exponent
-        ? value.slice(0, comma).replace(/,/g, '') + '.' + value.slice(comma + 1)
-        : tail === 0 && exponent > 0
-          ? value.slice(0, comma).replace(/,/g, '') + '.'
-          : value.replace(/,/g, '');
+    normalized = (exponent > 0 ? tail >= 1 && tail <= exponent : tail >= 1 && tail !== 3)
+      ? value.slice(0, comma).replace(/,/g, '') + '.' + value.slice(comma + 1)
+      : tail === 0 && exponent > 0
+        ? value.slice(0, comma).replace(/,/g, '') + '.'
+        : value.replace(/,/g, '');
   }
   let cleaned = normalized.replace(/[^0-9.]/g, '');
 
   if (exponent === 0) {
-    return cleaned.replace(/\./g, '').replace(/^0+(?=\d)/, '');
+    // No decimal places: a fraction is cut off, never shifted into the whole
+    // part ("1500.5" is 1500, not 15005). Several dots, or one followed by
+    // exactly three digits, are thousands separators ("1.500.000", "1.500").
+    const dots = cleaned.split('.');
+    const thousands = dots.length > 2 || (dots.length === 2 && dots[1]!.length === 3);
+    return (thousands ? dots.join('') : dots[0]!).replace(/^0+(?=\d)/, '');
   }
 
   const firstDot = cleaned.indexOf('.');

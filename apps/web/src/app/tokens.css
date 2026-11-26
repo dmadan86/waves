@@ -31,6 +31,7 @@
   --w-positive: #2563EB;
   --w-positive-soft: #DCE1FF;
   --w-negative: #E84A66;
+  --w-negative-text: #BE1E3C;
   --w-negative-soft: #F8D7DA;
   --w-warning: #D98218;
   --w-warning-soft: #FBE0C4;
@@ -93,6 +94,7 @@
     --w-positive: #60A5FA;
     --w-positive-soft: #17325C;
     --w-negative: #FF7088;
+    --w-negative-text: #FF7088;
     --w-negative-soft: #4A2A31;
     --w-warning: #E8A54B;
     --w-warning-soft: #463020;
@@ -155,6 +157,7 @@
   --w-positive: #60A5FA;
   --w-positive-soft: #17325C;
   --w-negative: #FF7088;
+  --w-negative-text: #FF7088;
   --w-negative-soft: #4A2A31;
   --w-warning: #E8A54B;
   --w-warning-soft: #463020;

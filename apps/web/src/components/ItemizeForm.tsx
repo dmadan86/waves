@@ -40,7 +40,7 @@ import {
   serialiseSplitParams,
   type CurrencyCode,
 } from '@waves/core';
-import { nameOf, type Group, type Member } from '@waves/api-client';
+import { type Group, type Member } from '@waves/api-client';
 
 import { EmptyState } from '@/components/EmptyState';
 import { SkeletonRows } from '@/components/Skeleton';
@@ -55,6 +55,8 @@ import {
   unclaimed,
   unparseable,
 } from '@/lib/itemize';
+import { localIsoDate } from '@/lib/localDate';
+import { memberLabel } from '@/lib/memberLabel';
 import { money } from '@/lib/money';
 import { waves } from '@/lib/waves';
 
@@ -87,7 +89,7 @@ export function ItemizeForm({ groupId, myProfileId }: { groupId: string; myProfi
 
   const [description, setDescription] = useState('');
   // Today, like the add form: a bill is typed the day it is eaten.
-  const expenseDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const expenseDate = useMemo(() => localIsoDate(), []);
   const [lines, setLines] = useState<Line[]>(() => [emptyLine()]);
   const [extras, setExtras] = useState<Record<Extra, string>>({
     taxes: '',
@@ -278,11 +280,13 @@ export function ItemizeForm({ groupId, myProfileId }: { groupId: string; myProfi
         friendlyError(caught, 'web.itemize.submit', {
           fallback: t.errors.couldNotSave,
           offline: t.errors.offline,
+          signedOut: t.errors.signedOut,
         }),
       );
       setSaving(false);
     }
   }, [
+    t.errors.signedOut,
     params,
     payer,
     outcome,
@@ -347,7 +351,7 @@ export function ItemizeForm({ groupId, myProfileId }: { groupId: string; myProfi
                   value={line.amountText}
                   onChange={(event) => editLine(line.key, { amountText: event.target.value })}
                   placeholder="0"
-                  aria-label={t.add.howMuch}
+                  aria-label={fill(t.add.amountIn, { currency })}
                 />
                 <button
                   type="button"
@@ -376,7 +380,7 @@ export function ItemizeForm({ groupId, myProfileId }: { groupId: string; myProfi
                       aria-pressed={claimed}
                       onClick={() => claim(line.key, member.id)}
                     >
-                      {nameOf(member)}
+                      {memberLabel(member, myProfileId, t.add.you)}
                     </button>
                   );
                 })}
@@ -434,7 +438,7 @@ export function ItemizeForm({ groupId, myProfileId }: { groupId: string; myProfi
               aria-pressed={payer === member.id}
               onClick={() => setPayer(member.id)}
             >
-              {nameOf(member)}
+              {memberLabel(member, myProfileId, t.add.you)}
             </button>
           ))}
         </div>
@@ -453,7 +457,9 @@ export function ItemizeForm({ groupId, myProfileId }: { groupId: string; myProfi
               return (
                 <div key={memberId} className="item" style={{ cursor: 'default' }}>
                   <span className="grow">
-                    <span className="title">{member ? nameOf(member) : t.join.someone}</span>
+                    <span className="title">
+                      {member ? memberLabel(member, myProfileId, t.add.you) : t.join.someone}
+                    </span>
                   </span>
                   <span className="amount">{money(share, currency, locale)}</span>
                 </div>
