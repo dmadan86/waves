@@ -1207,7 +1207,7 @@ describe('a quiet poll leaves the disk alone', () => {
 });
 
 describe('the poll sleeps while the app is in the background', () => {
-  it('pauses and resumes the 30s timer', async () => {
+  it('pauses and resumes the 5-minute timer', async () => {
     vi.useFakeTimers();
     try {
       online();
@@ -1217,17 +1217,17 @@ describe('the poll sleeps while the app is in the background', () => {
 
       engine.start();
       expect(engine.isPolling()).toBe(true);
-      await vi.advanceTimersByTimeAsync(30_000);
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
       expect(h.invoke).toHaveBeenCalledTimes(1);
 
       engine.pause();
       expect(engine.isPolling()).toBe(false);
-      await vi.advanceTimersByTimeAsync(120_000);
+      await vi.advanceTimersByTimeAsync(20 * 60_000);
       expect(h.invoke).toHaveBeenCalledTimes(1);
 
       engine.resume();
       expect(engine.isPolling()).toBe(true);
-      await vi.advanceTimersByTimeAsync(30_000);
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
       expect(h.invoke).toHaveBeenCalledTimes(2);
       engine.stop();
     } finally {

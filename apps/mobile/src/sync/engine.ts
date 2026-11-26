@@ -130,8 +130,13 @@ interface SyncResponseBody {
   >;
 }
 
-/** While the app is open and online, catch anything Realtime missed. */
-const POLL_INTERVAL_MS = 30_000;
+/**
+ * While the app is open and online, catch anything Realtime missed. Realtime
+ * delivers group changes live, so this is only a safety net: 5 minutes keeps
+ * request volume (and the free-tier logs/egress) low. Coming back to the app
+ * still flushes at once (AppState listener).
+ */
+const POLL_INTERVAL_MS = 5 * 60_000;
 
 /** A sync request that has connected but is never answered would otherwise hang
  * the flush in `Syncing` forever — and because `this.flushing` dedupes, every
@@ -691,7 +696,7 @@ export class SyncEngine {
 
       // Hold the old references when this flush folded in nothing.
       //
-      // The 30s poll (POLL_INTERVAL_MS) runs this round trip on a loop, and the
+      // The background poll (POLL_INTERVAL_MS) runs this round trip on a loop, and the
       // common answer is "nothing new": no rows to apply and the cursors already
       // where they are. reconcile still allocates a fresh tables/cursors object
       // and applyOutcomes a fresh queue array, so assigning them would hand the
