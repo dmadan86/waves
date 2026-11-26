@@ -45,6 +45,8 @@ import { fill, plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
 import { parseAmountText } from '@/lib/amount';
+import { isExpenseGone } from '@/lib/expenseGone';
+import { localIsoDate } from '@/lib/localDate';
 import { goAfterSave } from '@/lib/navigate';
 import { memberLabel } from '@/lib/memberLabel';
 import { splitHint } from '@/lib/splitHint';
@@ -89,7 +91,7 @@ export function ExpenseForm({
   const [chosenCategory, setChosenCategory] = useState<string | null>(null);
   /** True once a person has picked, which retires the guess for this expense. */
   const [categoryChosen, setCategoryChosen] = useState(false);
-  const [expenseDate, setExpenseDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [expenseDate, setExpenseDate] = useState(() => localIsoDate());
   const [payer, setPayer] = useState<string | null>(null);
   const [participants, setParticipants] = useState<string[]>([]);
   const [kind, setKind] = useState<SplitKind>(SplitKind.Equal);
@@ -111,6 +113,8 @@ export function ExpenseForm({
   const [reimbursable, setReimbursable] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Edit only: another tab deleted this expense while the form was open.
+  const [gone, setGone] = useState(false);
 
   /**
    * The id this expense will be written under: the one being edited, or one
@@ -437,6 +441,11 @@ export function ExpenseForm({
     setError(null);
     setSaving(true);
     try {
+      if (editing && isExpenseGone(await waves.expense(targetExpenseId))) {
+        setGone(true);
+        setSaving(false);
+        return;
+      }
       await waves.writeExpense({
         groupId,
         expenseId: targetExpenseId,
@@ -459,11 +468,13 @@ export function ExpenseForm({
         friendlyError(caught, 'web.expenseForm.submit', {
           fallback: t.errors.couldNotSave,
           offline: t.errors.offline,
+          signedOut: t.errors.signedOut,
         }),
       );
       setSaving(false);
     }
   }, [
+    editing,
     amount,
     payer,
     params,
@@ -481,7 +492,16 @@ export function ExpenseForm({
     t.add.defaultDescription,
     t.errors.couldNotSave,
     t.errors.offline,
+    t.errors.signedOut,
   ]);
+
+  // An offline message that outlives the outage tells somebody to fix what is
+  // already fixed.
+  useEffect(() => {
+    const back = () => setError((current) => (current === t.errors.offline ? null : current));
+    window.addEventListener('online', back);
+    return () => window.removeEventListener('online', back);
+  }, [t.errors.offline]);
 
   if (!ready || !group) {
     return (
@@ -886,7 +906,36 @@ export function ExpenseForm({
           ) : null}
         </section>
 
-        {error ? <p className="error">{error}</p> : null}
+        {error ? (
+          <p className="error">
+            {error}
+            {error === t.errors.signedOut ? (
+              <>
+                {' '}
+                <a href={window.location.href} target="_blank" rel="noreferrer">
+                  {t.errors.signIn}
+                </a>
+              </>
+            ) : null}
+          </p>
+        ) : null}
+        {gone ? (
+          <p className="error">
+            {t.errors.expenseDeleted}{' '}
+            <button
+              type="button"
+              className="btn soft"
+              onClick={() => {
+                void waves
+                  .restoreExpense(targetExpenseId)
+                  .then(() => setGone(false))
+                  .catch(() => setError(t.errors.couldNotSave));
+              }}
+            >
+              {t.expense.restore}
+            </button>
+          </p>
+        ) : null}
 
         <div style={{ display: 'flex', gap: 10 }}>
           <button

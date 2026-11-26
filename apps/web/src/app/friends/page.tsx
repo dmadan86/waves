@@ -17,6 +17,7 @@ import type { PersonBalanceRow } from '@waves/api-client';
 import { AppFrame } from '@/components/AppFrame';
 import { Section } from '@/components/Shell';
 import { SkeletonRows } from '@/components/Skeleton';
+import { initialOf } from '@/lib/memberLabel';
 import { waves } from '@/lib/waves';
 import { money } from '@/lib/money';
 import { plural } from '@/i18n';
@@ -97,7 +98,7 @@ function Friends({ query }: { query: string }) {
                 <div key={person.key} className="item-pair">
                   <Link href={`/friends/${encodeURIComponent(person.key)}`} className="item grow">
                     <span className="avatar" aria-hidden style={{ width: 38, height: 38 }}>
-                      {person.name.trim().charAt(0).toUpperCase() || '?'}
+                      {initialOf(person.name)}
                     </span>
                     <span className="grow">
                       <span className="title">{person.name}</span>

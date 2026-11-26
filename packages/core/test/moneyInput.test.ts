@@ -49,7 +49,7 @@ describe('sanitiseMinorInput', () => {
   });
 
   it('refuses a decimal point in a currency that has no minor unit', () => {
-    expect(sanitiseMinorInput('1.5', 'JPY')).toBe('15');
+    expect(sanitiseMinorInput('1.5', 'JPY')).toBe('1');
     expect(sanitiseMinorInput('1000', 'JPY')).toBe('1000');
   });
 

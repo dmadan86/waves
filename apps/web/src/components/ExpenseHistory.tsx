@@ -289,7 +289,7 @@ export function ExpenseHistory({
   const roster = past ?? members;
   const who = (id: string | null) => {
     const member = roster.find((row) => row.id === id);
-    return member ? nameOf(member) : t.join.someone;
+    return member ? (member.id === myMemberId ? t.add.you : nameOf(member)) : t.join.someone;
   };
 
   // Ascending, so each version can look one step back for its diff.

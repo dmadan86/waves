@@ -63,6 +63,8 @@ export interface Theme {
     readonly positive: string;
     readonly positiveSoft: string;
     readonly negative: string;
+    /** Negative as TEXT on a light surface: the fill colour is under 4.5:1 on white. */
+    readonly negativeText: string;
     readonly negativeSoft: string;
     readonly warning: string;
     readonly warningSoft: string;
@@ -140,6 +142,7 @@ export const lightTheme: Theme = {
     positive: palette.positive,
     positiveSoft: palette.mint,
     negative: palette.negative,
+    negativeText: '#BE1E3C',
     negativeSoft: palette.pink,
     warning: palette.warning,
     warningSoft: palette.peach,
@@ -182,6 +185,7 @@ export const darkTheme: Theme = {
     positive: '#60A5FA',
     positiveSoft: '#17325C',
     negative: '#FF7088',
+    negativeText: '#FF7088',
     negativeSoft: '#4A2A31',
     warning: '#E8A54B',
     warningSoft: '#463020',

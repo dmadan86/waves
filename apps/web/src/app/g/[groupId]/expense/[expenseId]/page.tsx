@@ -17,7 +17,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { parseSplitParams, type GroupUnits, type UnitsParams } from '@waves/core';
 import {
   nameOf,
-  pastNameOf,
   type DisputeRow,
   type Expense,
   type ExpenseVersionSummary,
@@ -30,6 +29,7 @@ import { ExpenseHistory } from '@/components/ExpenseHistory';
 import { ExpenseReceipts } from '@/components/ExpenseReceipts';
 import { Section } from '@/components/Shell';
 import { SkeletonRows } from '@/components/Skeleton';
+import { memberLabel } from '@/lib/memberLabel';
 import { waves } from '@/lib/waves';
 import { money } from '@/lib/money';
 import { coordLabel, mapsUrl } from '@/lib/geo';
@@ -186,7 +186,9 @@ function ExpenseDetail({
   const byId = new Map(everyone.map((m) => [m.id, m]));
   const nameFor = (id: string) => {
     const member = byId.get(id);
-    return member ? pastNameOf(member, t.group.memberLeft) : nameOf(fallback(id));
+    return member
+      ? memberLabel(member, profileId, t.add.you, t.group.memberLeft)
+      : nameOf(fallback(id));
   };
   const currency = version.currency;
   const deleted = Boolean(expense.deleted_at);

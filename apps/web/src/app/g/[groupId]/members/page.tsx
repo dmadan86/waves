@@ -26,6 +26,7 @@ import type { GroupRow, Member } from '@waves/api-client';
 import { AppFrame } from '@/components/AppFrame';
 import { Section } from '@/components/Shell';
 import { SkeletonRows } from '@/components/Skeleton';
+import { initialOf } from '@/lib/memberLabel';
 import { waves } from '@/lib/waves';
 import { fill } from '@/i18n';
 import { useStrings } from '@/i18n-context';
@@ -141,15 +142,14 @@ function Members({ profileId }: { profileId: string }) {
                 return (
                   <div key={member.id} className="item" style={{ cursor: 'default' }}>
                     <span className="avatar" aria-hidden style={{ width: 38, height: 38 }}>
-                      {nameOf(member).charAt(0).toUpperCase()}
+                      {initialOf(nameOf(member))}
                     </span>
                     {/* The name opens the person: what they owe or are owed
                         here, and the bills they are on. The row itself stays
                         put, because the controls beside it are not a link. */}
                     <span className="grow">
                       <Link className="title plain-link" href={`/g/${groupId}/member/${member.id}`}>
-                        {nameOf(member)}
-                        {isMe ? ` · ${t.members.you}` : ''}
+                        {isMe ? t.members.you : nameOf(member)}
                       </Link>
                       <span className="meta">
                         {[
