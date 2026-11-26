@@ -32,11 +32,17 @@ export function useSessionLost(): boolean {
   );
 }
 
-const REJECTED = /invalid jwt|jwt expired|session_not_found|refresh_token_not_found|invalid refresh token|NOT_SIGNED_IN|not authenticated/i;
+const REJECTED =
+  /invalid jwt|jwt expired|session_not_found|refresh_token_not_found|invalid refresh token|NOT_SIGNED_IN|not authenticated/i;
 
 /** True when the server turned our token down (as opposed to being unreachable). */
 export function isAuthRejection(caught: unknown): boolean {
-  const e = (caught ?? {}) as { status?: number; message?: string; code?: string; context?: { status?: number } };
+  const e = (caught ?? {}) as {
+    status?: number;
+    message?: string;
+    code?: string;
+    context?: { status?: number };
+  };
   return (
     e.status === 401 ||
     e.context?.status === 401 ||
@@ -51,7 +57,15 @@ export function endSessionIfRevoked(): Promise<boolean> {
   inFlight ??= (async () => {
     const { error } = await backend.auth.refreshSession().catch(() => ({ error: null }));
     // No error, or one that never reached the server (offline): the session may still be fine.
-    if (!error || !(error.status === 400 || error.status === 401 || error.status === 403 || isAuthRejection(error))) {
+    if (
+      !error ||
+      !(
+        error.status === 400 ||
+        error.status === 401 ||
+        error.status === 403 ||
+        isAuthRejection(error)
+      )
+    ) {
       return false;
     }
     publish(true);
