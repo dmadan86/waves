@@ -26,7 +26,12 @@ describe('sanitiseMinorInput', () => {
   });
 
   it('strips anything that is not a digit or a separator', () => {
-    expect(sanitiseMinorInput('₹1,2 3abc', 'INR')).toBe('123');
+    expect(sanitiseMinorInput('₹1 2 3abc', 'INR')).toBe('123');
+  });
+
+  it('reads a comma typed on a European keypad as the decimal point', () => {
+    expect(sanitiseMinorInput('1,2', 'EUR')).toBe('1.2');
+    expect(sanitiseMinorInput('1,234', 'INR')).toBe('1234');
   });
 
   it('keeps only the first decimal point', () => {
