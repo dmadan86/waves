@@ -27,10 +27,7 @@ import { PropertyArt } from '@/components/wealth/PropertyArt';
 import { DetailsCard, DocumentsCard } from '@/components/wealth/RentalExtras';
 import { RaiseCard, useRaisePrompts } from '@/components/wealth/RaiseCard';
 import { AmountSheet, RenameSheet, StatusPill, useWealthMoney } from '@/components/wealth/parts';
-import {
-  todayIso,
-  usePersonalLedger,
-} from '@/data/personal';
+import { todayIso, usePersonalLedger } from '@/data/personal';
 import {
   usePersonalWealth,
   useRentalStore,

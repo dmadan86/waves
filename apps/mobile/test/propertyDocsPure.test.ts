@@ -31,7 +31,6 @@ describe('propertyDocsPure', () => {
     expect(i.p2).toBeUndefined();
   });
 
-
   it('maps mime and extension', () => {
     expect(docMime('x.PDF')).toBe('application/pdf');
     expect(docMime('x.jpeg')).toBe('image/jpeg');
