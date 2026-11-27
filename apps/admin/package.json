@@ -12,7 +12,7 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.119.1",
+    "@supabase/supabase-js": "^2.119.2",
     "@waves/core": "workspace:*",
     "echarts": "^6.1.0",
     "echarts-for-react": "^3.1.0",
