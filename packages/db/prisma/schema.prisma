@@ -197,6 +197,7 @@ model Profile {
   categoryTags              CategoryTag[]
   personalRecords           PersonalRecord[]
   e2eeDevices               E2eeDevice[]
+  e2eeRevokedKeys           E2eeRevokedKey[]
   packInstalls              PackInstall[]
   packRequests              PackRequest[]
   groupPins                 GroupPin[]
@@ -3198,6 +3199,19 @@ model E2eeDevice {
 
   @@unique([profileId, publicKey], map: "e2ee_devices_profile_key_unique")
   @@map("e2ee_devices")
+  @@schema("public")
+}
+
+/// Public keys removed from an account cannot be registered again by that account.
+model E2eeRevokedKey {
+  profileId String   @map("profile_id") @db.Uuid
+  publicKey Bytes    @map("public_key")
+  revokedAt DateTime @default(now()) @map("revoked_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade, map: "e2ee_revoked_keys_profile_id_fkey")
+
+  @@id([profileId, publicKey])
+  @@map("e2ee_revoked_keys")
   @@schema("public")
 }
 

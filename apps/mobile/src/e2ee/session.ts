@@ -2,6 +2,9 @@
 export const ownerMismatch = (storedOwner: string | null, profileId: string): boolean =>
   storedOwner !== null && storedOwner !== profileId;
 
+export const canAdoptLegacyOwner = (lastProfileId: string | null, profileId: string): boolean =>
+  lastProfileId !== null && lastProfileId === profileId;
+
 export class SessionGeneration {
   private value = 0;
 

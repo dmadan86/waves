@@ -113,6 +113,7 @@ const FIELDS: Record<string, ReadonlySet<string>> = {
     'kind',
     'loanId',
     'recurringId',
+    'occurrenceDate',
     'paymentMethod',
     'place',
     'reimbursable',
@@ -136,6 +137,7 @@ const FIELDS: Record<string, ReadonlySet<string>> = {
     'kind',
     'loanId',
     'recurringId',
+    'occurrenceDate',
     'paymentMethod',
     'place',
     'reimbursable',
@@ -322,6 +324,12 @@ export function validateOp(
         return { ok: false, reason: 'field' };
       validateHlc(raw[1]);
       const value = raw[0];
+      if (
+        name === 'occurrenceDate' &&
+        typeof value === 'string' &&
+        !/^\d{4}-\d{2}-\d{2}$/.test(value)
+      )
+        return { ok: false, reason: 'field' };
       const isObject = value !== null && typeof value === 'object' && !Array.isArray(value);
       const isCarried = !allowedFields.has(name);
       const isEncodedObject = isObject && (isCarried || (op.kind === 'loan' && name === 'synced'));

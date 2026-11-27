@@ -164,6 +164,65 @@ describe('new phone notice', () => {
 });
 
 describe('backup of couple data', () => {
+  it('restoring an older snapshot cannot erase a newer tombstone in a former copy', async () => {
+    const { server } = await setup();
+    const c = phone(server, 'pA', 'mA', 21, { t: 1_700_000_000_000 }, []);
+    await c.space.applyIncoming([
+      {
+        groupId: 'former:' + G,
+        senderMemberId: 'mA',
+        trusted: true,
+        ops: [
+          {
+            op: 'put',
+            id: 'x',
+            kind: 'property',
+            createdBy: 'mA',
+            create: true,
+            fields: { name: ['Old', '1:0:A'] },
+          },
+        ],
+      },
+    ]);
+    const old = c.space.backupCouple(() => 'Home');
+    await c.space.applyIncoming([
+      {
+        groupId: 'former:' + G,
+        senderMemberId: 'mA',
+        trusted: true,
+        ops: [{ op: 'del', id: 'x', hlc: '5:0:A' }],
+      },
+    ]);
+    await c.space.restoreCouple(old, []);
+    expect(c.space.records('former:' + G)).toHaveLength(0);
+  });
+
+  it('merges former-only backup history after rejoining an empty live store', async () => {
+    const { server } = await setup();
+    const oldPhone = phone(server, 'pA', 'mA', 22, { t: 1_700_000_000_000 }, []);
+    await oldPhone.space.applyIncoming([
+      {
+        groupId: 'former:' + G,
+        senderMemberId: 'mA',
+        trusted: true,
+        ops: [
+          {
+            op: 'put',
+            id: 'history',
+            kind: 'property',
+            createdBy: 'mA',
+            create: true,
+            fields: { name: ['History', '1:0:A'] },
+          },
+        ],
+      },
+    ]);
+    const former = oldPhone.space.backupCouple(() => 'Home');
+    const rejoined = phone(server, 'pA', 'mA', 23, { t: 1_700_000_000_000 }, []);
+    await rejoined.space.restoreCouple(former, [G]);
+    expect(rejoined.space.records(G).map((r) => r.id)).toContain('history');
+  });
+
   it('round-trips through the backup body and restores into the e2ee tables only', async () => {
     const { server, a } = await setup();
     const couple = a.space.backupCouple(() => 'Home');

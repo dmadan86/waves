@@ -453,6 +453,7 @@ export function useWealthWrites(groupId?: string) {
           // A generic note: the tenant's name never goes into an entry.
           note: `Rent · ${label}`,
           date,
+          ...(fullDue ? { occurrenceDate: fullDue.date } : {}),
           loanId: null,
           recurringId: fullDue?.ruleId ?? rule.id,
           propertyId,

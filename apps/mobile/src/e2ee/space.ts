@@ -134,6 +134,7 @@ function lastHlc(store: Store): string | null {
 export class E2eeSpace {
   private stores = new Map<string, Store>();
   private pendingByGroup = new Map<string, e2ee.PendingOp[]>();
+  private pendingOverflowReported = false;
   private listeners = new Set<() => void>();
   private cache = new Map<string, { store: Store; list: readonly GroupRecord[] }>();
   private chain: Promise<unknown> = Promise.resolve();
@@ -191,7 +192,9 @@ export class E2eeSpace {
   }
 
   private reportPendingOverflow(groupId: string): void {
-    this.io.report?.(new Error('E2EE_PENDING_LIMIT'), `e2ee.pending.limit:${groupId}`);
+    if (this.pendingOverflowReported) return;
+    this.pendingOverflowReported = true;
+    this.io.report?.(new Error('E2EE_PENDING_LIMIT'), 'e2ee.pending.limit');
   }
 
   groupIds(): string[] {
@@ -303,9 +306,14 @@ export class E2eeSpace {
     for (const c of entries) byGroup.set(c.groupId, [...(byGroup.get(c.groupId) ?? []), c]);
     for (const [groupId, group] of byGroup) {
       if (!isCurrent()) return;
-      const asLive = group.filter((c) => !c.former);
-      // A former-only copy of a group this account is in again is stale: the live store has it.
-      if (asLive.length === 0 && liveGroupIds.includes(groupId)) continue;
+      const live = liveGroupIds.includes(groupId);
+      const formerId = FORMER + groupId;
+      const targetId =
+        live && this.stores.has(groupId)
+          ? groupId
+          : this.stores.has(formerId) && (!live || !this.stores.has(groupId))
+            ? formerId
+            : groupId;
       const ops: e2ee.MergeOp[] = [];
       for (const c of group) {
         const records = e2ee.decodeJson(c.records) as e2ee.RecordState[];
@@ -324,14 +332,14 @@ export class E2eeSpace {
       }
       if (
         !(await this.applyIncoming(
-          [{ groupId, ops, senderMemberId: '', trusted: true }],
+          [{ groupId: targetId, ops, senderMemberId: '', trusted: true }],
           isCurrent,
         ))
       )
         return;
       if (!isCurrent()) return;
       // Never retire a group this account is in: that would turn live records read-only.
-      if (!liveGroupIds.includes(groupId)) await this.retire(groupId, group[0]!.name, isCurrent);
+      if (!live && targetId === groupId) await this.retire(groupId, group[0]!.name, isCurrent);
     }
   }
 
@@ -525,8 +533,12 @@ export class E2eeSpace {
             remaining.map((item) => [`${item.sender}:${e2ee.encodeJson(item.op)}`, item]),
           ).values(),
         ];
-        const unique = deduped.slice(-500);
-        if (deduped.length > 500) this.reportPendingOverflow(e.groupId);
+        const unique = deduped;
+        const bytes = e2ee.encodeJson(unique).length * 2;
+        if (bytes > 2 * 1024 * 1024) {
+          this.reportPendingOverflow(e.groupId);
+          throw new Error('E2EE_PENDING_LIMIT');
+        }
         pendingUpdates.set(e.groupId, unique);
         g.next = replayed;
         for (const op of e.ops) g.touched.add(op.id);

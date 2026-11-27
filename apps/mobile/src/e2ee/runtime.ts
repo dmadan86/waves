@@ -21,7 +21,7 @@ import type { BackupCouple } from '@/lib/backup/payload';
 import type { Meta } from './deviceNotice';
 import { createMailbox } from './mailbox';
 import { E2eeSpace, type GroupRecord } from './space';
-import { ownerMismatch, SessionGeneration } from './session';
+import { canAdoptLegacyOwner, ownerMismatch, SessionGeneration } from './session';
 
 export const e2eeSpace = new E2eeSpace(
   syncEngine.localStore,
@@ -40,6 +40,7 @@ const hydrationListeners = new Set<() => void>();
 const notifyHydration = () => hydrationListeners.forEach((listener) => listener());
 const generations = new SessionGeneration();
 const OWNER_KEY = 'waves.e2ee.owner';
+const LAST_PROFILE_KEY = 'waves.auth.last-profile-id';
 let pendingMetaCleanup: Promise<void> = Promise.resolve();
 
 /** Capture the active E2EE account generation for work that crosses awaits. */
@@ -51,22 +52,28 @@ export function captureE2eeOwner(ownerId: string): () => boolean {
 /** This phone's device id on the server, registering it first if need be. */
 export async function ensureDeviceId(profileId = activeProfileId): Promise<string> {
   if (!profileId) return Promise.reject(new Error('E2EE requires a verified profile id'));
+  const isCurrent = activeProfileId === profileId ? isSessionCurrent : () => false;
+  const current = () => activeProfileId === profileId && isCurrent();
   const revokedKey = `waves.e2ee.revoked.${encodeURIComponent(profileId)}`;
-  if (await AsyncStorage.getItem(revokedKey)) throw new Error('E2EE device was revoked');
+  if (await AsyncStorage.getItem(revokedKey)) {
+    if (!current()) throw new Error('E2EE session changed');
+    throw new Error('E2EE device was revoked');
+  }
   const storedDeviceId = await AsyncStorage.getItem(
     `waves.e2ee.device-id.${encodeURIComponent(profileId)}`,
   );
-  if (activeProfileId !== profileId)
+  if (!current())
     return activeProfileId
       ? ensureDeviceId(activeProfileId)
       : Promise.reject(new Error('E2EE session changed'));
+  if (!current()) throw new Error('E2EE session changed');
   if (
     storedDeviceId &&
     (await AsyncStorage.getItem(`${META_PREFIX}device-revoked:${storedDeviceId}`)) === '1'
   )
     throw new Error('E2EE device was revoked');
   if (storedDeviceId) {
-    if (activeProfileId !== profileId)
+    if (!current())
       return activeProfileId
         ? ensureDeviceId(activeProfileId)
         : Promise.reject(new Error('E2EE session changed'));
@@ -75,7 +82,7 @@ export async function ensureDeviceId(profileId = activeProfileId): Promise<strin
       .select('id')
       .eq('id', storedDeviceId)
       .maybeSingle();
-    if (activeProfileId !== profileId)
+    if (!current())
       return activeProfileId
         ? ensureDeviceId(activeProfileId)
         : Promise.reject(new Error('E2EE session changed'));
@@ -83,8 +90,9 @@ export async function ensureDeviceId(profileId = activeProfileId): Promise<strin
     if (data === null) {
       // A profile switch during the directory request must not record this
       // account's revocation against a different active session.
-      if (activeProfileId !== profileId) return ensureDeviceId(activeProfileId ?? undefined);
-      await markDeviceRevoked(profileId);
+      if (!current()) throw new Error('E2EE session changed');
+      await markDeviceRevoked(profileId, current);
+      if (!current()) throw new Error('E2EE session changed');
       await AsyncStorage.setItem(`${META_PREFIX}device-revoked:${storedDeviceId}`, '1');
       throw new Error('E2EE device was revoked');
     }
@@ -94,11 +102,11 @@ export async function ensureDeviceId(profileId = activeProfileId): Promise<strin
   let pending = registering.get(profileId);
   if (!pending) {
     pending = registerDevice(profileId, async (publicKey) => {
-      if (activeProfileId !== profileId) throw new Error('E2EE session changed');
+      if (!current()) throw new Error('E2EE session changed');
       const { data, error } = await backend.rpc('waves_register_device', {
         p_public_key: publicKey,
       });
-      if (activeProfileId !== profileId) throw new Error('E2EE session changed');
+      if (!current()) throw new Error('E2EE session changed');
       if (error) throw error;
       return data as string;
     }).finally(() => {
@@ -107,17 +115,24 @@ export async function ensureDeviceId(profileId = activeProfileId): Promise<strin
     registering.set(profileId, pending);
   }
   const id = await pending;
+  if (!current()) throw new Error('E2EE session changed');
   await AsyncStorage.setItem(`waves.e2ee.device-id.${encodeURIComponent(profileId)}`, id);
+  if (!current()) throw new Error('E2EE session changed');
   if ((await AsyncStorage.getItem(`${META_PREFIX}device-revoked:${id}`)) === '1') {
-    await markDeviceRevoked(profileId);
+    await markDeviceRevoked(profileId, current);
     throw new Error('E2EE device was revoked');
   }
   return id;
 }
 
 /** Record a server-side device revocation so background restart cannot re-enrol it. */
-export async function markDeviceRevoked(profileId: string): Promise<void> {
+export async function markDeviceRevoked(
+  profileId: string,
+  isCurrent: () => boolean = () => activeProfileId === profileId,
+): Promise<void> {
+  if (!isCurrent()) throw new Error('E2EE session changed');
   await AsyncStorage.setItem(`waves.e2ee.revoked.${encodeURIComponent(profileId)}`, '1');
+  if (!isCurrent()) throw new Error('E2EE session changed');
   forgetDeviceId(profileId);
 }
 
@@ -167,11 +182,16 @@ const mailbox = createMailbox({
   outbox: syncEngine.localStore,
   keys: { pair: () => loadDeviceKey(activeProfileId ?? ''), deviceId: () => ensureDeviceId() },
   deviceStatus: async (deviceId) => {
+    const owner = activeProfileId;
+    const generation = generations.snapshot();
+    const current = () =>
+      owner !== null && owner === activeProfileId && generations.matches(generation);
     const { data, error } = await backend
       .from('e2ee_devices')
       .select('id')
       .eq('id', deviceId)
       .maybeSingle();
+    if (!current()) throw new Error('E2EE session changed');
     if (error) throw error;
     return data !== null;
   },
@@ -246,12 +266,27 @@ async function startE2eeLocked(profileId: string): Promise<void> {
     await AsyncStorage.setItem(OWNER_KEY, profileId);
   } else if (storedOwner === null) {
     if (!isCurrent()) return;
+    const [lastProfile, legacyRecords] = await Promise.all([
+      AsyncStorage.getItem(LAST_PROFILE_KEY),
+      syncEngine.localStore.readE2eeRecords(),
+    ]);
+    if (!isCurrent()) return;
+    if (legacyRecords.length > 0 && !canAdoptLegacyOwner(lastProfile, profileId)) {
+      await syncEngine.localStore.wipeE2ee();
+      if (!isCurrent()) return;
+      const keys = await AsyncStorage.getAllKeys();
+      if (!isCurrent()) return;
+      await AsyncStorage.removeMany(keys.filter((k) => k.startsWith(META_PREFIX)));
+      if (!isCurrent()) return;
+    }
     await AsyncStorage.setItem(OWNER_KEY, profileId);
   }
   if (!isCurrent()) return;
   await e2eeSpace.load(isCurrent);
   if (!isCurrent()) return;
   hydratedOwnerId = profileId;
+  await AsyncStorage.setItem(LAST_PROFILE_KEY, profileId);
+  if (!isCurrent()) return;
   notifyHydration();
   await mailbox.notices.load();
   if (!isCurrent()) return;

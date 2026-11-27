@@ -290,7 +290,7 @@ export function isSharedOccurrenceId(
   if (sharedOccurrenceIds.has(id)) return true;
   // After a restart the set is empty: recognise the id from the record's own rule and date.
   const rule = fields?.recurringId?.[0];
-  const date = fields?.date?.[0];
+  const date = fields?.occurrenceDate?.[0] ?? fields?.date?.[0];
   return (
     typeof rule === 'string' &&
     typeof date === 'string' &&

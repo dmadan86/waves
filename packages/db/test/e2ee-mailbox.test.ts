@@ -85,6 +85,18 @@ describe('devices', () => {
     expect(await n(`SELECT count(*) n FROM e2ee_devices WHERE id = $1`, [a])).toBe(0);
   });
 
+  it('keeps a removed device key revoked for its profile only', async () => {
+    const profile = couple.profileIds[alice]!;
+    const otherProfile = couple.profileIds[bob]!;
+    const removedKey = randomBytes(32);
+    const removedId = await register(profile, removedKey);
+    await as(profile, () => client.query(`SELECT waves_remove_device($1)`, [removedId]));
+
+    await expect(register(profile, removedKey)).rejects.toThrow('DEVICE_REVOKED');
+    expect(await register(profile, randomBytes(32))).toBeTruthy();
+    expect(await register(otherProfile, removedKey)).toBeTruthy();
+  });
+
   it('rejects a key that is not 32 bytes and direct writes', async () => {
     await expect(register(couple.profileIds[alice]!, randomBytes(31))).rejects.toThrow();
     await expectDenied(

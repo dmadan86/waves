@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { E2eeSpace } from '../src/e2ee/space';
-import { e2ee } from '@waves/core';
+import { e2ee, recurringOccurrenceId } from '@waves/core';
 
 class PendingStore {
   records: import('../src/sync/store').E2eeRecordRow[] = [];
@@ -182,5 +182,42 @@ describe('E2EE buffered operation authorization', () => {
     for (let i = 0; i < 3; i++)
       await space.applyIncoming([{ groupId: 'g', senderMemberId: 'mA', ops: [edit] }]);
     expect(store.pending.get('g')).toHaveLength(1);
+  });
+
+  it('keeps and replays 600 buffered edits when their create arrives', async () => {
+    const store = new PendingStore();
+    const space = new E2eeSpace(store, { now: () => 1_700_000_000_000, newId: () => 'id' });
+    const id = recurringOccurrenceId('rent-rule', '2027-01-01');
+    const edits = Array.from({ length: 600 }, (_, i): e2ee.PutOp => ({
+      op: 'put',
+      id,
+      kind: 'txn',
+      createdBy: 'other',
+      fields: { note: [String(i), `${i + 2}:0:A`] },
+    }));
+    await space.applyIncoming([{ groupId: 'g', senderMemberId: 'm', ops: edits }]);
+    expect(store.pending.get('g')).toHaveLength(600);
+    await space.applyIncoming([
+      {
+        groupId: 'g',
+        senderMemberId: 'other',
+        ops: [
+          {
+            op: 'put',
+            id,
+            kind: 'txn',
+            createdBy: 'other',
+            create: true,
+            fields: {
+              recurringId: ['rent-rule', '1:0:A'],
+              date: ['2027-01-01', '1:0:A'],
+              note: ['base', '1:0:A'],
+            },
+          },
+        ],
+      },
+    ]);
+    expect(space.records('g')[0]?.data.note).toBe('599');
+    expect(store.pending.get('g')).toHaveLength(0);
   });
 });
