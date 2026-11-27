@@ -23,6 +23,7 @@ import { useRouter } from 'next/navigation';
 import type { InvitePreview } from '@waves/api-client';
 import {
   isAccountRequired,
+  isLeftGroup,
   isRemovedFromGroup,
   JoinGate,
   joinGate,
@@ -113,10 +114,12 @@ export function JoinFlow({ token, resume = false }: { token: string; resume?: bo
             ? t.join.accountRequired
             : isRemovedFromGroup(caught)
               ? t.join.removedFromGroup
-              : friendlyError(caught, 'web.join.accept', {
-                  fallback: t.errors.couldNotSave,
-                  offline: t.errors.offline,
-                }),
+              : isLeftGroup(caught)
+                ? t.join.leftGroup
+                : friendlyError(caught, 'web.join.accept', {
+                    fallback: t.errors.couldNotSave,
+                    offline: t.errors.offline,
+                  }),
         );
         setJoining(false);
       }

@@ -17,6 +17,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   ACCOUNT_REQUIRED,
   handleInviteAccept,
+  LEFT_GROUP,
   REMOVED_FROM_GROUP,
   type InviteAcceptDeps,
 } from './handler.ts';
@@ -191,6 +192,24 @@ describe('invite-accept requires an account to join', () => {
     expect(body.code).toBe(REMOVED_FROM_GROUP);
     expect(body.message).toBe('You were removed from this group. Ask an admin for a new invite.');
     expect(inserts).toEqual([]);
+  });
+
+  it('maps LEFT on a direct join and on a ghost claim to 403 LEFT_GROUP', async () => {
+    const direct = harness({ joinResult: { data: { ok: false, reason: 'LEFT' }, error: null } });
+    const response = await handleInviteAccept(post({ token: 't', mode: 'join' }), direct.deps);
+    expect(response.status).toBe(403);
+    const body = await response.json();
+    expect(body.code).toBe(LEFT_GROUP);
+    expect(body.message).toBe('You left this group. Ask a member to send you a new invite link.');
+    const claim = harness({
+      members: [{ id: 'ghost-1', ghost_name: 'Ravi', profile_id: null }],
+      claimResult: { data: { ok: false, reason: 'LEFT' }, error: null },
+    });
+    const claimed = await handleInviteAccept(
+      post({ token: 't', mode: 'join', claimMemberId: 'ghost-1' }),
+      claim.deps,
+    );
+    expect((await claimed.json()).code).toBe(LEFT_GROUP);
   });
 
   it('maps REMOVED on a ghost claim the same way', async () => {

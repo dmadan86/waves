@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   ACCOUNT_REQUIRED,
   isAccountRequired,
+  isLeftGroup,
   isRemovedFromGroup,
+  LEFT_GROUP,
   REMOVED_FROM_GROUP,
   JoinGate,
   joinGate,
@@ -40,6 +42,20 @@ describe('isAccountRequired', () => {
     expect(isAccountRequired(new Error('INVITE_INVALID: nope'))).toBe(false);
     expect(isAccountRequired(null)).toBe(false);
     expect(isAccountRequired(undefined)).toBe(false);
+  });
+});
+
+describe('isLeftGroup', () => {
+  it('recognises the server code however the client wrapped it', () => {
+    expect(isLeftGroup(new Error('LEFT_GROUP: You left this group.'))).toBe(true);
+    expect(isLeftGroup({ code: LEFT_GROUP })).toBe(true);
+    expect(isLeftGroup('LEFT_GROUP')).toBe(true);
+  });
+  it('ignores other failures, including a removal', () => {
+    expect(isLeftGroup(new Error('REMOVED_FROM_GROUP: nope'))).toBe(false);
+    expect(isLeftGroup(new Error('INVITE_INVALID: nope'))).toBe(false);
+    expect(isLeftGroup(null)).toBe(false);
+    expect(isRemovedFromGroup({ code: LEFT_GROUP })).toBe(false);
   });
 });
 
