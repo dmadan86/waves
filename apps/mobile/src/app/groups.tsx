@@ -10,7 +10,6 @@ import { Pressable, RefreshControl, View } from 'react-native';
 import {
   Button,
   directionalIcon,
-  EmptyState,
   iconSize,
   Screen,
   Text,
@@ -25,6 +24,7 @@ import { fill, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { archiveSuggestion, splitFamily, viewerLeft } from '@/lib/groupSections';
 import { useKeptGroups } from '@/lib/archiveKept';
+import { EmptyCard } from '@/components/standard';
 import { SearchField } from '@/components/SearchToggle';
 import { useSync } from '@/sync/provider';
 import { MutationKind } from '@waves/core';
@@ -164,22 +164,11 @@ function AllGroupsScreen() {
   const empty = loading ? (
     <SkeletonList rows={5} />
   ) : (
-    // The true first-run empty: reassure, explain lightly what a "group" is for,
-    // and hand over the one action that moves you off this screen.
-    <EmptyState
-      icon={<Ionicons name="people-outline" size={iconSize.xxl} color={theme.color.brand} />}
+    <EmptyCard
+      icon="people-outline"
       title={t.tabs.noGroups}
-      body={t.noGroupsBody}
-      action={
-        <View style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-          <Button label={t.newGroup} onPress={() => router.push('/new-group')} />
-          <Button
-            label={t.misc.joinWithCode}
-            variant="ghost"
-            onPress={() => router.push('/scan' as never)}
-          />
-        </View>
-      }
+      helper={t.noGroupsBody}
+      action={{ label: t.newGroup, onPress: () => router.push('/new-group') }}
     />
   );
 
