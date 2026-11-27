@@ -158,3 +158,12 @@ describe('with a DSN', () => {
     expect(obs.withObservability).toBe(h.wrap);
   });
 });
+
+describe('describeError on sensitive paths', () => {
+  it('adds a server error code, never the message', async () => {
+    const obs = await import('../src/lib/observability');
+    const err = { code: '42501', message: 'Ravi owes 400' };
+    expect(obs.describeError(err, 'e2ee.x')).toBe('42501');
+    expect(obs.describeError({ code: '23514', message: 'Ravi' }, 'e2ee.x')).toBe('Error [23514]');
+  });
+});

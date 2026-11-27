@@ -14,7 +14,14 @@ import { reportHandled } from '@/lib/observability';
 import { backend } from '@/lib/backend';
 import { syncEngine } from '@/sync/engine';
 
-import { loadDeviceKey, registerDevice, registeredDeviceId, forgetDeviceId } from './deviceKey';
+import {
+  loadDeviceKey,
+  registerDevice,
+  registeredDeviceId,
+  forgetDeviceId,
+  readInstallDevice,
+  writeInstallDevice,
+} from './deviceKey';
 import { coupleBridge } from '@/lib/backup/coupleBridge';
 import type { BackupCouple } from '@/lib/backup/payload';
 
@@ -47,6 +54,12 @@ let pendingMetaCleanup: Promise<void> = Promise.resolve();
 export function captureE2eeOwner(ownerId: string): () => boolean {
   const generation = generations.snapshot();
   return () => ownerId === activeProfileId && generations.matches(generation);
+}
+
+/** An empty device lookup only means "revoked" if the request was signed in. */
+async function requireSession(): Promise<void> {
+  const { data } = await backend.auth.getSession();
+  if (!data.session) throw new Error('E2EE session not ready');
 }
 
 /** This phone's device id on the server, registering it first if need be. */
@@ -88,6 +101,8 @@ export async function ensureDeviceId(profileId = activeProfileId): Promise<strin
         : Promise.reject(new Error('E2EE session changed'));
     if (error) throw error;
     if (data === null) {
+      // No row can also mean the request went out without a session (refreshing after offline).
+      await requireSession();
       // A profile switch during the directory request must not record this
       // account's revocation against a different active session.
       if (!current()) throw new Error('E2EE session changed');
@@ -115,6 +130,15 @@ export async function ensureDeviceId(profileId = activeProfileId): Promise<strin
     registering.set(profileId, pending);
   }
   const id = await pending;
+  if (!current()) throw new Error('E2EE session changed');
+  // The same install now has a new device id: tell the server the old one is replaced.
+  const previous = storedDeviceId ?? (await readInstallDevice(profileId));
+  if (previous && previous !== id) {
+    await backend
+      .rpc('waves_replace_device', { p_old: previous, p_new: id })
+      .then(undefined, () => undefined); // best effort: the 30-day rule still applies
+  }
+  await writeInstallDevice(profileId, id);
   if (!current()) throw new Error('E2EE session changed');
   await AsyncStorage.setItem(`waves.e2ee.device-id.${encodeURIComponent(profileId)}`, id);
   if (!current()) throw new Error('E2EE session changed');
@@ -193,6 +217,7 @@ const mailbox = createMailbox({
       .maybeSingle();
     if (!current()) throw new Error('E2EE session changed');
     if (error) throw error;
+    if (data === null) await requireSession(); // never mark revoked on an anonymous read
     return data !== null;
   },
   isCurrent: () => activeProfileId !== null && isSessionCurrent(),

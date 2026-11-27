@@ -3192,6 +3192,7 @@ model E2eeDevice {
   publicKey  Bytes    @map("public_key")
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   lastSeenAt DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  replacedAt DateTime? @map("replaced_at") @db.Timestamptz(6)
 
   profile  Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
   sent     GroupMailbox[] @relation("MailboxSender")

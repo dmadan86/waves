@@ -265,6 +265,8 @@ export interface Phone {
   setDeviceStatus(status: boolean): void;
   /** Make the mailbox's next `n` device-id reads fail (a transient key-store error). */
   failDeviceId(n: number): void;
+  /** A reinstall: same account and records, new device key and id. */
+  rotateDevice(newSeed: number): void;
   data(groupId: string): Record<string, Record<string, unknown>>;
 }
 
@@ -279,7 +281,7 @@ export function phone(
   status: { active: boolean } = { active: true },
 ): Phone {
   const store = new MemStore();
-  const key = newKey(seed);
+  let key = newKey(seed);
   const client = server.client(profileId);
   const reports: { error: unknown; where: string }[] = [];
   let current = true;
@@ -363,6 +365,11 @@ export function phone(
     },
     failDeviceId: (n) => {
       flaky.deviceId = n;
+    },
+    rotateDevice: (newSeed) => {
+      key = newKey(newSeed);
+      id = null;
+      mailbox.forgetDevices();
     },
     setDeviceStatus: (active) => {
       deviceActive = active;

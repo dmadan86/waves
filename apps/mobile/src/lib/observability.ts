@@ -148,7 +148,13 @@ export function safeCode(error: unknown): string {
 
 /** What goes to the log and the test-build alert: name/code only on sensitive paths. */
 export function describeError(error: unknown, where: string): string {
-  if (isSensitivePath(where)) return safeCode(error);
+  if (isSensitivePath(where)) {
+    // A server error's code (SQLSTATE / PGRST) names the failure and carries no user data.
+    const code = (error as { code?: unknown } | null)?.code;
+    const shown = typeof code === 'string' && /^([0-9A-Z]{5}|PGRST\d+)$/.test(code) ? code : null;
+    const base = safeCode(error);
+    return shown && shown !== base ? `${base} [${shown}]` : base;
+  }
   return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
 }
 

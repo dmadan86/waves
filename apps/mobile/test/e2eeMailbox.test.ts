@@ -46,6 +46,81 @@ describe('stale device return', () => {
   });
 });
 
+describe('partner device changes', () => {
+  it('seals to a partner device registered after the directory was cached', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1, undefined, [G]);
+    const b = phone(server, 'pB', 'mB', 2, a.clock, [G]);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await a.set(G, 'p1', 'property', prop);
+    await a.mailbox.flushOutbox(); // caches the directory with one B device
+    const b2 = phone(server, 'pB', 'mB', 3, a.clock, [G]);
+    const b2Id = await b2.deviceId();
+    await a.set(G, 'p2', 'property', prop);
+    await a.mailbox.flushOutbox(); // well inside the 60s cache
+    expect(server.mailbox.some((m) => m.recipient_device_id === b2Id)).toBe(true);
+  });
+
+  it('a phone whose device id changed asks for a snapshot', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1, undefined, [G]);
+    const b = phone(server, 'pB', 'mB', 2, a.clock, [G]);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await a.set(G, 'p1', 'property', prop);
+    await b.sync();
+    await a.sync();
+    await b.sync();
+    expect(Object.keys(b.data(G))).toEqual(['p1']);
+    await a.set(G, 'p2', 'property', prop); // goes to the old B id only
+    await a.mailbox.flushOutbox();
+    server.mailbox.length = 0;
+    b.rotateDevice(9);
+    a.clock.t += 2 * 3_600_000;
+    await b.sync();
+    await a.sync();
+    await b.sync();
+    expect(Object.keys(b.data(G)).sort()).toEqual(['p1', 'p2']);
+  });
+
+  it('does not queue a fresh snapshot request every round while housekeeping keeps failing', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1, undefined, [G]);
+    const b = phone(server, 'pB', 'mB', 2, a.clock, [G]);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await a.set(G, 'p1', 'property', prop);
+    await b.sync();
+    await a.sync();
+    await b.sync();
+    b.rotateDevice(9);
+    server.failDirectory = 1000;
+    for (let i = 0; i < 5; i++) {
+      b.clock.t += 120_000;
+      await b.sync().catch(() => undefined);
+    }
+    expect(b.store.outbox.size).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('housekeeping failures', () => {
+  it('a transient failure is retried silently, a persistent one is reported', async () => {
+    const server = world();
+    const b = phone(server, 'pB', 'mB', 2, undefined, [G]);
+    await b.deviceId();
+    await b.sync(); // settle first-run work
+    server.failDirectory = 2;
+    b.clock.t += 120_000; // past the directory cache
+    await b.sync().catch(() => undefined);
+    await b.sync().catch(() => undefined);
+    expect(b.reports.map((r) => r.where)).not.toContain('e2ee.housekeeping');
+    server.failDirectory = 100;
+    for (let i = 0; i < 6; i++) {
+      b.clock.t += 120_000;
+      await b.sync().catch(() => undefined);
+    }
+    expect(b.reports.map((r) => r.where)).toContain('e2ee.housekeeping');
+  });
+});
+
 describe('mailbox send', () => {
   it('isolates cached pair keys when two accounts share the same peer device', () => {
     expect(pairCacheKey('account-a-device', 'shared-peer', 'v2')).not.toBe(
