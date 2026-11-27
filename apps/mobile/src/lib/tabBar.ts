@@ -130,17 +130,17 @@ export function isPersonalMode(segments: readonly string[], space?: string): boo
 
 /** Highlight the owning Personal destination, leaving standalone features unselected. */
 export function personalActiveKey(segments: readonly string[], space?: string): string {
-  // Settings opened from the Personal bar's Me tab.
-  if (segments[0] === 'profile' || (segments[0] === 'settings' && space === 'personal'))
-    return 'me';
+  // Settings opened from the Personal Home menu highlight no tab.
+  if (segments[0] === 'profile' || (segments[0] === 'settings' && space === 'personal')) return '';
   if (segments[0] === '(tabs)') return segments[1] === 'me' ? 'home' : '';
   if (segments[0] !== 'personal') return '';
   const leaf = segments[1] ?? '';
   if (leaf === 'upcoming') return 'home';
   if (leaf === 'entry' || leaf === 'transactions') return 'transactions';
   // A recurring bill's page is opened from Planning (and Home), never the ledger.
-  if (leaf === 'recurring' || leaf === 'source' || leaf === 'budgets' || leaf === 'loans')
-    return 'planning';
+  if (leaf === 'recurring' || leaf === 'source') return 'planning';
+  // Budgets and Loans are things you hold: the Accounts hub owns them.
+  if (leaf === 'accounts' || leaf === 'budgets' || leaf === 'loans') return 'accounts';
   return leaf === 'spending' ? 'reports' : '';
 }
 
@@ -151,7 +151,7 @@ export function personalRouteForSelection(
   atRoot = true,
 ):
   | '/me'
-  | '/profile'
+  | '/personal/accounts'
   | '/personal/transactions'
   | '/personal/recurring'
   | '/personal/spending'
@@ -164,8 +164,8 @@ export function personalRouteForSelection(
       return '/personal/recurring';
     case 'reports':
       return '/personal/spending';
-    case 'me':
-      return '/profile';
+    case 'accounts':
+      return '/personal/accounts';
     default:
       return '/me';
   }
@@ -182,7 +182,6 @@ export function personalBarAction(
   route: string,
 ): 'push' | 'replace' | 'dismissTo' | 'navigate' {
   if (route === '/me') return segments[0] === '(tabs)' ? 'navigate' : 'dismissTo';
-  if (route === '/profile') return 'navigate';
   return segments[0] === '(tabs)' ? 'push' : 'replace';
 }
 
@@ -207,6 +206,7 @@ const PERSONAL_ROOTS: Readonly<Record<string, string>> = {
   transactions: 'transactions',
   planning: 'recurring',
   reports: 'spending',
+  accounts: 'accounts',
 };
 
 /** True when the Personal destination's own root is the screen on show. */

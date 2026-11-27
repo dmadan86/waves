@@ -8517,7 +8517,26 @@ export interface UiStrings {
     navHome: string;
     navPlanning: string;
     navReports: string;
-    navMe: string;
+    navAccounts: string;
+    accountsSub: string;
+    accBudgets: string;
+    accLoans: string;
+    accInvestments: string;
+    accRentals: string;
+    budgetsLine: PluralForms;
+    budgetsNone: string;
+    loansLine: PluralForms;
+    loansNone: string;
+    investedLine: string;
+    investNone: string;
+    rentalsLine: PluralForms;
+    rentalsNone: string;
+    reportsSub: string;
+    addBill: string;
+    emptyUpcomingTitle: string;
+    emptyUpcomingHelp: string;
+    emptyRecentTitle: string;
+    emptyRecentHelp: string;
     inDays: PluralForms;
     filterAll: string;
     filterBills: string;
@@ -16794,7 +16813,29 @@ const en: UiStrings = {
     navHome: 'Home',
     navPlanning: 'Planning',
     navReports: 'Reports',
-    navMe: 'Me',
+    navAccounts: 'Accounts',
+    accountsSub: 'Money you hold',
+    accBudgets: 'Budgets',
+    accLoans: 'Loans',
+    accInvestments: 'Investments',
+    accRentals: 'Rentals',
+    budgetsLine: { one: '{n} budget · {left} left', other: '{n} budgets · {left} left' },
+    budgetsNone: 'Set a monthly limit',
+    loansLine: {
+      one: '{n} loan · {amount} outstanding',
+      other: '{n} loans · {amount} outstanding',
+    },
+    loansNone: 'Track what you owe and are owed',
+    investedLine: '{amount} invested',
+    investNone: 'Add your first investment',
+    rentalsLine: { one: '{n} property · {amount} due', other: '{n} properties · {amount} due' },
+    rentalsNone: 'Add a property',
+    reportsSub: 'Where your money went',
+    addBill: 'Add a bill',
+    emptyUpcomingTitle: 'Nothing due soon',
+    emptyUpcomingHelp: 'Bills and dates in the next 30 days show up here.',
+    emptyRecentTitle: 'No transactions yet',
+    emptyRecentHelp: 'What you spend and earn shows up here.',
     inDays: { one: 'In {n} day', other: 'In {n} days' },
     filterAll: 'All',
     filterBills: 'Bills',
@@ -25150,7 +25191,29 @@ const ta: UiStrings = {
     navHome: 'முகப்பு',
     navPlanning: 'திட்டமிடல்',
     navReports: 'அறிக்கைகள்',
-    navMe: 'நான்',
+    navAccounts: 'கணக்குகள்',
+    accountsSub: 'உங்களிடம் உள்ள பணம்',
+    accBudgets: 'பட்ஜெட்டுகள்',
+    accLoans: 'கடன்கள்',
+    accInvestments: 'முதலீடுகள்',
+    accRentals: 'வாடகைகள்',
+    budgetsLine: { one: '{n} பட்ஜெட் · {left} மீதம்', other: '{n} பட்ஜெட்டுகள் · {left} மீதம்' },
+    budgetsNone: 'மாத வரம்பை அமைக்கவும்',
+    loansLine: { one: '{n} கடன் · {amount} நிலுவை', other: '{n} கடன்கள் · {amount} நிலுவை' },
+    loansNone: 'நீங்கள் தர வேண்டியதையும் பெற வேண்டியதையும் கண்காணிக்கவும்',
+    investedLine: '{amount} முதலீடு',
+    investNone: 'முதல் முதலீட்டைச் சேர்க்கவும்',
+    rentalsLine: {
+      one: '{n} சொத்து · {amount} செலுத்த வேண்டியது',
+      other: '{n} சொத்துகள் · {amount} செலுத்த வேண்டியது',
+    },
+    rentalsNone: 'ஒரு சொத்தைச் சேர்க்கவும்',
+    reportsSub: 'உங்கள் பணம் எங்கே போனது',
+    addBill: 'பில் சேர்க்கவும்',
+    emptyUpcomingTitle: 'விரைவில் செலுத்த எதுவும் இல்லை',
+    emptyUpcomingHelp: 'அடுத்த 30 நாட்களின் பில்களும் தேதிகளும் இங்கே தோன்றும்.',
+    emptyRecentTitle: 'இன்னும் பரிவர்த்தனைகள் இல்லை',
+    emptyRecentHelp: 'நீங்கள் செலவிடுவதும் ஈட்டுவதும் இங்கே தோன்றும்.',
     inDays: { one: '{n} நாளில்', other: '{n} நாட்களில்' },
     filterAll: 'அனைத்தும்',
     filterBills: 'பில்கள்',
@@ -33322,7 +33385,26 @@ const hi: UiStrings = {
     navHome: 'होम',
     navPlanning: 'योजना',
     navReports: 'रिपोर्ट',
-    navMe: 'मैं',
+    navAccounts: 'खाते',
+    accountsSub: 'आपके पास जो पैसा है',
+    accBudgets: 'बजट',
+    accLoans: 'ऋण',
+    accInvestments: 'निवेश',
+    accRentals: 'किराये',
+    budgetsLine: { one: '{n} बजट · {left} बाकी', other: '{n} बजट · {left} बाकी' },
+    budgetsNone: 'मासिक सीमा तय करें',
+    loansLine: { one: '{n} ऋण · {amount} बकाया', other: '{n} ऋण · {amount} बकाया' },
+    loansNone: 'जो देना और पाना है, उसका हिसाब रखें',
+    investedLine: '{amount} निवेशित',
+    investNone: 'अपना पहला निवेश जोड़ें',
+    rentalsLine: { one: '{n} संपत्ति · {amount} देय', other: '{n} संपत्तियाँ · {amount} देय' },
+    rentalsNone: 'संपत्ति जोड़ें',
+    reportsSub: 'आपका पैसा कहाँ गया',
+    addBill: 'बिल जोड़ें',
+    emptyUpcomingTitle: 'जल्द कुछ देय नहीं',
+    emptyUpcomingHelp: 'अगले 30 दिनों के बिल और तारीखें यहाँ दिखेंगी।',
+    emptyRecentTitle: 'अभी कोई लेन-देन नहीं',
+    emptyRecentHelp: 'आपका खर्च और कमाई यहाँ दिखेगी।',
     inDays: { one: '{n} दिन में', other: '{n} दिन में' },
     filterAll: 'सभी',
     filterBills: 'बिल',
@@ -42360,7 +42442,26 @@ const ar: UiStrings = {
     navHome: 'الرئيسية',
     navPlanning: 'التخطيط',
     navReports: 'التقارير',
-    navMe: 'أنا',
+    navAccounts: 'الحسابات',
+    accountsSub: 'أموالك',
+    accBudgets: 'الميزانيات',
+    accLoans: 'القروض',
+    accInvestments: 'الاستثمارات',
+    accRentals: 'الإيجارات',
+    budgetsLine: { one: '{n} ميزانية · متبقٍ {left}', other: '{n} ميزانيات · متبقٍ {left}' },
+    budgetsNone: 'حدّد سقفًا شهريًا',
+    loansLine: { one: '{n} قرض · {amount} مستحق', other: '{n} قروض · {amount} مستحق' },
+    loansNone: 'تابع ما عليك وما لك',
+    investedLine: '{amount} مستثمر',
+    investNone: 'أضف أول استثمار',
+    rentalsLine: { one: '{n} عقار · {amount} مستحق', other: '{n} عقارات · {amount} مستحق' },
+    rentalsNone: 'أضف عقارًا',
+    reportsSub: 'أين ذهبت أموالك',
+    addBill: 'إضافة فاتورة',
+    emptyUpcomingTitle: 'لا شيء مستحق قريبًا',
+    emptyUpcomingHelp: 'تظهر هنا الفواتير والمواعيد خلال 30 يومًا القادمة.',
+    emptyRecentTitle: 'لا معاملات بعد',
+    emptyRecentHelp: 'تظهر هنا مصروفاتك ودخلك.',
     inDays: { one: 'خلال {n} يوم', other: 'خلال {n} يومًا' },
     filterAll: 'الكل',
     filterBills: 'الفواتير',
