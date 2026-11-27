@@ -70,6 +70,8 @@ const MAX_CALL_BYTES = 480 * 1024;
 const FETCH_PAGE = 200;
 /** The server purges unfetched mail after 30 days, so a phone away that long must ask for a snapshot. */
 const STALE_MS = 30 * 24 * 3_600_000;
+/** How often this phone tells the server it is alive (the server drops phones unseen for 30 days). */
+const SEEN_GAP_MS = 3_600_000;
 /** Leave five days for clock skew and network recovery before SQL receipt cleanup. */
 const OUTBOX_MAX_AGE_MS = 25 * 24 * 3_600_000;
 /** One snapshot per requester per hour, and one request per group per hour. */
@@ -168,6 +170,7 @@ export function createMailbox(deps: MailboxDeps) {
   const notices = new NoticeStore(meta);
   const answered = new Map<string, number>();
   const parts = new Map<string, Set<number>>();
+  const probedAt = new Map<string, number>();
   const devicesCache = new Map<string, { at: number; list: GroupDevice[] }>();
   const pairKeys = new Map<string, Uint8Array>();
   const attempts = new Map<string, { n: number; next: number }>();
@@ -485,11 +488,6 @@ export function createMailbox(deps: MailboxDeps) {
 
   async function runOutbox(): Promise<void> {
     const isCurrent = captureCurrent();
-    const joined = new Set(deps.groups?.() ?? []);
-    for (const groupId of joined) {
-      const failure = await meta.get(`outbox-failed:${groupId}`);
-      if (failure?.includes('membership-lost')) await meta.set(`outbox-failed:${groupId}`, '');
-    }
     const rows = await outbox.readE2eeOutbox();
     if (!isCurrent() || (await revoked(isCurrent)) || !isCurrent()) return;
     const blockedGroups = new Set<string>();
@@ -512,7 +510,23 @@ export function createMailbox(deps: MailboxDeps) {
           await meta.set(`outbox-failed:${row.groupId}`, '');
         continue;
       }
-      const failureRaw = await meta.get(`outbox-failed:${row.groupId}`);
+      let failureRaw = await meta.get(`outbox-failed:${row.groupId}`);
+      if (failureRaw?.includes('membership-lost')) {
+        // Quarantined: no send attempts. Only the (cached, ~1/min) directory can lift it:
+        // it clears the marker when this device is listed again.
+        if (deps.now() - (probedAt.get(row.groupId) ?? -Infinity) < DEVICES_TTL_MS) {
+          blockedGroups.add(row.groupId);
+          continue;
+        }
+        probedAt.set(row.groupId, deps.now());
+        try {
+          await groupDevices(row.groupId, false, isCurrent);
+        } catch {
+          /* still not a member */
+        }
+        if (!isCurrent()) return;
+        failureRaw = await meta.get(`outbox-failed:${row.groupId}`);
+      }
       if (failureRaw) {
         let reason = 'unknown';
         try {
@@ -554,10 +568,9 @@ export function createMailbox(deps: MailboxDeps) {
             JSON.stringify({ at: deps.now(), reason: 'membership-lost' }),
           );
           blockedGroups.add(row.groupId);
-          reportOnce(
-            new Error('e2ee: group membership lost; outbox quarantined'),
-            `e2ee.send.membership:${row.groupId}`,
-          );
+          // Not reported: it is a handled state (a group this phone left or was removed from) that
+          // clears itself on rejoin or expiry, and an alert on every launch is noise. It is
+          // readable through failedOutboxGroups().
           continue;
         }
         const n = (state?.n ?? 0) + 1;
@@ -776,8 +789,6 @@ export function createMailbox(deps: MailboxDeps) {
               // (untrusted when unsolicited: reported below)
               authors: new Set(devices.map((d) => d.memberId)),
             });
-          if (snap.length > 0 && !asked.has(row.group_id))
-            reportOnce(new Error('e2ee: unsolicited snapshot'), 'e2ee.snapshot');
           done.push(row.id);
         } catch (error) {
           if (error instanceof TransientMailboxError) throw error;
@@ -884,9 +895,27 @@ export function createMailbox(deps: MailboxDeps) {
     await space.queue(groupId, [{ op: 'resync_req' }]);
   }
 
+  /** Tell the server this phone is alive. True when it had been dropped as stale (mail was missed). */
+  async function heartbeat(current: () => boolean): Promise<boolean> {
+    try {
+      const last = Number((await meta.get('seenAt')) ?? 0);
+      if (deps.now() - last < SEEN_GAP_MS || !current()) return false;
+      const { data, error } = await client.rpc('waves_device_seen', {
+        p_device_id: await keys.deviceId(),
+      });
+      if (error || !current()) return false;
+      await meta.set('seenAt', String(deps.now()));
+      return data === true;
+    } catch {
+      return false; // retried by the next round
+    }
+  }
+
   /** After a good fetch: ask for a snapshot if due, and look for a partner's new phone. */
   async function housekeeping(): Promise<void> {
     const current = captureCurrent();
+    const wasStale = await heartbeat(current);
+    if (wasStale) devicesCache.clear();
     const fetchedAt = Number((await meta.get('fetchedAt')) ?? NaN);
     if (!current()) return;
     const now = deps.now();
@@ -898,7 +927,7 @@ export function createMailbox(deps: MailboxDeps) {
           space.snapshot(groupId).length === 0 ||
           Number.isNaN(fetchedAt) ||
           now - fetchedAt > STALE_MS;
-        if (due && now - asked >= RESYNC_GAP_MS) await requestResync(groupId);
+        if (wasStale || (due && now - asked >= RESYNC_GAP_MS)) await requestResync(groupId);
         if (!current()) return;
 
         const currentDevices: KnownDevice[] = (await groupDevices(groupId, false, current)).map(
@@ -940,26 +969,28 @@ export function createMailbox(deps: MailboxDeps) {
   }
 
   /** One round: pick up mail, then send what is waiting. */
-  async function sync(): Promise<void> {
+  async function sync(): Promise<number> {
     const current = captureCurrent();
-    if (!current() || (await revoked(current)) || !current()) return;
+    if (!current() || (await revoked(current)) || !current()) return 0;
     let failure: unknown = null;
+    let applied = 0;
     try {
-      await fetch();
-      if (!current()) return;
+      applied = await fetch();
+      if (!current()) return applied;
       await housekeeping();
-      if (!current()) return;
+      if (!current()) return applied;
     } catch (error) {
       failure = error;
     }
     try {
-      if (!current()) return;
+      if (!current()) return applied;
       await flushOutbox();
-      if (!current()) return;
+      if (!current()) return applied;
     } catch (error) {
       failure ??= error;
     }
     if (failure) throw failure;
+    return applied;
   }
 
   return {

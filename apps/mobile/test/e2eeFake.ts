@@ -37,6 +37,9 @@ export class FakeServer {
   failSends = 0;
   failAfterAccept = 0;
   failDirectory = 0;
+  directoryCalls = 0;
+  /** Devices the server would report as stale on their next waves_device_seen. */
+  staleDevices = new Set<string>();
   sendAttempts = 0;
   failAtSendAttempt: number | null = null;
   private n = 0;
@@ -66,7 +69,10 @@ export class FakeServer {
             }
             return { data: d.id, error: null };
           }
+          if (fn === 'waves_device_seen')
+            return { data: server.staleDevices.delete(args.p_device_id as string), error: null };
           if (fn === 'waves_group_devices') {
+            server.directoryCalls += 1;
             if (server.failDirectory > 0) {
               server.failDirectory -= 1;
               return { data: null, error: { message: 'directory offline' } };
@@ -251,7 +257,7 @@ export interface Phone {
   clock: { t: number };
   set(groupId: string, id: string, kind: string, data: Record<string, unknown>): Promise<void>;
   del(groupId: string, id: string): Promise<void>;
-  sync(): Promise<void>;
+  sync(): Promise<number>;
   /** The groups this account is in (the mailbox's `groups()`); edit in place. */
   groups: string[];
   endSession(): void;

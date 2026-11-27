@@ -210,7 +210,7 @@ const mailbox = createMailbox({
 // A local write is sent at once; a failure stays in the outbox for the next round.
 e2eeSpace.onOutbox = () => void withE2eeLock(() => mailbox.flushOutbox()).catch(() => undefined);
 
-let running: Promise<void> | null = null;
+let running: Promise<number> | null = null;
 let isSessionCurrent = (): boolean => false;
 let queue: Promise<void> = Promise.resolve();
 
@@ -227,14 +227,19 @@ function withE2eeLock<T>(work: () => Promise<T>): Promise<T> {
  * Pick up mail and send what is waiting. Safe to call from anywhere, any number of
  * times: one round runs at a time, and a failure (offline) is retried by the next call.
  */
-export function syncE2ee(): Promise<void> {
+/** Resolves to how many incoming changes were applied (0 on failure). */
+export function syncE2ee(): Promise<number> {
   running ??= withE2eeLock(() => mailbox.sync())
-    .catch(() => undefined)
+    .catch(() => 0)
     .finally(() => {
       running = null;
     });
   return running;
 }
+
+/** Whether this account has a couple/home space worth polling for. */
+export const hasCoupleSpace = (): boolean =>
+  activeProfileId !== null && coupleGroupIds().length > 0;
 
 /** Groups whose queued mailbox messages were quarantined after permanent membership loss. */
 export function getE2eeOutboxFailures(): Promise<{ groupId: string; reason: string }[]> {

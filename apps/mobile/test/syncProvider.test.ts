@@ -135,6 +135,7 @@ vi.mock('@/e2ee/runtime', () => ({
   startE2ee: async () => undefined,
   stopE2ee: () => undefined,
   syncE2ee: async () => undefined,
+  hasCoupleSpace: () => false,
 }));
 vi.mock('@/sync/localWipe', () => ({ clearLocalPrivateData: h.clearLocalPrivateData }));
 

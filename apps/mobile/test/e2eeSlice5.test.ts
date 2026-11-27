@@ -327,6 +327,8 @@ describe('snapshot trust', () => {
     expect(server.mailbox.length).toBeGreaterThan(0);
     await b1.sync();
     expect(b1.data(G)).not.toHaveProperty('f1');
+    // A late duplicate answer is normal, not an error to show anyone.
+    expect(b1.reports.map((r) => r.where)).not.toContain('e2ee.snapshot');
   });
 
   it('a snapshot addressed to another device is ignored', async () => {
