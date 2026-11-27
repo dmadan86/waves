@@ -66,6 +66,32 @@ export function simplify(balances: NetBalances): Transfer[] {
   return transfers;
 }
 
+/**
+ * Simplify among real members only. A person who is not on Waves (a
+ * placeholder) is never a middleman: each of their transfers is exactly the
+ * direct pairwise debt between them and one other person, and the rest is
+ * netted as usual once those are taken out. Net positions are unchanged.
+ */
+export function simplifyKeepingGhostsDirect(
+  balances: NetBalances,
+  edges: readonly PairwiseEdge[],
+  ghosts: ReadonlySet<MemberId>,
+): Transfer[] {
+  if (ghosts.size === 0) return simplify(balances);
+  const direct: Transfer[] = [];
+  const rest: NetBalances = new Map();
+  for (const [currency, perCurrency] of balances) rest.set(currency, new Map(perCurrency));
+  for (const edge of edges) {
+    if (!ghosts.has(edge.from) && !ghosts.has(edge.to)) continue;
+    direct.push({ from: edge.from, to: edge.to, currency: edge.currency, amount: edge.amount });
+    const perCurrency = rest.get(edge.currency);
+    if (!perCurrency) continue;
+    perCurrency.set(edge.from, (perCurrency.get(edge.from) ?? 0n) + edge.amount);
+    perCurrency.set(edge.to, (perCurrency.get(edge.to) ?? 0n) - edge.amount);
+  }
+  return [...direct, ...simplify(rest)];
+}
+
 /** Convenience: simplify starting from the real pairwise edges. */
 export function simplifyPairwise(edges: readonly PairwiseEdge[]): Transfer[] {
   const balances: NetBalances = new Map();

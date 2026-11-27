@@ -278,6 +278,7 @@ function GroupDetail({
     settlements,
     currency,
     group.convert_to_group_currency === true,
+    new Set(everyone.filter((m) => !m.profile_id).map((m) => m.id)),
   );
   const byId = new Map(everyone.map((member) => [member.id, member]));
   /**

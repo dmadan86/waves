@@ -96,3 +96,23 @@ export function pairwiseTransfers(rows: readonly PairRow[]): Transfer[] {
             : `${a.from}${a.to}`.localeCompare(`${b.from}${b.to}`),
     );
 }
+
+/**
+ * `simplifyNet`, except a person who is not on Waves is never a middleman:
+ * each of their transfers is the direct pairwise debt, and only the rest is
+ * netted. Same rule as `simplifyKeepingGhostsDirect` in `@waves/core`.
+ */
+export function simplifyNetKeepingGhostsDirect(
+  net: readonly NetRow[],
+  pairs: readonly PairRow[],
+  ghosts: ReadonlySet<string>,
+): Transfer[] {
+  if (ghosts.size === 0) return simplifyNet(net);
+  const direct = pairwiseTransfers(pairs).filter((t) => ghosts.has(t.from) || ghosts.has(t.to));
+  const rest: NetRow[] = [...net];
+  for (const t of direct) {
+    rest.push({ member_id: t.from, currency: t.currency, balance: t.amount });
+    rest.push({ member_id: t.to, currency: t.currency, balance: -t.amount });
+  }
+  return [...direct, ...simplifyNet(rest)];
+}

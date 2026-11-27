@@ -4,30 +4,53 @@ import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
-import type { CurrencyCode } from '@waves/core';
-import { Button, Chip, iconSize, MoneyText, Popup, Row, Text, useTheme } from '@waves/ui';
+import {
+  checkPartialAmount,
+  format,
+  money,
+  PartialCheck,
+  remainderAfter,
+  type CurrencyCode,
+} from '@waves/core';
+import {
+  AmountField,
+  Button,
+  Chip,
+  iconSize,
+  MoneyText,
+  Popup,
+  Row,
+  Text,
+  useTheme,
+} from '@waves/ui';
 
-import { useStrings } from '@/i18n';
+import { fill, useStrings } from '@/i18n';
 import { SETTLE_METHODS, type SettleMethod } from '@/lib/settleMethod';
 
 export interface SettleConfirmSheetProps {
   visible: boolean;
   /** Answer yes: the caller records the payment, by the method picked. */
-  onConfirm: (method: SettleMethod) => void;
+  onConfirm: (method: SettleMethod, amount: bigint) => void;
   /** How the money moved to start with; the person can change it before saying yes. */
   defaultMethod: SettleMethod;
   /** Any way out: the X, "No", the scrim, Android back. Records nothing. */
   onClose: () => void;
-  title: string;
+  /** A function when the title names the amount, which the person may edit. */
+  title: string | ((amount: bigint) => string);
   body: string;
   /** The other person: their avatar, drawn by the caller, which owns photo lookup. */
   avatar: ReactNode;
   name: string;
   /** "Paid you" or "You paid". */
   relation: string;
+  /** What is owed. */
   amount: bigint;
   currency: CurrencyCode;
   confirmLabel: string;
+  /** Let the amount be lowered to a part payment (never raised past `amount`). */
+  editable?: boolean;
+  /** Hide the how-did-you-pay chips (the pay hand-off picks the rail itself). */
+  hideMethods?: boolean;
 }
 
 export function SettleConfirmSheet({
@@ -43,16 +66,27 @@ export function SettleConfirmSheet({
   amount,
   currency,
   confirmLabel,
+  editable = false,
+  hideMethods = false,
 }: SettleConfirmSheetProps) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const [method, setMethod] = useState<SettleMethod>(defaultMethod);
+  const [entered, setEntered] = useState(amount);
+  const shown = editable ? entered : amount;
+  const check = editable ? checkPartialAmount(entered, amount) : PartialCheck.Ok;
+  const left = remainderAfter(amount, shown);
+  const fmt = (value: bigint): string => format(money(value, currency), { locale });
+  const heading = typeof title === 'function' ? title(shown) : title;
   // Each time the sheet opens it starts from the default again (adjusted in
   // render rather than in an effect, so there is no flash of the old choice).
   const [wasVisible, setWasVisible] = useState(visible);
   if (visible !== wasVisible) {
     setWasVisible(visible);
-    if (visible) setMethod(defaultMethod);
+    if (visible) {
+      setMethod(defaultMethod);
+      setEntered(amount);
+    }
   }
 
   return (
@@ -91,7 +125,7 @@ export function SettleConfirmSheet({
             marginTop: theme.spacing.sm,
           }}
         >
-          {title}
+          {heading}
         </Text>
         <Text
           variant="body"
@@ -104,7 +138,7 @@ export function SettleConfirmSheet({
         {/* One fact, one stop for a screen reader: who, which way, how much. */}
         <Row
           accessible
-          accessibilityLabel={`${name}. ${relation}. ${title}`}
+          accessibilityLabel={`${name}. ${relation}. ${heading}`}
           style={{
             alignSelf: 'stretch',
             gap: theme.spacing.md,
@@ -124,16 +158,46 @@ export function SettleConfirmSheet({
               {relation}
             </Text>
           </View>
-          <MoneyText
-            exact
-            amount={amount}
-            currency={currency}
-            locale={locale}
-            variant="subheading"
-            tone="brand"
-            fadeFraction={false}
-          />
+          {editable ? (
+            <View style={{ minWidth: 110 }}>
+              <AmountField
+                size="compact"
+                framed
+                currency={currency}
+                value={entered}
+                onChange={setEntered}
+              />
+            </View>
+          ) : (
+            <MoneyText
+              exact
+              amount={amount}
+              currency={currency}
+              locale={locale}
+              variant="subheading"
+              tone="brand"
+              fadeFraction={false}
+            />
+          )}
         </Row>
+        {editable && check !== PartialCheck.Empty ? (
+          <Text
+            variant="caption"
+            tone={check === PartialCheck.Over ? undefined : 'muted'}
+            accessibilityLiveRegion="polite"
+            style={{
+              alignSelf: 'stretch',
+              marginTop: theme.spacing.xs,
+              color: check === PartialCheck.Over ? theme.color.negative : undefined,
+            }}
+          >
+            {check === PartialCheck.Over
+              ? fill(t.misc.settleAmountOver, { amount: fmt(amount) })
+              : left > 0n
+                ? fill(t.misc.settleLeft, { amount: fmt(left) })
+                : null}
+          </Text>
+        ) : null}
 
         <Row
           style={{
@@ -143,7 +207,7 @@ export function SettleConfirmSheet({
             marginTop: theme.spacing.md,
           }}
         >
-          {SETTLE_METHODS.map((id) => (
+          {(hideMethods ? [] : SETTLE_METHODS).map((id) => (
             <Chip
               key={id}
               label={t.groupExport.methods[id]}
@@ -172,7 +236,8 @@ export function SettleConfirmSheet({
               label={confirmLabel}
               variant="brand"
               fullWidth
-              onPress={() => onConfirm(method)}
+              disabled={check !== PartialCheck.Ok}
+              onPress={() => onConfirm(method, shown)}
               style={{ paddingHorizontal: theme.spacing.md }}
             />
           </View>

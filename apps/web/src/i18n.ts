@@ -902,6 +902,8 @@ export interface WebStrings {
     settleUp: string;
     howPaid: string;
     amountLabel: string;
+    left: string;
+    amountOver: string;
     payWith: string;
     noHandle: string;
     record: string;
@@ -2071,6 +2073,8 @@ const en: WebStrings = {
     settleUp: 'Settle up',
     howPaid: 'How did you pay?',
     amountLabel: 'Amount',
+    left: '{amount} left',
+    amountOver: 'More than the {amount} owed',
     payWith: 'Open {rail}',
     noHandle: "{name} hasn't shared how they're paid — settle in cash, or ask them to add it.",
     record: 'Mark as paid',
@@ -3199,6 +3203,8 @@ const ta: WebStrings = {
     settleUp: 'கணக்கு தீர்',
     howPaid: 'எப்படிக் கொடுத்தீர்கள்?',
     amountLabel: 'தொகை',
+    left: '{amount} மீதம்',
+    amountOver: 'பாக்கி {amount}ஐ விட அதிகம்',
     payWith: '{rail} திற',
     noHandle:
       '{name} எப்படிப் பணம் பெறுகிறார் என்பதைப் பகிரவில்லை — பணமாகத் தீர்க்கவும், அல்லது சேர்க்கச் சொல்லவும்.',
@@ -4309,6 +4315,8 @@ const hi: WebStrings = {
     settleUp: 'हिसाब चुकाएँ',
     howPaid: 'आपने कैसे दिया?',
     amountLabel: 'रकम',
+    left: '{amount} बाकी',
+    amountOver: 'बाकी {amount} से ज़्यादा',
     payWith: '{rail} खोलें',
     noHandle: '{name} ने नहीं बताया कि उन्हें कैसे भुगतान मिलता है — नकद चुकाएँ, या उनसे जोड़ने को कहें।',
     record: 'भुगतान किया, दर्ज करें',
@@ -5473,6 +5481,8 @@ const ar: WebStrings = {
     settleUp: 'سوِّ الحساب',
     howPaid: 'كيف دفعت؟',
     amountLabel: 'المبلغ',
+    left: 'المتبقي {amount}',
+    amountOver: 'أكثر من {amount} المستحق',
     payWith: 'افتح {rail}',
     noHandle: 'لم يشارك {name} كيف يُدفع له — سوِّ نقدًا، أو اطلب منه إضافتها.',
     record: 'سجّل أنك دفعت',

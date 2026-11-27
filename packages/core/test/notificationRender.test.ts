@@ -203,3 +203,19 @@ describe('company notifications', () => {
     expect(renderNotification('company_task_assigned', FACTS, 'en').body).toBe('Fix the gate');
   });
 });
+
+describe('part payment notice', () => {
+  const facts = { amount: '200000', currency: 'INR', counterparty: 'Ravi', owed: '500000' };
+  it('says "of" when the payment is smaller than what was owed', () => {
+    const { title } = renderNotification('settlement_confirm_request', facts, 'en');
+    expect(title).toMatch(/Ravi says they paid you .*2,000.* of .*5,000/);
+  });
+  it('is unchanged for a full payment', () => {
+    const { title } = renderNotification(
+      'settlement_confirm_request',
+      { ...facts, owed: undefined },
+      'en',
+    );
+    expect(title).not.toMatch(/ of /);
+  });
+});

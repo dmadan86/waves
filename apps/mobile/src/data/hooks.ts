@@ -52,7 +52,7 @@ import {
   openPlanItems,
   mutedGroupIds,
   rowsFor,
-  simplify,
+  simplifyKeepingGhostsDirect,
   SyncTable,
   type CatalogEntry,
   type CategoryMeta,
@@ -1145,7 +1145,13 @@ export function usePairBalances(profileId: string | null, personKey: string): Lo
         viewerMemberId: me.id,
         otherMemberIds: others.map((member) => member.id),
         edges: computePairwiseBalances(ledgerSnapshots, settlements),
-        suggested: simplifies ? simplify(computeNetBalances(ledgerSnapshots, settlements)) : null,
+        suggested: simplifies
+          ? simplifyKeepingGhostsDirect(
+              computeNetBalances(ledgerSnapshots, settlements),
+              computePairwiseBalances(ledgerSnapshots, settlements),
+              new Set(members.filter(isGhost).map((member) => member.id)),
+            )
+          : null,
       });
       metas.set(group.id, {
         groupId: group.id,
@@ -1656,7 +1662,11 @@ export function useGroupLedger(groupId: string, myProfileId: string | null): Gro
 
     const pairwise = computePairwiseBalances(snapshots, settlementSnapshots);
     const transfers = group.data?.simplify_debts
-      ? simplify(net)
+      ? simplifyKeepingGhostsDirect(
+          net,
+          pairwise,
+          new Set((members.data ?? []).filter(isGhost).map((member) => member.id)),
+        )
       : pairwise.map((edge) => ({
           from: edge.from,
           to: edge.to,

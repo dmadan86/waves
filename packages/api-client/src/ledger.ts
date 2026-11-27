@@ -15,7 +15,8 @@
 
 import {
   computeNetBalances,
-  simplify,
+  computePairwiseBalances,
+  simplifyKeepingGhostsDirect,
   toLedgerSnapshots,
   type CurrencyCode,
   type ExpenseSnapshot,
@@ -74,6 +75,8 @@ export function computeLedger(
   /** The group's `convert_to_group_currency`: count foreign bills with a stored
    *  rate in `currency` (ADR-003 amendment), as the server does. */
   convertToGroupCurrency = false,
+  /** Members who are not on Waves: never a middleman in the plan. */
+  ghosts: ReadonlySet<MemberId> = new Set(),
 ): GroupLedger {
   // The one conversion rule every reader shares (core's `toLedgerSnapshots`).
   const snapshots = toLedgerSnapshots(expenses.map(toExpenseSnapshot), {
@@ -81,7 +84,8 @@ export function computeLedger(
     convert_to_group_currency: convertToGroupCurrency,
   });
 
-  const balances = computeNetBalances(snapshots, settlements.map(toSettlementSnapshot));
+  const settlementSnapshots = settlements.map(toSettlementSnapshot);
+  const balances = computeNetBalances(snapshots, settlementSnapshots);
 
   return {
     // One currency is shown, because a guest link opens one group and a group
@@ -89,6 +93,10 @@ export function computeLedger(
     // answer; it is simply not this view's job to add them together (ADR-003).
     balances: balances.get(currency as CurrencyCode) ?? new Map(),
     net: balances,
-    transfers: simplify(balances),
+    transfers: simplifyKeepingGhostsDirect(
+      balances,
+      ghosts.size > 0 ? computePairwiseBalances(snapshots, settlementSnapshots) : [],
+      ghosts,
+    ),
   };
 }

@@ -31,6 +31,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+import { getDefaultLocale, partPaymentText } from '@waves/core';
 import { actorName, type ActivityRow } from '@waves/api-client';
 
 /** An expense's current figures by id: a delete or restore row's payload is empty, so the amount comes from here. */
@@ -97,8 +98,10 @@ export function describeActivity(
       return `${who} says ${description ?? 'an expense'} is correct as it stands`;
     case 'commented':
       return `${who} commented on ${description ?? 'an expense'}`;
-    case 'settled':
-      return `${who} recorded a settlement`;
+    case 'settled': {
+      const part = partPaymentText(payload, getDefaultLocale());
+      return part ? `${who} paid ${part}` : `${who} recorded a settlement`;
+    }
     case 'cancelled':
       return `${who} cancelled a recorded payment`;
     case 'settle_disputed': {

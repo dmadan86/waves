@@ -28,6 +28,12 @@ import {
 } from '@waves/api-client';
 import {
   buildPaymentUri,
+  checkPartialAmount,
+  formatMinorInput,
+  parseMinorInput,
+  PartialCheck,
+  remainderAfter,
+  sanitiseMinorInput,
   defaultRailForCurrency,
   familyLabel,
   familyTransfers,
@@ -221,8 +227,9 @@ function GroupSettle({
         settlements,
         group.default_currency,
         group.convert_to_group_currency === true,
+        new Set(members.filter((m) => !m.profile_id).map((m) => m.id)),
       ),
-    [expenses, settlements, group.default_currency, group.convert_to_group_currency],
+    [expenses, settlements, group.default_currency, group.convert_to_group_currency, members],
   );
 
   if (loading) {
@@ -574,7 +581,7 @@ function SettleForm({
   group,
   payee,
   fromMemberId,
-  amount,
+  amount: owed,
   currency,
   onCancel,
   onRecorded,
@@ -600,6 +607,10 @@ function SettleForm({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // What is being paid now: all of it to start with, lowerable to a part payment.
+  const [typed, setTyped] = useState(() => formatMinorInput(owed, currency as CurrencyCode));
+  const amount = parseMinorInput(typed, currency as CurrencyCode);
+  const check = checkPartialAmount(amount, owed);
   // The idempotency key for this settlement attempt. Minted once when the form
   // opens and held stable, so a Record the user taps twice — or retries after a
   // dropped connection — is deduped server-side rather than recording the
@@ -631,7 +642,7 @@ function SettleForm({
       : null;
 
   async function record() {
-    if (blocked) return;
+    if (blocked || check !== PartialCheck.Ok) return;
     setSaving(true);
     setError(null);
     try {
@@ -684,8 +695,28 @@ function SettleForm({
 
       <div className="detail-field">
         <span className="k">{t.settle.amountLabel}</span>
-        <span className="v amount">{money(amount, currency, locale)}</span>
+        <input
+          className="split-input"
+          inputMode="decimal"
+          aria-label={t.settle.amountLabel}
+          value={typed}
+          onChange={(event) => {
+            setTyped(sanitiseMinorInput(event.target.value, currency as CurrencyCode));
+            // A different amount is a different payment, so not a replay of the last try.
+            setMutationId(crypto.randomUUID());
+          }}
+          style={{ width: 140, textAlign: 'end' }}
+        />
       </div>
+      {check === PartialCheck.Over ? (
+        <p className="error">
+          {t.settle.amountOver.replace('{amount}', money(owed, currency, locale))}
+        </p>
+      ) : check === PartialCheck.Ok && amount < owed ? (
+        <p className="faint">
+          {t.settle.left.replace('{amount}', money(remainderAfter(owed, amount), currency, locale))}
+        </p>
+      ) : null}
 
       {needsHandle && !handle ? (
         <p className="faint">{t.settle.noHandle.replace('{name}', memberName(payee))}</p>
@@ -706,7 +737,12 @@ function SettleForm({
       {error ? <p className="error">{error}</p> : null}
 
       <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-        <button type="button" className="btn" onClick={() => void record()} disabled={saving}>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => void record()}
+          disabled={saving || check !== PartialCheck.Ok}
+        >
           {saving ? t.settle.recording : t.settle.record}
         </button>
         <button type="button" className="btn soft" onClick={onCancel} disabled={saving}>

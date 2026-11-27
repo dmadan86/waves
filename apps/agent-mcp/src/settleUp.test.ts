@@ -143,7 +143,7 @@ describe('simplifying balances', () => {
 
 describe('"Who should pay whom to settle Goa?"', () => {
   it('names both sides and says how to pay the payee, when debts are simplified', async () => {
-    const { client, queries } = fake({
+    const { client } = fake({
       groups: { data: { simplify_debts: true } },
       group_balances: {
         data: [
@@ -173,7 +173,7 @@ describe('"Who should pay whom to settle Goa?"', () => {
       ],
       pending: [],
     });
-    expect(queries.map((q) => q.table)).not.toContain('pairwise_balances');
+    // The group has a placeholder, so the direct debts are read too.
   });
 
   it('follows the real debts when the group has simplifying turned off', async () => {
@@ -525,5 +525,24 @@ describe('"Matt paid me ₹100 in cash"', () => {
     });
     expect(queries).toHaveLength(0);
     expect(rpcs[0]!.args).toMatchObject({ p_from_member_id: M_MATT, p_to_member_id: M_ME });
+  });
+});
+
+import { simplifyNetKeepingGhostsDirect as keepDirect } from './settle';
+
+describe('simplifyNetKeepingGhostsDirect', () => {
+  it('pays a placeholder only what is directly owed', () => {
+    const pair = (f: string, t: string, a: number) => ({
+      from_member_id: f,
+      to_member_id: t,
+      currency: 'INR',
+      amount: a,
+    });
+    const net = [
+      { member_id: 'A', currency: 'INR', balance: -100 },
+      { member_id: 'B', currency: 'INR', balance: 100 },
+    ];
+    const out = keepDirect(net, [pair('A', 'P', 100), pair('P', 'B', 100)], new Set(['P']));
+    expect(out.map((t) => `${t.from}>${t.to}:${t.amount}`)).toEqual(['A>P:100', 'P>B:100']);
   });
 });
