@@ -764,7 +764,7 @@ export function encodeProperty(p: Omit<PersonalProperty, 'id'>): Record<string, 
       currency: p.currency,
       status: p.status,
       note: p.note,
-      address: p.address ?? null,
+      ...(p.address ? { address: p.address } : {}),
     },
     p.carried,
   );

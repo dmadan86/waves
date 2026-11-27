@@ -13,7 +13,7 @@ describe('property address', () => {
     expect(p.address).toBe('12 Main St');
     const { id: _id, ...rest } = p;
     const out = encodeProperty({ ...rest, address: null });
-    expect(out.address).toBeNull();
+    expect(out.address).toBeUndefined();
     expect(out.future).toBe(1);
     expect(decodeProperty('p1', {}).address).toBeNull();
   });
