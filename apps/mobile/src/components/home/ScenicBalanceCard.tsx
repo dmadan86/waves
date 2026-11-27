@@ -120,7 +120,7 @@ export function HomeBalanceCard({
           gap: 6,
         }}
       >
-        <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+        <Text variant="caption" tone="muted" numberOfLines={2} style={{ flexShrink: 1 }}>
           {label}
         </Text>
         <Pressable

@@ -113,7 +113,7 @@ export function BalanceSide({
       <View style={iconDisc ? { flex: 1, minWidth: 0, gap: 2 } : { gap: 2 }}>
         <Row style={{ alignItems: 'center', gap: 4 }}>
           {!iconDisc ? <Ionicons name={icon} size={iconSize.xs} color={color} /> : null}
-          <Text variant="caption" tone="muted" numberOfLines={1}>
+          <Text variant="caption" tone="muted" numberOfLines={2} style={{ flexShrink: 1 }}>
             {label}
           </Text>
         </Row>
@@ -150,7 +150,7 @@ export function BalanceSide({
           />
         )}
         {detail ? (
-          <Text variant="micro" tone="muted" numberOfLines={1}>
+          <Text variant="micro" tone="muted" numberOfLines={2}>
             {detail}
           </Text>
         ) : null}

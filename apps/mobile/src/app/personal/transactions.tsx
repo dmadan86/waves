@@ -360,10 +360,12 @@ function PersonalTransactionsScreenBody() {
               <Text
                 style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: ink }}
                 numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
               >
                 {t.personal.transactions}
               </Text>
-              <Text style={{ fontSize: 13, lineHeight: 18, color: muted }} numberOfLines={2}>
+              <Text style={{ fontSize: 13, lineHeight: 18, color: muted }} numberOfLines={3}>
                 {t.personal.transactionsSubtitle}
               </Text>
               {filter ? (

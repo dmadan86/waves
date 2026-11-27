@@ -1,10 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   EMPTY_PHONE_PROMPT_STATE,
   PHONE_PROMPT_LATER_LIMIT,
   PHONE_PROMPT_LATER_BACKOFF_DAYS,
+  localDay,
   PhonePromptMode,
   phonePromptMode,
   readPhonePromptState,
@@ -113,5 +114,25 @@ describe('the count on the device', () => {
 
     await AsyncStorage.setItem('waves.phone_prompt.alice', '{"laterCount":-4,"lastLaterOn":7}');
     expect(await readPhonePromptState('alice')).toEqual(EMPTY_PHONE_PROMPT_STATE);
+  });
+});
+
+describe('"Later" holds on every runtime', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('names the day as YYYY-MM-DD even when Intl formats it another way', () => {
+    // Hermes with an India locale answered d/m/y here, which parsed to NaN and
+    // made "Later" never hide the ask.
+    vi.stubGlobal('Intl', {
+      DateTimeFormat: class {
+        format = () => '28/11/2026';
+      },
+    });
+    expect(localDay(new Date(2026, 10, 28, 12))).toBe('2026-11-28');
+  });
+
+  it('keeps hiding the ask for today when the stored day is unreadable', () => {
+    const state = { laterCount: 1, lastLaterOn: '28/11/2026' };
+    expect(phonePromptMode(ASKABLE, state, '2026-11-28')).toBe(PhonePromptMode.Hidden);
   });
 });

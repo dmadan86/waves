@@ -47,6 +47,7 @@ export default function DataScreen() {
               }
               title={t.exportData.title}
               subtitle={t.yourData.exportHint}
+              subtitleLines={3}
               onPress={() => router.push('/settings/export')}
             />
           </StandardCard>
@@ -68,6 +69,7 @@ export default function DataScreen() {
               }
               title={t.account.importSplitwise}
               subtitle={t.yourData.importHint}
+              subtitleLines={3}
               onPress={() => router.push('/settings/import')}
             />
           </StandardCard>

@@ -18,6 +18,7 @@ import {
   directionalIcon,
   iconSize,
   Row,
+  Screen,
   Sheet,
   Text,
   Toggle,
@@ -142,7 +143,7 @@ export default function LockSettingsScreen() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
+    <Screen edges={[]}>
       <PlainHeader title={t.lock.title} subtitle={t.lock.subtitle} />
       <ScrollView
         style={{ flex: 1 }}
@@ -408,6 +409,6 @@ export default function LockSettingsScreen() {
           </Text>
         </View>
       </Sheet>
-    </View>
+    </Screen>
   );
 }

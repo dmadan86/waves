@@ -121,7 +121,13 @@ function RentalsBody() {
         borderStartColor: theme.color.border,
       }}
     >
-      <Text variant="caption" tone="muted">
+      <Text
+        variant="caption"
+        tone="muted"
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.6}
+      >
         {label}
       </Text>
       <Text variant="body" numberOfLines={1} adjustsFontSizeToFit style={{ fontWeight: '700' }}>

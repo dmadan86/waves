@@ -315,7 +315,7 @@ function MeterCard({
           <View style={{ flex: 1 }}>
             {typeof note === 'string' ? (
               <Text
-                numberOfLines={1}
+                numberOfLines={3}
                 style={{
                   fontSize: 12,
                   color: alarm ? theme.color.negative : muted,
