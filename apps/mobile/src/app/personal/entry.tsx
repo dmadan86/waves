@@ -50,7 +50,6 @@ import {
   Frequency,
   frequencyOf,
   incomeSource,
-  IncomeSourceId,
   type CurrencyCode,
   type PersonalRecurring,
   type PersonalTxn,
@@ -102,7 +101,15 @@ import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDialog } from '@/lib/dialog';
 import { frequencyLabel } from '@/lib/frequencyLabel';
-import { entryRecord, NEW_REPEAT, repeatOf, type EntryRepeat } from '@/lib/personalEntry';
+import {
+  categoryAfterKindChange,
+  entryRecord,
+  NEW_REPEAT,
+  quickPickIds,
+  repeatOf,
+  type EntryRepeat,
+} from '@/lib/personalEntry';
+import { KindPills } from '@/components/KindPills';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 function PersonalEntryScreenBody() {
@@ -362,7 +369,7 @@ function EntryForm({
           <EntryHeader
             title={title}
             subtitle={
-              editing || recordPayment
+              editingTxn || recordPayment
                 ? null
                 : kind === 'income'
                   ? t.personal.entryScreen.incomeSub
@@ -382,7 +389,18 @@ function EntryForm({
               before any other field means anything, so it stays a control at the
               top. A repayment's direction is fixed by the loan, so only a plain
               entry chooses. */}
-            {loanId ? null : <KindToggle value={kind} onChange={setKind} t={t} />}
+            {loanId ? null : (
+              <KindPills
+                value={kind}
+                onChange={(next) => {
+                  setKind(next);
+                  // Spend categories and income sources are different lists.
+                  setCategory((current) => categoryAfterKindChange(current, next));
+                }}
+                expenseLabel={t.personal.expense}
+                incomeLabel={t.personal.incomeKind}
+              />
+            )}
 
             <AmountCard
               currency={currency}
@@ -518,7 +536,9 @@ function EntryForm({
             answers "how often", and these are what the answer then implies. The
             block simply is not there while the entry happens once, which is the
             common case and the reason the form is short again. */}
-            {repeat ? (
+            {repeat &&
+            (repeat.frequency === Frequency.TwiceAMonth ||
+              repeat.frequency === Frequency.EveryNMonths) ? (
               <Card style={{ gap: theme.spacing.md }}>
                 {repeat.frequency === Frequency.TwiceAMonth ? (
                   <DayStepper
@@ -539,11 +559,18 @@ function EntryForm({
                     onChange={(interval) => setRepeat({ ...repeat, interval })}
                   />
                 ) : null}
+              </Card>
+            ) : null}
 
-                <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View style={{ flex: 1, paddingRight: theme.spacing.md }}>
-                    <Text variant="body">{t.personal.autoPost}</Text>
-                    <Text variant="micro" tone="muted">
+            {repeat ? (
+              <FormCard style={{ gap: theme.spacing.md, padding: theme.spacing.md }}>
+                <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+                  <Ionicons name="checkmark-circle-outline" size={22} color={accentOf(theme)} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: inkOf(theme) }}>
+                      {t.personal.autoPost}
+                    </Text>
+                    <Text style={{ fontSize: 13, color: mutedOf(theme) }}>
                       {t.personal.autoPostHint}
                     </Text>
                   </View>
@@ -566,21 +593,19 @@ function EntryForm({
                     />
                   </Row>
                 ) : null}
-              </Card>
+              </FormCard>
             ) : null}
           </View>
         </ScrollView>
         <View
           style={{
-            paddingHorizontal: theme.spacing.xl,
+            paddingHorizontal: theme.spacing.lg,
             paddingTop: theme.spacing.sm,
             paddingBottom: clearance,
-            borderTopWidth: 1,
-            borderTopColor: theme.color.border,
-            backgroundColor: theme.color.surface,
           }}
         >
-          <SaveButton
+          <Button
+            fullWidth
             label={
               addRecurring
                 ? t.personal.save
@@ -731,71 +756,7 @@ function EntryHeader({
   );
 }
 
-/** Expense or income, as a two-way pill: the chosen side filled in the accent
- *  with its arrow, the other quiet on the track. */
-function KindToggle({
-  value,
-  onChange,
-  t,
-}: {
-  value: TxnKind;
-  onChange: (next: TxnKind) => void;
-  t: ReturnType<typeof useStrings>['t'];
-}) {
-  const theme = useTheme();
-  const options: { value: TxnKind; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { value: 'expense', label: t.personal.expense, icon: 'arrow-up' },
-    { value: 'income', label: t.personal.incomeKind, icon: 'arrow-down' },
-  ];
-  return (
-    <Row
-      accessibilityRole="tablist"
-      style={{
-        padding: 3,
-        borderRadius: theme.radius.md,
-        backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#ECEBF6',
-      }}
-    >
-      {options.map((option) => {
-        const active = option.value === value;
-        const ink = active ? '#FFFFFF' : inkOf(theme);
-        return (
-          <Pressable
-            key={option.value}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
-            accessibilityLabel={option.label}
-            onPress={() => onChange(option.value)}
-            style={({ pressed }) => ({
-              flex: 1,
-              height: 34,
-              borderRadius: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: theme.spacing.sm,
-              backgroundColor: active ? accentOf(theme) : 'transparent',
-              opacity: pressed ? 0.8 : 1,
-            })}
-          >
-            {/* The arrow tilts the way the money goes: out and up for a spend,
-                in and down for money received. */}
-            <Ionicons
-              name={option.icon}
-              size={16}
-              color={ink}
-              style={{ transform: [{ rotate: '45deg' }] }}
-            />
-            <Text style={{ fontSize: 15, fontWeight: '600', color: ink }}>{option.label}</Text>
-          </Pressable>
-        );
-      })}
-    </Row>
-  );
-}
-
-/** The amount on a soft card: the currency in a disc, a rule, the figure big and
- *  left-set, and a calculator that opens the keypad under it. */
+/** The amount in an outlined card, with a calculator that opens the keypad below. */
 function AmountCard({
   currency,
   amount,
@@ -819,16 +780,18 @@ function AmountCard({
         gap: theme.spacing.sm,
         paddingVertical: theme.spacing.sm,
         paddingHorizontal: theme.spacing.md,
-        borderRadius: 20,
-        backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#F1F0FA',
+        borderRadius: 16,
+        borderWidth: 1.5,
+        borderColor: `${accentOf(theme)}59`,
+        backgroundColor: theme.color.surface,
       }}
     >
       <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
         <View
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 18,
+            width: 40,
+            height: 40,
+            borderRadius: 10,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: theme.color.brandSoft,
@@ -861,10 +824,12 @@ function AmountCard({
           style={({ pressed }) => ({
             width: 40,
             height: 40,
-            borderRadius: 20,
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: theme.color.border,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: calculating ? theme.color.brandSoft : theme.color.surface,
+            backgroundColor: theme.color.surface,
             opacity: pressed ? 0.7 : 1,
           })}
         >
@@ -887,7 +852,7 @@ function AmountCard({
   );
 }
 
-/** The five everyday answers and More, as tinted discs over their names. The
+/** The five everyday answers and More, as tinted square tiles over their names. The
  *  chosen one is framed; one picked from the full list takes the first place. */
 function QuickPicks({
   kind,
@@ -907,9 +872,9 @@ function QuickPicks({
   const sourceLabel = useSourceLabel();
   const income = kind === 'income';
   // Five picks and More need about 320pt before the form's padding; a narrower
-  // phone shows four, so no disc overflows its tile.
+  // phone shows four, so no tile overflows its space.
   const shown = width < NARROW_PICKS ? 4 : 5;
-  const all = income ? QUICK_SOURCES : QUICK_CATEGORIES;
+  const all = quickPickIds(kind);
   const base = all.slice(0, shown);
   const ids = value && !base.includes(value) ? [value, ...base.slice(0, shown - 1)] : base;
   const labelOf = (id: string): string =>
@@ -935,13 +900,13 @@ function QuickPicks({
             opacity: pressed ? 0.5 : 1,
           })}
         >
-          <Text style={{ fontSize: 13, color: mutedOf(theme) }}>
+          <Text style={{ fontSize: 13, color: accentOf(theme) }}>
             {t.personal.entryScreen.viewAll}
           </Text>
           <Ionicons
             name={directionalIcon('chevron-forward')}
             size={iconSize.sm}
-            color={mutedOf(theme)}
+            color={accentOf(theme)}
           />
         </Pressable>
       </Row>
@@ -956,7 +921,7 @@ function QuickPicks({
               income ? (
                 <SourceDisc id={id} />
               ) : (
-                <CategoryBadge category={id} meta={null} size={PICK_DISC} />
+                <CategoryBadge category={id} meta={null} size={PICK_DISC} shape="square" />
               )
             }
           />
@@ -970,7 +935,7 @@ function QuickPicks({
               style={{
                 width: PICK_DISC,
                 height: PICK_DISC,
-                borderRadius: PICK_DISC / 2,
+                borderRadius: PICK_RADIUS,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: theme.color.surfaceMuted,
@@ -985,7 +950,7 @@ function QuickPicks({
   );
 }
 
-/** One quick pick: its disc over its name, framed in the accent when chosen. */
+/** One quick pick: its square tile over its name, framed in the accent when chosen. */
 function PickTile({
   label,
   selected,
@@ -1009,15 +974,22 @@ function PickTile({
         minWidth: 0,
         alignItems: 'center',
         gap: 4,
-        paddingVertical: 6,
-        borderRadius: 16,
-        borderWidth: 1.5,
-        borderColor: selected ? accentOf(theme) : 'transparent',
-        backgroundColor: selected && theme.scheme !== 'dark' ? '#FFFFFF' : 'transparent',
+        paddingVertical: 2,
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      {disc}
+      <View
+        style={{
+          width: PICK_DISC,
+          height: PICK_DISC,
+          borderRadius: PICK_RADIUS,
+          borderWidth: selected ? 1.5 : 0,
+          borderColor: selected ? accentOf(theme) : 'transparent',
+          overflow: 'hidden',
+        }}
+      >
+        {disc}
+      </View>
       <Text
         numberOfLines={2}
         align="center"
@@ -1033,7 +1005,7 @@ function PickTile({
   );
 }
 
-/** An income source's disc: its glyph on its own pastel. */
+/** An income source's square tile: its glyph on its own pastel. */
 function SourceDisc({ id }: { id: string }) {
   const theme = useTheme();
   const source = incomeSource(id);
@@ -1043,7 +1015,7 @@ function SourceDisc({ id }: { id: string }) {
       style={{
         width: PICK_DISC,
         height: PICK_DISC,
-        borderRadius: PICK_DISC / 2,
+        borderRadius: PICK_RADIUS,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: tint.bg,
@@ -1081,7 +1053,7 @@ function NoteCard({
     >
       <Ionicons name="document-text-outline" size={22} color={inkOf(theme)} />
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text style={{ fontSize: 13, fontWeight: '600', color: mutedOf(theme) }}>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: inkOf(theme) }}>
           {t.personal.entryScreen.whatFor}
         </Text>
         {/* The shared note field, so the note can be spoken as well as typed —
@@ -1116,38 +1088,6 @@ function FormCard({ children, style }: { children: ReactNode; style?: object }) 
     >
       {children}
     </View>
-  );
-}
-
-/** Save, as a full-width solid pill in the accent. */
-function SaveButton({
-  label,
-  disabled,
-  onPress,
-}: {
-  label: string;
-  disabled: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        height: 52,
-        borderRadius: theme.radius.md,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: accentOf(theme),
-        opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
-      })}
-    >
-      <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF' }}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -1219,18 +1159,9 @@ function methodLabel(t: ReturnType<typeof useStrings>['t'], id: string): string 
   return paymentMethodLabel(t.personal.entryScreen.methods, id, deviceCountry());
 }
 
-/** The everyday answers the quick row offers, before "More". */
-const QUICK_CATEGORIES: readonly string[] = ['food', 'shopping', 'travel', 'home', 'health'];
-const QUICK_SOURCES: readonly string[] = [
-  IncomeSourceId.Salary,
-  IncomeSourceId.Business,
-  IncomeSourceId.Freelance,
-  IncomeSourceId.Bonus,
-  IncomeSourceId.Refund,
-];
-
-/** A quick pick's disc. */
-const PICK_DISC = 44;
+/** A quick pick's square tile. */
+const PICK_DISC = 48;
+const PICK_RADIUS = 14;
 /** Below this window width the quick row offers four picks rather than five. */
 const NARROW_PICKS = 375;
 

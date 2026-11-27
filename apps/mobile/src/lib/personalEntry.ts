@@ -25,6 +25,8 @@ import {
   encodeRecurring,
   encodeTxn,
   Frequency,
+  IncomeSourceId,
+  isIncomeSourceId,
   scheduleFor,
   type CurrencyCode,
   type PersonalRecordKind,
@@ -174,3 +176,23 @@ export const NEW_REPEAT: EntryRepeat = {
   autoPost: false,
   active: true,
 };
+
+/** The everyday answers the form's quick row offers before "More". */
+export function quickPickIds(kind: TxnKind): readonly string[] {
+  return kind === 'income'
+    ? [
+        IncomeSourceId.Salary,
+        IncomeSourceId.Business,
+        IncomeSourceId.Freelance,
+        IncomeSourceId.Rent,
+        IncomeSourceId.Interest,
+      ]
+    : ['food', 'shopping', 'travel', 'home', 'health'];
+}
+
+/** Income sources and spend categories are different lists: switching direction
+ *  keeps the pick only when it still belongs to the new kind. */
+export function categoryAfterKindChange(category: string | null, next: TxnKind): string | null {
+  if (category === null) return null;
+  return isIncomeSourceId(category) === (next === 'income') ? category : null;
+}

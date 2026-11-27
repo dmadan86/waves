@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { nextDateLabel, ruleTimeline, sectionRecurrings } from '../src/lib/recurringList';
+import {
+  nextDateLabel,
+  recurringTab,
+  ruleTimeline,
+  sectionRecurrings,
+} from '../src/lib/recurringList';
 import type { PersonalRecurring, PersonalTxn } from '@waves/core';
 
 const rule = (
@@ -58,5 +63,22 @@ describe('ruleTimeline', () => {
       ['2026-12', 'received'],
       ['2027-01', 'future'],
     ]);
+  });
+});
+
+describe('recurringTab', () => {
+  const rule = (id: string, txnKind: 'income' | 'expense', active: boolean, nextDate: string) =>
+    ({ id, txnKind, active, nextDate }) as never;
+  const rules = [
+    rule('a', 'expense', false, '2027-01-01'),
+    rule('b', 'expense', true, '2027-03-01'),
+    rule('c', 'income', true, '2027-02-01'),
+    rule('d', 'expense', true, '2027-02-01'),
+  ];
+  it('counts and lists one kind, active by due date first, paused last', () => {
+    const out = recurringTab(rules, 'expense');
+    expect(out.counts).toEqual({ expense: 3, income: 1 });
+    expect(out.rules.map((r) => r.id)).toEqual(['d', 'b', 'a']);
+    expect(recurringTab(rules, 'income').rules.map((r) => r.id)).toEqual(['c']);
   });
 });
