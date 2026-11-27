@@ -50,7 +50,6 @@ import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { frequencyLabel } from '@/lib/frequencyLabel';
 import { OverflowMenu } from '@/components/OverflowMenu';
-import { useClaimFab } from '@/lib/fabOverride';
 
 function RecurringScreenBody() {
   const focused = useIsFocused();
@@ -72,12 +71,6 @@ function RecurringScreenBody() {
     if (focused) setTab(recurringTabMemory.tab);
   }
   const [today] = useState(() => todayIso());
-  useClaimFab(focused, t.personal.addRecurringItem.replace(/^\+\s*/, ''), () =>
-    router.push({
-      pathname: '/personal/entry',
-      params: { repeats: '1', addRecurring: '1', kind: tab },
-    }),
-  );
 
   const cadenceLabel = (rule: PersonalRecurring): string =>
     frequencyLabel(t, frequencyOf(rule), rule.interval);
@@ -120,6 +113,7 @@ function RecurringScreenBody() {
   return (
     <Screen edges={[]}>
       <PlainHeader
+        hideBack
         title={t.personal.recurring}
         subtitle={t.personal.recurringSub}
         trailing={

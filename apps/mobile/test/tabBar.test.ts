@@ -129,7 +129,8 @@ describe('personal mode', () => {
     expect(personalActiveKey(['personal', 'transactions'])).toBe('transactions');
     expect(personalActiveKey(['personal', 'spending'])).toBe('reports');
     expect(personalActiveKey(['personal', 'recurring'])).toBe('planning');
-    expect(personalActiveKey(['personal', 'budgets'])).toBe('planning');
+    expect(personalActiveKey(['personal', 'budgets'])).toBe('accounts');
+    expect(personalActiveKey(['personal', 'accounts'])).toBe('accounts');
     expect(personalActiveKey(['personal', 'upcoming'])).toBe('home');
   });
 
@@ -137,7 +138,7 @@ describe('personal mode', () => {
     expect(personalRouteForSelection('home', 'reports')).toBe('/personal/spending');
     expect(personalRouteForSelection('home', 'planning')).toBe('/personal/recurring');
     expect(personalRouteForSelection('home', 'transactions')).toBe('/personal/transactions');
-    expect(personalRouteForSelection('home', 'me')).toBe('/profile');
+    expect(personalRouteForSelection('home', 'accounts')).toBe('/personal/accounts');
     expect(personalRouteForSelection('reports', 'home')).toBe('/me');
     expect(personalRouteForSelection('home', 'home')).toBeNull();
     expect(personalRouteForSelection('planning', 'planning', false)).toBe('/personal/recurring');
@@ -170,11 +171,11 @@ it('keeps profile and other settings outside Personal', () => {
   expect(isPersonalMode(['profile'])).toBe(false);
   expect(isPersonalMode(['settings', 'account'])).toBe(false);
   expect(personalActiveKey(['settings', 'transactions'])).toBe('');
-  expect(personalActiveKey(['settings', 'backup'], 'personal')).toBe('me');
+  expect(personalActiveKey(['settings', 'backup'], 'personal')).toBe('');
 });
 it.each([
-  ['budgets', 'planning'],
-  ['loans', 'planning'],
+  ['budgets', 'accounts'],
+  ['loans', 'accounts'],
   ['entry', 'transactions'],
   ['source', 'planning'],
 ])('highlights %s as %s', (screen, key) => {

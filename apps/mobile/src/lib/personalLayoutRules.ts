@@ -11,24 +11,17 @@ export function loanHeaderAddVisible(count: number): boolean {
   return count > 0;
 }
 
-/** Personal sub-screens whose one add control is the header + (docs/design-standard.md, Add controls). */
-const HEADER_ADD_SCREENS = new Set(['loans', 'recurring', 'budgets', 'upcoming', 'transactions']);
-
-/** Whether the tab bar's round + shows in Personal: tab roots yes; back-header sub-screens, Rentals and Investments (own Add) no. */
-export function personalShowsAddFab(segments: readonly string[]): boolean {
-  return !(
-    (segments[0] === 'personal' &&
-      (HEADER_ADD_SCREENS.has(segments[1] ?? '') || segments[1] === 'setup')) ||
-    segments[0] === 'rentals' ||
-    segments[0] === 'vehicles' ||
-    segments[0] === 'investments' ||
-    segments[0] === 'profile' ||
-    segments[0] === 'settings'
-  );
+/**
+ * Personal and household spaces draw no floating button: adding happens from a "+" in the
+ * header of the screens that add things (docs/design-standard.md, Add controls). Kept as a
+ * rule so the bar and its tests agree.
+ */
+export function personalShowsAddFab(_segments: readonly string[]): boolean {
+  return false;
 }
 
 /**
- * Whether the floating button is actually drawn, so screens reserve room for it
+ * Whether a floating button is actually drawn, so screens reserve room for it
  * only then (an empty band above the tab bar otherwise pushes footers up).
  */
 export function fabDrawn(input: {
@@ -37,7 +30,6 @@ export function fabDrawn(input: {
   noAdd: boolean;
   segments: readonly string[];
 }): boolean {
-  if (input.company) return !input.noAdd;
-  if (input.personal) return personalShowsAddFab(input.segments);
-  return true;
+  // Only the company bar still floats its buttons; Personal and household spaces never do.
+  return input.company && !input.noAdd;
 }

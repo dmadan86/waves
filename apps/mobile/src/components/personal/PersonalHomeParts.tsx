@@ -13,6 +13,7 @@ import { Card, directionalIcon, iconSize, Row, Text, useTheme, type TintName } f
 
 import { useSourceLabel } from '@/components/IncomeSource';
 import { GroupRow } from '@/components/home/GroupRow';
+import { EmptyCard } from '@/components/standard';
 import { RaiseCard, useRaisePrompts } from '@/components/wealth/RaiseCard';
 import { useDateOccurrences } from '@/data/personalDates';
 import { usePersonalWealth } from '@/data/personalWealth';
@@ -174,7 +175,7 @@ export function UpcomingRowView({
   );
 }
 
-/** A card title with an optional "View all ›" link. */
+/** A card title with an optional "View all ›" link: the shared SectionHeader. */
 export function CardTitle({
   title,
   action,
@@ -284,9 +285,19 @@ export function PersonalUpcomingCard({
           ))}
         </View>
       ) : (
-        <Text variant="caption" tone="muted">
-          {t.personalHome.upcomingEmpty}
-        </Text>
+        <EmptyCard
+          icon="calendar-outline"
+          title={t.personalHome.emptyUpcomingTitle}
+          helper={t.personalHome.emptyUpcomingHelp}
+          action={{
+            label: t.personalHome.addBill,
+            onPress: () =>
+              router.push({
+                pathname: '/personal/entry',
+                params: { repeats: '1', addRecurring: '1' },
+              }),
+          }}
+        />
       )}
     </Card>
   );
