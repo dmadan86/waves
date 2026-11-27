@@ -22,6 +22,16 @@ describe('part payments', () => {
     expect(remainderAfter(500_000n, 200_000n)).toBe(300_000n);
     expect(remainderAfter(500_000n, 500_000n)).toBe(0n);
   });
+  it('accepts string amounts from JSON activity payloads', () => {
+    expect(partPaymentOf({ amount: '200000', owed: '500000', currency: 'INR' })).toEqual({
+      amount: 200000n,
+      owed: 500000n,
+      currency: 'INR',
+    });
+    expect(partPaymentText({ amount: '200000', owed: '500000', currency: 'INR' }, 'en')).toMatch(
+      /2,000.* of .*5,000/,
+    );
+  });
   it('reads a part payment off an activity payload', () => {
     expect(partPaymentOf({ amount: 200000, owed: '500000', currency: 'INR' })).toEqual({
       amount: 200000n,
