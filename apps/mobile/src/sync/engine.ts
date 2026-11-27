@@ -356,12 +356,15 @@ export class SyncEngine {
     this.timer = null;
   }
 
+  /** Set by the couple space (e2ee/runtime): runs before a forgotten group's rows go. */
+  beforeGroupDropped: ((groupId: string, name: string) => Promise<void>) | null = null;
+
   /** Sign-out: nothing of the previous account may survive on the device. */
   async clear(): Promise<void> {
     await this.settleFlush();
     await this.store.reset();
-    // TODO(slice 5): offer "back up your rentals first?" before this line. Until then the
-    // couple space is wiped with the rest of the account, as it must not outlive it.
+    // The "back up your rentals first?" prompt is in SignOutSheet, before this runs. The couple
+    // space is wiped with the rest of the account, as it must not outlive it.
     await this.store.wipeE2ee();
     this.forgetInMemory();
   }
@@ -455,6 +458,9 @@ export class SyncEngine {
 
   /** `forgetGroup` without the wait, for a flush that is itself the one in flight. */
   private async dropGroup(groupId: string): Promise<void> {
+    // The couple space re-tags this group's shared rentals as a read-only copy on this phone.
+    const name = this.state.mirror.tables[SyncTable.Groups]?.[groupId]?.name;
+    await this.beforeGroupDropped?.(groupId, typeof name === 'string' ? name : '');
     const tables = {} as Record<SyncTable, Record<string, MirrorRow>>;
     for (const table of Object.keys(this.state.mirror.tables) as SyncTable[]) {
       const kept: Record<string, MirrorRow> = {};

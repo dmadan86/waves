@@ -22,6 +22,7 @@ import {
 } from '@waves/core';
 
 import { useGroup } from '@/data/hooks';
+import { fill, useStrings } from '@/i18n';
 import {
   useDeletePersonalRecord,
   useGroupRecords,
@@ -39,7 +40,8 @@ import {
   selectRentalRecords,
   type RentalRecord,
 } from '@/lib/rentalScope';
-import { clockId, e2eeSpace } from '@/e2ee/runtime';
+import { clockId, e2eeSpace, useFormerCouples } from '@/e2ee/runtime';
+import { isFormer } from '@/e2ee/space';
 import {
   cadenceFor,
   firstDue,
@@ -136,7 +138,11 @@ export function useOwnPropertyCount(groupId?: string): number {
 
 /** The group's name, shown under the header in a group space. */
 export function useSpaceName(groupId?: string): string | undefined {
-  const { group } = useGroup(groupId ?? '');
+  const former = isFormer(groupId ?? '');
+  const { group } = useGroup(former ? '' : (groupId ?? ''));
+  const { t } = useStrings();
+  const formerName = useFormerCouples().find((f) => f.groupId === groupId)?.name;
+  if (former) return fill(t.wealth.formerCouple, { name: formerName ?? '' });
   return groupId ? (group.data?.name ?? undefined) : undefined;
 }
 

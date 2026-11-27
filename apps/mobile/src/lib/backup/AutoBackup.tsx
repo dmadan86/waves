@@ -19,6 +19,7 @@
  * daily, which is the population the setting is for.
  */
 
+import { coupleBackup } from '@/e2ee/runtime';
 import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
@@ -88,6 +89,7 @@ export function AutoBackup() {
       const result = await runBackup({
         ownerId,
         records: recordsRef.current,
+        couple: coupleBackup(),
         tier,
         network: settings.network,
         // The whole point of the network preference is to gate *this* run.

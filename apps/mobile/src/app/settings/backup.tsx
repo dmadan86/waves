@@ -138,6 +138,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { coupleRecordCount } from '@/e2ee/runtime';
 import { plural, useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
 import { formatBytes } from '@/lib/bytes';
@@ -1051,6 +1052,11 @@ export default function BackupSettingsScreen() {
                     {extra ? t.backup.statusSealedExtra : t.backup.statusSealedStandard}
                   </Text>
                 </Row>
+              ) : null}
+              {settled && setup.complete && coupleRecordCount() > 0 ? (
+                <Text variant="micro" tone="faint">
+                  {extra ? t.wealth.backupCoupleExtra : t.wealth.backupCoupleStandard}
+                </Text>
               ) : null}
             </View>
           ) : null}

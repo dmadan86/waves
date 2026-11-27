@@ -1057,6 +1057,7 @@ function AuthGate() {
           <Stack.Screen name="settings/recent" />
           <Stack.Screen name="settings/sync" />
           <Stack.Screen name="settings/backup" />
+          <Stack.Screen name="settings/phones" />
           <Stack.Screen name="settings/archived" />
           <Stack.Screen name="settings/blocked" />
           <Stack.Screen name="settings/scene" />

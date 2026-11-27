@@ -151,6 +151,11 @@ export class MemStore {
     for (const r of rows) this.records.set(`${r.groupId}:${r.id}`, structuredClone(r));
     for (const o of outbox) if (!this.outbox.has(o.id)) this.outbox.set(o.id, structuredClone(o));
   }
+  async replaceE2eeGroup(groupId: string, rows: readonly E2eeRecordRow[]) {
+    for (const [k, r] of this.records) if (r.groupId === groupId) this.records.delete(k);
+    for (const [k, o] of this.outbox) if (o.groupId === groupId) this.outbox.delete(k);
+    for (const r of rows) this.records.set(`${r.groupId}:${r.id}`, structuredClone(r));
+  }
   async readE2eeOutbox() {
     return [...this.outbox.values()];
   }
@@ -174,6 +179,8 @@ export interface Phone {
   set(groupId: string, id: string, kind: string, data: Record<string, unknown>): Promise<void>;
   del(groupId: string, id: string): Promise<void>;
   sync(): Promise<void>;
+  /** The groups this account is in (the mailbox's `groups()`); edit in place. */
+  groups: string[];
   data(groupId: string): Record<string, Record<string, unknown>>;
 }
 
@@ -184,6 +191,7 @@ export function phone(
   memberId: string,
   seed: number,
   clock = { t: 1_700_000_000_000 },
+  groups: string[] = [],
 ): Phone {
   const store = new MemStore();
   const key = newKey(seed);
@@ -203,6 +211,7 @@ export function phone(
     client,
     space,
     outbox: store,
+    groups: () => groups,
     keys: { pair: async () => key, deviceId },
     randomBytes: (len) => new Uint8Array(len).fill(7),
     now: () => clock.t,
@@ -222,6 +231,7 @@ export function phone(
     set: (g, i, k, d) => space.upsert(g, me, i, k, d),
     del: (g, i) => space.del(g, me, i),
     sync: () => mailbox.sync(),
+    groups,
     data: (g) => Object.fromEntries(space.records(g).map((r) => [r.id, r.data])),
   };
 }

@@ -13,7 +13,8 @@ import { bytesToBase64 } from '@/sync/rowCipher';
 import type { E2eeOutboxRow } from '@/sync/store';
 
 import { fromBytea } from './deviceKey';
-import type { E2eeSpace, Incoming, OutboxMsg } from './space';
+import { diffDevices, memoryMeta, NoticeStore, type KnownDevice, type Meta } from './deviceNotice';
+import { snapshotOps, type E2eeSpace, type Incoming, type OutboxMsg } from './space';
 
 /** The slice of the Supabase client this uses, so tests can stand in a fake server. */
 export interface MailClient {
@@ -29,6 +30,10 @@ export interface MailboxDeps {
     deleteE2eeOutbox(ids: readonly string[]): Promise<void>;
   };
   keys: { pair(): Promise<e2ee.DeviceKeyPair>; deviceId(): Promise<string> };
+  /** The couple/home groups this account is in right now (from the sync mirror). */
+  groups?(): readonly string[];
+  /** Small durable key-value (last fetch, last ask, known devices, notices). In memory when absent. */
+  meta?: Meta;
   randomBytes(length: number): Uint8Array;
   now(): number;
   report(error: unknown, where: string): void;
@@ -43,6 +48,12 @@ interface GroupDevice {
 const DEVICES_TTL_MS = 60_000;
 const MAX_ITEMS_PER_CALL = 200;
 const FETCH_PAGE = 200;
+/** The server purges unfetched mail after 30 days, so a phone away that long must ask for a snapshot. */
+const STALE_MS = 30 * 24 * 3_600_000;
+/** One snapshot per requester per hour, and one request per group per hour. */
+const RESYNC_GAP_MS = 3_600_000;
+/** Pads the msgId while chunking, so a chunk also fits the sender's size budget. */
+const CHUNK_PAD = 'x'.repeat(512);
 /** Room for the msgId prefix, the seal and the wrapper under the server's 64 KiB limit. */
 const SIZE_BUDGET = e2ee.MAX_MESSAGE_BYTES - 512;
 
@@ -78,6 +89,9 @@ function unframe(bytes: Uint8Array): { msgId: string; sealed: Uint8Array } {
 
 export function createMailbox(deps: MailboxDeps) {
   const { client, space, outbox, keys } = deps;
+  const meta = deps.meta ?? memoryMeta();
+  const notices = new NoticeStore(meta);
+  const answered = new Map<string, number>();
   const devicesCache = new Map<string, { at: number; list: GroupDevice[] }>();
   const pairKeys = new Map<string, Uint8Array>();
   const attempts = new Map<string, { n: number; next: number }>();
@@ -121,7 +135,9 @@ export function createMailbox(deps: MailboxDeps) {
   async function sendOne(row: E2eeOutboxRow): Promise<SendResult> {
     const msg = row.msg as OutboxMsg;
     const me = await keys.deviceId();
-    const recipients = (await groupDevices(row.groupId)).filter((d) => d.deviceId !== me);
+    const recipients = (await groupDevices(row.groupId)).filter(
+      (d) => d.deviceId !== me && (msg.to === undefined || d.deviceId === msg.to),
+    );
     // Nobody to tell yet (the partner has not set up): keep it for when they do.
     if (recipients.length === 0) return 'wait';
     const parts = splitToFit(msg.plaintext);
@@ -230,6 +246,7 @@ export function createMailbox(deps: MailboxDeps) {
       if (rows.length === 0) break;
 
       const entries: Incoming[] = [];
+      const answers: { groupId: string; to: string }[] = [];
       const done: string[] = [];
       for (const row of rows) {
         try {
@@ -241,6 +258,11 @@ export function createMailbox(deps: MailboxDeps) {
             sender = devices.find((d) => d.deviceId === row.sender_device_id);
           }
           if (!sender) throw new Error('e2ee: unknown sender device');
+          // A group this phone has left: its mail is not for the copy it kept.
+          if (space.hasFormer(row.group_id) && !(deps.groups?.() ?? []).includes(row.group_id)) {
+            done.push(row.id);
+            continue;
+          }
           const { msgId, sealed } = unframe(fromBytea(row.ciphertext));
           const pt = e2ee.open(await keyFor(sender), sealed, {
             groupId: row.group_id,
@@ -250,11 +272,24 @@ export function createMailbox(deps: MailboxDeps) {
           });
           if (pt.msgId !== msgId) throw new Error('e2ee: msgId mismatch');
           const merge: e2ee.MergeOp[] = [];
-          // Snapshot parts (resync) are slice 5; an op this build does not know is skipped.
-          for (const op of pt.ops as { op: string }[])
+          const snap: e2ee.RecordState[] = [];
+          // An op this build does not know is skipped.
+          for (const op of pt.ops as { op: string }[]) {
             if (op.op === 'put' || op.op === 'del') merge.push(op as e2ee.MergeOp);
+            else if (op.op === 'snapshot') snap.push(...(op as e2ee.SnapshotOp).records);
+            else if (op.op === 'resync_req')
+              answers.push({ groupId: row.group_id, to: sender.deviceId });
+          }
           if (merge.length > 0)
             entries.push({ groupId: row.group_id, ops: merge, senderMemberId: sender.memberId });
+          // Parts merge as they arrive: last-write-wins is order-free, so no reassembly.
+          if (snap.length > 0)
+            entries.push({
+              groupId: row.group_id,
+              ops: snapshotOps(snap),
+              senderMemberId: sender.memberId,
+              trusted: true,
+            });
           done.push(row.id);
         } catch (error) {
           // Never blocks the queue: drop it, say so once.
@@ -264,6 +299,7 @@ export function createMailbox(deps: MailboxDeps) {
       }
       await space.applyIncoming(entries);
       applied += entries.length;
+      for (const a of answers) await answer(a.groupId, a.to);
       if (done.length > 0) {
         const del = await client.from('group_mailbox').delete().in('id', done);
         if (del.error) throw del.error;
@@ -273,11 +309,67 @@ export function createMailbox(deps: MailboxDeps) {
     return applied;
   }
 
+  /** Send my whole group state to one phone that asked, at most once an hour per phone. */
+  async function answer(groupId: string, to: string): Promise<void> {
+    const last = answered.get(to);
+    if (last !== undefined && deps.now() - last < RESYNC_GAP_MS) return;
+    const records = space.snapshot(groupId);
+    if (records.length === 0) return;
+    answered.set(to, deps.now());
+    try {
+      for (const part of e2ee.chunkSnapshot(records, CHUNK_PAD))
+        await space.queue(groupId, [part], to);
+    } catch (error) {
+      reportOnce(error, 'e2ee.resync.answer');
+    }
+  }
+
+  /** Ask the group's other phones for everything (a new phone, or one away over 30 days). */
+  async function requestResync(groupId: string): Promise<void> {
+    await meta.set(`asked:${groupId}`, String(deps.now()));
+    await space.queue(groupId, [{ op: 'resync_req' }]);
+  }
+
+  /** After a good fetch: ask for a snapshot if due, and look for a partner's new phone. */
+  async function housekeeping(): Promise<void> {
+    const fetchedAt = Number((await meta.get('fetchedAt')) ?? NaN);
+    const now = deps.now();
+    for (const groupId of deps.groups?.() ?? []) {
+      try {
+        const asked = Number((await meta.get(`asked:${groupId}`)) ?? 0);
+        const due =
+          space.snapshot(groupId).length === 0 ||
+          Number.isNaN(fetchedAt) ||
+          now - fetchedAt > STALE_MS;
+        if (due && now - asked >= RESYNC_GAP_MS) await requestResync(groupId);
+
+        const current: KnownDevice[] = (await groupDevices(groupId)).map((d) => ({
+          deviceId: d.deviceId,
+          memberId: d.memberId,
+        }));
+        const me = await keys.deviceId();
+        const raw = await meta.get(`devices:${groupId}`);
+        const known = raw === null ? null : (JSON.parse(raw) as KnownDevice[]);
+        const fresh = diffDevices(
+          known,
+          current,
+          current.find((d) => d.deviceId === me)?.memberId ?? null,
+        );
+        await notices.add(fresh.map((d) => ({ ...d, groupId })));
+        await meta.set(`devices:${groupId}`, JSON.stringify(current));
+      } catch (error) {
+        reportOnce(error, 'e2ee.housekeeping');
+      }
+    }
+    await meta.set('fetchedAt', String(now));
+  }
+
   /** One round: pick up mail, then send what is waiting. */
   async function sync(): Promise<void> {
     let failure: unknown = null;
     try {
       await fetch();
+      await housekeeping();
     } catch (error) {
       failure = error;
     }
@@ -289,7 +381,14 @@ export function createMailbox(deps: MailboxDeps) {
     if (failure) throw failure;
   }
 
-  return { flushOutbox, fetch, sync, forgetDevices: () => devicesCache.clear() };
+  return {
+    flushOutbox,
+    fetch,
+    sync,
+    requestResync,
+    notices,
+    forgetDevices: () => devicesCache.clear(),
+  };
 }
 
 export type Mailbox = ReturnType<typeof createMailbox>;
