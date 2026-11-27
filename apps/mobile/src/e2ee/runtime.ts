@@ -14,7 +14,10 @@ import { loadDeviceKey, registerDevice, registeredDeviceId, forgetDeviceId } fro
 import { createMailbox } from './mailbox';
 import { E2eeSpace, type GroupRecord } from './space';
 
-export const e2eeSpace = new E2eeSpace(syncEngine.localStore);
+export const e2eeSpace = new E2eeSpace(syncEngine.localStore, {
+  now: () => Date.now(),
+  newId: () => Crypto.randomUUID(),
+});
 
 let registering: Promise<string> | null = null;
 

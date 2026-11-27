@@ -84,10 +84,8 @@ export class E2eeSpace {
 
   constructor(
     private readonly io: SpaceIo,
-    private readonly clock: { now: () => number; newId: () => string } = {
-      now: () => Date.now(),
-      newId: () => globalThis.crypto.randomUUID(),
-    },
+    // No default: Hermes has no Web Crypto, so the phone passes expo-crypto ids.
+    private readonly clock: { now: () => number; newId: () => string },
   ) {}
 
   async load(): Promise<void> {
