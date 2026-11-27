@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   easeOutCubic,
+  docTileWidth,
   lerpBig,
   MAX_SAFE_MINOR,
   segmentWidth,
@@ -28,6 +29,19 @@ describe('easeOutCubic', () => {
   it('clamps input outside [0, 1] rather than overshooting', () => {
     expect(easeOutCubic(-1)).toBe(0);
     expect(easeOutCubic(2)).toBe(1);
+  });
+});
+
+describe('docTileWidth', () => {
+  it('leaves about a third of the next tile peeking at the measured width', () => {
+    expect(docTileWidth(320, 8, 96, 160)).toBe(130.28571428571428);
+    expect(docTileWidth(240, 8, 96, 200)).toBe(96);
+  });
+
+  it('clamps narrow and wide containers and handles an unmeasured container', () => {
+    expect(docTileWidth(120, 8, 96, 180)).toBe(96);
+    expect(docTileWidth(500, 8, 96, 180)).toBe(180);
+    expect(docTileWidth(0, 8, 96, 180)).toBe(96);
   });
 });
 

@@ -8,9 +8,19 @@ import { randomUUID } from 'expo-crypto';
 import * as FileSystem from 'expo-file-system';
 import { Image } from 'expo-image';
 import { Linking, Platform, Pressable, ScrollView, View } from 'react-native';
+import Animated, {
+  FadeOut,
+  LinearTransition,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+  type EntryExitAnimationFunction,
+} from 'react-native-reanimated';
 
 import type { PersonalProperty, PersonalTenancy } from '@waves/core';
-import { Button, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
+import { Button, iconSize, isRtlLayout, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { SectionHeader, StandardCard } from '@/components/standard';
@@ -18,8 +28,10 @@ import { RenameSheet, TextAnswer } from '@/components/wealth/parts';
 import { localIsoDate } from '@/data/personal';
 import { useWealthWrites } from '@/data/personalWealth';
 import { useStrings } from '@/i18n';
-import { PressableScale } from '@/lib/anim';
+import { EASE_OUT, PressableScale, SPRING_SETTLE } from '@/lib/anim';
+import { docTileWidth, staggerDelay } from '@/lib/motionMath';
 import { useDialog } from '@/lib/dialog';
+import { useReducedMotion } from '@/lib/reducedMotion';
 import { dateFrom, showDate } from '@/lib/expenseDay';
 import { pickReceiptImage, pickReceiptPhoto } from '@/lib/image';
 import { scanDocument, scannerAvailable } from '@/lib/scanner';
@@ -299,6 +311,31 @@ const SLOT_KEY = {
 const isImage = (d: LocalDoc): boolean => d.mime.startsWith('image/');
 const GAP = 8;
 
+const tileEntering: EntryExitAnimationFunction = () => {
+  'worklet';
+  return {
+    initialValues: { opacity: 0, transform: [{ scale: 0.96 }] },
+    animations: {
+      opacity: withTiming(1, { duration: 180 }),
+      transform: [{ scale: withSpring(1, SPRING_SETTLE) }],
+    },
+  };
+};
+
+const firstLoadTileEntering =
+  (index: number, direction: number): EntryExitAnimationFunction =>
+  () => {
+    'worklet';
+    const delay = staggerDelay(index);
+    return {
+      initialValues: { opacity: 0, transform: [{ translateX: 12 * direction }] },
+      animations: {
+        opacity: withDelay(delay, withTiming(1, { duration: 180 })),
+        transform: [{ translateX: withDelay(delay, withTiming(0, { duration: 220 })) }],
+      },
+    };
+  };
+
 /** Labelled slots for a rental's papers. Files never leave the phone and are never read. */
 export function DocumentsCard({
   propertyId,
@@ -310,6 +347,7 @@ export function DocumentsCard({
   groupId?: string;
 }) {
   const theme = useTheme();
+  const reduce = useReducedMotion();
   const { t, locale } = useStrings();
   const w = t.wealth;
   const { choose, confirm, notify } = useDialog();
@@ -320,20 +358,53 @@ export function DocumentsCard({
   const [renaming, setRenaming] = useState<DocSlot | null>(null);
   const [naming, setNaming] = useState(false);
   const [viewing, setViewing] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [seenIds, setSeenIds] = useState<Set<string> | null>(null);
+  const [didEnterInitialTiles, setDidEnterInitialTiles] = useState(false);
+  const dim = useSharedValue(1);
+  useEffect(() => {
+    dim.set(withTiming(busy ? 0.6 : 1, { duration: busy ? 120 : 160, easing: EASE_OUT }));
+  }, [busy, dim]);
+  const dimStyle = useAnimatedStyle(() => ({ opacity: dim.get() }));
 
-  const reload = useCallback(
-    async () => setDocs(docsOf(await readIndex(), propertyId)),
-    [propertyId],
-  );
+  const reload = useCallback(async () => {
+    setDocs(docsOf(await readIndex(), propertyId));
+    setLoaded(true);
+  }, [propertyId]);
   useEffect(() => {
     let live = true;
-    void readIndex().then((i) => live && setDocs(docsOf(i, propertyId)));
+    void readIndex().then((i) => {
+      if (live) {
+        setDocs(docsOf(i, propertyId));
+        setLoaded(true);
+      }
+    });
     return () => {
       live = false;
     };
   }, [propertyId]);
 
   const slots = slotsOf(docs, region);
+  const filledIds = new Set(slots.filter((s) => s.docs.length > 0).map((s) => s.id));
+  const filledIdKey = [...filledIds].sort().join('\u0000');
+  const newFilledIds = new Set(seenIds ? [...filledIds].filter((id) => !seenIds.has(id)) : []);
+  useEffect(() => {
+    if (!loaded) return;
+    const frame = requestAnimationFrame(() => {
+      const currentIds = new Set(filledIdKey ? filledIdKey.split('\u0000') : []);
+      setSeenIds((previous) => {
+        if (
+          previous &&
+          previous.size === currentIds.size &&
+          [...currentIds].every((id) => previous.has(id))
+        )
+          return previous;
+        return currentIds;
+      });
+      setDidEnterInitialTiles(true);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [loaded, filledIdKey]);
   const { filled, total } = slotCount(slots);
   const nameOf = (s: DocSlot): string =>
     s.builtin ? w[SLOT_KEY[s.id as keyof typeof SLOT_KEY]] : (s.label ?? w.docSlotOther);
@@ -435,18 +506,18 @@ export function DocumentsCard({
     await reload();
   };
 
-  const tileW = width > 0 ? (width - GAP) / 2 : undefined;
+  const tileW = docTileWidth(width, GAP, 96, 160);
+  const cardGutter = theme.spacing.md + 2;
   const tileBase = {
-    width: tileW,
-    minHeight: 112,
+    width: '100%' as const,
+    height: 176,
     borderRadius: theme.radius.lg,
     overflow: 'hidden' as const,
   };
   const viewingSlot = slots.find((s) => s.id === viewing) ?? null;
 
-  const emptyTile = (key: string, name: string, label: string, onPress: () => void) => (
+  const emptyTile = (name: string, label: string, onPress: () => void) => (
     <PressableScale
-      key={key}
       pressedScale={0.98}
       accessibilityRole="button"
       accessibilityLabel={label}
@@ -482,95 +553,140 @@ export function DocumentsCard({
         }
       />
       <StandardCard style={{ gap: theme.spacing.md }}>
-        <View
+        <Animated.ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={tileW + GAP}
+          decelerationRate="fast"
           onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-          style={{ flexDirection: 'row', flexWrap: 'wrap', gap: GAP }}
+          contentContainerStyle={{ gap: GAP, paddingHorizontal: cardGutter }}
+          style={[{ marginHorizontal: -cardGutter }, dimStyle]}
         >
-          {slots.map((s) => {
+          {slots.map((s, index) => {
             const name = nameOf(s);
-            if (s.docs.length === 0)
-              return emptyTile(s.id, name, w.docAddTo.replace('{name}', name), () => tap(s));
+            const isFilled = s.docs.length > 0;
+            const tileKey = `${s.id}-${isFilled ? 'filled' : 'empty'}`;
+            const entering = !didEnterInitialTiles
+              ? firstLoadTileEntering(index, isRtlLayout() ? -1 : 1)
+              : newFilledIds.has(s.id) && !reduce
+                ? tileEntering
+                : undefined;
+            const layout = reduce
+              ? undefined
+              : LinearTransition.springify().damping(24).stiffness(220);
+            if (!isFilled)
+              return (
+                <Animated.View
+                  key={tileKey}
+                  layout={layout}
+                  entering={loaded && !reduce && !didEnterInitialTiles ? entering : undefined}
+                  style={{ width: tileW }}
+                >
+                  {emptyTile(name, w.docAddTo.replace('{name}', name), () => tap(s))}
+                </Animated.View>
+              );
             const first = s.docs[0]!;
             const when = addedOf(s);
             return (
-              <PressableScale
-                key={s.id}
-                pressedScale={0.98}
-                accessibilityRole="button"
-                accessibilityLabel={`${name}, ${kindOf(s)}${when ? `, ${w.docAdded.replace('{date}', when)}` : ''}`}
-                onPress={() => tap(s)}
-                onLongPress={() => setMenu(s)}
-                style={{
-                  ...tileBase,
-                  borderWidth: 1,
-                  borderColor: theme.color.border,
-                  backgroundColor: theme.color.surface,
-                }}
+              <Animated.View
+                key={tileKey}
+                layout={layout}
+                entering={!reduce ? entering : undefined}
+                exiting={FadeOut.duration(150)}
+                style={{ width: tileW }}
               >
-                <View
-                  style={{
-                    height: 64,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: theme.color.brandSoft,
-                  }}
-                >
-                  {isImage(first) ? (
-                    <Image
-                      source={{ uri: localDocUri(propertyId, first) }}
-                      style={{ width: '100%', height: '100%' }}
-                      contentFit="cover"
-                      accessibilityIgnoresInvertColors
-                    />
-                  ) : (
-                    <Ionicons
-                      name="document-text-outline"
-                      size={iconSize.lg}
-                      color={theme.color.brand}
-                    />
-                  )}
-                </View>
-                <View style={{ padding: theme.spacing.sm }}>
-                  <Text variant="caption" numberOfLines={1} style={{ fontWeight: '700' }}>
-                    {name}
-                  </Text>
-                  <Text variant="micro" tone="muted" numberOfLines={1}>
-                    {[kindOf(s), when].filter(Boolean).join(' · ')}
-                  </Text>
-                </View>
-                <Pressable
+                <PressableScale
+                  pressedScale={0.98}
                   accessibilityRole="button"
-                  accessibilityLabel={t.personalHome.toolMore}
-                  hitSlop={8}
-                  onPress={() => setMenu(s)}
+                  accessibilityLabel={`${name}, ${kindOf(s)}${when ? `, ${w.docAdded.replace('{date}', when)}` : ''}`}
+                  onPress={() => tap(s)}
+                  onLongPress={() => setMenu(s)}
                   style={{
-                    position: 'absolute',
-                    top: 4,
-                    end: 4,
-                    width: 28,
-                    height: 28,
-                    borderRadius: 14,
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    ...tileBase,
+                    borderWidth: 1,
+                    borderColor: theme.color.border,
                     backgroundColor: theme.color.surface,
                   }}
                 >
-                  <Ionicons
-                    name="ellipsis-vertical"
-                    size={iconSize.sm}
-                    color={theme.color.textMuted}
-                  />
-                </Pressable>
-              </PressableScale>
+                  <View
+                    style={{
+                      height: tileW * 0.75,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: theme.color.brandSoft,
+                    }}
+                  >
+                    {isImage(first) ? (
+                      <Image
+                        source={{ uri: localDocUri(propertyId, first) }}
+                        style={{ width: '100%', height: '100%' }}
+                        contentFit="cover"
+                        accessibilityIgnoresInvertColors
+                        transition={180}
+                      />
+                    ) : (
+                      <Ionicons
+                        name="document-text-outline"
+                        size={iconSize.lg}
+                        color={theme.color.brand}
+                      />
+                    )}
+                  </View>
+                  <View style={{ padding: theme.spacing.sm }}>
+                    <Text variant="caption" numberOfLines={1} style={{ fontWeight: '700' }}>
+                      {name}
+                    </Text>
+                    <Text variant="micro" tone="muted" numberOfLines={1}>
+                      {kindOf(s)}
+                    </Text>
+                    {when ? (
+                      <Text variant="micro" tone="muted" numberOfLines={1}>
+                        {when}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.personalHome.toolMore}
+                    hitSlop={8}
+                    onPress={() => setMenu(s)}
+                    style={{
+                      position: 'absolute',
+                      top: 4,
+                      end: 4,
+                      width: 28,
+                      height: 28,
+                      borderRadius: 14,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: theme.color.surface,
+                    }}
+                  >
+                    <Ionicons
+                      name="ellipsis-vertical"
+                      size={iconSize.sm}
+                      color={theme.color.textMuted}
+                    />
+                  </Pressable>
+                </PressableScale>
+              </Animated.View>
             );
           })}
-          {emptyTile(
-            'other-add',
-            w.docSlotOther,
-            w.docAddTo.replace('{name}', w.docSlotOther),
-            () => setNaming(true),
-          )}
-        </View>
+          <Animated.View
+            key="other-add"
+            layout={reduce ? undefined : LinearTransition.springify().damping(24).stiffness(220)}
+            entering={
+              loaded && !reduce && !didEnterInitialTiles
+                ? firstLoadTileEntering(slots.length, isRtlLayout() ? -1 : 1)
+                : undefined
+            }
+            style={{ width: tileW }}
+          >
+            {emptyTile(w.docSlotOther, w.docAddTo.replace('{name}', w.docSlotOther), () =>
+              setNaming(true),
+            )}
+          </Animated.View>
+        </Animated.ScrollView>
         <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
           <Ionicons name="lock-closed-outline" size={iconSize.sm} color={theme.color.textMuted} />
           <Text variant="micro" tone="muted" style={{ flex: 1 }}>
@@ -687,6 +803,7 @@ export function DocumentsCard({
                           style={{ width: 44, height: 44 }}
                           contentFit="cover"
                           accessibilityIgnoresInvertColors
+                          transition={180}
                         />
                       ) : (
                         <Ionicons

@@ -32,6 +32,18 @@ export function staggerDelay(index: number): number {
   return Math.min(Math.max(0, index), CAP) * STEP_MS;
 }
 
+/** Tile width that leaves about one third of the next card visible. */
+export function docTileWidth(
+  containerWidth: number,
+  gap: number,
+  minWidth: number,
+  maxWidth: number,
+): number {
+  if (containerWidth <= 0) return minWidth;
+  // Two full tiles plus one third of the next, with two inter-tile gaps.
+  return Math.min(maxWidth, Math.max(minWidth, (containerWidth - gap * 2) / (2 + 1 / 3)));
+}
+
 /** Width of one of `count` equal segments in a row of `width` with `inset` padding and `gap` between. */
 export function segmentWidth(count: number, width: number, inset = 0, gap = 0): number {
   return count > 0 ? Math.max(0, (width - inset * 2 - gap * (count - 1)) / count) : 0;
