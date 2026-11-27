@@ -26,17 +26,28 @@ export function usePersonalDates(): readonly PersonalDate[] {
   );
 }
 
-/** Every date and festival with its next occurrence, soonest first. */
-export function useDateOccurrences(): readonly UpcomingItem[] {
+function useOccurrences(withFestivals: boolean): readonly UpcomingItem[] {
   const dates = usePersonalDates();
   const { profile } = useAuth();
-  const { festivalsOff } = useDatePrefs();
+  const { festivalsOn } = useDatePrefs();
   const todayIso = localIsoDate(new Date());
   return useMemo(
-    () => allOccurrences({ dates, country: profile?.country_code, festivalsOff, todayIso }),
-    [dates, profile?.country_code, festivalsOff, todayIso],
+    () =>
+      allOccurrences({
+        dates,
+        country: profile?.country_code,
+        festivalsOn: withFestivals ? festivalsOn : [],
+        todayIso,
+      }),
+    [dates, profile?.country_code, festivalsOn, withFestivals, todayIso],
   );
 }
+
+/** Dates the person added, soonest first: what Home and Upcoming list. Never festivals. */
+export const useDateOccurrences = (): readonly UpcomingItem[] => useOccurrences(false);
+
+/** The same plus festivals the person switched on: only for the reminder card and notification. */
+export const useReminderOccurrences = (): readonly UpcomingItem[] => useOccurrences(true);
 
 export function useSaveDate() {
   const upsert = useUpsertPersonalRecord();

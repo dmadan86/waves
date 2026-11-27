@@ -83,21 +83,21 @@ describe('festivals and upcoming', () => {
     expect(nextFestival('fathers_day', '2026-01-01', 'AU')?.date).toBe('2026-09-06');
     expect(nextFestival('fathers_day', '2026-01-01', 'US')?.date).toBe('2026-06-21');
   });
-  it('limits to 3, 30 days (festivals 21) and honours switched-off festivals', () => {
+  it('limits to 3, 30 days (festivals 21) and shows a festival only once switched on', () => {
     const dates = [
       d({ id: '1', day: 25, month: 11 }),
       d({ id: '2', day: 28, month: 11 }),
       d({ id: '3', day: 1, month: 12 }),
       d({ id: '4', day: 15, month: 12 }),
     ];
-    const items = upcomingDates({ dates, country: 'GB', festivalsOff: [], todayIso: '2026-11-21' });
+    const items = upcomingDates({ dates, country: 'GB', festivalsOn: [], todayIso: '2026-11-21' });
     expect(items.map((i) => i.id)).toEqual(['1', '2', '3']);
     // Christmas is 34 days out: outside the 21-day festival window.
     expect(items.some((i) => i.id === 'christmas')).toBe(false);
     const dec = upcomingDates({
       dates: [],
       country: 'GB',
-      festivalsOff: [],
+      festivalsOn: ['christmas'],
       todayIso: '2026-12-10',
     });
     expect(dec.map((i) => i.id)).toEqual(['christmas']);
@@ -105,16 +105,36 @@ describe('festivals and upcoming', () => {
       upcomingDates({
         dates: [],
         country: 'GB',
-        festivalsOff: ['christmas'],
+        festivalsOn: [],
         todayIso: '2026-12-10',
       }),
     ).toEqual([]);
+  });
+  it('lists no festival by default for any country, but still lists birthdays', () => {
+    for (const country of ['IN', 'US', 'GB', 'AE', 'AU', null]) {
+      const items = allOccurrences({
+        dates: [d({ id: 'b', day: 1, month: 12 })],
+        country,
+        festivalsOn: [],
+        todayIso: '2026-11-21',
+      });
+      expect(items.map((i) => i.source)).toEqual(['date']);
+    }
+  });
+  it('lists only the festivals switched on', () => {
+    const items = allOccurrences({
+      dates: [],
+      country: 'US',
+      festivalsOn: ['thanksgiving'],
+      todayIso: '2026-11-21',
+    });
+    expect(items.map((i) => i.id)).toEqual(['thanksgiving']);
   });
   it('counts work-anniversary years', () => {
     const [i] = allOccurrences({
       dates: [d({ label: 'work_anniversary', year: 2020, day: 5, month: 1 })],
       country: 'GB',
-      festivalsOff: ['christmas', 'eid_al_fitr', 'eid_al_adha', 'diwali', 'easter'],
+      festivalsOn: [],
       todayIso: '2026-12-30',
     });
     expect(i!.years).toBe(7);

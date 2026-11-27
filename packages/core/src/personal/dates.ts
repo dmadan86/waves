@@ -94,7 +94,7 @@ const US: readonly FestivalId[] = [
 ];
 const DEFAULT: readonly FestivalId[] = ['christmas', 'mothers_day', 'fathers_day'];
 
-/** The opt-in starter festivals for a country. Never infers religion. */
+/** The suggested festivals (shown first, all off until switched on) for a country. Never infers religion. */
 export function defaultFestivals(countryCode: string | null | undefined): readonly FestivalId[] {
   const c = (countryCode ?? '').toUpperCase();
   if (c === 'IN') return INDIA;
@@ -209,7 +209,8 @@ export const FESTIVAL_WINDOW_DAYS = 21;
 export function allOccurrences(input: {
   readonly dates: readonly PersonalDate[];
   readonly country: string | null | undefined;
-  readonly festivalsOff: readonly string[];
+  /** Festivals the person explicitly turned on; none by default. */
+  readonly festivalsOn: readonly string[];
   readonly todayIso: string;
 }): UpcomingItem[] {
   const out: UpcomingItem[] = [];
@@ -229,7 +230,7 @@ export function allOccurrences(input: {
     });
   }
   for (const id of defaultFestivals(input.country)) {
-    if (input.festivalsOff.includes(id)) continue;
+    if (!input.festivalsOn.includes(id)) continue;
     const next = nextFestival(id, input.todayIso, input.country);
     if (!next) continue;
     out.push({
