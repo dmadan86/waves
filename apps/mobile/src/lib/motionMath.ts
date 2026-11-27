@@ -31,3 +31,13 @@ export function staggerDelay(index: number): number {
   const CAP = 8;
   return Math.min(Math.max(0, index), CAP) * STEP_MS;
 }
+
+/** Width of one of `count` equal segments in a row of `width` with `inset` padding and `gap` between. */
+export function segmentWidth(count: number, width: number, inset = 0, gap = 0): number {
+  return count > 0 ? Math.max(0, (width - inset * 2 - gap * (count - 1)) / count) : 0;
+}
+
+/** Where segment `index` starts, measured from the row's start edge (before any RTL mirroring). */
+export function segmentX(index: number, count: number, width: number, inset = 0, gap = 0): number {
+  return inset + index * (segmentWidth(count, width, inset, gap) + gap);
+}

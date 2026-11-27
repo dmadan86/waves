@@ -8,7 +8,14 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { easeOutCubic, lerpBig, MAX_SAFE_MINOR, staggerDelay } from '@/lib/motionMath';
+import {
+  easeOutCubic,
+  lerpBig,
+  MAX_SAFE_MINOR,
+  segmentWidth,
+  segmentX,
+  staggerDelay,
+} from '@/lib/motionMath';
 
 describe('easeOutCubic', () => {
   it('pins the ends and eases in between', () => {
@@ -67,5 +74,18 @@ describe('staggerDelay', () => {
 describe('MAX_SAFE_MINOR', () => {
   it('is the Number safe-integer ceiling, as a bigint', () => {
     expect(MAX_SAFE_MINOR).toBe(9_007_199_254_740_991n);
+  });
+});
+
+describe('segmentX', () => {
+  it('places segment n after n widths and n gaps, inside the inset', () => {
+    expect(segmentX(0, 3, 306, 4, 2)).toBe(4);
+    expect(segmentX(1, 3, 306, 4, 2)).toBe(4 + (306 - 8 - 4) / 3 + 2);
+    expect(segmentWidth(3, 306, 4, 2)).toBe(98);
+  });
+
+  it('is safe before the row is measured', () => {
+    expect(segmentWidth(3, 0)).toBe(0);
+    expect(segmentWidth(0, 300)).toBe(0);
   });
 });
