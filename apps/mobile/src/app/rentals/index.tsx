@@ -23,7 +23,7 @@ import { atPropertyLimit, monthRent, monthTotals, propertyView } from '@/lib/wea
 export const STATUS_TONE: Record<string, PillTone> = {
   paid: 'positive',
   part: 'warning',
-  due: 'neutral',
+  due: 'negative',
   overdue: 'negative',
   vacant: 'neutral',
 };
