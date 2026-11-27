@@ -156,11 +156,6 @@ export enum MutationKind {
   PackUninstall = 'pack.uninstall',
   PersonalUpsert = 'personal.upsert',
   PersonalDelete = 'personal.delete',
-  // Rentals kept inside a couple/home group: one generic upsert/delete pair for
-  // the four record kinds, merged server-side like personal records. Group
-  // scope (the envelope's `groupId` is the group), authorised by live membership.
-  GroupRecordUpsert = 'group_record.upsert',
-  GroupRecordDelete = 'group_record.delete',
   // One person's pin on one group, under its own suffixed scope
   // (`groupPinsScope`). A pin is a preference about a group, not a property of
   // it: it sorts that group to the top of *this* person's lists and the other
@@ -985,21 +980,6 @@ export interface PersonalUpsertPayload {
   readonly data: Readonly<Record<string, unknown>>;
 }
 
-/** The kinds of row a couple/home group keeps for its rentals. */
-export type GroupRecordKind = 'property' | 'tenancy' | 'recurring' | 'txn';
-
-/** An upsert of one rental record inside a group; same contract as `PersonalUpsertPayload`. */
-export interface GroupRecordUpsertPayload {
-  readonly recordId: string;
-  readonly recordKind: GroupRecordKind;
-  readonly data: Readonly<Record<string, unknown>>;
-}
-
-/** Soft-deletes one group rental record; the tombstone rides the pull. */
-export interface GroupRecordDeletePayload {
-  readonly recordId: string;
-}
-
 /** Soft-deletes one personal-finance record; the tombstone rides the pull. */
 export interface PersonalDeletePayload {
   readonly recordId: string;
@@ -1192,9 +1172,6 @@ export enum SyncTable {
    * expenses/income, recurring rules, loans and budgets. Read + write, one
    * generic row per record, keyed by the owner's user id under `personalScope`. */
   PersonalRecords = 'personal_records',
-  /** Group-scoped, read+write, couple/home groups only: rental records kept
-   * inside the group (property, tenancy, recurring rent, txn). */
-  GroupRecords = 'group_records',
   /** Which packs this person has installed, under `packInstallsScope`. */
   PackInstalls = 'pack_installs',
   /** Which groups this person has pinned to the top of their lists, under
