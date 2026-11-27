@@ -13,6 +13,7 @@ import { Card, directionalIcon, iconSize, Row, Text, useTheme, type TintName } f
 
 import { useSourceLabel } from '@/components/IncomeSource';
 import { GroupRow } from '@/components/home/GroupRow';
+import { EmptyCard, SectionHeader } from '@/components/standard';
 import { RaiseCard, useRaisePrompts } from '@/components/wealth/RaiseCard';
 import { useDateOccurrences } from '@/data/personalDates';
 import { usePersonalWealth } from '@/data/personalWealth';
@@ -154,7 +155,7 @@ export function UpcomingRowView({
   );
 }
 
-/** A card title with an optional "View all ›" link. */
+/** A card title with an optional "View all ›" link: the shared SectionHeader. */
 export function CardTitle({
   title,
   action,
@@ -166,37 +167,12 @@ export function CardTitle({
   onAction?: () => void;
   children?: React.ReactNode;
 }) {
-  const theme = useTheme();
   return (
-    <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-      <Text accessibilityRole="header" variant="subheading" numberOfLines={1} style={{ flex: 1 }}>
-        {title}
-      </Text>
-      {children}
-      {action && onAction ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${action}, ${title}`}
-          onPress={onAction}
-          hitSlop={8}
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 2,
-            opacity: pressed ? 0.5 : 1,
-          })}
-        >
-          <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
-            {action}
-          </Text>
-          <Ionicons
-            name={directionalIcon('chevron-forward')}
-            size={iconSize.sm}
-            color={theme.color.brand}
-          />
-        </Pressable>
-      ) : null}
-    </Row>
+    <SectionHeader
+      title={title}
+      action={action && onAction ? { label: action, onPress: onAction } : undefined}
+      trailing={children}
+    />
   );
 }
 
@@ -228,9 +204,19 @@ export function PersonalUpcomingCard({
           ))}
         </View>
       ) : (
-        <Text variant="caption" tone="muted">
-          {t.personalHome.upcomingEmpty}
-        </Text>
+        <EmptyCard
+          icon="calendar-outline"
+          title={t.personalHome.emptyUpcomingTitle}
+          helper={t.personalHome.emptyUpcomingHelp}
+          action={{
+            label: t.personalHome.addBill,
+            onPress: () =>
+              router.push({
+                pathname: '/personal/entry',
+                params: { repeats: '1', addRecurring: '1' },
+              }),
+          }}
+        />
       )}
     </Card>
   );

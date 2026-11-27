@@ -440,6 +440,11 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
           onPress={go(pick(buttons, 'bell'))}
         />
         <TabIconButton
+          icon="mic-outline"
+          label={t.personalHome.moreVoice}
+          onPress={() => router.push({ pathname: '/voice', params: { group: groupId } })}
+        />
+        <TabIconButton
           icon="ellipsis-vertical"
           label={t.group.settings}
           onPress={() => setMenuOpen(true)}
