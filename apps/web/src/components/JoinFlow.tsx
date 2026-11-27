@@ -131,6 +131,7 @@ export function JoinFlow({ token, resume = false }: { token: string; resume?: bo
       t.errors.couldNotSave,
       t.errors.offline,
       t.join.accountRequired,
+      t.join.leftGroup,
       t.join.removedFromGroup,
     ],
   );
