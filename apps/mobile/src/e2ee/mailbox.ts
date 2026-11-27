@@ -97,6 +97,15 @@ class TransientMailboxError extends Error {
   }
 }
 
+/** The server refused because this account is not (or no longer) in the group. */
+function isNotMember(error: unknown): boolean {
+  const cause = (error as TransientMailboxError).cause ?? error;
+  const text = `${String((cause as { message?: unknown })?.message ?? '')} ${String(
+    (cause as { code?: unknown })?.code ?? '',
+  )}`.toLowerCase();
+  return text.includes('not a member') || text.includes('not_member');
+}
+
 async function metaRead(meta: Meta, key: string): Promise<string | null> {
   try {
     return await meta.get(key);
@@ -932,11 +941,14 @@ export function createMailbox(deps: MailboxDeps) {
       /* the loop below fails the same way and is retried */
     }
     let failed: unknown = null;
+    let failedStep = 'group';
+    let step = 'group';
     const fetchedAt = Number((await meta.get('fetchedAt')) ?? NaN);
     if (!current()) return;
     const now = deps.now();
     for (const groupId of deps.groups?.() ?? []) {
       try {
+        step = 'resync';
         const asked = Number((await meta.get(`asked:${groupId}`)) ?? 0);
         if (!current()) return;
         const due =
@@ -951,6 +963,7 @@ export function createMailbox(deps: MailboxDeps) {
         }
         if (!current()) return;
 
+        step = 'directory';
         const currentDevices: KnownDevice[] = (await groupDevices(groupId, false, current)).map(
           (d) => ({
             deviceId: d.deviceId,
@@ -958,6 +971,7 @@ export function createMailbox(deps: MailboxDeps) {
           }),
         );
         if (!current()) return;
+        step = 'notices';
         const me = await keys.deviceId();
         if (!current()) return;
         const raw = await meta.get(`devices:${groupId}`);
@@ -982,7 +996,10 @@ export function createMailbox(deps: MailboxDeps) {
         await meta.set(`devices:${groupId}`, JSON.stringify(currentDevices));
         if (!current()) return;
       } catch (error) {
+        // A group the server no longer lets this phone into (left, removed): nothing to keep up.
+        if (isNotMember(error)) continue;
         failed = error;
+        failedStep = step;
       }
     }
     if (!current()) return;
@@ -990,7 +1007,7 @@ export function createMailbox(deps: MailboxDeps) {
     // and only reported when it keeps happening.
     if (failed) {
       housekeepingStreak += 1;
-      if (housekeepingStreak === 3) reportOnce(failed, 'e2ee.housekeeping');
+      if (housekeepingStreak === 3) reportOnce(failed, `e2ee.housekeeping.${failedStep}`);
       return;
     }
     housekeepingStreak = 0;
