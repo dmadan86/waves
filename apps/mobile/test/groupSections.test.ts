@@ -4,6 +4,7 @@ import {
   archiveSuggestion,
   homeGroupRows,
   splitFamily,
+  viewerLeft,
   type SectionEntry,
 } from '../src/lib/groupSections';
 
@@ -39,6 +40,23 @@ describe('splitFamily', () => {
     const r = splitFamily([e('Goa trip'), e('Our home', { type: 'couple' })], 'goa');
     expect(r.family).toEqual([]);
     expect(r.groups.map((x) => x.id)).toEqual(['Goa trip']);
+  });
+});
+
+describe('former couple', () => {
+  it('is not pinned as Family once the viewer has left', () => {
+    const { family, groups } = splitFamily([e('c', { type: 'couple', former: true })]);
+    expect(family).toEqual([]);
+    expect(groups.map((x) => x.id)).toEqual(['c']);
+  });
+  it('is detected from the viewer own left_at only', () => {
+    const m = [
+      { profile_id: 'me', left_at: '2026-11-01T00:00:00Z' },
+      { profile_id: 'p', left_at: null },
+    ];
+    expect(viewerLeft(m, 'me')).toBe(true);
+    expect(viewerLeft(m, 'p')).toBe(false);
+    expect(viewerLeft(m, null)).toBe(false);
   });
 });
 

@@ -25,7 +25,7 @@ import { useCaptures, type useHomeSummary } from '@/data/hooks';
 import type { SnapRow } from '@/lib/homeSnapshot';
 import { groupLabel, type GroupRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
-import { homeGroupRows } from '@/lib/groupSections';
+import { homeGroupRows, viewerLeft } from '@/lib/groupSections';
 import { plainAmount } from '@/lib/homeToday';
 import { measureAnchor } from '@/lib/measureAnchor';
 import { router, switchTab } from '@/lib/navigation';
@@ -77,10 +77,12 @@ export function SpacesGrid({
   const { t } = useStrings();
   const h = t.homeToday;
   const plusRef = useRef<View>(null);
+  const pinned = (group: GroupRow): boolean =>
+    hasHouseholdHome(group) && !viewerLeft(summary.membersFor(group.id), viewerId);
   // Family spaces are pinned first so a busy trip week never pushes them off Home.
   const { family, groups: recent } = homeGroupRows(
-    groups.filter((group) => hasHouseholdHome(group)),
-    groups.filter((group) => !hasHouseholdHome(group)),
+    groups.filter(pinned),
+    groups.filter((group) => !pinned(group)),
   );
   const shown = [...family, ...recent];
   const { draftsByGroup, voiceNewCount, env } = useGroupRowEnv();
@@ -135,7 +137,7 @@ export function SpacesGrid({
             t,
             env,
           });
-          return { ...row, family: hasHouseholdHome(group) };
+          return { ...row, family: pinned(group) };
         }),
       ])
     : null;

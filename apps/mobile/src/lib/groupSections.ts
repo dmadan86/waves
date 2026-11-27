@@ -10,7 +10,19 @@ import { filterGroups, sortGroups, type GroupsEntry } from '@/lib/groupsList';
 export interface SectionEntry extends GroupsEntry {
   readonly type?: string | null;
   readonly ledger_mode?: string | null;
+  /** The viewer has left: a read-only copy, never pinned as Family. */
+  readonly former?: boolean;
 }
+
+/** True once the viewer's own member row has left_at set. */
+export const viewerLeft = (
+  members: readonly { profile_id?: string | null; left_at: string | null }[],
+  viewerId: string | null | undefined,
+): boolean => !!viewerId && members.some((m) => m.profile_id === viewerId && !!m.left_at);
+
+/** Couples, homes and pooled groups the viewer is still in. */
+export const isPinnedFamily = (entry: SectionEntry): boolean =>
+  hasHouseholdHome(entry) && !entry.former;
 
 /** Family (couple, home, pooled) and the rest, each newest activity first; `query` filters by name. */
 export function splitFamily<T extends SectionEntry>(
@@ -19,8 +31,8 @@ export function splitFamily<T extends SectionEntry>(
 ): { family: T[]; groups: T[] } {
   const sorted = sortGroups(filterGroups(entries, 'all', query), 'recent');
   return {
-    family: sorted.filter((entry) => hasHouseholdHome(entry)),
-    groups: sorted.filter((entry) => !hasHouseholdHome(entry)),
+    family: sorted.filter(isPinnedFamily),
+    groups: sorted.filter((entry) => !isPinnedFamily(entry)),
   };
 }
 
@@ -51,7 +63,7 @@ export function archiveSuggestion<T extends SectionEntry>(
   return (
     entries.find(
       (entry) =>
-        !hasHouseholdHome(entry) &&
+        !isPinnedFamily(entry) &&
         entry.balance === 0n &&
         !entry.needsAction &&
         entry.lastActive > 0 &&

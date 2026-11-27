@@ -23,7 +23,7 @@ import { groupsOutsideCompanies } from '@/lib/spaces';
 import { groupLabel } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
-import { archiveSuggestion, splitFamily } from '@/lib/groupSections';
+import { archiveSuggestion, splitFamily, viewerLeft } from '@/lib/groupSections';
 import { useKeptGroups } from '@/lib/archiveKept';
 import { SearchField } from '@/components/SearchToggle';
 import { useSync } from '@/sync/provider';
@@ -111,6 +111,7 @@ function AllGroupsScreen() {
         label: groupLabel(group, summary.membersFor(group.id), profile?.id),
         type: group.type,
         ledger_mode: group.ledger_mode,
+        former: viewerLeft(summary.membersFor(group.id), profile?.id),
         balance,
         pending,
         needsAction: pending || balance !== 0n,
