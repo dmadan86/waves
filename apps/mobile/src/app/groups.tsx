@@ -114,7 +114,7 @@ function AllGroupsScreen() {
         former: viewerLeft(summary.membersFor(group.id), profile?.id),
         balance,
         pending,
-        needsAction: pending || balance !== 0n,
+        needsAction: pending || balance !== 0n || summary.hasOtherCurrencyBalance(group.id),
         // A group nobody has spent in yet counts from the day it was made.
         lastActive: Math.max(summary.lastActivityFor(group.id), Date.parse(group.created_at) || 0),
       };

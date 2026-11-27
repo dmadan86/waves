@@ -65,6 +65,7 @@ export function archiveSuggestion<T extends SectionEntry>(
     entries.find(
       (entry) =>
         !isPinnedFamily(entry) &&
+        !entry.former &&
         entry.balance === 0n &&
         !entry.needsAction &&
         entry.lastActive > 0 &&

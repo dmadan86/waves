@@ -91,6 +91,9 @@ describe('archiveSuggestion', () => {
     expect(archiveSuggestion([e('b', { ...quiet, balance: 5n })], NOW, new Set())).toBeNull();
     expect(archiveSuggestion([e('p', { ...quiet, needsAction: true })], NOW, new Set())).toBeNull();
   });
+  it('never offers a former (read-only) space', () => {
+    expect(archiveSuggestion([e('x', { ...quiet, former: true })], NOW, new Set())).toBeNull();
+  });
   it('does not ask again once kept', () => {
     expect(archiveSuggestion([e('goa', quiet)], NOW, new Set(['goa']))).toBeNull();
   });

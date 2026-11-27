@@ -19,6 +19,7 @@ export function useKeptGroups(): {
       .catch(() => undefined)
       .finally(() => setReady(true));
   }, []);
+  // Dismisses at once; a failed write only means it may be asked again after a restart.
   const keep = useCallback((id: string) => {
     setKept((prev) => {
       const next = new Set(prev).add(id);
