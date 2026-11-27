@@ -41,7 +41,7 @@ import {
 
 import { Onboarding } from '@/components/Onboarding';
 import { PermissionHost } from '@/components/PermissionHost';
-import { setOverlayBusy } from '@/lib/firstRun';
+import { firstRunGateUp, setOverlayBusy } from '@/lib/firstRun';
 import {
   decideFirstRun,
   firstRunDisplayDecision,
@@ -841,11 +841,17 @@ function AuthGate() {
     flow: displayFlow,
     path: here,
   });
-  // Home is mounted under the intro; the tour must not start behind (or over) it.
+  // Home is mounted under the intro and the setup flow; the tour must not start
+  // behind (or over) either.
+  const gateUp = firstRunGateUp({
+    showIntro,
+    signedIn: Boolean(session && ownerId),
+    flow: displayFlow,
+  });
   useEffect(() => {
-    setOverlayBusy('intro', showIntro);
+    setOverlayBusy('intro', gateUp);
     return () => setOverlayBusy('intro', false);
-  }, [showIntro]);
+  }, [gateUp]);
 
   // Past the spinners below means a real screen — the intro or the app — is
   // what renders, so the launch splash may lift onto it. Until then it holds,
