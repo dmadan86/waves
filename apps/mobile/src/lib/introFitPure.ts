@@ -44,3 +44,14 @@ export function introStage({
   const room = height - (topInset + 12) - wordmark - text - (bottomInset + 24 + 46 + 16);
   return Math.max(0, room);
 }
+
+/**
+ * The pager's frame. On iOS the pager (a SwiftUI paging scroll view) pushes its pages down by
+ * the top safe area while JS lays them out from the box's top, so the cards' text ran a status
+ * bar's height past the dots row. Pulling the pager up by the same inset puts each page where
+ * JS drew it; the bottom is unchanged.
+ */
+export function pagerFrame(os: string, topInset: number) {
+  if (os !== 'ios') return { flex: 1 } as const;
+  return { position: 'absolute', top: -topInset, left: 0, right: 0, bottom: 0 } as const;
+}

@@ -15,7 +15,11 @@
  */
 
 import { forwardRef, useImperativeHandle, useRef, type ReactNode } from 'react';
+import { Platform } from 'react-native';
 import PagerView from 'react-native-pager-view';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { pagerFrame } from '@/lib/introFitPure';
 
 export interface TourPagerHandle {
   /** Animate to a card. */
@@ -37,6 +41,7 @@ export const TourPager = forwardRef<TourPagerHandle, TourPagerProps>(function To
   ref,
 ) {
   const pager = useRef<PagerView>(null);
+  const insets = useSafeAreaInsets();
 
   useImperativeHandle(ref, () => ({
     goTo: (slide) => pager.current?.setPage(slide),
@@ -45,7 +50,7 @@ export const TourPager = forwardRef<TourPagerHandle, TourPagerProps>(function To
   return (
     <PagerView
       ref={pager}
-      style={{ flex: 1 }}
+      style={pagerFrame(Platform.OS, insets.top)}
       initialPage={0}
       layoutDirection={rtl ? 'rtl' : 'ltr'}
       // No glow or stretch past the first or last card; there is nothing there.
