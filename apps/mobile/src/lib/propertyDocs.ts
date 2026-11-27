@@ -96,7 +96,8 @@ export async function sweepOrphanDocs(liveIds: ReadonlySet<string>): Promise<voi
       .filter((e) => e instanceof FileSystem.Directory)
       .map((e) => e.name);
     for (const name of orphanFolders(folders, liveIds)) await deleteAllDocs(name);
-    for (const pid of orphanFolders(Object.keys(await readIndex()), liveIds)) await deleteAllDocs(pid);
+    for (const pid of orphanFolders(Object.keys(await readIndex()), liveIds))
+      await deleteAllDocs(pid);
   } catch {
     // Housekeeping only.
   }

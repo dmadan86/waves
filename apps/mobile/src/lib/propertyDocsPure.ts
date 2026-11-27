@@ -29,14 +29,16 @@ const EXT_MIME: Readonly<Record<string, string>> = {
 
 /** The mime to keep for a picked file, or null when it is not a PDF or photo. */
 export function docMime(name: string, pickerMime?: string | null): string | null {
-  if (pickerMime && MIME_EXT[pickerMime]) return pickerMime === 'image/heif' ? 'image/heic' : pickerMime;
+  if (pickerMime && MIME_EXT[pickerMime])
+    return pickerMime === 'image/heif' ? 'image/heic' : pickerMime;
   const ext = name.includes('.') ? name.slice(name.lastIndexOf('.') + 1).toLowerCase() : '';
   return EXT_MIME[ext] ?? null;
 }
 
 export const docExt = (mime: string): string => MIME_EXT[mime] ?? 'bin';
 /** The file name inside the property's folder. */
-export const docFileName = (d: Pick<LocalDoc, 'id' | 'mime'>): string => `${d.id}.${docExt(d.mime)}`;
+export const docFileName = (d: Pick<LocalDoc, 'id' | 'mime'>): string =>
+  `${d.id}.${docExt(d.mime)}`;
 
 export function docsOf(index: DocIndex, propertyId: string): readonly LocalDoc[] {
   return index[propertyId] ?? [];
@@ -75,7 +77,14 @@ export function parseIndex(text: string | null): DocIndex {
       if (!Array.isArray(list)) continue;
       const docs = list.flatMap((d: Record<string, unknown>) =>
         typeof d?.id === 'string' && typeof d.name === 'string' && typeof d.mime === 'string'
-          ? [{ id: d.id, name: d.name, mime: d.mime, size: typeof d.size === 'number' ? d.size : 0 }]
+          ? [
+              {
+                id: d.id,
+                name: d.name,
+                mime: d.mime,
+                size: typeof d.size === 'number' ? d.size : 0,
+              },
+            ]
           : [],
       );
       if (docs.length) out[pid] = docs;
