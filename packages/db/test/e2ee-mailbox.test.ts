@@ -152,6 +152,47 @@ describe('devices', () => {
   });
 });
 
+describe('mailbox membership locking', () => {
+  it('waits for a concurrent member removal, then rejects the departed recipient', async () => {
+    const other = await connect();
+    const senderProfile = couple.profileIds[alice]!;
+    const recipientProfile = couple.profileIds[bob]!;
+    const sender = await register(senderProfile);
+    const recipient = await register(recipientProfile);
+    try {
+      await client.query('BEGIN');
+      await client.query(`UPDATE group_members SET removed_at = now() WHERE id = $1`, [
+        couple.memberIds[bob],
+      ]);
+      await other.query('BEGIN');
+      await other.query(`SELECT set_config('request.jwt.claims', $1, true)`, [
+        JSON.stringify({ sub: senderProfile, role: 'authenticated' }),
+      ]);
+      await other.query('SET LOCAL ROLE authenticated');
+      let settled = false;
+      const sending = other
+        .query(`SELECT waves_mailbox_send($1, $2, $3::jsonb, NULL, NULL)`, [
+          couple.groupId,
+          sender,
+          JSON.stringify([
+            { recipient_device: recipient, ciphertext: ct(), delivery_id: randomUUID() },
+          ]),
+        ])
+        .finally(() => {
+          settled = true;
+        });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(settled).toBe(false);
+      await client.query('COMMIT');
+      await expect(sending).rejects.toThrow('A recipient is not in this group');
+      await other.query('ROLLBACK').catch(() => undefined);
+    } finally {
+      await client.query('ROLLBACK').catch(() => undefined);
+      await other.end();
+    }
+  });
+});
+
 describe('send validation', () => {
   it('does not reinsert a delivery after the receiver acknowledged it', async () => {
     const a = await register(couple.profileIds[alice]!);

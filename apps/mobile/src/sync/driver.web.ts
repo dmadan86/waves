@@ -340,7 +340,11 @@ class AsyncStorageStore implements LocalStore {
 
   wipeE2ee(): Promise<void> {
     return this.serial.run(() =>
-      AsyncStorage.removeMany([WEB_E2EE_KEY, ...Object.values(WEB_E2EE_LEGACY_KEYS)]),
+      AsyncStorage.removeMany([
+        WEB_E2EE_KEY,
+        `${WEB_E2EE_KEY}.unreadable`,
+        ...Object.values(WEB_E2EE_LEGACY_KEYS),
+      ]),
     );
   }
 }

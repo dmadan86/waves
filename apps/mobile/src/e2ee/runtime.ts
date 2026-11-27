@@ -243,6 +243,9 @@ export function getE2eeOutboxFailures(): Promise<{ groupId: string; reason: stri
 
 /** Sign-in: load what is on the phone, make sure the server knows this device, then sync. */
 export function startE2ee(profileId: string): Promise<void> {
+  generations.invalidate();
+  isSessionCurrent = () => false;
+  if (activeProfileId !== profileId) activeProfileId = null;
   return withE2eeLock(() => startE2eeLocked(profileId));
 }
 
@@ -299,6 +302,10 @@ async function startE2eeLocked(profileId: string): Promise<void> {
 
 /** Sign-out: drop what is in memory (the engine wipes the tables). */
 export function stopE2ee(): void {
+  generations.invalidate();
+  isSessionCurrent = () => false;
+  activeProfileId = null;
+  hydratedOwnerId = null;
   void withE2eeLock(async () => stopE2eeLocked());
 }
 

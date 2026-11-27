@@ -31,6 +31,7 @@ import { useSync } from '@/sync';
 
 import { recoverBackground } from './background';
 import { runBackup } from './engine';
+import { hasCoupleBackupData } from './autoBackupData';
 import { loadRecoveryKey } from './recoveryKey';
 import { isDue } from './schedule';
 import { loadBackupSettings, saveLastBackup } from './settings';
@@ -74,11 +75,7 @@ export function AutoBackup() {
       await recoverBackground(ownerId);
       if (!alive || !isCurrent()) return;
       // Nothing to protect, and an empty seal is the one thing that must never go out.
-      if (
-        recordsRef.current.length === 0 &&
-        coupleBridge.count() + coupleBridge.formerCount() === 0
-      )
-        return;
+      if (recordsRef.current.length === 0 && !hasCoupleBackupData(coupleBridge.backup())) return;
       const settings = await loadBackupSettings(ownerId);
       if (!alive || !isCurrent()) return;
       if (!isDue(settings.last?.at ?? null, settings.frequency, now)) return;
@@ -97,10 +94,13 @@ export function AutoBackup() {
       // none. On Standard there is nothing to have kept, so there is no gate.
       if (!tierAllowsBackup(tier, settings.keySeen)) return;
 
+      if (!alive || !isCurrent()) return;
+      const couple = coupleBridge.backup();
+      if (!alive || !isCurrent()) return;
       const result = await runBackup({
         ownerId,
         records: recordsRef.current,
-        couple: coupleBridge.backup(),
+        couple,
         tier,
         network: settings.network,
         // The whole point of the network preference is to gate *this* run.

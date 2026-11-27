@@ -273,6 +273,9 @@ export function createMailbox(deps: MailboxDeps) {
     // Publish to the cache only once every binding is durable, so a failed write is retried.
     for (const device of list) {
       if (!current()) return [];
+      const removedAtKey = `sender:${groupId}:${device.deviceId}:removedAt`;
+      if ((await metaRead(meta, removedAtKey)) !== null) await metaWrite(meta, removedAtKey, '');
+      if (!current()) return [];
       await rememberSender(groupId, device, current);
     }
     if (!current()) return [];
@@ -663,9 +666,11 @@ export function createMailbox(deps: MailboxDeps) {
             sender = await rememberedSender(row.group_id, senderId);
             if (!isCurrent()) return applied;
             if (sender && directoryChecked) {
-              const removedAt = Number(
-                (await metaRead(meta, `sender:${row.group_id}:${senderId}:removedAt`)) ?? NaN,
+              const removedAtRaw = await metaRead(
+                meta,
+                `sender:${row.group_id}:${senderId}:removedAt`,
               );
+              const removedAt = removedAtRaw ? Number(removedAtRaw) : NaN;
               if (!isCurrent()) return applied;
               const createdAt = Date.parse(row.created_at);
               if (

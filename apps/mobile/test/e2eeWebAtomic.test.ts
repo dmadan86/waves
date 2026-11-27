@@ -38,4 +38,14 @@ describe('web E2EE storage', () => {
     expect(await store.readE2eeRecords()).toEqual([]);
     expect(await Storage.getItem('waves:e2ee:store.unreadable')).toBe('{not json');
   }, 30_000);
+
+  it('wipes the unreadable quarantine and legacy E2EE keys', async () => {
+    const { createLocalStore } = await import('../src/sync/driver.web');
+    const Storage = (await import('@react-native-async-storage/async-storage')).default;
+    await Storage.setItem('waves:e2ee:store.unreadable', '{old');
+    await Storage.setItem('waves:e2ee:records', '[]');
+    await createLocalStore().wipeE2ee();
+    expect(await Storage.getItem('waves:e2ee:store.unreadable')).toBeNull();
+    expect(await Storage.getItem('waves:e2ee:records')).toBeNull();
+  }, 30_000);
 });

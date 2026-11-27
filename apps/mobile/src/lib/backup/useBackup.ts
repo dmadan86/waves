@@ -351,14 +351,19 @@ export function useBackup(): BackupState & BackupActions {
         return refused;
       }
       try {
+        const isCurrent = coupleBridge.captureOwner(ownerId);
+        if (!isCurrent()) throw new Error('Backup account changed');
         // No key is loaded here any more. Where it comes from depends on the tier
         // and on what is in the Drive folder, and the engine is the only place
         // that can see both — on Standard it will mint and escrow one rather than
         // refuse, which is the whole of the default tier's setup.
+        if (!isCurrent()) throw new Error('Backup account changed');
+        const couple = coupleBridge.backup();
+        if (!isCurrent()) throw new Error('Backup account changed');
         const result = await runBackup({
           ownerId,
           records,
-          couple: coupleBridge.backup(),
+          couple,
           tier,
           network: settings.network,
           manual: true,
@@ -366,6 +371,7 @@ export function useBackup(): BackupState & BackupActions {
           knownBackupAt: settings.last?.at ?? null,
           replaceExisting,
           onPhase: setPhase,
+          isCurrent,
         });
         if (!result.ok) {
           const refused: BackupOutcome = {
