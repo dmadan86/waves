@@ -26,7 +26,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import {
   format,
@@ -65,6 +65,13 @@ import { loanScope } from '@/lib/personalLoanScope';
 import { router } from '@/lib/navigation';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { monthLabel, shiftMonth } from '@/lib/monthNav';
+import { SearchField } from '@/components/SearchToggle';
+import {
+  closeHeaderSearch,
+  HEADER_SEARCH_CLOSED,
+  openHeaderSearch,
+  setHeaderQuery,
+} from '@/lib/headerSearch';
 
 type Tab = TxnTab;
 
@@ -133,7 +140,9 @@ function PersonalTransactionsScreenBody() {
   const [tabsWidth, setTabsWidth] = useState(0);
   const [browseMonth, setBrowseMonth] = useState(month ?? localMonth());
   const [monthEnabled, setMonthEnabled] = useState(true);
-  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState(HEADER_SEARCH_CLOSED);
+  const query = search.query;
+  const setQuery = (value: string) => setSearch((s) => setHeaderQuery(s, value));
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(() => new Set());
   useEffect(() => {
@@ -164,6 +173,50 @@ function PersonalTransactionsScreenBody() {
   const [picked, setPicked] = useState<string | null | undefined>(undefined);
   const [filterOpen, setFilterOpen] = useState(false);
   const filter = picked === undefined ? paramCategory : picked;
+
+  const filterButton = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t.personal.filterCategory}
+      accessibilityState={{ selected: filter !== null }}
+      onPress={() => setFilterOpen(true)}
+      style={({ pressed }) => ({
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: filter ? accent : theme.color.surface,
+        opacity: pressed ? 0.8 : 1,
+      })}
+    >
+      <Ionicons name="filter" size={20} color={filter ? '#FFFFFF' : ink} />
+    </Pressable>
+  );
+
+  const filterChip = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t.personal.filterCategory}
+      accessibilityState={{ selected: filter !== null }}
+      onPress={() => setFilterOpen(true)}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        height: 36,
+        paddingHorizontal: 12,
+        borderRadius: 18,
+        backgroundColor: filter ? accent : theme.color.surface,
+      }}
+    >
+      <Ionicons name="funnel-outline" size={14} color={filter ? '#FFFFFF' : ink} />
+      <Text style={{ fontSize: 11, color: filter ? '#FFFFFF' : muted }} numberOfLines={1}>
+        {t.personal.filterLabel}
+      </Text>
+      {filter ? <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFFFFF' }}>1</Text> : null}
+    </Pressable>
+  );
 
   const labelFor = (id: string | null): string | null =>
     personalTxnCategoryLabel(id, (key) => t.categories[key as keyof typeof t.categories] ?? null);
@@ -277,217 +330,187 @@ function PersonalTransactionsScreenBody() {
 
   return (
     <Screen>
-      <Row
-        style={{
-          paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.sm,
-          alignItems: 'center',
-        }}
-      >
-        {drillIn ? (
-          <IconButton
-            label={t.common.back}
-            onPress={() =>
-              params.returnTo && !router.canGoBack()
-                ? router.replace(params.returnTo as never)
-                : router.back()
-            }
-          >
-            <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
-          </IconButton>
-        ) : null}
-        <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-          <Text style={{ fontSize: 28, fontWeight: '800', color: ink }}>
-            {t.personal.transactions}
-          </Text>
-          <Text style={{ fontSize: 12, color: muted }}>{t.personal.transactionsSubtitle}</Text>
-          {filter ? (
-            <Text style={{ fontSize: 12, color: muted }}>{labelFor(filter) ?? filter}</Text>
-          ) : null}
-          {fromDate && toDate ? (
-            <Text style={{ fontSize: 12, color: muted }} numberOfLines={1}>
-              {fromDate === toDate ? fromDate : `${fromDate} – ${toDate}`}
-            </Text>
-          ) : null}
-          <Row style={{ alignItems: 'center', gap: 8 }}>
+      <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm, gap: 10 }}>
+        {search.open ? (
+          <SearchField
+            value={query}
+            onChange={setQuery}
+            onCancel={() => {
+              setQuery('');
+              setSearch(closeHeaderSearch());
+            }}
+            placeholder={t.personal.searchTransactions}
+            trailing={filterButton}
+          />
+        ) : (
+          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+            {drillIn ? (
+              <IconButton
+                label={t.common.back}
+                onPress={() =>
+                  params.returnTo && !router.canGoBack()
+                    ? router.replace(params.returnTo as never)
+                    : router.back()
+                }
+              >
+                <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
+              </IconButton>
+            ) : null}
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <Text
+                style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: ink }}
+                numberOfLines={1}
+              >
+                {t.personal.transactions}
+              </Text>
+              <Text style={{ fontSize: 13, lineHeight: 18, color: muted }} numberOfLines={2}>
+                {t.personal.transactionsSubtitle}
+              </Text>
+              {filter ? (
+                <Text style={{ fontSize: 12, color: muted }}>{labelFor(filter) ?? filter}</Text>
+              ) : null}
+              {fromDate && toDate ? (
+                <Text style={{ fontSize: 12, color: muted }} numberOfLines={1}>
+                  {fromDate === toDate ? fromDate : `${fromDate} – ${toDate}`}
+                </Text>
+              ) : null}
+            </View>
             <IconButton
-              label={t.personal.prevMonth}
-              onPress={() => {
-                setMonthEnabled(true);
-                setBrowseMonth(shiftMonth(browseMonth, -1));
-              }}
+              label={t.personal.searchTransactions}
+              onPress={() => setSearch(openHeaderSearch)}
             >
-              <Ionicons name="chevron-back" size={18} color={muted} />
+              <Ionicons name="search" size={iconSize.xl} color={accent} />
             </IconButton>
-            <Text style={{ fontSize: 12, color: muted }}>
-              {monthEnabled ? monthLabel(browseMonth, locale) : 'All months'}
-            </Text>
+            {/* The assistant, already pointed at the private ledger: what is said or
+                typed there stays personal. */}
             <IconButton
-              label={t.personal.nextMonth}
-              onPress={() => {
-                setMonthEnabled(true);
-                setBrowseMonth(shiftMonth(browseMonth, 1));
-              }}
+              label={t.personal.askByVoice}
+              onPress={() =>
+                router.push({
+                  pathname: '/voice',
+                  params: { scope: 'personal', source: 'personal' },
+                })
+              }
             >
-              <Ionicons name="chevron-forward" size={18} color={muted} />
+              <Ionicons name="mic-outline" size={iconSize.xl} color={accent} />
+            </IconButton>
+            <IconButton label={t.personal.addTransaction} onPress={addExpense}>
+              <Ionicons name="add" size={iconSize.xl} color={accent} />
             </IconButton>
           </Row>
-        </View>
-        {/* The assistant, already pointed at the private ledger: what is said or
-            typed there stays personal. */}
-        <IconButton
-          label={t.assistant.openPersonalAssistant}
-          onPress={() =>
-            router.push({ pathname: '/voice', params: { scope: 'personal', source: 'personal' } })
-          }
-        >
-          <Ionicons name="sparkles-outline" size={iconSize.xl} color={accent} />
-        </IconButton>
-      </Row>
+        )}
 
-      <View style={{ paddingHorizontal: theme.spacing.lg, gap: 10, paddingTop: 6 }}>
-        <Row style={{ alignItems: 'center', gap: 10 }}>
-          <Row
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              gap: 10,
-              height: 44,
-              paddingHorizontal: 14,
-              borderRadius: 22,
-              backgroundColor: lavender,
+        <Row style={{ alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <IconButton
+            label={t.personal.prevMonth}
+            onPress={() => {
+              setMonthEnabled(true);
+              setBrowseMonth(shiftMonth(browseMonth, -1));
             }}
           >
-            <Ionicons name="search" size={18} color={muted} />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder={t.personal.searchTransactions}
-              placeholderTextColor={muted}
-              accessibilityLabel={t.personal.searchTransactions}
-              returnKeyType="search"
-              autoCorrect={false}
-              style={{ flex: 1, fontSize: 15, height: 40, color: ink, paddingVertical: 0 }}
-            />
-            {query ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.entry.clear}
-                onPress={() => setQuery('')}
-                hitSlop={8}
-              >
-                <Ionicons name="close-circle" size={18} color={theme.color.textFaint} />
-              </Pressable>
-            ) : null}
-          </Row>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.personal.filterCategory}
-            accessibilityState={{ selected: filter !== null }}
-            onPress={() => setFilterOpen(true)}
-            style={({ pressed }) => ({
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: filter ? accent : theme.color.surface,
-              opacity: pressed ? 0.8 : 1,
-              shadowColor: '#2A1E6B',
-              shadowOpacity: dark ? 0 : 0.08,
-              shadowRadius: 8,
-              shadowOffset: { width: 0, height: 2 },
-              elevation: 2,
-            })}
+            <Ionicons name={directionalIcon('chevron-back')} size={18} color={muted} />
+          </IconButton>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: ink }}>
+            {monthEnabled ? monthLabel(browseMonth, locale) : t.group.allMonths}
+          </Text>
+          <IconButton
+            label={t.personal.nextMonth}
+            onPress={() => {
+              setMonthEnabled(true);
+              setBrowseMonth(shiftMonth(browseMonth, 1));
+            }}
           >
-            <Ionicons name="filter" size={20} color={filter ? '#FFFFFF' : ink} />
-          </Pressable>
+            <Ionicons name={directionalIcon('chevron-forward')} size={18} color={muted} />
+          </IconButton>
         </Row>
 
-        <Row
-          accessibilityRole="tablist"
-          style={{ gap: 5 }}
-          onLayout={(e) => setTabsWidth(e.nativeEvent.layout.width)}
-        >
-          {/* Resting segment backgrounds sit under the sliding highlight. */}
+        <Row style={{ alignItems: 'center', gap: 8 }}>
           <Row
-            pointerEvents="none"
-            style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, gap: 5 }}
+            accessibilityRole="tablist"
+            style={{ gap: 5, flex: 1 }}
+            onLayout={(e) => setTabsWidth(e.nativeEvent.layout.width)}
           >
-            {tabs.map((item) => (
-              <View
-                key={item.value}
-                style={{
-                  flex: 1,
-                  height: 36,
-                  borderRadius: 18,
-                  backgroundColor: theme.color.surface,
-                }}
-              />
-            ))}
-          </Row>
-          <SlidingHighlight
-            index={Math.max(
-              0,
-              tabs.findIndex((x) => x.value === tab),
-            )}
-            count={tabs.length}
-            width={tabsWidth}
-            color={accent}
-            radius={18}
-            gap={5}
-            height={36}
-          />
-          {tabs.map((item) => {
-            const on = item.value === tab;
-            return (
-              <Pressable
-                key={item.value}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: on }}
-                onPress={() => setTab(item.value)}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  flexDirection: 'row',
-                  gap: 3,
-                  height: 36,
-                  borderRadius: 18,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
+            {/* Resting segment backgrounds sit under the sliding highlight. */}
+            <Row
+              pointerEvents="none"
+              style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, gap: 5 }}
+            >
+              {tabs.map((item) => (
                 <View
+                  key={item.value}
                   style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: 11,
+                    flex: 1,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: theme.color.surface,
+                  }}
+                />
+              ))}
+            </Row>
+            <SlidingHighlight
+              index={Math.max(
+                0,
+                tabs.findIndex((x) => x.value === tab),
+              )}
+              count={tabs.length}
+              width={tabsWidth}
+              color={accent}
+              radius={18}
+              gap={5}
+              height={36}
+            />
+            {tabs.map((item) => {
+              const on = item.value === tab;
+              return (
+                <Pressable
+                  key={item.value}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: on }}
+                  onPress={() => setTab(item.value)}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    flexDirection: 'row',
+                    gap: 3,
+                    height: 36,
+                    borderRadius: 18,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: on ? '#FFFFFF26' : `${item.color}18`,
                   }}
                 >
-                  <Ionicons
-                    name={item.icon}
-                    size={14}
-                    color={on ? '#FFFFFF' : item.color}
-                    style={item.rotation ? { transform: [{ rotate: item.rotation }] } : undefined}
-                  />
-                </View>
-                <Text
-                  style={{
-                    flexShrink: 1,
-                    fontSize: 11,
-                    fontWeight: on ? '700' : '500',
-                    color: on ? '#FFFFFF' : muted,
-                  }}
-                  numberOfLines={1}
-                >
-                  {item.label}
-                </Text>
-              </Pressable>
-            );
-          })}
+                  <View
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 11,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: on ? '#FFFFFF26' : `${item.color}18`,
+                    }}
+                  >
+                    <Ionicons
+                      name={item.icon}
+                      size={14}
+                      color={on ? '#FFFFFF' : item.color}
+                      style={item.rotation ? { transform: [{ rotate: item.rotation }] } : undefined}
+                    />
+                  </View>
+                  <Text
+                    style={{
+                      flexShrink: 1,
+                      fontSize: 11,
+                      fontWeight: on ? '700' : '500',
+                      color: on ? '#FFFFFF' : muted,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {item.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </Row>
+          {filterChip}
         </Row>
 
         {creditOnly || uncategorizedOnly || loanId ? (
@@ -527,7 +550,7 @@ function PersonalTransactionsScreenBody() {
         drawDistance={1500}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: clearance + 96,
+          paddingBottom: clearance + theme.spacing.lg,
         }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -536,12 +559,14 @@ function PersonalTransactionsScreenBody() {
             <EmptyStateCta
               title={
                 filter || query || tab !== 'all' || drillIn
-                  ? 'No entries match these filters'
-                  : `No entries in ${monthLabel(browseMonth, locale)}`
+                  ? t.personal.noEntriesMatch
+                  : t.personal.noEntriesIn.replace('{month}', monthLabel(browseMonth, locale))
               }
               body={t.personal.transactionsSubtitle}
               action={
-                filter || query || tab !== 'all' || drillIn ? 'Clear filters' : t.personal.add
+                filter || query || tab !== 'all' || drillIn
+                  ? t.personal.clearFilters
+                  : t.personal.add
               }
               onAdd={filter || query || tab !== 'all' || drillIn ? clearFilters : addExpense}
             />
