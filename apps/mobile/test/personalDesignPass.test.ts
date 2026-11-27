@@ -8,6 +8,7 @@ import {
   loansSummary,
   otherCurrenciesLine,
   rentalsSummary,
+  vehiclesSummary,
 } from '../src/lib/personalAccounts';
 import { isPersonalRoot } from '../src/lib/tabBar';
 import { STRINGS_BY_LANGUAGE } from '../src/i18n';
@@ -175,5 +176,30 @@ describe('Accounts never mix currencies', () => {
       '+ USD 1200 · AED 3000 · +1 more',
     );
     expect(otherCurrenciesLine([], fmt, (n) => `+${n} more`)).toBeNull();
+  });
+});
+
+describe('Accounts vehicles card', () => {
+  const v = (id: string, status: 'active' | 'sold', due: string[]) =>
+    ({
+      id,
+      status,
+      renewals: due.map((d, i) => ({ id: `${id}${i}`, kind: 'insurance', dueDate: d })),
+    }) as never;
+  it('counts active vehicles and names the soonest renewal', () => {
+    expect(
+      vehiclesSummary(
+        [
+          v('a', 'active', ['2027-03-01', '2026-12-10']),
+          v('b', 'active', []),
+          v('c', 'sold', ['2026-12-01']),
+        ],
+        '2026-11-28',
+      ),
+    ).toEqual({ count: 2, nextDue: '2026-12-10' });
+    expect(vehiclesSummary([], '2026-11-28')).toEqual({ count: 0, nextDue: null });
+  });
+  it('ignores renewals already long past', () => {
+    expect(vehiclesSummary([v('a', 'active', ['2026-01-01'])], '2026-11-28').nextDue).toBeNull();
   });
 });

@@ -15,7 +15,8 @@ import { PlainHeader, StandardCard } from '@/components/standard';
 import { useWealthMoney } from '@/components/wealth/parts';
 import { todayIso, usePersonalLedger } from '@/data/personal';
 import { usePersonalWealth } from '@/data/personalWealth';
-import { fill, useStrings, type PluralForms } from '@/i18n';
+import { usePersonalVehicles } from '@/data/vehicles';
+import { fill, plural, useStrings, type PluralForms } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { router } from '@/lib/navigation';
@@ -27,6 +28,7 @@ import {
   investedSummary,
   loansSummary,
   rentalsSummary,
+  vehiclesSummary,
 } from '@/lib/personalAccounts';
 import { monthRent, monthTotals, propertyView } from '@/lib/wealthPlan';
 
@@ -97,6 +99,11 @@ function AccountsBody() {
   const fmt = (amount: bigint): string => fmtMoney(amount, dc);
   const { budgets, loans, txns, recurrings } = usePersonalLedger();
   const { investments, properties, tenancies } = usePersonalWealth();
+  const { vehicles } = usePersonalVehicles();
+  const dayLabel = (iso: string): string =>
+    new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
+      new Date(`${iso}T00:00:00Z`),
+    );
   const [today] = useState(todayIso);
 
   const lines = useMemo(() => {
@@ -144,7 +151,16 @@ function AccountsBody() {
         }),
       dc,
     );
+    const vs = vehiclesSummary(vehicles, today);
+    const vehiclesLine =
+      vs.count === 0
+        ? h.vehiclesNone
+        : fill(plural(locale, vs.count, vs.nextDue ? h.vehiclesNext : h.vehiclesLine), {
+            n: vs.count,
+            date: vs.nextDue ? dayLabel(vs.nextDue) : '',
+          });
     return {
+      vehicles: { line: vehiclesLine, note: null },
       budgets: card(
         budgetsSummary(budgets, txns, month, dc),
         { live: h.budgetsLine, none: h.budgetsNone },
@@ -156,7 +172,20 @@ function AccountsBody() {
     };
     // fmt closes over the stable money formatter and currency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [budgets, loans, txns, recurrings, investments, properties, tenancies, today, dc, locale, h]);
+  }, [
+    budgets,
+    loans,
+    txns,
+    recurrings,
+    investments,
+    properties,
+    tenancies,
+    vehicles,
+    today,
+    dc,
+    locale,
+    h,
+  ]);
 
   return (
     <Screen edges={[]}>
@@ -189,6 +218,13 @@ function AccountsBody() {
           line={lines.investments.line}
           note={lines.investments.note}
           onPress={() => router.push('/investments')}
+        />
+        <AccountCard
+          icon="car-outline"
+          title={t.vehicles.vehicles}
+          line={lines.vehicles.line}
+          note={null}
+          onPress={() => router.push('/vehicles')}
         />
         <AccountCard
           icon="home-outline"

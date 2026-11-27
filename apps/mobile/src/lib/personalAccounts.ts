@@ -105,3 +105,14 @@ export function otherCurrenciesLine(
   if (others.length > 2) shown.push(more(others.length - 2));
   return `+ ${shown.join(' · ')}`;
 }
+
+/** Active vehicles and the soonest renewal not already more than 60 days past. */
+export function vehiclesSummary(
+  vehicles: readonly { status: string; renewals: readonly { dueDate: string }[] }[],
+  today: string,
+): { count: number; nextDue: string | null } {
+  const active = vehicles.filter((x) => x.status === 'active');
+  const floor = new Date(Date.parse(`${today}T00:00:00Z`) - 60 * 864e5).toISOString().slice(0, 10);
+  const dates = active.flatMap((x) => x.renewals.map((r) => r.dueDate)).filter((d) => d >= floor);
+  return { count: active.length, nextDue: dates.sort()[0] ?? null };
+}

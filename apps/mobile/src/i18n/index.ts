@@ -8534,6 +8534,9 @@ export interface UiStrings {
     rentalsLine: PluralForms;
     rentalsNone: string;
     moreCurrencies: string;
+    vehiclesLine: PluralForms;
+    vehiclesNext: PluralForms;
+    vehiclesNone: string;
     reportsSub: string;
     addBill: string;
     emptyUpcomingTitle: string;
@@ -16845,6 +16848,12 @@ const en: UiStrings = {
     rentalsLine: { one: '{n} property · {amount} due', other: '{n} properties · {amount} due' },
     rentalsNone: 'Add a property',
     moreCurrencies: '{n} more',
+    vehiclesLine: { one: '{n} vehicle', other: '{n} vehicles' },
+    vehiclesNext: {
+      one: '{n} vehicle · renewal {date}',
+      other: '{n} vehicles · next renewal {date}',
+    },
+    vehiclesNone: 'Add a vehicle',
     reportsSub: 'Where your money went',
     addBill: 'Add a bill',
     emptyUpcomingTitle: 'Nothing due soon',
@@ -25235,6 +25244,12 @@ const ta: UiStrings = {
     },
     rentalsNone: 'ஒரு சொத்தைச் சேர்க்கவும்',
     moreCurrencies: 'மேலும் {n}',
+    vehiclesLine: { one: '{n} வாகனம்', other: '{n} வாகனங்கள்' },
+    vehiclesNext: {
+      one: '{n} வாகனம் · புதுப்பிப்பு {date}',
+      other: '{n} வாகனங்கள் · அடுத்த புதுப்பிப்பு {date}',
+    },
+    vehiclesNone: 'ஒரு வாகனத்தைச் சேர்க்கவும்',
     reportsSub: 'உங்கள் பணம் எங்கே போனது',
     addBill: 'பில் சேர்க்கவும்',
     emptyUpcomingTitle: 'விரைவில் செலுத்த எதுவும் இல்லை',
@@ -33438,6 +33453,9 @@ const hi: UiStrings = {
     rentalsLine: { one: '{n} संपत्ति · {amount} देय', other: '{n} संपत्तियाँ · {amount} देय' },
     rentalsNone: 'संपत्ति जोड़ें',
     moreCurrencies: '{n} और',
+    vehiclesLine: { one: '{n} वाहन', other: '{n} वाहन' },
+    vehiclesNext: { one: '{n} वाहन · नवीनीकरण {date}', other: '{n} वाहन · अगला नवीनीकरण {date}' },
+    vehiclesNone: 'वाहन जोड़ें',
     reportsSub: 'आपका पैसा कहाँ गया',
     addBill: 'बिल जोड़ें',
     emptyUpcomingTitle: 'जल्द कुछ देय नहीं',
@@ -42507,6 +42525,9 @@ const ar: UiStrings = {
     rentalsLine: { one: '{n} عقار · {amount} مستحق', other: '{n} عقارات · {amount} مستحق' },
     rentalsNone: 'أضف عقارًا',
     moreCurrencies: '{n} أخرى',
+    vehiclesLine: { one: '{n} مركبة', other: '{n} مركبات' },
+    vehiclesNext: { one: '{n} مركبة · تجديد {date}', other: '{n} مركبات · التجديد القادم {date}' },
+    vehiclesNone: 'أضف مركبة',
     reportsSub: 'أين ذهبت أموالك',
     addBill: 'إضافة فاتورة',
     emptyUpcomingTitle: 'لا شيء مستحق قريبًا',
