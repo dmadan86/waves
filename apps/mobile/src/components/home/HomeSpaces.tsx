@@ -9,7 +9,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
-import { monthOutlook, personalBudgetProgress, type PersonalBudget } from '@waves/core';
+import {
+  hasHouseholdHome,
+  monthOutlook,
+  personalBudgetProgress,
+  type PersonalBudget,
+} from '@waves/core';
 import { iconSize, useTheme } from '@waves/ui';
 
 import { GroupRow as SpaceRow } from '@/components/home/GroupRow';
@@ -20,7 +25,8 @@ import { useCaptures, type useHomeSummary } from '@/data/hooks';
 import type { SnapRow } from '@/lib/homeSnapshot';
 import { groupLabel, type GroupRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
-import { capSpaces, plainAmount } from '@/lib/homeToday';
+import { homeGroupRows } from '@/lib/groupSections';
+import { plainAmount } from '@/lib/homeToday';
 import { measureAnchor } from '@/lib/measureAnchor';
 import { router, switchTab } from '@/lib/navigation';
 import { TourTarget } from '@/lib/tour';
@@ -71,7 +77,12 @@ export function SpacesGrid({
   const { t } = useStrings();
   const h = t.homeToday;
   const plusRef = useRef<View>(null);
-  const { shown } = capSpaces(groups);
+  // Family spaces are pinned first so a busy trip week never pushes them off Home.
+  const { family, groups: recent } = homeGroupRows(
+    groups.filter((group) => hasHouseholdHome(group)),
+    groups.filter((group) => !hasHouseholdHome(group)),
+  );
+  const shown = [...family, ...recent];
   const { draftsByGroup, voiceNewCount, env } = useGroupRowEnv();
 
   const month = ledger.today.slice(0, 7);
@@ -105,8 +116,8 @@ export function SpacesGrid({
     ? JSON.stringify([
         {
           key: 'personal',
-          title: h.personal,
-          memberLabel: h.justMe,
+          title: h.myMoney,
+          memberLabel: '',
           icon: 'wallet-outline',
           amountText: personalRaw,
           directionLabel: personalLabel,
@@ -124,7 +135,7 @@ export function SpacesGrid({
             t,
             env,
           });
-          return row;
+          return { ...row, family: hasHouseholdHome(group) };
         }),
       ])
     : null;
@@ -156,41 +167,81 @@ export function SpacesGrid({
     />
   );
 
-  return (
-    <View style={{ gap: theme.spacing.sm }}>
-      <CardTitle title={h.spaces} action={h.seeAll} onAction={() => router.navigate('/groups')}>
-        <TourTarget id="addGroup">
-          <Pressable
-            ref={plusRef}
-            accessibilityRole="button"
-            accessibilityLabel={h.addSpace}
-            onPress={() => measureAnchor(plusRef, onNewSpace)}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              width: 28,
-              height: 28,
-              borderRadius: 14,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.color.brandSoft,
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Ionicons name="add" size={iconSize.md} color={theme.color.brand} />
-          </Pressable>
-        </TourTarget>
-      </CardTitle>
-      <View
-        style={{
-          borderRadius: theme.radius.lg,
-          borderWidth: 1,
-          borderColor: theme.color.border,
-          backgroundColor: theme.color.surface,
-          overflow: 'hidden',
-        }}
+  const card = {
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.color.border,
+    backgroundColor: theme.color.surface,
+    overflow: 'hidden',
+  } as const;
+  const groupRows = (list: readonly GroupRow[]) =>
+    list.map((group, index) => (
+      <GroupSpaceRow
+        key={group.id}
+        group={group}
+        summary={summary}
+        viewerId={viewerId}
+        figure={pool.get(group.id)}
+        drafts={draftsByGroup.get(group.id) ?? 0}
+        locale={locale}
+        hidden={hidden}
+        divider={index > 0}
+        unread={unreadGroups.has(group.id) || voiceNewCount(group.id) > 0}
+        env={env}
+      />
+    ));
+  const plus = (
+    <TourTarget id="addGroup">
+      <Pressable
+        ref={plusRef}
+        accessibilityRole="button"
+        accessibilityLabel={h.addSpace}
+        onPress={() => measureAnchor(plusRef, onNewSpace)}
+        hitSlop={8}
+        style={({ pressed }) => ({
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.brandSoft,
+          opacity: pressed ? 0.6 : 1,
+        })}
       >
-        {newUser ? (
-          <>
+        <Ionicons name="add" size={iconSize.md} color={theme.color.brand} />
+      </Pressable>
+    </TourTarget>
+  );
+  // Family first when there is one; with no family the list is just "Groups".
+  const sections = [
+    ...(family.length ? [{ title: h.family, rows: family }] : []),
+    ...(recent.length || !family.length ? [{ title: h.spaces, rows: recent }] : []),
+  ];
+
+  return (
+    <View style={{ gap: theme.spacing.lg }}>
+      {newUser ? null : (
+        <View style={card}>
+          <SpaceRow
+            title={h.myMoney}
+            memberLabel=""
+            icon="wallet-outline"
+            amountText={personalNumber}
+            directionLabel={personalLabel}
+            locale={locale}
+            hidden={hidden || personalHidden}
+            tone={progress && progress.remaining < 0n ? 'negative' : undefined}
+            divider={false}
+            onPress={() => switchTab('/(tabs)/me')}
+          />
+        </View>
+      )}
+      {newUser ? (
+        <View style={{ gap: theme.spacing.sm }}>
+          <CardTitle title={h.spaces} action={h.seeAll} onAction={() => router.navigate('/groups')}>
+            {plus}
+          </CardTitle>
+          <View style={card}>
             {starter('lilac', 'wallet-outline', h.startMine, h.startMineSub, () =>
               router.push('/personal/setup'),
             )}
@@ -198,39 +249,26 @@ export function SpacesGrid({
             {starter('peach', 'home-outline', h.startHome, h.startHomeSub, () =>
               onNewGroup('couple'),
             )}
-          </>
-        ) : (
-          <>
-            <SpaceRow
-              title={h.personal}
-              memberLabel={h.justMe}
-              icon="wallet-outline"
-              amountText={personalNumber}
-              directionLabel={personalLabel}
-              locale={locale}
-              hidden={hidden || personalHidden}
-              tone={progress && progress.remaining < 0n ? 'negative' : undefined}
-              divider={false}
-              onPress={() => switchTab('/(tabs)/me')}
-            />
-            {shown.map((group, index) => (
-              <GroupSpaceRow
-                key={group.id}
-                group={group}
-                summary={summary}
-                viewerId={viewerId}
-                figure={pool.get(group.id)}
-                drafts={draftsByGroup.get(group.id) ?? 0}
-                locale={locale}
-                hidden={hidden}
-                divider={index >= 0}
-                unread={unreadGroups.has(group.id) || voiceNewCount(group.id) > 0}
-                env={env}
-              />
-            ))}
-          </>
-        )}
-      </View>
+          </View>
+        </View>
+      ) : (
+        sections.map((section, index) => (
+          <View key={section.title} style={{ gap: theme.spacing.sm }}>
+            {index === 0 ? (
+              <CardTitle
+                title={section.title}
+                action={h.seeAll}
+                onAction={() => router.navigate('/groups')}
+              >
+                {plus}
+              </CardTitle>
+            ) : (
+              <CardTitle title={section.title} />
+            )}
+            <View style={card}>{groupRows(section.rows)}</View>
+          </View>
+        ))
+      )}
     </View>
   );
 }

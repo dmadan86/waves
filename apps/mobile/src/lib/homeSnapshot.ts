@@ -31,6 +31,8 @@ export interface SnapRow {
   pendingLabel?: string | null;
   tag?: string | null;
   isDemo?: boolean;
+  /** A pinned Family space (couple, home, pooled): drawn under its own heading. */
+  family?: boolean;
 }
 
 export interface HomeSnapshot {

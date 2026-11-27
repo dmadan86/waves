@@ -5,10 +5,11 @@ import { placeSlots } from '@/lib/adPlanPure';
 import { useAdPlan } from '@/lib/useAdPlan';
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { RefreshControl, View } from 'react-native';
+import { Pressable, RefreshControl, View } from 'react-native';
 
 import {
   Button,
+  directionalIcon,
   EmptyState,
   iconSize,
   Screen,
@@ -17,12 +18,16 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { useGroups, useHomeSummary } from '@/data/hooks';
+import { useArchivedGroups, useGroups, useHomeSummary } from '@/data/hooks';
 import { groupsOutsideCompanies } from '@/lib/spaces';
 import { groupLabel } from '@/data/types';
-import { useStrings } from '@/i18n';
+import { fill, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
-import { DEFAULT_GROUPS_SORT, sortGroups, type GroupsSort } from '@/lib/groupsList';
+import { archiveSuggestion, splitFamily } from '@/lib/groupSections';
+import { useKeptGroups } from '@/lib/archiveKept';
+import { SearchField } from '@/components/SearchToggle';
+import { useSync } from '@/sync/provider';
+import { MutationKind } from '@waves/core';
 import { SkeletonList } from '@/components/Skeletons';
 import { AnimatedFlashList, ScenicScreen } from '@/components/hero/ScenicScreen';
 import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
@@ -73,6 +78,11 @@ function AllGroupsScreen() {
   const defaultCurrency = useDefaultCurrency();
   const { pool } = useHomeSpaceFigures();
   const { draftsByGroup, voiceNewCount, env } = useGroupRowEnv();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const archived = useArchivedGroups();
+  const { mutate } = useSync();
+  const { kept, ready: keptReady, keep } = useKeptGroups();
   const [quickExpenseOpen, setQuickExpenseOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const quickAddActions = useQuickAddActions();
@@ -90,68 +100,64 @@ function AllGroupsScreen() {
   const owedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
   const owingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
 
-  // One fixed order (most recent first), as on Home: no sort control here.
-  const sort: GroupsSort = DEFAULT_GROUPS_SORT;
-  const sortDesc = true;
-
-  // Decorate every group with the facts a row shows — balance, whether a
-  // settlement is pending, the member count — then filter, sort (favorites in
-  // front, see `sortGroups`) and, in the default money-first order only, thread
-  // a "Settled" label between the groups wanting action and the quiet ones.
-  // One memo so a fast scroll isn't recomputing per frame.
+  // Family spaces first, then the other groups, each most recent first.
   const rows = useMemo(() => {
     const decorated = list.map((group) => {
-      const members = summary.membersFor(group.id);
       const balance = summary.balanceFor(group.id);
       const pending = summary.hasPending(group.id);
       return {
         id: group.id,
         group,
-        label: groupLabel(group, members, profile?.id),
+        label: groupLabel(group, summary.membersFor(group.id), profile?.id),
+        type: group.type,
+        ledger_mode: group.ledger_mode,
         balance,
         pending,
-        count: summary.memberCountFor(group.id),
         needsAction: pending || balance !== 0n,
-        lastActive: summary.lastActivityFor(group.id),
+        // A group nobody has spent in yet counts from the day it was made.
+        lastActive: Math.max(summary.lastActivityFor(group.id), Date.parse(group.created_at) || 0),
       };
     });
-
-    const sorted = sortGroups(decorated, sort, locale);
-    // The same toggle Friends has: picking the active sort again flips it.
-    const ordered = sortDesc ? sorted : [...sorted].reverse();
-
+    const { family, groups: others } = splitFamily(decorated, query);
     type Entry = (typeof decorated)[number];
-    type ListRow = { kind: 'group'; item: Entry } | { kind: 'header'; label: string };
+    type ListRow =
+      | { kind: 'group'; item: Entry; first: boolean; last: boolean }
+      | { kind: 'header'; label: string };
     const out: ListRow[] = [];
-    // The "Settled" label only appears when the list holds a mix, since a
-    // block that is all settled (or all active) needs no label.
-    const firstSettled = ordered.findIndex((entry) => !entry.needsAction);
-    const settledLabelAt =
-      sort === 'amount' && sortDesc && firstSettled > 0 ? ordered[firstSettled]!.id : null;
-    for (const item of ordered) {
-      if (item.id === settledLabelAt) out.push({ kind: 'header', label: t.settledHeader });
-      out.push({ kind: 'group', item });
-    }
-    return out;
-  }, [list, summary, profile?.id, sort, sortDesc, locale, t.settledHeader]);
+    const section = (label: string | null, items: Entry[]) => {
+      if (label && items.length) out.push({ kind: 'header', label });
+      items.forEach((item, i) =>
+        out.push({ kind: 'group', item, first: i === 0, last: i === items.length - 1 }),
+      );
+    };
+    // No "Groups" label unless a "Family" one sits above it.
+    section(t.homeToday.family, family);
+    section(family.length ? t.homeToday.spaces : null, others);
+    return { rows: out, all: decorated };
+  }, [list, summary, profile?.id, query, t.homeToday.family, t.homeToday.spaces]);
+  const suggestion = keptReady && !query ? archiveSuggestion(rows.all, env.nowMs, kept) : null;
+  const archiveGroup = (id: string): void => {
+    void mutate(MutationKind.GroupUpdate, id, { archived_at: new Date().toISOString() });
+  };
+  const rowList = rows.rows;
 
   // Native ads between group rows (never while a menu is open).
   const adHandle = useAdPlan('groups_all', {
-    rowCount: rows.filter((row) => row.kind === 'group').length,
+    rowCount: rowList.filter((row) => row.kind === 'group').length,
     surfaceState: { selectMode: false, sheetOpen: false },
   });
   const adSlotsKey = adHandle.plan.slots.join(',');
   const data = useMemo(
     () =>
       placeSlots(
-        rows,
+        rowList,
         adHandle.plan.slots,
         new Set(),
         { row: 'group', header: 'header' },
         adHandle.minGap,
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- adHandle.plan.slots is the only part of the plan used
-    [rows, adSlotsKey],
+    [rowList, adSlotsKey],
   );
 
   const empty = loading ? (
@@ -176,8 +182,6 @@ function AllGroupsScreen() {
     />
   );
 
-  const firstGroupIndex = data.findIndex((row) => row.kind === 'group');
-  const lastGroupIndex = data.findLastIndex((row) => row.kind === 'group');
   const listExtraData = useMemo(
     () => ({ theme, locale, unreadGroups }),
     [theme, locale, unreadGroups],
@@ -214,6 +218,11 @@ function AllGroupsScreen() {
             </View>
             {/* The join door, beside the new-group one: somebody handed a QR or a
                 link has nowhere else obvious to look. */}
+            <TabIconButton
+              icon="search"
+              label={t.searchGroups}
+              onPress={() => setSearchOpen(true)}
+            />
             <TabIconButton
               icon="qr-code-outline"
               label={t.misc.joinWithCode}
@@ -262,9 +271,13 @@ function AllGroupsScreen() {
         }
         list={({ onScroll, top, keyboardShouldPersistTaps }) => (
           <AnimatedFlashList
-            data={loading || rows.length === 0 ? [] : data}
+            data={loading || rowList.length === 0 ? [] : data}
             keyExtractor={(row) =>
-              row.kind === 'header' ? 'settled-header' : row.kind === 'ad' ? row.key : row.item.id
+              row.kind === 'header'
+                ? `header-${row.label}`
+                : row.kind === 'ad'
+                  ? row.key
+                  : row.item.id
             }
             getItemType={(row) => row.kind}
             extraData={listExtraData}
@@ -280,13 +293,80 @@ function AllGroupsScreen() {
             ListHeaderComponent={
               <View style={{ gap: theme.spacing.xs }}>
                 {top}
-                {loading || rows.length === 0 ? (
+                {searchOpen || query ? (
+                  <SearchField
+                    value={query}
+                    onChange={setQuery}
+                    onCancel={() => {
+                      setQuery('');
+                      setSearchOpen(false);
+                    }}
+                    placeholder={t.searchGroups}
+                  />
+                ) : null}
+                {suggestion ? (
+                  <View
+                    style={{
+                      gap: theme.spacing.sm,
+                      padding: theme.spacing.md,
+                      borderRadius: theme.radius.lg,
+                      backgroundColor: theme.color.brandSoft,
+                    }}
+                  >
+                    <Text>{fill(t.homeToday.archiveSuggest, { name: suggestion.label })}</Text>
+                    <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+                      <Button label={t.group.archive} onPress={() => archiveGroup(suggestion.id)} />
+                      <Button
+                        label={t.homeToday.keep}
+                        variant="ghost"
+                        onPress={() => keep(suggestion.id)}
+                      />
+                    </View>
+                  </View>
+                ) : null}
+                {loading ? (
                   <View style={{ paddingTop: theme.spacing.lg }}>{empty}</View>
+                ) : rowList.length === 0 ? (
+                  <View style={{ paddingTop: theme.spacing.lg }}>
+                    {query ? (
+                      <Text tone="muted" style={{ textAlign: 'center' }}>
+                        {t.noGroupsMatch}
+                      </Text>
+                    ) : (
+                      empty
+                    )}
+                  </View>
                 ) : null}
               </View>
             }
-            renderItem={({ item: row, index }) => {
-              if (row.kind === 'header') return <SectionLabel key="settled" label={row.label} />;
+            ListFooterComponent={
+              archived.data.length > 0 && !query ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => router.push('/settings/archived')}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    minHeight: 48,
+                    marginTop: theme.spacing.md,
+                    paddingHorizontal: theme.spacing.xs,
+                    opacity: pressed ? 0.6 : 1,
+                  })}
+                >
+                  <Text tone="muted">
+                    {fill(t.homeToday.archivedRow, { n: String(archived.data.length) })}
+                  </Text>
+                  <Ionicons
+                    name={directionalIcon('chevron-forward')}
+                    size={iconSize.md}
+                    color={theme.color.textMuted}
+                  />
+                </Pressable>
+              ) : null
+            }
+            renderItem={({ item: row }) => {
+              if (row.kind === 'header') return <SectionLabel label={row.label} />;
               if (row.kind === 'ad')
                 return (
                   <AdSlot
@@ -304,10 +384,12 @@ function AllGroupsScreen() {
                     borderRightWidth: 1,
                     borderColor: theme.color.border,
                     backgroundColor: theme.color.surface,
-                    borderTopLeftRadius: index === firstGroupIndex ? theme.radius.lg : 0,
-                    borderTopRightRadius: index === firstGroupIndex ? theme.radius.lg : 0,
-                    borderBottomLeftRadius: index === lastGroupIndex ? theme.radius.lg : 0,
-                    borderBottomRightRadius: index === lastGroupIndex ? theme.radius.lg : 0,
+                    borderTopLeftRadius: row.first ? theme.radius.lg : 0,
+                    borderTopRightRadius: row.first ? theme.radius.lg : 0,
+                    borderBottomLeftRadius: row.last ? theme.radius.lg : 0,
+                    borderBottomRightRadius: row.last ? theme.radius.lg : 0,
+                    borderTopWidth: row.first ? 1 : 0,
+                    borderBottomWidth: row.last ? 1 : 0,
                     overflow: 'hidden',
                   }}
                 >
@@ -319,7 +401,7 @@ function AllGroupsScreen() {
                     drafts={draftsByGroup.get(group.id) ?? 0}
                     locale={locale}
                     hidden={amountsHidden}
-                    divider={index !== firstGroupIndex}
+                    divider={!row.first}
                     unread={unreadGroups.has(group.id) || voiceNewCount(group.id) > 0}
                     env={env}
                   />
