@@ -258,7 +258,12 @@ export function ClientsList({ groupId }: { groupId: string }) {
             ]}
           />
           <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <SearchToggle value={query} onChange={setQuery} placeholder={s.search} containerStyle={{ flex: 1 }} />
+            <SearchToggle
+              value={query}
+              onChange={setQuery}
+              placeholder={s.search}
+              containerStyle={{ flex: 1 }}
+            />
             <Pressable
               ref={sortRef}
               accessibilityRole="button"

@@ -80,7 +80,12 @@ export function VendorsTab({ groupId }: { groupId: string }) {
         ]}
       />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
-        <SearchToggle value={query} onChange={setQuery} placeholder={s.search} containerStyle={{ flex: 1 }} />
+        <SearchToggle
+          value={query}
+          onChange={setQuery}
+          placeholder={s.search}
+          containerStyle={{ flex: 1 }}
+        />
         <RowMenu
           icon="filter"
           label={`${c.filterTitle}: ${filterLabel[filter]}`}
