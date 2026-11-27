@@ -64,6 +64,7 @@ vi.mock('expo-crypto', () => ({
 }));
 vi.mock('expo-network', () => ({ NetworkStateType: { WIFI: 'wifi', CELLULAR: 'cellular' } }));
 vi.mock('@/lib/auth', () => ({ useAuth: () => ({ session: h.session }) }));
+vi.mock('@/e2ee/runtime', () => ({ useE2eeReady: () => true }));
 vi.mock('@/sync', () => ({ useSync: () => ({ mutate: h.mutate, flush: h.flush }) }));
 vi.mock('@/data/personal', () => ({
   usePersonalRecords: () => h.records,
