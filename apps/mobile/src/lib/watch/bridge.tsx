@@ -40,6 +40,7 @@ import { useSync } from '@/sync';
 import {
   agentCall,
   deleteClip,
+  keepClip,
   readClipBase64,
   sweepStaleClips,
   transcribeFile,
@@ -379,6 +380,7 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
             transcribe: (uri) => transcribeFile(uri, s.locale),
           });
           const single = outcome.captures.length === 1;
+          const kept = outcome.captures.length > 0 ? keepClip(clip.uri, clip.id) : null;
           const location = await placeForWatchAdd(clip, now, captureLocationIfGranted);
           for (const item of outcome.captures) {
             await createRef.current.mutateAsync({
@@ -388,7 +390,7 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
               description: item.note,
               expenseDate: today,
               rawText: outcome.rawText,
-              parsed: watchCaptureParsed('voice', clip.id, clip.madeAt),
+              parsed: watchCaptureParsed('voice', clip.id, clip.madeAt, kept ?? undefined),
               location,
             });
           }

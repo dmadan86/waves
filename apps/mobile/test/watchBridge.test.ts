@@ -74,6 +74,7 @@ vi.mock('@/lib/watch/voiceClip', () => ({
   deleteClip: (uri: string) => {
     h.deleted.push(uri);
   },
+  keepClip: () => null,
   readClipBase64: async () => '',
   sweepStaleClips: () => undefined,
   transcribeFile: async () => h.transcript,

@@ -105,6 +105,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { WatchClipButton } from '@/components/WatchClipButton';
 import { withScenic } from '@/components/ScenicScope';
 import { CategoryBadge } from '@/components/Category';
 import { DestinationPicker, type DestinationSelection } from '@/components/DestinationPicker';
@@ -154,7 +155,8 @@ import { useReducedMotion } from '@/lib/reducedMotion';
 import { reviewMomentFor } from '@/lib/reviewScene';
 import { useSmsAutoRead } from '@/lib/smsAutoRead';
 import { isSmsDerived } from '@/lib/smsLocalDrafts';
-import { isFromWatch } from '@/lib/watch/voiceClipPure';
+import { sweepKeptClips } from '@/lib/watch/voiceClip';
+import { clipOfParsed, isFromWatch } from '@/lib/watch/voiceClipPure';
 import { recoveredVoiceDraftAmount } from '@/lib/voiceDraftPure';
 import { requestScanOnReturn } from '@/lib/smsReadBridge';
 import { useSmsInboxReader } from '@/lib/smsFeature';
@@ -508,6 +510,9 @@ function CaptureListRow({
           >
             {isFromWatch(capture.parsed) ? (
               <Ionicons name="watch-outline" size={iconSize.xs} color={theme.color.textMuted} />
+            ) : null}
+            {isFromWatch(capture.parsed) ? (
+              <WatchClipButton parsed={capture.parsed} label={t.captures.playVoiceNote} />
             ) : null}
             {bare ? null : <DestinationChip name={destinationName} t={t} />}
             {/* An icon as well as the words, so the uncertainty is not carried
@@ -1266,6 +1271,12 @@ function CapturesScreen() {
       : null);
 
   const rows = useMemo(() => captures.data ?? [], [captures.data]);
+  // A kept watch clip goes once its capture is saved or dismissed (or after 30 days).
+  useEffect(() => {
+    if (!captures.data) return;
+    const named = captures.data.flatMap((c) => clipOfParsed(c.parsed) ?? []);
+    sweepKeptClips(new Set(named));
+  }, [captures.data]);
   // Two errands, two tabs: what the app found in the phone's bank messages,
   // and what its user added on purpose and has not filed yet. The rule and the
   // reasoning are in `lib/reviewFeed.ts`.

@@ -277,14 +277,50 @@ export function watchCaptureParsed(
   kind: 'quick' | 'voice',
   id: string,
   madeAt?: number,
+  clip?: string,
 ): Record<string, unknown> {
   return {
     source: WATCH_CAPTURE_SOURCE,
     kind,
     watchId: id,
     ...(madeAt !== undefined && { madeAt }),
+    ...(clip && { clip }),
   };
 }
+
+/** The kept clip's file name; only the name is stored, as the app container path can change. */
+export const clipFileName = (id: string): string => `${id}.m4a`;
+
+/** The kept clip's file name from a capture's `parsed`, or null (also for anything not a bare name). */
+export function clipOfParsed(parsed: unknown): string | null {
+  const clip = (parsed as { clip?: unknown } | null)?.clip;
+  return typeof clip === 'string' && /^[\w.-]+$/.test(clip) && !clip.includes('..') ? clip : null;
+}
+
+const KEPT_CLIP_MS = 30 * 24 * 60 * 60 * 1000;
+/** A fresh clip is moved in just before its capture is written; leave it alone this long. */
+const ORPHAN_GRACE_MS = 60 * 60 * 1000;
+
+/** Which kept clips to delete: older than 30 days, or no capture names them any more. */
+export function clipsToSweep(
+  files: readonly { name: string; modifiedMs: number }[],
+  referenced: ReadonlySet<string>,
+  now: number,
+): string[] {
+  return files
+    .filter((f) => {
+      const age = now - f.modifiedMs;
+      return age > KEPT_CLIP_MS || (!referenced.has(f.name) && age > ORPHAN_GRACE_MS);
+    })
+    .map((f) => f.name);
+}
+
+/** The player shows only for a watch clip that is on this phone and playable here. */
+export const showClipPlayer = (input: {
+  clip: string | null;
+  fileExists: boolean;
+  moduleLoaded: boolean;
+}): boolean => input.clip !== null && input.fileExists && input.moduleLoaded;
 
 /** True when a capture's `parsed` blob says a watch made it. */
 export function isFromWatch(parsed: unknown): boolean {

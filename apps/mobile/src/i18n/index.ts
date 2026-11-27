@@ -5377,6 +5377,8 @@ export interface UiStrings {
      */
     notAnExpense: string;
     notAnExpenseDone: string;
+    /** Accessible label of the replay button on a watch voice draft. */
+    playVoiceNote: string;
     /**
      * The zero state, which is the state Review is trying to reach — it is the
      * app's list of questions, and a good week is one where it has none.
@@ -13931,6 +13933,7 @@ const en: UiStrings = {
     whichGroup: 'Which group?',
     fileTo: 'Add to {name}',
     notAnExpense: 'Not an expense',
+    playVoiceNote: 'Play voice note',
     notAnExpenseDone: 'Taken off your list',
     emptyTabTitle: 'Nothing to review here',
     emptyTabWaiting: {
@@ -22192,6 +22195,7 @@ const ta: UiStrings = {
     whichGroup: 'எந்தக் குழு?',
     fileTo: '{name} இல் சேர்',
     notAnExpense: 'இது செலவு அல்ல',
+    playVoiceNote: 'குரல் குறிப்பை இயக்கு',
     notAnExpenseDone: 'உங்கள் பட்டியலிலிருந்து நீக்கப்பட்டது',
     emptyTabTitle: 'இங்கே பார்க்க எதுவும் இல்லை',
     emptyTabWaiting: {
@@ -30453,6 +30457,7 @@ const hi: UiStrings = {
     whichGroup: 'कौन-सा समूह?',
     fileTo: '{name} में डालें',
     notAnExpense: 'यह खर्च नहीं है',
+    playVoiceNote: 'वॉइस नोट चलाएँ',
     notAnExpenseDone: 'आपकी सूची से हटा दिया',
     emptyTabTitle: 'यहाँ देखने को कुछ नहीं',
     emptyTabWaiting: {
@@ -38929,6 +38934,7 @@ const ar: UiStrings = {
     whichGroup: 'أي مجموعة؟',
     fileTo: 'أضِف إلى {name}',
     notAnExpense: 'ليس مصروفًا',
+    playVoiceNote: 'تشغيل الملاحظة الصوتية',
     notAnExpenseDone: 'أُزيل من قائمتك',
     emptyTabTitle: 'لا شيء للمراجعة هنا',
     emptyTabWaiting: { one: 'مصروف واحد ينتظر في {tab}.', other: '{n} مصاريف تنتظر في {tab}.' },

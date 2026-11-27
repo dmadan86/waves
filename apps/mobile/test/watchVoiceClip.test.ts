@@ -17,6 +17,10 @@ import {
   placeForWatchAdd,
   isFromWatch,
   watchCaptureParsed,
+  clipFileName,
+  clipOfParsed,
+  clipsToSweep,
+  showClipPlayer,
   processClip,
   type ClipContext,
   type ClipDeps,
@@ -289,5 +293,43 @@ describe('watch capture marker', () => {
     expect(isFromWatch(watchCaptureParsed('voice', 'c1', 5))).toBe(true);
     expect(isFromWatch({ source: 'sms' })).toBe(false);
     expect(isFromWatch(null)).toBe(false);
+  });
+});
+
+describe('kept watch clip', () => {
+  it('names the file after the clip and carries it in parsed', () => {
+    expect(clipFileName('c1')).toBe('c1.m4a');
+    const parsed = watchCaptureParsed('voice', 'c1', 5, 'c1.m4a');
+    expect(parsed.clip).toBe('c1.m4a');
+    expect(clipOfParsed(parsed)).toBe('c1.m4a');
+    expect(watchCaptureParsed('voice', 'c1', 5)).not.toHaveProperty('clip');
+  });
+
+  it('only accepts a bare file name from parsed', () => {
+    expect(clipOfParsed({ clip: '../x.m4a' })).toBeNull();
+    expect(clipOfParsed({ clip: 3 })).toBeNull();
+    expect(clipOfParsed(null)).toBeNull();
+  });
+
+  const DAY = 24 * 60 * 60 * 1000;
+  const now = 100 * DAY;
+  it('sweeps clips past 30 days or whose capture is gone', () => {
+    const files = [
+      { name: 'old.m4a', modifiedMs: now - 31 * DAY },
+      { name: 'kept.m4a', modifiedMs: now - 2 * DAY },
+      { name: 'orphan.m4a', modifiedMs: now - 2 * DAY },
+      { name: 'fresh.m4a', modifiedMs: now - 1000 },
+    ];
+    expect(clipsToSweep(files, new Set(['old.m4a', 'kept.m4a']), now).sort()).toEqual([
+      'old.m4a',
+      'orphan.m4a',
+    ]);
+  });
+
+  it('shows the player only with a clip name, the file and the module', () => {
+    expect(showClipPlayer({ clip: 'c1.m4a', fileExists: true, moduleLoaded: true })).toBe(true);
+    expect(showClipPlayer({ clip: null, fileExists: true, moduleLoaded: true })).toBe(false);
+    expect(showClipPlayer({ clip: 'c1.m4a', fileExists: false, moduleLoaded: true })).toBe(false);
+    expect(showClipPlayer({ clip: 'c1.m4a', fileExists: true, moduleLoaded: false })).toBe(false);
   });
 });

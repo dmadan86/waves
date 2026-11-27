@@ -14,7 +14,7 @@ import { VOICE_AGENT_SCHEMA_VERSION } from '@waves/core';
 import { callVoiceAgent } from '@/lib/voiceAgent';
 import { speechMic } from '@/lib/speechMic';
 
-import type { ClipDeps } from './voiceClipPure';
+import { clipFileName, clipsToSweep, type ClipDeps } from './voiceClipPure';
 
 /** The watch records AAC in an MP4 container (.m4a). */
 const CLIP_MIME = 'audio/mp4';
@@ -31,6 +31,47 @@ export function deleteClip(uri: string): void {
     if (file.exists) file.delete();
   } catch {
     // A cache file; the OS reclaims it if this fails.
+  }
+}
+
+const keptDir = (): FileSystem.Directory =>
+  new FileSystem.Directory(FileSystem.Paths.document, 'watch-clips');
+
+/** Move a processed clip to the durable folder for replay in Review; the file name, or null. */
+export function keepClip(uri: string, id: string): string | null {
+  try {
+    const dir = keptDir();
+    if (!dir.exists) dir.create({ intermediates: true });
+    const name = clipFileName(id);
+    new FileSystem.File(uri).move(new FileSystem.File(dir, name));
+    return name;
+  } catch {
+    return null;
+  }
+}
+
+export function keptClipUri(name: string): string | null {
+  try {
+    const file = new FileSystem.File(keptDir(), name);
+    return file.exists ? file.uri : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Delete kept clips past 30 days or whose capture is gone (saved or dismissed). */
+export function sweepKeptClips(referenced: ReadonlySet<string>, now: number = Date.now()): void {
+  try {
+    const dir = keptDir();
+    if (!dir.exists) return;
+    const files = dir
+      .list()
+      .filter((e): e is FileSystem.File => e instanceof FileSystem.File)
+      .map((f) => ({ name: f.name, modifiedMs: f.info().modificationTime ?? now }));
+    for (const name of clipsToSweep(files, referenced, now))
+      new FileSystem.File(dir, name).delete();
+  } catch {
+    // Housekeeping only.
   }
 }
 
