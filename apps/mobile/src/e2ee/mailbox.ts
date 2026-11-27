@@ -54,6 +54,8 @@ export interface MailboxDeps {
   isCurrent?: () => boolean;
   /** Stable operation scope; unlike isCurrent this must not follow a later session. */
   captureCurrent?: () => () => boolean;
+  /** Current profile for refusing rows created by a different account. */
+  owner?: () => string | null;
 }
 
 interface GroupDevice {
@@ -484,6 +486,11 @@ export function createMailbox(deps: MailboxDeps) {
     const blockedGroups = new Set<string>();
     for (const row of rows) {
       if (blockedGroups.has(row.groupId)) continue;
+      const owner = (row.msg as OutboxMsg).owner;
+      if (owner !== undefined && owner !== (deps.owner?.() ?? null)) {
+        blockedGroups.add(row.groupId);
+        continue;
+      }
       if (deps.now() - Date.parse(row.createdAt) >= OUTBOX_MAX_AGE_MS) {
         if (!isCurrent()) return;
         await meta.set(

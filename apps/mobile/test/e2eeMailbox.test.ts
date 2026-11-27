@@ -60,6 +60,19 @@ describe('mailbox send', () => {
     expect(a.store.outbox.size).toBe(1);
   });
 
+  it('does not send an outbox item owned by another profile', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1);
+    const b = phone(server, 'pB', 'mB', 2);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await a.set(G, 'p1', 'property', prop);
+    const row = [...a.store.outbox.values()][0]!;
+    row.msg = { ...row.msg, owner: 'pB' };
+    await a.mailbox.flushOutbox();
+    expect(server.mailbox).toHaveLength(0);
+    expect(a.store.outbox.has(row.id)).toBe(true);
+  });
+
   it('does not let a no-recipient group block a later group', async () => {
     const server = world();
     server.groups.set('group-2', [

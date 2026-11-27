@@ -57,6 +57,8 @@ export interface OutboxMsg {
   /** Recipient/part deliveries already accepted by the mailbox RPC. */
   readonly delivered?: readonly string[];
   readonly deliveryIds?: Readonly<Record<string, string>>;
+  /** Profile that created this message; legacy rows omit it. */
+  readonly owner?: string;
 }
 
 /** A group this phone has left (or was removed from, or that was deleted): a read-only copy. */
@@ -143,6 +145,7 @@ export class E2eeSpace {
     private readonly io: SpaceIo,
     // No default: Hermes has no Web Crypto, so the phone passes expo-crypto ids.
     private readonly clock: { now: () => number; newId: () => string },
+    private readonly owner: () => string | null = () => null,
   ) {}
 
   load(canCommit: () => boolean = () => true): Promise<void> {
@@ -252,7 +255,13 @@ export class E2eeSpace {
     return this.run(async () => {
       validateOpsSize(ops);
       const msgId = stableId ?? this.clock.newId();
-      const msg: OutboxMsg = { plaintext: { v: 1, msgId, ops }, hint: null, ...(to ? { to } : {}) };
+      const owner = this.owner();
+      const msg: OutboxMsg = {
+        plaintext: { v: 1, msgId, ops },
+        hint: null,
+        ...(owner ? { owner } : {}),
+        ...(to ? { to } : {}),
+      };
       await this.io.writeE2eeRecords(
         [],
         [{ id: msgId, groupId, msg, createdAt: new Date(this.clock.now()).toISOString() }],
@@ -449,7 +458,8 @@ export class E2eeSpace {
     if (e2ee.getMergeDiagnostics(next).rejected.length)
       throw new Error('e2ee: local record validation failed');
     const msgId = this.clock.newId();
-    const msg: OutboxMsg = { plaintext: { v: 1, msgId, ops }, hint };
+    const owner = this.owner();
+    const msg: OutboxMsg = { plaintext: { v: 1, msgId, ops }, hint, ...(owner ? { owner } : {}) };
     await this.commit(groupId, next, touched, [
       {
         id: msgId,

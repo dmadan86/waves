@@ -23,10 +23,14 @@ import { createMailbox } from './mailbox';
 import { E2eeSpace, type GroupRecord } from './space';
 import { ownerMismatch, SessionGeneration } from './session';
 
-export const e2eeSpace = new E2eeSpace(syncEngine.localStore, {
-  now: () => Date.now(),
-  newId: () => Crypto.randomUUID(),
-});
+export const e2eeSpace = new E2eeSpace(
+  syncEngine.localStore,
+  {
+    now: () => Date.now(),
+    newId: () => Crypto.randomUUID(),
+  },
+  () => activeProfileId,
+);
 syncEngine.beforeE2eeWipe = drainE2ee;
 
 const registering = new Map<string, Promise<string>>();
@@ -177,24 +181,34 @@ const mailbox = createMailbox({
     const generation = generations.snapshot();
     return () => owner !== null && owner === activeProfileId && generations.matches(generation);
   },
+  owner: () => activeProfileId,
   randomBytes: (n) => Crypto.getRandomBytes(n),
   now: () => Date.now(),
   report: reportHandled,
 });
 
 // A local write is sent at once; a failure stays in the outbox for the next round.
-e2eeSpace.onOutbox = () => void mailbox.flushOutbox().catch(() => undefined);
+e2eeSpace.onOutbox = () => void withE2eeLock(() => mailbox.flushOutbox()).catch(() => undefined);
 
 let running: Promise<void> | null = null;
 let isSessionCurrent = (): boolean => false;
+let queue: Promise<void> = Promise.resolve();
+
+function withE2eeLock<T>(work: () => Promise<T>): Promise<T> {
+  const result = queue.then(work);
+  queue = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  return result;
+}
 
 /**
  * Pick up mail and send what is waiting. Safe to call from anywhere, any number of
  * times: one round runs at a time, and a failure (offline) is retried by the next call.
  */
 export function syncE2ee(): Promise<void> {
-  running ??= mailbox
-    .sync()
+  running ??= withE2eeLock(() => mailbox.sync())
     .catch(() => undefined)
     .finally(() => {
       running = null;
@@ -208,7 +222,11 @@ export function getE2eeOutboxFailures(): Promise<{ groupId: string; reason: stri
 }
 
 /** Sign-in: load what is on the phone, make sure the server knows this device, then sync. */
-export async function startE2ee(profileId: string): Promise<void> {
+export function startE2ee(profileId: string): Promise<void> {
+  return withE2eeLock(() => startE2eeLocked(profileId));
+}
+
+async function startE2eeLocked(profileId: string): Promise<void> {
   const isCurrent = generations.bump();
   isSessionCurrent = isCurrent;
   activeProfileId = profileId;
@@ -241,11 +259,15 @@ export async function startE2ee(profileId: string): Promise<void> {
   mailbox.forgetDevices();
   await ensureDeviceId(profileId).catch(() => undefined);
   if (!isCurrent()) return;
-  await syncE2ee();
+  await mailbox.sync();
 }
 
 /** Sign-out: drop what is in memory (the engine wipes the tables). */
 export function stopE2ee(): void {
+  void withE2eeLock(async () => stopE2eeLocked());
+}
+
+function stopE2eeLocked(): void {
   generations.invalidate();
   activeProfileId = null;
   hydratedOwnerId = null;

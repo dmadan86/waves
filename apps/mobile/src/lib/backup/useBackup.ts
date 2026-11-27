@@ -346,7 +346,7 @@ export function useBackup(): BackupState & BackupActions {
     async (allowMobileData = false, replaceExisting = false): Promise<BackupOutcome> => {
       setOutcome(null);
       if (!e2eeReady) {
-        const refused: BackupOutcome = { kind: 'refused', refusal: 'busy' };
+        const refused: BackupOutcome = { kind: 'refused', refusal: 'e2ee-loading' };
         setOutcome(refused);
         return refused;
       }

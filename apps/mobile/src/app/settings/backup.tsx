@@ -144,6 +144,7 @@ import { useDialog } from '@/lib/dialog';
 import { formatBytes } from '@/lib/bytes';
 import { useBackup, type BackupOutcome } from '@/lib/backup/useBackup';
 import { backupFailure } from '@/lib/backup/failure';
+import { backupRefusalText } from '@/lib/backup/refusalText';
 import { BackupFrequency } from '@/lib/backup/schedule';
 import { copySensitive } from '@/lib/sensitiveClipboard';
 import { usePreventCapture } from '@/lib/secretScreen';
@@ -327,6 +328,10 @@ export default function BackupSettingsScreen() {
   /** The one sentence for a refusal — each has a different way out. */
   const refusalLine = (outcome: BackupOutcome): string => {
     if (outcome.kind === 'ok') return plural(locale, outcome.records, t.backup.backedUp);
+    const e2eeLoading = backupRefusalText(outcome.refusal, {
+      e2eeLoading: t.backup.refusedE2eeLoading,
+    });
+    if (e2eeLoading) return e2eeLoading;
     switch (outcome.refusal) {
       case 'cancelled':
         return t.common.cancel;

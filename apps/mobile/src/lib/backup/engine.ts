@@ -118,6 +118,8 @@ export type BackupRefusal =
   /** Another run is already going. */
   | 'cancelled'
   | 'busy'
+  /** E2EE account data is still hydrating for this sign-in. */
+  | 'e2ee-loading'
   /** This build has no OAuth client id for the provider. */
   | 'not-configured'
   /** No Drive account linked. */

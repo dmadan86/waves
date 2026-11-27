@@ -10,7 +10,7 @@ describe('couple space ids on a phone', () => {
     const src = (f: string) => readFileSync(join(__dirname, '../src/e2ee', f), 'utf8');
     expect(src('space.ts')).not.toMatch(/globalThis\.crypto/);
     expect(src('runtime.ts')).toMatch(
-      /new E2eeSpace\(syncEngine\.localStore,\s*\{[^}]*randomUUID/s,
+      /new E2eeSpace\([\s\S]*?Crypto\.randomUUID/s,
     );
   });
 });
