@@ -280,7 +280,7 @@ function DetailBody() {
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: theme.spacing.lg,
+          paddingBottom: clearance + theme.spacing.md,
           gap: theme.spacing.md,
         }}
       >
@@ -294,7 +294,7 @@ function DetailBody() {
                   <Text variant="body" tone="muted">
                     {w.rentDueCap}
                   </Text>
-                  <Text variant="title" style={{ fontWeight: '800' }}>
+                  <Text variant="title" style={{ fontWeight: '800', fontSize: 34, lineHeight: 40 }}>
                     {fmt(remaining, cur)}
                   </Text>
                   <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
@@ -516,32 +516,26 @@ function DetailBody() {
             </StandardCard>
           </View>
         ) : null}
-      </ScrollView>
-      <Row
-        style={{
-          gap: theme.spacing.sm,
-          paddingHorizontal: theme.spacing.lg,
-          paddingBottom: clearance + theme.spacing.md,
-        }}
-      >
-        <TintButton
-          label={w.addExpense}
-          icon="document-text-outline"
-          bg={theme.color.brandSoft}
-          fg={theme.color.brand}
-          onPress={() => setOpen('expense')}
-        />
-        {tn ? (
+        <Row style={{ gap: theme.spacing.sm }}>
           <TintButton
-            label={w.receiptsBtn}
-            icon="receipt-outline"
-            bg={theme.color.surfaceMuted}
-            fg={theme.color.text}
-            disabled={!lastPayment}
-            onPress={() => void share()}
+            label={w.addExpense}
+            icon="document-text-outline"
+            bg={theme.color.brandSoft}
+            fg={theme.color.brand}
+            onPress={() => setOpen('expense')}
           />
-        ) : null}
-      </Row>
+          {tn ? (
+            <TintButton
+              label={w.receiptsBtn}
+              icon="receipt-outline"
+              bg={theme.color.surfaceMuted}
+              fg={theme.color.text}
+              disabled={!lastPayment}
+              onPress={() => void share()}
+            />
+          ) : null}
+        </Row>
+      </ScrollView>
 
       <AmountSheet
         visible={open === 'rent'}

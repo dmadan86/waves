@@ -13,7 +13,7 @@ export const PROPERTY_ICON: Record<PropertyType, IconName> = {
   apartment: 'business-outline',
   room: 'bed-outline',
   shop: 'storefront-outline',
-  commercial: 'briefcase-outline',
+  commercial: 'storefront-outline',
   land: 'map-outline',
   other: 'ellipsis-horizontal-circle-outline',
 };
