@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { overlayBusy, resetOverlayBusy, setOverlayBusy, tourMayStart } from '../src/lib/firstRun';
+import {
+  firstRunGateUp,
+  overlayBusy,
+  resetOverlayBusy,
+  setOverlayBusy,
+  tourMayStart,
+  tourRectVisible,
+} from '../src/lib/firstRun';
 import { ensurePermission, permissionStep } from '../src/lib/permissionFlow';
 
 const clear = {
@@ -112,5 +119,20 @@ describe('ensurePermission', () => {
     expect(openSettings).toHaveBeenCalledOnce();
     expect(request).not.toHaveBeenCalled();
     expect(r.granted).toBe(false);
+  });
+});
+
+describe('first-run gate and tour spotlight', () => {
+  it('holds the tour while the intro or the setup flow covers Home', () => {
+    expect(firstRunGateUp({ showIntro: true, signedIn: true, flow: 'skip' })).toBe(true);
+    expect(firstRunGateUp({ showIntro: false, signedIn: true, flow: 'show' })).toBe(true);
+    expect(firstRunGateUp({ showIntro: false, signedIn: true, flow: 'skip' })).toBe(false);
+    expect(firstRunGateUp({ showIntro: true, signedIn: false, flow: 'wait' })).toBe(false);
+  });
+  it('ignores a target that is unmeasured or off screen', () => {
+    expect(tourRectVisible(undefined, 400, 800)).toBe(false);
+    expect(tourRectVisible({ x: 500, y: 10, width: 50, height: 50 }, 400, 800)).toBe(false);
+    expect(tourRectVisible({ x: 10, y: 10, width: 0, height: 50 }, 400, 800)).toBe(false);
+    expect(tourRectVisible({ x: 10, y: 10, width: 50, height: 50 }, 400, 800)).toBe(true);
   });
 });
