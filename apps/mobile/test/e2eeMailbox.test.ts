@@ -384,6 +384,22 @@ describe('mailbox fetch', () => {
     expect(server.mailbox).toHaveLength(0);
   });
 
+  it('leaves mail unacked when the own device id read fails during a directory refresh', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1);
+    const b = phone(server, 'pB', 'mB', 2);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await a.set(G, 'p1', 'property', prop);
+    await a.mailbox.flushOutbox();
+    b.mailbox.forgetDevices();
+    b.failDeviceId(1);
+    await b.sync().catch(() => undefined);
+    expect(server.mailbox).toHaveLength(1);
+    expect((b.store as any).quarantine).toHaveLength(0);
+    await b.sync();
+    expect(b.data(G).p1).toMatchObject(prop);
+  });
+
   it('quarantines invalid ciphertext durably before acknowledging it', async () => {
     const server = world();
     const a = phone(server, 'pA', 'mA', 1);

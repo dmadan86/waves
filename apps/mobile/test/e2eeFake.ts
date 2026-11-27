@@ -257,6 +257,8 @@ export interface Phone {
   endSession(): void;
   startSession(): void;
   setDeviceStatus(status: boolean): void;
+  /** Make the mailbox's next `n` device-id reads fail (a transient key-store error). */
+  failDeviceId(n: number): void;
   data(groupId: string): Record<string, Record<string, unknown>>;
 }
 
@@ -293,6 +295,7 @@ export function phone(
     (id ??= client
       .rpc('waves_register_device', { p_public_key: toBytea(key.publicKey) })
       .then((r) => r.data as string));
+  const flaky = { deviceId: 0 };
   let n = 0;
   const space = new E2eeSpace(store, {
     now: () => clock.t,
@@ -304,7 +307,16 @@ export function phone(
     outbox: store,
     meta,
     groups: () => groups,
-    keys: { pair: async () => key, deviceId },
+    keys: {
+      pair: async () => key,
+      deviceId: async () => {
+        if (flaky.deviceId > 0) {
+          flaky.deviceId -= 1;
+          throw new Error('keystore unavailable');
+        }
+        return deviceId();
+      },
+    },
     randomBytes: (len: number) => new Uint8Array(len).fill(7),
     now: () => clock.t,
     report: (error: unknown, where: string) => reports.push({ error, where }),
@@ -342,6 +354,9 @@ export function phone(
     startSession: () => {
       sessionGeneration += 1;
       current = true;
+    },
+    failDeviceId: (n) => {
+      flaky.deviceId = n;
     },
     setDeviceStatus: (active) => {
       deviceActive = active;

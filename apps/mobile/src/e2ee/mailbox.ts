@@ -236,10 +236,16 @@ export function createMailbox(deps: MailboxDeps) {
     }
     if (!current()) return [];
     const oldDevices = previous ?? (oldRaw ? (JSON.parse(oldRaw) as KnownDevice[]) : null);
-    const ownDeviceId = await keys.deviceId();
+    let ownDeviceId: string;
+    try {
+      ownDeviceId = await keys.deviceId();
+    } catch (cause) {
+      throw new TransientMailboxError(cause);
+    }
     if (list.some((d) => d.deviceId === ownDeviceId)) {
-      const failure = await meta.get(`outbox-failed:${groupId}`);
-      if (failure?.includes('membership-lost')) await meta.set(`outbox-failed:${groupId}`, '');
+      const failure = await metaRead(meta, `outbox-failed:${groupId}`);
+      if (failure?.includes('membership-lost'))
+        await metaWrite(meta, `outbox-failed:${groupId}`, '');
     }
     if (oldDevices) {
       const present = new Set(list.map((d) => d.deviceId));

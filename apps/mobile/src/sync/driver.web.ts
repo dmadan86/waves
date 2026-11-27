@@ -103,6 +103,8 @@ class AsyncStorageStore implements LocalStore {
           pending: Array.isArray(parsed.pending) ? parsed.pending : [],
         };
       } catch {
+        // Never let the next write replace a value we could not read: set it aside first.
+        await AsyncStorage.setItem(`${WEB_E2EE_KEY}.unreadable`, raw);
         return emptyE2eeStore();
       }
     }

@@ -29,4 +29,13 @@ describe('web E2EE storage', () => {
     expect(await store.readE2eeRecords()).toEqual([]);
     expect(await store.readE2eeOutbox()).toEqual([]);
   }, 30_000);
+
+  it('sets aside an undecodable combined value instead of overwriting it', async () => {
+    const { createLocalStore } = await import('../src/sync/driver.web');
+    const Storage = (await import('@react-native-async-storage/async-storage')).default;
+    await Storage.setItem('waves:e2ee:store', '{not json');
+    const store = createLocalStore();
+    expect(await store.readE2eeRecords()).toEqual([]);
+    expect(await Storage.getItem('waves:e2ee:store.unreadable')).toBe('{not json');
+  }, 30_000);
 });
