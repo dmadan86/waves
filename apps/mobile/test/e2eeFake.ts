@@ -255,7 +255,7 @@ export interface Phone {
   clock: { t: number };
   set(groupId: string, id: string, kind: string, data: Record<string, unknown>): Promise<void>;
   del(groupId: string, id: string): Promise<void>;
-  sync(): Promise<void>;
+  sync(): Promise<number>;
   /** The groups this account is in (the mailbox's `groups()`); edit in place. */
   groups: string[];
   endSession(): void;

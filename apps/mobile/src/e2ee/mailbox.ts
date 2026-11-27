@@ -957,26 +957,28 @@ export function createMailbox(deps: MailboxDeps) {
   }
 
   /** One round: pick up mail, then send what is waiting. */
-  async function sync(): Promise<void> {
+  async function sync(): Promise<number> {
     const current = captureCurrent();
-    if (!current() || (await revoked(current)) || !current()) return;
+    if (!current() || (await revoked(current)) || !current()) return 0;
     let failure: unknown = null;
+    let applied = 0;
     try {
-      await fetch();
-      if (!current()) return;
+      applied = await fetch();
+      if (!current()) return applied;
       await housekeeping();
-      if (!current()) return;
+      if (!current()) return applied;
     } catch (error) {
       failure = error;
     }
     try {
-      if (!current()) return;
+      if (!current()) return applied;
       await flushOutbox();
-      if (!current()) return;
+      if (!current()) return applied;
     } catch (error) {
       failure ??= error;
     }
     if (failure) throw failure;
+    return applied;
   }
 
   return {
