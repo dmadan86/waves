@@ -24,6 +24,7 @@ import { shiftMonth } from '@/lib/monthNav';
 import {
   expandDue,
   filterItems,
+  gridRows,
   monthGrid,
   type DueFilter,
   type DueItem,
@@ -168,48 +169,55 @@ export function MoneyCalendar({
               </Text>
             ))}
           </Row>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-            {grid.map((cell, i) => (
-              <View key={i} style={{ width: `${100 / 7}%`, padding: 2 }}>
-                {cell ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: picked === cell.date }}
-                    accessibilityLabel={`${cell.day}, ${cell.kinds.length} ${c.calendarTitle}`}
-                    onPress={() => setPicked(picked === cell.date ? null : cell.date)}
-                    style={{
-                      height: 40,
-                      borderRadius: 10,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 3,
-                      backgroundColor:
-                        picked === cell.date || cell.date === today
-                          ? theme.color.brandSoft
-                          : 'transparent',
-                    }}
-                  >
-                    <Text
-                      style={{ fontSize: 13, fontWeight: cell.kinds.length > 0 ? '700' : '500' }}
-                    >
-                      {cell.day}
-                    </Text>
-                    <Row style={{ gap: 2, height: 6 }}>
-                      {cell.kinds.slice(0, 3).map((k) => (
-                        <View
-                          key={k}
+          <View>
+            {gridRows(grid).map((week, w) => (
+              <Row key={w}>
+                {week.map((cell, i) => (
+                  <View key={i} style={{ flex: 1, padding: 2 }}>
+                    {cell ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: picked === cell.date }}
+                        accessibilityLabel={`${cell.day}, ${cell.kinds.length} ${c.calendarTitle}`}
+                        onPress={() => setPicked(picked === cell.date ? null : cell.date)}
+                        style={{
+                          height: 40,
+                          borderRadius: 10,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 3,
+                          backgroundColor:
+                            picked === cell.date || cell.date === today
+                              ? theme.color.brandSoft
+                              : 'transparent',
+                        }}
+                      >
+                        <Text
                           style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: 3,
-                            backgroundColor: dotColor(theme, k),
+                            fontSize: 13,
+                            fontWeight: cell.kinds.length > 0 ? '700' : '500',
                           }}
-                        />
-                      ))}
-                    </Row>
-                  </Pressable>
-                ) : null}
-              </View>
+                        >
+                          {cell.day}
+                        </Text>
+                        <Row style={{ gap: 2, height: 6 }}>
+                          {cell.kinds.slice(0, 3).map((k) => (
+                            <View
+                              key={k}
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: 3,
+                                backgroundColor: dotColor(theme, k),
+                              }}
+                            />
+                          ))}
+                        </Row>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                ))}
+              </Row>
             ))}
           </View>
         </StandardCard>

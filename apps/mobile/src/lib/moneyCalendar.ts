@@ -256,6 +256,17 @@ export function monthGrid(month: string, items: readonly DueItem[]): (DayCell | 
   return cells;
 }
 
+/** Whole weeks of seven, the last padded with blanks. Rows of flex:1 cells cannot wrap a column the way a % width can. */
+export function gridRows<T>(cells: readonly (T | null)[]): (T | null)[][] {
+  const rows: (T | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    const week = cells.slice(i, i + 7);
+    while (week.length < 7) week.push(null);
+    rows.push(week);
+  }
+  return rows;
+}
+
 export function filterItems(items: readonly DueItem[], filter: DueFilter): DueItem[] {
   switch (filter) {
     case 'bills':

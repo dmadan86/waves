@@ -203,7 +203,14 @@ export default function SettleUpScreen() {
       </View>
 
       <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
-        <ChipRow options={options} value={filter} onChange={setFilter} variant="brand" onCard />
+        <ChipRow
+          options={options}
+          value={filter}
+          onChange={setFilter}
+          variant="brand"
+          onCard
+          wrap
+        />
       </View>
       <SettleGroupList groups={shown} narrowed={groups.length > 0 && shown.length === 0} />
     </Screen>
