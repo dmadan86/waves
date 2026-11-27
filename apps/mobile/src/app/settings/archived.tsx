@@ -11,43 +11,29 @@
  * The row itself opens the group: an archived group's ledger is not deleted,
  * and being unable to read it would make that a technicality.
  *
- * Layout: a bundled scene runs under the status bar with the live title on
- * it, and the list rides on a rounded sheet that overlaps the scene's foot.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image, Pressable, ScrollView, View } from 'react-native';
+import {} from 'react-native-safe-area-context';
 
 import { MutationKind, rowsFor, SyncTable } from '@waves/core';
-import { Card, directionalIcon, iconSize, Text, useTabBarClearance, useTheme } from '@waves/ui';
+import { Card, iconSize, Text, useTabBarClearance, useTheme } from '@waves/ui';
 
 import { useArchivedGroups } from '@/data/hooks';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { groupLabel, type MemberRow } from '@/data/types';
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { fill, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { useSync } from '@/sync/provider';
 
 const ARCHIVED_ART = require('../../../assets/images/archived-empty-art.webp') as number;
-const HERO_ART = require('../../../assets/images/archived-hero.webp') as number;
-
-/** The scene's own size, and the ink its live text is set in: the scene is a
- *  bright daytime sky in both themes, so text on it never follows the theme's
- *  (light, in dark mode) ink. */
-const HERO_W = 849;
-const HERO_H = 440;
-const HERO_INK = '#1E1450';
-const HERO_INK_MUTED = '#4F4B6E';
-/** How far the content sheet rides up over the scene's foot. */
-const SHEET_OVERLAP = 28;
 
 export default function ArchivedGroupsScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
-  const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
   const { t, locale } = useStrings();
   const { profile } = useAuth();
   const { mirror, mutate } = useSync();
@@ -68,72 +54,14 @@ export default function ArchivedGroupsScreen() {
     void mutate(MutationKind.GroupUpdate, groupId, { archived_at: null });
   };
 
-  // The scene is `cover`-fitted by hand (explicit pixel sizes, as the other
-  // heroes do) and anchored bottom-right so the signpost always stays in view.
-  const heroHeight = insets.top + 168 + SHEET_OVERLAP;
-  const scale = Math.max(width / HERO_W, heroHeight / HERO_H);
-
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
-      <View style={{ height: heroHeight, overflow: 'hidden', backgroundColor: '#CFE0FB' }}>
-        <Image
-          source={HERO_ART}
-          accessibilityIgnoresInvertColors
-          importantForAccessibility="no"
-          style={{
-            position: 'absolute',
-            right: 0,
-            bottom: 0,
-            width: HERO_W * scale,
-            height: HERO_H * scale,
-          }}
-        />
-        <View
-          style={{
-            paddingTop: insets.top + theme.spacing.sm,
-            paddingHorizontal: theme.spacing.xl,
-            gap: theme.spacing.sm,
-          }}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.common.back}
-            hitSlop={8}
-            onPress={() => router.back()}
-            style={({ pressed }) => ({
-              width: 40,
-              height: 40,
-              borderRadius: theme.radius.md,
-              backgroundColor: '#FFFFFF',
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: pressed ? 0.7 : 1,
-            })}
-          >
-            <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={HERO_INK} />
-          </Pressable>
-          <View style={{ maxWidth: width * 0.62, gap: theme.spacing.xs }}>
-            <Text variant="title" accessibilityRole="header" style={{ color: HERO_INK }}>
-              {t.group.archivedTitle}
-            </Text>
-            <Text variant="caption" style={{ color: HERO_INK_MUTED }}>
-              {t.group.archivedSubtitle}
-            </Text>
-          </View>
-        </View>
-      </View>
+      <PlainHeader title={t.group.archivedTitle} subtitle={t.group.archivedSubtitle} />
 
       <ScrollView
-        style={{
-          flex: 1,
-          marginTop: -SHEET_OVERLAP,
-          borderTopLeftRadius: theme.radius.xxl,
-          borderTopRightRadius: theme.radius.xxl,
-          backgroundColor: theme.color.bg,
-        }}
+        style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.lg,
           paddingBottom: clearance,
           gap: theme.spacing.xl,
         }}

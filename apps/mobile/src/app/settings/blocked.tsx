@@ -15,9 +15,7 @@ import { ScrollView, View } from 'react-native';
 import {
   Button,
   Card,
-  directionalIcon,
   EmptyState,
-  IconButton,
   iconSize,
   Row,
   Screen,
@@ -26,10 +24,10 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import type { BlockedUser } from '@/data/blocked';
 import { useBlockedUsers } from '@/data/blocked';
 import { useStrings, type UiStrings } from '@/i18n';
-import { router } from '@/lib/navigation';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
 export default function BlockedScreen() {
@@ -39,20 +37,8 @@ export default function BlockedScreen() {
   const { blocked, unblock } = useBlockedUsers();
 
   return (
-    <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.blocked.title}</Text>
-        </View>
-        <View style={{ width: 44 }} />
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={t.blocked.title} />
 
       <ScrollView
         style={{ flex: 1 }}

@@ -12,7 +12,7 @@ import { Linking, RefreshControl, ScrollView, TextInput, View } from 'react-nati
 import { Button, Text, useTabBarClearance, useTheme } from '@waves/ui';
 import { totpSecondsLeft } from '@waves/core';
 
-import { ScenicBody, ScenicHeader, SectionLabel, StandardCard } from '@/components/standard';
+import { PlainHeader, ScenicBody, SectionLabel, StandardCard } from '@/components/standard';
 import { fill, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
@@ -38,6 +38,8 @@ export default function TwoStepScreen() {
   const [now, setNow] = useState(() => Date.now());
   const [typed, setTyped] = useState('');
   const [busy, setBusy] = useState(false);
+  // The check on opening is silent when it cannot reach the server; only a tap earns an error.
+  const [acted, setActed] = useState(false);
   const [setup, setSetup] = useState<{ secret: string; uri: string } | null>(null);
   const [confirmCode, setConfirmCode] = useState('');
 
@@ -72,10 +74,11 @@ export default function TwoStepScreen() {
           : r.status === 'update'
             ? t.twoStep.updateWaves
             : r.status === 'unavailable'
-              ? t.twoStep.tryLater
+              ? t.twoStep.checkFailed
               : null;
 
   const submitTyped = async () => {
+    setActed(true);
     const next = await check(typed);
     if (next.status === 'trusted') {
       setTyped('');
@@ -138,111 +141,116 @@ export default function TwoStepScreen() {
   );
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: theme.color.bg }}
-      contentContainerStyle={{ paddingBottom: clearance }}
-      refreshControl={<RefreshControl refreshing={false} onRefresh={() => void check()} />}
-      showsVerticalScrollIndicator={false}
-    >
-      <ScenicHeader title={t.twoStep.title} />
-      <ScenicBody>
-        {waiting ? (
-          <StandardCard style={{ gap: theme.spacing.md }}>
-            <SectionLabel icon="phone-portrait-outline">{t.twoStep.newPhoneTitle}</SectionLabel>
-            <Text variant="body" tone="muted">
-              {t.twoStep.newPhoneBody}
-            </Text>
-            {input(typed, setTyped, t.twoStep.codeLabel)}
-            <Button
-              label={t.twoStep.continue}
-              disabled={busy || typed.length !== 6}
-              onPress={() => void submitTyped()}
-            />
-            <Button
-              label={t.twoStep.checkAgain}
-              variant="secondary"
-              disabled={busy}
-              onPress={() => void check()}
-            />
-          </StandardCard>
-        ) : code ? (
-          <StandardCard style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-            <SectionLabel icon="key-outline">{t.twoStep.yourCode}</SectionLabel>
-            <Text style={{ fontSize: 40, fontWeight: '800', letterSpacing: 8 }} selectable>
-              {code}
-            </Text>
-            <Text variant="caption" tone="muted">
-              {fill(t.twoStep.newCodeIn, { n: totpSecondsLeft(now) })}
-            </Text>
-            <Text variant="caption" tone="muted" align="center">
-              {t.twoStep.codeHint}
-            </Text>
-          </StandardCard>
-        ) : result && problem(result) ? (
-          <StandardCard style={{ gap: theme.spacing.sm }}>
-            <Text variant="body" tone="muted">
-              {problem(result)}
-            </Text>
-          </StandardCard>
-        ) : null}
-
-        {!waiting ? (
-          <StandardCard style={{ gap: theme.spacing.md }}>
-            <SectionLabel icon="apps-outline">{t.twoStep.authenticatorTitle}</SectionLabel>
-            {status.data?.hasAuthenticator && !setup ? (
+    <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
+      <PlainHeader title={t.twoStep.title} />
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: clearance }}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={() => void check()} />}
+        showsVerticalScrollIndicator={false}
+      >
+        <ScenicBody>
+          {waiting ? (
+            <StandardCard style={{ gap: theme.spacing.md }}>
+              <SectionLabel icon="phone-portrait-outline">{t.twoStep.newPhoneTitle}</SectionLabel>
               <Text variant="body" tone="muted">
-                {t.twoStep.authenticatorOn}
+                {t.twoStep.newPhoneBody}
               </Text>
-            ) : null}
-            {setup ? (
-              <>
-                <Text variant="body" tone="muted">
-                  {t.twoStep.authenticatorSteps}
-                </Text>
-                <Text selectable style={{ fontSize: 16, fontWeight: '700', letterSpacing: 1 }}>
-                  {setup.secret}
-                </Text>
-                <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-                  <View style={{ flex: 1 }}>
-                    <Button
-                      label={t.twoStep.copyKey}
-                      variant="secondary"
-                      onPress={() => {
-                        void Clipboard.setStringAsync(setup.secret);
-                        toast.show(t.twoStep.copied, 'positive');
-                      }}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Button
-                      label={t.twoStep.openAuthenticator}
-                      variant="secondary"
-                      onPress={() => void Linking.openURL(setup.uri).catch(() => undefined)}
-                    />
-                  </View>
-                </View>
-                {input(confirmCode, setConfirmCode, t.twoStep.codeLabel)}
-                <Button
-                  label={t.twoStep.confirm}
-                  disabled={busy || confirmCode.length !== 6}
-                  onPress={() => void confirm()}
-                />
-              </>
-            ) : (
+              {input(typed, setTyped, t.twoStep.codeLabel)}
               <Button
-                label={
-                  status.data?.hasAuthenticator
-                    ? t.twoStep.replaceAuthenticator
-                    : t.twoStep.addAuthenticator
-                }
+                label={t.twoStep.continue}
+                disabled={busy || typed.length !== 6}
+                onPress={() => void submitTyped()}
+              />
+              <Button
+                label={t.twoStep.checkAgain}
                 variant="secondary"
                 disabled={busy}
-                onPress={() => void begin()}
+                onPress={() => {
+                  setActed(true);
+                  void check();
+                }}
               />
-            )}
-          </StandardCard>
-        ) : null}
-      </ScenicBody>
-    </ScrollView>
+            </StandardCard>
+          ) : code ? (
+            <StandardCard style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+              <SectionLabel icon="key-outline">{t.twoStep.yourCode}</SectionLabel>
+              <Text style={{ fontSize: 40, fontWeight: '800', letterSpacing: 8 }} selectable>
+                {code}
+              </Text>
+              <Text variant="caption" tone="muted">
+                {fill(t.twoStep.newCodeIn, { n: totpSecondsLeft(now) })}
+              </Text>
+              <Text variant="caption" tone="muted" align="center">
+                {t.twoStep.codeHint}
+              </Text>
+            </StandardCard>
+          ) : result && problem(result) && (acted || result.status !== 'unavailable') ? (
+            <StandardCard style={{ gap: theme.spacing.sm }}>
+              <Text variant="body" tone="muted">
+                {problem(result)}
+              </Text>
+            </StandardCard>
+          ) : null}
+
+          {!waiting ? (
+            <StandardCard style={{ gap: theme.spacing.md }}>
+              <SectionLabel icon="apps-outline">{t.twoStep.authenticatorTitle}</SectionLabel>
+              {status.data?.hasAuthenticator && !setup ? (
+                <Text variant="body" tone="muted">
+                  {t.twoStep.authenticatorOn}
+                </Text>
+              ) : null}
+              {setup ? (
+                <>
+                  <Text variant="body" tone="muted">
+                    {t.twoStep.authenticatorSteps}
+                  </Text>
+                  <Text selectable style={{ fontSize: 16, fontWeight: '700', letterSpacing: 1 }}>
+                    {setup.secret}
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        label={t.twoStep.copyKey}
+                        variant="secondary"
+                        onPress={() => {
+                          void Clipboard.setStringAsync(setup.secret);
+                          toast.show(t.twoStep.copied, 'positive');
+                        }}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        label={t.twoStep.openAuthenticator}
+                        variant="secondary"
+                        onPress={() => void Linking.openURL(setup.uri).catch(() => undefined)}
+                      />
+                    </View>
+                  </View>
+                  {input(confirmCode, setConfirmCode, t.twoStep.codeLabel)}
+                  <Button
+                    label={t.twoStep.confirm}
+                    disabled={busy || confirmCode.length !== 6}
+                    onPress={() => void confirm()}
+                  />
+                </>
+              ) : (
+                <Button
+                  label={
+                    status.data?.hasAuthenticator
+                      ? t.twoStep.replaceAuthenticator
+                      : t.twoStep.addAuthenticator
+                  }
+                  variant="secondary"
+                  disabled={busy}
+                  onPress={() => void begin()}
+                />
+              )}
+            </StandardCard>
+          ) : null}
+        </ScenicBody>
+      </ScrollView>
+    </View>
   );
 }

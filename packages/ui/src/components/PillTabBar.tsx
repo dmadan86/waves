@@ -118,7 +118,8 @@ const INDICATOR_HEIGHT = 30;
 export function useTabBarClearance(): number {
   const insets = useSafeAreaInsets();
   const fab = useSyncExternalStore(subscribeFab, () => fabShown);
-  return insets.bottom + BAR_HEIGHT + spacing.lg + (fab ? CENTER_SIZE + FAB_GAP : 0);
+  // The raised centre button pokes CENTER_RAISE + CENTER_RIM above the bar: clear it, or the last row hides.
+  return insets.bottom + BAR_HEIGHT + spacing.lg + CENTER_RIM + (fab ? CENTER_SIZE + FAB_GAP : 0);
 }
 
 /**

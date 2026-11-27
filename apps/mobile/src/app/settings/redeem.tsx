@@ -21,7 +21,6 @@ import {
   Callout,
   directionalIcon,
   IconButton,
-  iconSize,
   Row,
   Screen,
   Text,
@@ -29,6 +28,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { redeemPromoCode, type PromoOutcome } from '@/data/api';
 import { fill, useStrings, type UiStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
@@ -91,16 +91,8 @@ export default function RedeemScreen() {
   const ready = !busy && CODE_SHAPE.test(code.trim());
 
   return (
-    <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: ink }}>{t.promo.title}</Text>
-        </View>
-        <View style={{ width: 44 }} />
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={t.promo.title} />
 
       <ScrollView
         style={{ flex: 1 }}
@@ -111,6 +103,7 @@ export default function RedeemScreen() {
           gap: 16,
         }}
         keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={false}
       >
         {granted ? (
@@ -133,9 +126,6 @@ export default function RedeemScreen() {
         ) : (
           <>
             <View style={{ gap: 6, alignItems: 'center' }}>
-              <Text style={{ fontSize: 26, fontWeight: '800', color: ink, textAlign: 'center' }}>
-                {t.promo.title}
-              </Text>
               <Text style={{ fontSize: 14, lineHeight: 20, color: muted, textAlign: 'center' }}>
                 {t.promo.intro}
               </Text>
@@ -174,7 +164,6 @@ export default function RedeemScreen() {
                 autoCapitalize="characters"
                 autoCorrect={false}
                 autoComplete="off"
-                autoFocus
                 maxLength={24}
                 onSubmitEditing={() => {
                   if (ready) void redeem();

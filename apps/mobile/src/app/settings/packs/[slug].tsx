@@ -19,10 +19,8 @@ import type { PackEntry } from '@waves/core';
 import {
   Button,
   Card,
-  directionalIcon,
   Divider,
   EmptyState,
-  IconButton,
   iconSize,
   Row,
   Screen,
@@ -31,9 +29,9 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { useInstallPack, useInstalledPacks, usePacks, useUninstallPack } from '@/data/packs';
 import { plural, useStrings } from '@/i18n';
-import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
 
 export default function PackScreen() {
@@ -54,8 +52,8 @@ export default function PackScreen() {
 
   if (!pack) {
     return (
-      <Screen>
-        <Header title={t.packs.title} />
+      <Screen edges={[]}>
+        <PlainHeader title={t.packs.title} />
         <View style={{ paddingTop: theme.spacing.xxxl }}>
           <EmptyState
             title={packs.isLoading ? t.common.loading : t.packs.notFound}
@@ -85,8 +83,8 @@ export default function PackScreen() {
   };
 
   return (
-    <Screen>
-      <Header title={pack.title} />
+    <Screen edges={[]}>
+      <PlainHeader title={pack.title} />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
@@ -145,35 +143,6 @@ export default function PackScreen() {
         )}
       </ScrollView>
     </Screen>
-  );
-}
-
-function Header({ title }: { title: string }) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  return (
-    <Row
-      style={{
-        paddingHorizontal: theme.spacing.xl,
-        paddingTop: theme.spacing.md,
-        paddingBottom: theme.spacing.sm,
-        alignItems: 'center',
-      }}
-    >
-      <IconButton label={t.common.back} onPress={() => router.back()}>
-        <Ionicons
-          name={directionalIcon('chevron-back')}
-          size={iconSize.lg}
-          color={theme.color.text}
-        />
-      </IconButton>
-      <View style={{ flex: 1, alignItems: 'center' }}>
-        <Text variant="heading" numberOfLines={1}>
-          {title}
-        </Text>
-      </View>
-      <View style={{ width: iconSize.lg + theme.spacing.md }} />
-    </Row>
   );
 }
 

@@ -1257,6 +1257,7 @@ export interface UiStrings {
     locked: string;
     updateWaves: string;
     tryLater: string;
+    checkFailed: string;
     verified: string;
     verifyFirst: string;
     newPhoneTitle: string;
@@ -4248,7 +4249,7 @@ export interface UiStrings {
     sheetMiniDevicesSub: string;
     sheetContinue: string;
     title: string;
-    balance: string;
+    balance: PluralForms;
     usedOne: string;
     used: string;
     offer: string;
@@ -4262,7 +4263,7 @@ export interface UiStrings {
     scan: string;
     export: string;
     group: string;
-    price: string;
+    price: PluralForms;
     yourCredits: string;
     yourCreditsHint: string;
     watchSub: string;
@@ -10186,6 +10187,7 @@ const en: UiStrings = {
     locked: 'Too many tries. Please wait a while.',
     updateWaves: 'Please update Waves to continue.',
     tryLater: 'Could not do that. Try again in a moment.',
+    checkFailed: 'Could not check this phone. Check your connection, then try again.',
     verified: 'Verified',
     verifyFirst: 'Verify two-step on this phone first.',
     newPhoneTitle: 'New phone',
@@ -13107,7 +13109,10 @@ const en: UiStrings = {
     sheetMiniDevicesSub: 'on one account',
     sheetContinue: 'Continue',
     title: 'Credits',
-    balance: 'You have {n} credits',
+    balance: {
+      one: 'You have {n} credit',
+      other: 'You have {n} credits',
+    },
     usedOne: 'Used {n} credit',
     used: 'Used {n} credits',
     offer: 'Watch a short ad to earn +{n} credits.',
@@ -13121,7 +13126,10 @@ const en: UiStrings = {
     scan: 'Receipt scan',
     export: 'Export',
     group: 'Additional group',
-    price: '{n} credits',
+    price: {
+      one: '{n} credit',
+      other: '{n} credits',
+    },
     yourCredits: 'Your Credits',
     yourCreditsHint: 'Use credits for AI voice, receipt scan, exports and more.',
     watchSub: 'Watch a short ad to get {n} credits',
@@ -18548,6 +18556,7 @@ const ta: UiStrings = {
     locked: 'பல முறை முயன்றுவிட்டீர்கள். சிறிது நேரம் காத்திருக்கவும்.',
     updateWaves: 'தொடர Waves-ஐ புதுப்பிக்கவும்.',
     tryLater: 'முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயலவும்.',
+    checkFailed: 'இந்த தொலைபேசியைச் சரிபார்க்க முடியவில்லை. இணைப்பைச் சரிபார்த்து மீண்டும் முயலவும்.',
     verified: 'சரிபார்க்கப்பட்டது',
     verifyFirst: 'முதலில் இந்த ஃபோனில் இரண்டு படியை சரிபார்க்கவும்.',
     newPhoneTitle: 'புதிய ஃபோன்',
@@ -21474,7 +21483,10 @@ const ta: UiStrings = {
     sheetMiniDevicesSub: 'ஒரே கணக்கில்',
     sheetContinue: 'தொடரவும்',
     title: 'கிரெடிட்கள்',
-    balance: 'உங்களிடம் {n} கிரெடிட்கள் உள்ளன',
+    balance: {
+      one: 'உங்களிடம் {n} கிரெடிட் உள்ளது',
+      other: 'உங்களிடம் {n} கிரெடிட்கள் உள்ளன',
+    },
     usedOne: '{n} கிரெடிட் பயன்படுத்தப்பட்டது',
     used: '{n} கிரெடிட்கள் பயன்படுத்தப்பட்டன',
     offer: 'ஒரு சிறு விளம்பரம் பார்த்து +{n} கிரெடிட்கள் பெறுங்கள்.',
@@ -21488,7 +21500,10 @@ const ta: UiStrings = {
     scan: 'ரசீது ஸ்கேன்',
     export: 'ஏற்றுமதி',
     group: 'கூடுதல் குழு',
-    price: '{n} கிரெடிட்கள்',
+    price: {
+      one: '{n} கிரெடிட்',
+      other: '{n} கிரெடிட்கள்',
+    },
     yourCredits: 'உங்கள் கிரெடிட்கள்',
     yourCreditsHint: 'AI குரல், ரசீது ஸ்கேன், ஏற்றுமதி மற்றும் பலவற்றிற்கு கிரெடிட்களைப் பயன்படுத்துங்கள்.',
     watchSub: '{n} கிரெடிட்கள் பெற ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
@@ -26977,6 +26992,7 @@ const hi: UiStrings = {
     locked: 'बहुत ज़्यादा कोशिशें हो गईं। कुछ देर रुकें।',
     updateWaves: 'जारी रखने के लिए Waves अपडेट करें।',
     tryLater: 'यह नहीं हो सका। थोड़ी देर में फिर कोशिश करें।',
+    checkFailed: 'इस फ़ोन की जाँच नहीं हो सकी। कनेक्शन देखें और फिर कोशिश करें।',
     verified: 'सत्यापित',
     verifyFirst: 'पहले इस फ़ोन पर दो-चरण सत्यापित करें।',
     newPhoneTitle: 'नया फ़ोन',
@@ -29881,7 +29897,10 @@ const hi: UiStrings = {
     sheetMiniDevicesSub: 'एक ही खाते पर',
     sheetContinue: 'जारी रखें',
     title: 'क्रेडिट',
-    balance: 'आपके पास {n} क्रेडिट हैं',
+    balance: {
+      one: 'आपके पास {n} क्रेडिट है',
+      other: 'आपके पास {n} क्रेडिट हैं',
+    },
     usedOne: '{n} क्रेडिट इस्तेमाल हुआ',
     used: '{n} क्रेडिट इस्तेमाल हुए',
     offer: 'छोटा विज्ञापन देखकर +{n} क्रेडिट पाएँ।',
@@ -29895,7 +29914,10 @@ const hi: UiStrings = {
     scan: 'रसीद स्कैन',
     export: 'एक्सपोर्ट',
     group: 'अतिरिक्त समूह',
-    price: '{n} क्रेडिट',
+    price: {
+      one: '{n} क्रेडिट',
+      other: '{n} क्रेडिट',
+    },
     yourCredits: 'आपके क्रेडिट',
     yourCreditsHint: 'AI वॉइस, रसीद स्कैन, एक्सपोर्ट और बहुत कुछ के लिए क्रेडिट इस्तेमाल करें।',
     watchSub: '{n} क्रेडिट पाने के लिए एक छोटा विज्ञापन देखें',
@@ -35314,6 +35336,7 @@ const ar: UiStrings = {
     locked: 'محاولات كثيرة. انتظر قليلاً.',
     updateWaves: 'حدّث Waves للمتابعة.',
     tryLater: 'تعذّر ذلك. حاول بعد قليل.',
+    checkFailed: 'تعذّر التحقق من هذا الهاتف. تحقق من الاتصال ثم حاول مجددًا.',
     verified: 'تم التحقق',
     verifyFirst: 'تحقق من الخطوتين على هذا الهاتف أولاً.',
     newPhoneTitle: 'هاتف جديد',
@@ -38357,7 +38380,14 @@ const ar: UiStrings = {
     sheetMiniDevicesSub: 'على حساب واحد',
     sheetContinue: 'متابعة',
     title: 'الرصيد',
-    balance: 'لديك {n} من الرصيد',
+    balance: {
+      zero: 'ليس لديك رصيد',
+      one: 'لديك رصيد واحد',
+      two: 'لديك رصيدان',
+      few: 'لديك {n} أرصدة',
+      many: 'لديك {n} رصيدًا',
+      other: 'لديك {n} رصيد',
+    },
     usedOne: 'تم استخدام {n} من الرصيد',
     used: 'تم استخدام {n} من الرصيد',
     offer: 'شاهد إعلانًا قصيرًا واكسب +{n} من الرصيد.',
@@ -38371,7 +38401,14 @@ const ar: UiStrings = {
     scan: 'مسح إيصال',
     export: 'تصدير',
     group: 'مجموعة إضافية',
-    price: '{n} من الرصيد',
+    price: {
+      zero: 'بلا رصيد',
+      one: 'رصيد واحد',
+      two: 'رصيدان',
+      few: '{n} أرصدة',
+      many: '{n} رصيدًا',
+      other: '{n} رصيد',
+    },
     yourCredits: 'رصيدك',
     yourCreditsHint: 'استخدم الرصيد للصوت بالذكاء الاصطناعي ومسح الإيصالات والتصدير وغيرها.',
     watchSub: 'شاهد إعلانًا قصيرًا لتحصل على {n} رصيد',

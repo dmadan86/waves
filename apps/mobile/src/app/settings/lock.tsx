@@ -29,7 +29,7 @@ import {
   ListRow,
   RowTile,
   ScenicBody,
-  ScenicHeader,
+  PlainHeader,
   SectionHeader,
   StandardCard,
 } from '@/components/standard';
@@ -143,12 +143,12 @@ export default function LockSettingsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
+      <PlainHeader title={t.lock.title} subtitle={t.lock.subtitle} />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: clearance }}
         showsVerticalScrollIndicator={false}
       >
-        <ScenicHeader title={t.lock.title} subtitle={t.lock.subtitle} titleAlign="start" wash />
         <ScenicBody>
           <StandardCard style={{ paddingVertical: theme.spacing.sm }}>
             <ListRow

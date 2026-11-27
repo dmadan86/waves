@@ -1,20 +1,17 @@
 import { AdSlot } from '@/components/AdSlot';
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { useAdPlan } from '@/lib/useAdPlan';
 import { useQuery } from '@tanstack/react-query';
 import { queryCredits } from '@/lib/adCredits';
 import { showCreditsRow } from '@/lib/adCreditsPure';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useEffect, useState } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { AppState, Linking, ScrollView, View } from 'react-native';
 
 import {
   Badge,
   Button,
-  directionalIcon,
   EmptyState,
-  IconButton,
-  iconSize,
   Row,
   Screen,
   Text,
@@ -38,7 +35,7 @@ import { pushPermission, type PushPermission } from '@/lib/push';
 import { useAvatarEditor } from '@/lib/avatarEditor';
 import { buildStamp } from '@/lib/buildIdentity';
 import { loadUpdates } from '@/lib/restart';
-import { router } from '@/lib/navigation';
+import {} from '@/lib/navigation';
 import { useReferralsLive } from '@/lib/useReferralsLive';
 import { r2Enabled } from '@/lib/storage';
 import { describeGrace, useLock } from '@/lib/lock';
@@ -216,25 +213,8 @@ function ProfileForm() {
   const signOutHint = isGuest ? t.account.signOutGuestHint : t.account.signOutHint;
 
   return (
-    <Screen>
-      {/* A titled bar, like every other pushed screen and every settings
-          screen worth copying. Without it the avatar sat against the status
-          bar with no word for what the page was, and no way back but the
-          gesture. Back on the left, the title centred, an equal spacer on the
-          right so the title is centred on the screen, not on the gap. */}
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.account.faceSettings}</Text>
-        </View>
-        <View style={{ width: 44 }} />
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={t.account.faceSettings} />
 
       <ScrollView
         style={{ flex: 1 }}

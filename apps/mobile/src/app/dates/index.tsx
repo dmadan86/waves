@@ -1,7 +1,18 @@
 /** "Your dates": every private date, plus the festival reminders and their switches. */
 
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { ScrollView, View } from 'react-native';
-import { Button, Row, Screen, Text, Toggle, useTabBarClearance, useTheme } from '@waves/ui';
+import {
+  Button,
+  IconButton,
+  iconSize,
+  Row,
+  Screen,
+  Text,
+  Toggle,
+  useTabBarClearance,
+  useTheme,
+} from '@waves/ui';
 import { defaultFestivals } from '@waves/core';
 
 import { ListRow, PlainHeader, SectionHeader, StandardCard } from '@/components/standard';
@@ -24,7 +35,14 @@ export default function DatesScreen() {
 
   return (
     <Screen edges={[]}>
-      <PlainHeader title={t.dates.title} />
+      <PlainHeader
+        title={t.dates.title}
+        trailing={
+          <IconButton label={t.dates.addDate} onPress={() => router.push('/dates/edit')}>
+            <Ionicons name="add" size={iconSize.xxl} color={theme.color.brand} />
+          </IconButton>
+        }
+      />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
@@ -33,10 +51,6 @@ export default function DatesScreen() {
         }}
       >
         <View style={{ gap: theme.spacing.sm }}>
-          <SectionHeader
-            title={t.dates.title}
-            action={{ label: t.dates.addDate, onPress: () => router.push('/dates/edit') }}
-          />
           <StandardCard>
             {dates.length ? (
               dates.map((d, i) => (

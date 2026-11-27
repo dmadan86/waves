@@ -7,8 +7,6 @@ import {
   Button,
   Callout,
   Card,
-  directionalIcon,
-  IconButton,
   iconSize,
   Row,
   Screen,
@@ -17,6 +15,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { deleteMyAccount, erasurePreview } from '@/data/api';
 import { plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
@@ -155,20 +154,8 @@ export default function DeleteAccountScreen() {
     : [];
 
   return (
-    <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.privacy.deleteTitle}</Text>
-        </View>
-        <View style={{ width: 44 }} />
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={t.privacy.deleteTitle} />
 
       <ScrollView
         style={{ flex: 1 }}

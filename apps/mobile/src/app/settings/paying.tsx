@@ -11,6 +11,7 @@
  * It writes only the payment fields, so saving here never touches the name.
  */
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { syncEngine } from '@/sync';
 import { ownRailHint } from '@/lib/ownRailHint';
 import { useTabBarStandDown } from '@/lib/useTabBarStandDown';
@@ -32,7 +33,6 @@ import {
   Card,
   directionalIcon,
   EmptyState,
-  IconButton,
   iconSize,
   Row,
   Screen,
@@ -153,7 +153,12 @@ function PayingForm() {
     .join(', ');
 
   return (
-    <Screen>
+    <Screen edges={[]}>
+      <PlainHeader
+        title={t.receiving.title}
+        subtitle={t.receiving.subtitle}
+        trailing={<WalletArt symbol={currencySymbol(currency)} />}
+      />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
@@ -164,34 +169,6 @@ function PayingForm() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Back, then the title over a line on what the screen is for, with a
-            small card-and-coin drawing off to the right. */}
-        <View style={{ paddingTop: theme.spacing.sm }}>
-          <IconButton label={t.common.back} onPress={() => router.back()}>
-            <Ionicons
-              name={directionalIcon('chevron-back')}
-              size={iconSize.lg}
-              color={theme.color.text}
-            />
-          </IconButton>
-          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.8}
-                style={{ fontSize: 26, lineHeight: 32, fontWeight: '800', color: theme.color.text }}
-              >
-                {t.receiving.title}
-              </Text>
-              <Text variant="body" tone="muted" numberOfLines={2}>
-                {t.receiving.subtitle}
-              </Text>
-            </View>
-            <WalletArt symbol={currencySymbol(currency)} />
-          </Row>
-        </View>
-
         {/* The country decides which rails exist below, so it sits above them
             and is changeable here — the device guess is only a start. */}
         <Card style={{ padding: theme.spacing.md }}>

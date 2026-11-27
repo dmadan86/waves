@@ -52,6 +52,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { createGroup, fetchMembers, importLedger, type ImportPerson } from '@/data/api';
 import { beginImport } from '@/lib/importProgress';
 import { friendlyError } from '@/lib/errors';
@@ -533,21 +534,16 @@ export default function ImportScreen() {
   };
 
   return (
-    <Screen>
+    <Screen edges={[]}>
       {adGate.sheet}
-      <Row style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: ink }}>
-            {t.importLedger.ledgerTitle}
-          </Text>
-        </View>
-        <IconButton label={t.importLedger.helpTitle} onPress={() => setHelpOpen(true)}>
-          <Ionicons name="help-circle-outline" size={iconSize.lg} color={ink} />
-        </IconButton>
-      </Row>
+      <PlainHeader
+        title={t.importLedger.ledgerTitle}
+        trailing={
+          <IconButton label={t.importLedger.helpTitle} onPress={() => setHelpOpen(true)}>
+            <Ionicons name="help-circle-outline" size={iconSize.lg} color={ink} />
+          </IconButton>
+        }
+      />
 
       <ScrollView
         ref={scrollRef}

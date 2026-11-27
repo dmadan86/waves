@@ -11,21 +11,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ScrollView, View } from 'react-native';
 
-import {
-  Card,
-  directionalIcon,
-  IconButton,
-  iconSize,
-  ListRow,
-  Row,
-  Screen,
-  Text,
-  useTabBarClearance,
-  useTheme,
-} from '@waves/ui';
+import { Card, iconSize, ListRow, Screen, Text, useTabBarClearance, useTheme } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { useStrings } from '@/i18n';
-import { router } from '@/lib/navigation';
 import { SchemePreference, useThemePreference } from '@/lib/theme';
 
 export default function ThemeSettingsScreen() {
@@ -68,20 +57,8 @@ export default function ThemeSettingsScreen() {
   ];
 
   return (
-    <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.theme.title}</Text>
-        </View>
-        <View style={{ width: 44 }} />
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={t.theme.title} />
 
       <ScrollView
         style={{ flex: 1 }}

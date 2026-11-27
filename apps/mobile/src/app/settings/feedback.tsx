@@ -15,8 +15,6 @@ import {
   Button,
   Callout,
   Card,
-  directionalIcon,
-  IconButton,
   iconSize,
   Row,
   Screen,
@@ -25,6 +23,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { FeedbackTopicGrid, type FeedbackTopic } from '@/components/FeedbackTopics';
 import { submitFeedback, type FeedbackRating } from '@/data/api';
 import { plural, useStrings } from '@/i18n';
@@ -92,20 +91,8 @@ export default function FeedbackScreen() {
   };
 
   return (
-    <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.privacy.feedbackTitle}</Text>
-        </View>
-        <View style={{ width: 44 }} />
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={t.privacy.feedbackTitle} />
 
       {sent ? (
         <Sent
@@ -131,6 +118,7 @@ export default function FeedbackScreen() {
             gap: theme.spacing.xl,
           }}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
           <>
@@ -225,7 +213,6 @@ export default function FeedbackScreen() {
                 accessibilityLabel={t.privacy.feedbackTitle}
                 editable={!busy}
                 multiline
-                autoFocus
                 maxLength={4000}
                 style={{
                   minHeight: 140,

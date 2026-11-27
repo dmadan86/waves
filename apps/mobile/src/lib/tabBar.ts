@@ -118,8 +118,6 @@ export function isPersonalMode(segments: readonly string[], space?: string): boo
   if ((root === 'settings' || root === 'profile') && space === 'personal') return true;
   // Statement import is a personal-ledger feature opened from Overview.
   if (root === 'captures' && screen === 'statement') return true;
-  // Categories is a personal-ledger feature opened from Overview.
-  if (root === 'settings' && screen === 'categories') return true;
   return (
     (root === '(tabs)' && screen === 'me') ||
     root === 'personal' ||

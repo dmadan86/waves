@@ -8,11 +8,11 @@ import {
   ListRow,
   RowTile,
   ScenicBody,
-  ScenicHeader,
+  PlainHeader,
   SectionHeader,
   StandardCard,
 } from '@/components/standard';
-import { fill, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { queryCredits, readCredits } from '@/lib/adCredits';
 import { creditButtonKey } from '@/lib/adCreditsPure';
@@ -81,7 +81,7 @@ export default function CreditsScreen() {
     try {
       const result = await watchCreditAd(viewerId, 'voluntary', 'credit_voluntary');
       if (result === 'credited')
-        setMessage(fill(t.credits.balance, { n: (await readCredits())?.credits ?? s.credits }));
+        setMessage(plural(locale, (await readCredits())?.credits ?? s.credits, t.credits.balance));
       else if (result === 'pending') setMessage(t.rewardedAds.pending);
       else void explain('unavailable');
       await wallet.refetch();
@@ -114,23 +114,23 @@ export default function CreditsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
+      <PlainHeader
+        title={t.credits.title}
+        trailing={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.credits.help}
+            onPress={() => setHelp(true)}
+            hitSlop={8}
+          >
+            <Ionicons name="help-circle-outline" size={iconSize.lg} color={c.text} />
+          </Pressable>
+        }
+      />
       <ScrollView
         contentContainerStyle={{ paddingBottom: clearance }}
         showsVerticalScrollIndicator={false}
       >
-        <ScenicHeader
-          title={t.credits.title}
-          action={
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.credits.help}
-              onPress={() => setHelp(true)}
-              hitSlop={8}
-            >
-              <Ionicons name="help-circle-outline" size={iconSize.lg} color={c.text} />
-            </Pressable>
-          }
-        />
         <ScenicBody>
           {free ? (
             <>
@@ -199,7 +199,7 @@ export default function CreditsScreen() {
                       }
                       title={t.credits[kind]}
                       subtitle={t.credits[sub]}
-                      amount={fill(t.credits.price, { n: s.costs[kind] })}
+                      amount={plural(locale, s.costs[kind], t.credits.price)}
                     />
                   ))}
                 </StandardCard>
@@ -227,7 +227,9 @@ export default function CreditsScreen() {
                               {t.credits.popular}
                             </Text>
                           ) : null}
-                          <Text style={{ fontWeight: '700' }}>{fill(t.credits.price, { n })}</Text>
+                          <Text style={{ fontWeight: '700' }}>
+                            {plural(locale, n, t.credits.price)}
+                          </Text>
                           <Text tabular>{pack.priceString}</Text>
                           <Button
                             label={t.credits.buy}

@@ -17,7 +17,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '@waves/ui';
 
 import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
-import { fill, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
 import { queryCredits } from '@/lib/adCredits';
 import { useViewerId } from '@/lib/auth';
 import { useCaptures } from '@/data/hooks';
@@ -56,7 +56,7 @@ export function HomeQuickActions({
   radius: number;
 }) {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const viewerId = useViewerId();
   const { isPaid } = useEntitlement();
   const adOffer = useRewardedAdOffer();
@@ -118,7 +118,7 @@ export function HomeQuickActions({
               label: fill(t.homeDash[creditAction.labelKey], { n: balance ?? 0 }),
               badge: creditAction.badge,
               badgeColor: theme.color.brand,
-              accessibilityLabel: `${fill(t.credits.balance, { n: balance ?? 0 })}. ${t.homeDash.getCredits}`,
+              accessibilityLabel: `${plural(locale, balance ?? 0, t.credits.balance)}. ${t.homeDash.getCredits}`,
               glyph: () => <Ionicons name="flash" size={28} color={theme.color.warning} />,
               onPress: () =>
                 void adOffer.offer('voice', { userInitiated: true, homeCredits: true }),

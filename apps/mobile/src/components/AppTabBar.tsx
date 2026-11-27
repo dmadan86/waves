@@ -69,7 +69,7 @@ import {
 import { useCompanySuspended } from '@/data/companyEntries';
 import { usePendingCount } from '@/lib/companyPending';
 import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
-import { router, runBarMove, setBackOverride, switchTab } from '@/lib/navigation';
+import { router, runBarMove, setBackOverride, setSettingsSpace, switchTab } from '@/lib/navigation';
 import { installTabBack, type TabBackDeps } from '@/lib/tabBack';
 import { useFabOverride } from '@/lib/fabOverride';
 import { fabDrawn } from '@/lib/personalLayoutRules';
@@ -209,6 +209,11 @@ export function AppTabBar() {
   // On the Personal tab and its screens the bar swaps to the private-money
   // destinations (same look, same mic); leaving them swaps it back. Route-derived.
   const personal = isPersonalMode(segments, params.space);
+  // Pages pushed from a Personal-space settings page stay in that space (see inheritSettingsSpace).
+  const inSettings = segments[0] === 'settings' || segments[0] === 'profile';
+  useEffect(() => {
+    setSettingsSpace(inSettings && params.space === 'personal' ? 'personal' : undefined);
+  }, [inSettings, params.space]);
   // Company mode: an owner or manager inside their own company gets the company bar
   // (Home · Team · Payments · Vendors · Clients · More) with a floating mic and add button.
   const companyIds = useViewerCompanyIds();

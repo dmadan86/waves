@@ -37,7 +37,7 @@ import {
 } from '@waves/ui';
 
 import { OverflowMenu } from '@/components/OverflowMenu';
-import { ScenicBody, ScenicHeader, SectionHeader, StandardCard } from '@/components/standard';
+import { PlainHeader, ScenicBody, SectionHeader, StandardCard } from '@/components/standard';
 import { fetchDevices } from '@/data/api';
 import { fill, plural, useStrings } from '@/i18n';
 import { deviceId } from '@/lib/device';
@@ -205,6 +205,7 @@ export default function DevicesScreen() {
 
   return (
     <Screen edges={[]}>
+      <PlainHeader title={t.devices.title} subtitle={t.devices.subtitle} />
       <ScrollView
         contentContainerStyle={{ paddingBottom: clearance }}
         showsVerticalScrollIndicator={false}
@@ -212,12 +213,6 @@ export default function DevicesScreen() {
           <RefreshControl refreshing={pulling} onRefresh={onPull} tintColor={theme.color.brand} />
         }
       >
-        <ScenicHeader
-          title={t.devices.title}
-          subtitle={t.devices.subtitle}
-          titleAlign="start"
-          wash
-        />
         <ScenicBody>
           <StandardCard>
             <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>

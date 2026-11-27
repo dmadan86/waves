@@ -18,7 +18,7 @@ import { createGate, isSlotRequired, ownedCompanyCount } from '@/lib/companySlot
 import { useViewerId } from '@/lib/auth';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { CurrencySheet } from '@/components/expense/CurrencySheet';
-import { ScenicBody, ScenicHeader, StandardCard } from '@/components/standard';
+import { PlainHeader, ScenicBody, StandardCard } from '@/components/standard';
 import { canUploadGroupPhoto, uploadGroupPhoto } from '@/data/api';
 import { useCreateGroup, useGroups } from '@/data/hooks';
 import { GroupType } from '@/data/types';
@@ -105,8 +105,12 @@ function NewCompanyScreenBody() {
 
   return (
     <Screen edges={['bottom']}>
-      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <ScenicHeader title={t.company.newTitle} />
+      <PlainHeader title={t.company.newTitle} />
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        showsVerticalScrollIndicator={false}
+      >
         <ScenicBody>
           <StandardCard>
             <Text style={{ fontSize: 13, fontWeight: '600', marginBottom: theme.spacing.xs }}>
@@ -128,7 +132,6 @@ function NewCompanyScreenBody() {
                 placeholder={t.company.namePlaceholder}
                 placeholderTextColor={theme.color.textFaint}
                 accessibilityLabel={t.company.nameLabel}
-                autoFocus
                 maxLength={60}
                 returnKeyType="done"
                 onSubmitEditing={() => {
