@@ -127,6 +127,7 @@ function AddBody() {
   const [name, setName] = useState('');
   const [rented, setRented] = useState<'yes' | 'no'>('no');
   const [tenant, setTenant] = useState('');
+  const [phone, setPhone] = useState('');
   const [rent, setRent] = useState(0n);
   const [deposit, setDeposit] = useState(0n);
   const [day, setDay] = useState<number | null>(null);
@@ -145,7 +146,7 @@ function AddBody() {
     const tn: TenantDraft | null = isRented
       ? {
           name: tenant.trim(),
-          phone: '',
+          phone: phone.trim(),
           rent,
           frequency: 'monthly',
           day: day ?? 1,
@@ -239,6 +240,15 @@ function AddBody() {
               onChange={setTenant}
               placeholder={w.tenantNameLabel}
               label={w.tenantNameLabel}
+              bordered
+            />
+            <FieldLabel>{w.tenantPhone}</FieldLabel>
+            <TextAnswer
+              value={phone}
+              onChange={setPhone}
+              placeholder={w.tenantPhone}
+              label={w.tenantPhone}
+              keyboardType="phone-pad"
               bordered
             />
             <Row style={{ gap: theme.spacing.md }}>
