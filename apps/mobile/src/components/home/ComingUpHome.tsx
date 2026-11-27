@@ -17,7 +17,7 @@ import { plural, fill, useStrings } from '@/i18n';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { router } from '@/lib/navigation';
 import {
-  allocateFund,
+  applyFund,
   bigBills,
   bigBillsStatus,
   dueTag,
@@ -179,11 +179,12 @@ export function ComingUpHome({
   );
   const covered = useMemo(
     () =>
-      allocateFund(
+      applyFund(
         items.filter((i) => i.currency === dc),
+        big.occurrences,
         fund,
       ),
-    [items, dc, fund],
+    [items, dc, fund, big.occurrences],
   );
   const next = covered.slice(0, 4);
   const hasFund = fundRules.size > 0 || fund > 0n;

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   allocateFund,
+  applyFund,
   bigBills,
   classifyKind,
   dueTag,
@@ -195,5 +196,44 @@ describe('set aside for big bills', () => {
     expect(monthlySummary([spend, aside], '2026-11', 'INR').invested).toBe(2050000n);
     expect(fundSoFar([spend], new Set(['fund']), 'INR')).toBe(0n);
     expect(fundSoFar([spend, aside], new Set(['fund']), 'INR')).toBe(2050000n);
+  });
+});
+
+describe('big bills window and fund', () => {
+  it('counts a yearly bill due today once, in one bar', () => {
+    const due = src({
+      id: 'y',
+      cadence: 'yearly',
+      amount: 18000n,
+      anchorDate: '2025-11-28',
+      nextDate: TODAY,
+    });
+    const b = bigBills([due], TODAY, 'INR', 10n ** 9n);
+    expect(b.total).toBe(18000n);
+    expect(b.monthTotals.filter((v) => v > 0n)).toEqual([18000n]);
+    expect(b.monthTotals.reduce((a, c) => a + c, 0n)).toBe(b.total);
+  });
+  it('spends the fund on big bills only, never on ordinary ones', () => {
+    const electricity = src({
+      id: 'e',
+      amount: 3000n,
+      nextDate: '2026-12-02',
+      anchorDate: '2026-12-02',
+    });
+    const insurance = src({
+      id: 'i',
+      kind: 'renewal',
+      cadence: 'yearly',
+      amount: 18000n,
+      anchorDate: '2026-01-15',
+      nextDate: '2027-01-15',
+    });
+    const items = expandDue([electricity, insurance], TODAY, '2027-02-01');
+    const big = bigBills([electricity, insurance], TODAY, 'INR', 10n ** 9n);
+    const out = applyFund(items, big.occurrences, 20000n);
+    expect(out.map((i) => [i.sourceId, !!i.covered])).toEqual([
+      ['e', false],
+      ['i', true],
+    ]);
   });
 });

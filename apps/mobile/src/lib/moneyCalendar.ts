@@ -154,7 +154,11 @@ export function bigBills(
   dc: string,
   oneOffMin: bigint,
 ) {
-  const end = addPlanDays(today, 365);
+  // Twelve calendar months from this one, end exclusive: totals and chart buckets share it.
+  const startMonth = Number(today.slice(0, 4)) * 12 + Number(today.slice(5, 7)) - 1;
+  const endMonth = startMonth + 12;
+  const endExclusive = `${Math.floor(endMonth / 12)}-${String((endMonth % 12) + 1).padStart(2, '0')}-01`;
+  const end = addPlanDays(endExclusive, -1);
   const big = sources.filter(
     (s) =>
       !s.income &&
@@ -163,7 +167,6 @@ export function bigBills(
   );
   const all = expandDue(big, today, end).filter((i) => i.inDays >= 0);
   const monthTotals: bigint[] = Array.from({ length: 12 }, () => 0n);
-  const startMonth = Number(today.slice(0, 4)) * 12 + Number(today.slice(5, 7)) - 1;
   const bySource = new Map<string, { item: BigBillItem; total: bigint }>();
   let total = 0n;
   for (const i of all) {
@@ -193,6 +196,20 @@ export function bigBills(
     perMonth: (total + 11n) / 12n,
     monthTotals,
   };
+}
+
+/** Mark the items a fund pays for: allocated over the big-bill occurrences only, by date. */
+export function applyFund(
+  items: readonly DueItem[],
+  bigOccurrences: readonly DueItem[],
+  fund: bigint,
+): DueItem[] {
+  const covered = new Set(
+    allocateFund(bigOccurrences, fund)
+      .filter((i) => i.covered)
+      .map((i) => i.key),
+  );
+  return items.map((i) => (covered.has(i.key) ? { ...i, covered: true } : i));
 }
 
 /** On track = what is due in the next 90 days is already covered by the fund. */
