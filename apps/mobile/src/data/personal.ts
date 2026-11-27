@@ -23,10 +23,13 @@ import {
   decodeTxn,
   encodeRecurring,
   encodeTxn,
+  materialiseGroupRecords,
   materialisePersonalRecords,
   MutationKind,
   personalScope,
   recurringOccurrenceId,
+  SyncTable,
+  type MirrorGroupRecord,
   type MirrorPersonalRecord,
   type PersonalBudget,
   type PersonalLoan,
@@ -93,6 +96,29 @@ export function usePersonalRecords(includeDeleted = false): readonly MirrorPerso
   );
 }
 
+const NO_GROUP_RECORDS: readonly MirrorGroupRecord[] = [];
+
+/** One couple/home group's rental rows (property, tenancy, rent rule, entry), queue replayed. Empty without a group. */
+export function useGroupRecords(groupId?: string): readonly MirrorGroupRecord[] {
+  const { mirror, queue } = useSync();
+  return useMemo(
+    () => (groupId ? materialiseGroupRecords(mirror, queue, { groupId }) : NO_GROUP_RECORDS),
+    [mirror, queue, groupId],
+  );
+}
+
+/** Every rental record of every group this phone knows, for the document sweep. */
+export function useAllGroupRecords(): readonly MirrorGroupRecord[] {
+  const { mirror, queue } = useSync();
+  return useMemo(() => {
+    const groups = new Set<string>();
+    for (const row of Object.values(mirror.tables[SyncTable.GroupRecords] ?? {}))
+      if (typeof row.group_id === 'string') groups.add(row.group_id);
+    for (const m of queue) if (m.kind.startsWith('group_record.')) groups.add(m.groupId);
+    return [...groups].flatMap((groupId) => materialiseGroupRecords(mirror, queue, { groupId }));
+  }, [mirror, queue]);
+}
+
 /**
  * Every personal record id this device knows about, **tombstones included**.
  *
@@ -115,12 +141,18 @@ export function usePersonalRecordIds(): ReadonlySet<string> {
  * The whole ledger, decoded by kind and read local-first. Txns come back newest
  * first. Empty (not an error) when signed out — personal finance is per-account.
  */
-export function usePersonalLedger(): PersonalLedger {
-  const records = usePersonalRecords(true);
+export function usePersonalLedger(groupId?: string): PersonalLedger {
+  const personalRecords = usePersonalRecords(true);
+  const groupRecords = useGroupRecords(groupId);
+  const records = (groupId ? groupRecords : personalRecords) as readonly MirrorPersonalRecord[];
   const remove = useDeletePersonalRecord();
   const deleteRecord = remove.mutate;
 
-  const orphanIds = useMemo(() => orphanedPersonalTxnIds(records), [records]);
+  // Orphan clean-up is Personal's own (it deletes under the owner's scope).
+  const orphanIds = useMemo(
+    () => (groupId ? [] : orphanedPersonalTxnIds(records)),
+    [records, groupId],
+  );
   useEffect(() => {
     for (const id of claimOrphanDeletes(orphanIds)) {
       deleteRecord(id, { onError: () => releaseOrphanDelete(id) });

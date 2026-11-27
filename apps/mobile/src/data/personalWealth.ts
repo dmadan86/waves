@@ -1,17 +1,17 @@
 /** Investments, rental properties and tenancies, read from and written to the personal ledger store. */
 
 import { useMemo } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 
 import {
   decodeInvestment,
-  decodeProperty,
-  decodeTenancy,
   encodeInvestment,
   encodeProperty,
   encodeRecurring,
   encodeTenancy,
   encodeTxn,
+  MutationKind,
   type CurrencyCode,
   type InvestmentType,
   type PersonalInvestment,
@@ -22,12 +22,25 @@ import {
   type RentFrequency,
 } from '@waves/core';
 
+import { isViewer } from '@/data/types';
+import { useGroup } from '@/data/hooks';
 import {
   useDeletePersonalRecord,
+  useGroupRecords,
   usePersonalRecords,
   useUpsertPersonalRecord,
   todayIso,
 } from '@/data/personal';
+import { useAuth } from '@/lib/auth';
+import {
+  decodeWealth,
+  ownActiveProperties,
+  rentEntryId,
+  type PersonalWealth,
+  selectRentalRecords,
+  type RentalRecord,
+} from '@/lib/rentalScope';
+import { useSync } from '@/sync';
 import {
   cadenceFor,
   firstDue,
@@ -39,31 +52,91 @@ import {
 } from '@/lib/wealthPlan';
 import { useEntitlement } from '@/lib/useEntitlement';
 
+export type { PersonalWealth };
+
 let pendingInvestments = 0;
 let pendingProperties = 0;
 export const FREE_CAP_ERROR = 'FREE_WEALTH_CAP';
 
-export interface PersonalWealth {
-  readonly investments: readonly PersonalInvestment[];
-  readonly properties: readonly PersonalProperty[];
-  readonly tenancies: readonly PersonalTenancy[];
+export interface RentalStore {
+  readonly records: readonly RentalRecord[];
+  readonly upsert: (
+    recordId: string,
+    recordKind: 'investment' | 'property' | 'tenancy' | 'recurring' | 'txn',
+    data: Record<string, unknown>,
+  ) => Promise<unknown>;
+  readonly del: (recordId: string) => Promise<unknown>;
+  readonly isPending: boolean;
 }
 
-export function usePersonalWealth(): PersonalWealth {
-  const records = usePersonalRecords();
-  return useMemo(() => {
-    const investments: PersonalInvestment[] = [];
-    const properties: PersonalProperty[] = [];
-    const tenancies: PersonalTenancy[] = [];
-    for (const r of records) {
-      if (r.record_kind === 'investment') investments.push(decodeInvestment(r.id, r.data));
-      else if (r.record_kind === 'property') properties.push(decodeProperty(r.id, r.data));
-      else if (r.record_kind === 'tenancy') tenancies.push(decodeTenancy(r.id, r.data));
-    }
-    investments.sort((a, b) => a.name.localeCompare(b.name));
-    properties.sort((a, b) => a.name.localeCompare(b.name));
-    return { investments, properties, tenancies };
-  }, [records]);
+/**
+ * Where a rentals screen reads and writes: Personal's private records, or, with a
+ * `groupId`, that couple/home group's `group_records` through the same offline queue.
+ * Both hold the same record shapes, so everything above this decodes them alike.
+ */
+export function useRentalStore(groupId?: string): RentalStore {
+  const personal = usePersonalRecords();
+  const group = useGroupRecords(groupId);
+  const upsertPersonal = useUpsertPersonalRecord();
+  const delPersonal = useDeletePersonalRecord();
+  const { mutate } = useSync();
+  const upsertGroup = useMutation({
+    mutationFn: (input: { recordId: string; recordKind: string; data: Record<string, unknown> }) =>
+      mutate(MutationKind.GroupRecordUpsert, groupId ?? '', input),
+  });
+  const delGroup = useMutation({
+    mutationFn: (recordId: string) =>
+      mutate(MutationKind.GroupRecordDelete, groupId ?? '', { recordId }),
+  });
+  const records = selectRentalRecords<RentalRecord>(groupId, personal, group);
+  return useMemo(
+    () =>
+      groupId
+        ? {
+            records,
+            upsert: (recordId, recordKind, data) =>
+              upsertGroup.mutateAsync({ recordId, recordKind, data }),
+            del: (recordId) => delGroup.mutateAsync(recordId),
+            isPending: upsertGroup.isPending,
+          }
+        : {
+            records,
+            upsert: (recordId, recordKind, data) =>
+              upsertPersonal.mutateAsync({ recordId, recordKind, data }),
+            del: (recordId) => delPersonal.mutateAsync(recordId),
+            isPending: upsertPersonal.isPending,
+          },
+    [groupId, records, upsertGroup, delGroup, upsertPersonal, delPersonal],
+  );
+}
+
+/** The signed-in person's member id in a group (null for Personal, or before the group has synced). */
+export function useMyMemberId(groupId?: string): string | null {
+  const { session } = useAuth();
+  const { members: membersRead } = useGroup(groupId ?? '');
+  const rows = membersRead.data;
+  return useMemo(
+    () => (groupId ? (rows?.find((m) => isViewer(m, session?.user?.id))?.id ?? null) : null),
+    [groupId, rows, session?.user?.id],
+  );
+}
+
+/** Active properties this person added in this space: what their own plan's free cap counts. */
+export function useOwnPropertyCount(groupId?: string): number {
+  const { records } = useRentalStore(groupId);
+  const me = useMyMemberId(groupId);
+  return ownActiveProperties(records, me);
+}
+
+/** The group's name, shown under the header in a group space. */
+export function useSpaceName(groupId?: string): string | undefined {
+  const { group } = useGroup(groupId ?? '');
+  return groupId ? (group.data?.name ?? undefined) : undefined;
+}
+
+export function usePersonalWealth(groupId?: string): PersonalWealth {
+  const { records } = useRentalStore(groupId);
+  return useMemo(() => decodeWealth(records), [records]);
 }
 
 export interface InvestmentDraft {
@@ -102,16 +175,16 @@ export interface RentalDraft {
   };
 }
 
-export function useWealthWrites() {
-  const upsert = useUpsertPersonalRecord();
-  const del = useDeletePersonalRecord();
-  const records = usePersonalRecords();
+export function useWealthWrites(groupId?: string) {
+  const store = useRentalStore(groupId);
+  const { records } = store;
+  const myMemberId = useMyMemberId(groupId);
   const { isPro } = useEntitlement();
   const put = (
-    recordKind: Parameters<typeof upsert.mutateAsync>[0]['recordKind'],
+    recordKind: Parameters<RentalStore['upsert']>[1],
     recordId: string,
     data: Record<string, unknown>,
-  ) => upsert.mutateAsync({ recordId, recordKind, data });
+  ) => store.upsert(recordId, recordKind, data);
 
   const rentRule = (
     id: string,
@@ -184,7 +257,7 @@ export function useWealthWrites() {
   };
 
   return {
-    isPending: upsert.isPending,
+    isPending: store.isPending,
 
     async createInvestment(d: InvestmentDraft): Promise<string> {
       const count = records.filter(
@@ -312,9 +385,8 @@ export function useWealthWrites() {
       putTenancy(property.id, property.name, property.currency, t, today),
 
     async createRental(d: RentalDraft): Promise<string> {
-      const count = records.filter(
-        (r) => r.record_kind === 'property' && decodeProperty(r.id, r.data).status === 'active',
-      ).length;
+      // Each partner's cap is their own plan's: only properties this person added count.
+      const count = ownActiveProperties(records, myMemberId);
       if (!isPro && count + pendingProperties >= 1) throw new Error(FREE_CAP_ERROR);
       pendingProperties += 1;
       try {
@@ -339,17 +411,22 @@ export function useWealthWrites() {
       }
     },
 
-    /** Each payment is its own entry with a fresh id, so part payments never overwrite one another. */
+    /**
+     * Each payment is its own entry with a fresh id, so part payments never overwrite one
+     * another. `fullDue` marks a full payment of an untouched due date: in a group space that
+     * one keeps a fixed id, so two partners tapping "paid in full" write one record.
+     */
     recordRent: (
       rule: PersonalRecurring,
       propertyId: string,
       amount: bigint,
       date: string,
       label: string,
+      fullDue: string | null = null,
     ) =>
       put(
         'txn',
-        randomUUID(),
+        rentEntryId(!!groupId, rule.id, fullDue, randomUUID),
         encodeTxn({
           kind: 'income',
           amount,
@@ -472,9 +549,9 @@ export function useWealthWrites() {
     async deleteTenancy(tn: PersonalTenancy): Promise<void> {
       const { id, ...rest } = tn;
       await put('tenancy', id, encodeTenancy({ ...rest, tenantName: '', tenantPhone: null }));
-      await del.mutateAsync(id);
+      await store.del(id);
     },
 
-    deleteRecord: (id: string) => del.mutateAsync(id),
+    deleteRecord: (id: string) => store.del(id),
   };
 }

@@ -11,10 +11,10 @@ import { router } from '@/lib/navigation';
 import { regionOf } from '@/lib/wealthPlan';
 
 function TenantBody() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, space } = useLocalSearchParams<{ id: string; space?: string }>();
   const { profile } = useAuth();
-  const { properties } = usePersonalWealth();
-  const writes = useWealthWrites();
+  const { properties } = usePersonalWealth(space);
+  const writes = useWealthWrites(space);
   const [today] = useState(() => todayIso());
   const prop = properties.find((p) => p.id === id);
   if (!prop) return null;

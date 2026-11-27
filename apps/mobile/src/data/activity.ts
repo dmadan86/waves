@@ -75,6 +75,10 @@ export interface ActivityLabels {
   importUndoneHeadline: string;
   /** "Ravi undid an import". */
   importUndoneSentence(who: string): string;
+  /** "Rent received ₹25,000" (a couple/home group's rentals). */
+  rentRecordedHeadline(amount: string): string;
+  /** "Ravi recorded rent received ₹25,000". */
+  rentRecordedSentence(who: string, amount: string): string;
   /** The group-settings and people lines (`group_updated`, `member_*`, `claimed`, `merged`). */
   group: GroupChangeLabels;
 }
@@ -320,6 +324,8 @@ const ENGLISH_LABELS: ActivityLabels = {
     `${who} imported ${count} ${count === 1 ? 'expense' : 'expenses'}`,
   importUndoneHeadline: 'Import undone',
   importUndoneSentence: (who) => `${who} undid an import`,
+  rentRecordedHeadline: (amount) => `Rent received ${amount}`.trim(),
+  rentRecordedSentence: (who, amount) => `${who} recorded rent received ${amount}`.trim(),
   // Read lazily: the device locale is injected after this module loads.
   get group() {
     return groupChangeLabels(getDefaultLocale(), ENGLISH_GROUP_STRINGS);
@@ -437,6 +443,20 @@ function importedCount(entry: ActivityRow): number | null {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
 }
 
+/** The amount a `rent_recorded` row carries ({amount} minor units, {currency}), formatted; empty when it carries none. */
+function rentAmount(payload: Record<string, unknown>): string {
+  const { amount, currency } = payload;
+  if ((typeof amount !== 'string' && typeof amount !== 'number') || typeof currency !== 'string')
+    return '';
+  try {
+    return isCurrencyCode(currency)
+      ? formatMoney({ minor: BigInt(amount), currency }, { locale: getDefaultLocale() })
+      : `${amount} ${currency}`;
+  } catch {
+    return '';
+  }
+}
+
 export function describeActivity(
   entry: ActivityRow,
   myProfileId: string | null,
@@ -532,6 +552,8 @@ export function describeActivity(
     }
     case 'import_undone':
       return labels.importUndoneSentence(who);
+    case 'rent_recorded':
+      return labels.rentRecordedSentence(who, rentAmount(payload));
     // Repeating group expenses: the rule's name rides the payload.
     case 'recurring_created':
       return `${who} set ${description ?? 'an expense'} to repeat`;
@@ -640,6 +662,8 @@ export function activityHeadline(
     }
     case 'import_undone':
       return labels.importUndoneHeadline;
+    case 'rent_recorded':
+      return labels.rentRecordedHeadline(rentAmount(payload));
     case 'auto_archived':
       return 'Group archived';
     case 'recurring_created':
@@ -747,6 +771,8 @@ export function verbIcon(verb: string): React.ComponentProps<typeof Ionicons>['n
       return 'cloud-upload-outline';
     case 'import_undone':
       return 'arrow-undo-outline';
+    case 'rent_recorded':
+      return 'home-outline';
     case 'recurring_created':
     case 'recurring_edited':
     case 'recurring_resumed':

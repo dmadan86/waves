@@ -168,6 +168,9 @@ export interface WealthStrings {
   callTenant: string;
   whatsappTenant: string;
   notAdded: string;
+  sendToPartner: string;
+  recordedBy: string;
+  rentalsRowSub: string;
   tenants: string;
   unit: string;
   recordRent: string;
@@ -407,6 +410,9 @@ export const wealthEn: WealthStrings = {
   callTenant: 'Call',
   whatsappTenant: 'WhatsApp',
   notAdded: 'Not added',
+  sendToPartner: 'Send to partner',
+  recordedBy: 'Recorded by {name}',
+  rentalsRowSub: '{n} properties · {amount} received this month',
   tenants: 'Tenants',
   unit: 'Unit (optional)',
   recordRent: 'Record rent',
@@ -636,6 +642,9 @@ export const wealthTa: WealthStrings = {
   callTenant: 'அழை',
   whatsappTenant: 'வாட்ஸ்அப்',
   notAdded: 'சேர்க்கவில்லை',
+  sendToPartner: 'துணைக்கு அனுப்பு',
+  recordedBy: '{name} பதிவு செய்தார்',
+  rentalsRowSub: '{n} சொத்துகள் · இந்த மாதம் {amount} பெறப்பட்டது',
   tenants: 'குத்தகைதாரர்கள்',
   unit: 'யூனிட் (விருப்பமானால்)',
   recordRent: 'வாடகையைப் பதிவுசெய்',
@@ -865,6 +874,9 @@ export const wealthHi: WealthStrings = {
   callTenant: 'कॉल करें',
   whatsappTenant: 'व्हाट्सऐप',
   notAdded: 'जोड़ा नहीं',
+  sendToPartner: 'साथी को भेजें',
+  recordedBy: '{name} ने दर्ज किया',
+  rentalsRowSub: '{n} संपत्तियाँ · इस महीने {amount} मिला',
   tenants: 'किरायेदार',
   unit: 'यूनिट (वैकल्पिक)',
   recordRent: 'किराया दर्ज करें',
@@ -1094,6 +1106,9 @@ export const wealthAr: WealthStrings = {
   callTenant: 'اتصال',
   whatsappTenant: 'واتساب',
   notAdded: 'غير مضاف',
+  sendToPartner: 'إرسال إلى الشريك',
+  recordedBy: 'سجّله {name}',
+  rentalsRowSub: '{n} عقارات · استُلم {amount} هذا الشهر',
   tenants: 'المستأجرون',
   unit: 'الوحدة (اختياري)',
   recordRent: 'سجّل الإيجار',
