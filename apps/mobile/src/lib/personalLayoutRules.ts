@@ -20,6 +20,7 @@ export function personalShowsAddFab(segments: readonly string[]): boolean {
     (segments[0] === 'personal' &&
       (HEADER_ADD_SCREENS.has(segments[1] ?? '') || segments[1] === 'setup')) ||
     segments[0] === 'rentals' ||
+    segments[0] === 'vehicles' ||
     segments[0] === 'investments' ||
     segments[0] === 'profile' ||
     segments[0] === 'settings'

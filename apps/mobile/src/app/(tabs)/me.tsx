@@ -60,6 +60,7 @@ import {
 } from '@waves/ui';
 
 import { CategoryBadge, useLabelledCategoryCatalog } from '@/components/Category';
+import { useVehicleReminders } from '@/lib/vehicleReminders';
 import { useWealthReminders } from '@/lib/wealthReminders';
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import {
@@ -289,6 +290,7 @@ function MeLedger() {
   const moreRef = useRef<View>(null);
   const [moreAnchor, setMoreAnchor] = useState<MenuAnchorBox | null>(null);
   useWealthReminders();
+  useVehicleReminders();
   const firstName = identity.name.trim().split(/\s+/)[0];
 
   // One set of quick actions on this screen; the less-used ones live here.
@@ -643,6 +645,13 @@ function MeLedger() {
                 icon: 'business-outline',
                 label: t.homeToday.toolRentals,
                 onPress: () => router.push('/rentals'),
+              },
+              {
+                key: 'vehicles',
+                tone: 'brand',
+                icon: 'car-outline',
+                label: t.vehicles.vehicles,
+                onPress: () => router.push('/vehicles'),
               },
               {
                 key: 'more',

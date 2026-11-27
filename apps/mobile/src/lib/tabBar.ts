@@ -124,7 +124,8 @@ export function isPersonalMode(segments: readonly string[], space?: string): boo
     (root === '(tabs)' && screen === 'me') ||
     root === 'personal' ||
     root === 'investments' ||
-    root === 'rentals'
+    root === 'rentals' ||
+    root === 'vehicles'
   );
 }
 
