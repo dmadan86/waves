@@ -140,6 +140,24 @@ export interface WealthStrings {
   docsLocalNote: string;
   docsEmpty: string;
   renameDoc: string;
+  docSlotAgreement: string;
+  docSlotTenantId: string;
+  docSlotMoveIn: string;
+  docSlotPolice: string;
+  docSlotOther: string;
+  docOf: string;
+  docAddTo: string;
+  docNameTitle: string;
+  docNameHint: string;
+  docScan: string;
+  docReplace: string;
+  docAddMore: string;
+  docPdf: string;
+  docPhotoOne: string;
+  docPhotos: string;
+  docFiles: string;
+  docAdded: string;
+  docRemoveBody: string;
   docOpenFailed: string;
   docBadType: string;
   detailsTitle: string;
@@ -361,6 +379,24 @@ export const wealthEn: WealthStrings = {
   docsLocalNote: 'Kept only on this phone, never uploaded.',
   docsEmpty: 'Add the rental agreement or other papers.',
   renameDoc: 'Rename',
+  docSlotAgreement: 'Agreement',
+  docSlotTenantId: 'Tenant ID',
+  docSlotMoveIn: 'Move-in photos',
+  docSlotPolice: 'Police verification',
+  docSlotOther: 'Other',
+  docOf: '{a} of {b}',
+  docAddTo: 'Add {name}',
+  docNameTitle: 'Name this document',
+  docNameHint: 'e.g. Electricity bill',
+  docScan: 'Scan',
+  docReplace: 'Replace',
+  docAddMore: 'Add more',
+  docPdf: 'PDF',
+  docPhotoOne: 'Photo',
+  docPhotos: '{n} photos',
+  docFiles: '{n} files',
+  docAdded: 'Added {date}',
+  docRemoveBody: 'Remove {n} file(s) from {name}?',
   docOpenFailed: 'Could not open this file.',
   docBadType: 'Only PDF or photos can be attached.',
   detailsTitle: 'Details',
@@ -572,6 +608,24 @@ export const wealthTa: WealthStrings = {
   docsLocalNote: 'இந்த போனில் மட்டும் வைக்கப்படும்; பதிவேற்றப்படாது.',
   docsEmpty: 'வாடகை ஒப்பந்தம் அல்லது பிற ஆவணங்களை சேர்க்கவும்.',
   renameDoc: 'பெயர் மாற்று',
+  docSlotAgreement: 'ஒப்பந்தம்',
+  docSlotTenantId: 'குடியிருப்பாளர் ஐடி',
+  docSlotMoveIn: 'குடிபுகும் புகைப்படங்கள்',
+  docSlotPolice: 'காவல் சரிபார்ப்பு',
+  docSlotOther: 'மற்றவை',
+  docOf: '{a} / {b}',
+  docAddTo: '{name} சேர்',
+  docNameTitle: 'இந்த ஆவணத்திற்குப் பெயரிடுங்கள்',
+  docNameHint: 'எ.கா. மின் கட்டணம்',
+  docScan: 'ஸ்கேன்',
+  docReplace: 'மாற்று',
+  docAddMore: 'மேலும் சேர்',
+  docPdf: 'PDF',
+  docPhotoOne: 'புகைப்படம்',
+  docPhotos: '{n} புகைப்படங்கள்',
+  docFiles: '{n} கோப்புகள்',
+  docAdded: 'சேர்த்தது {date}',
+  docRemoveBody: '{name} இலிருந்து {n} கோப்பு(களை) நீக்கவா?',
   docOpenFailed: 'இந்த கோப்பை திறக்க முடியவில்லை.',
   docBadType: 'PDF அல்லது புகைப்படங்களை மட்டுமே இணைக்கலாம்.',
   detailsTitle: 'விவரங்கள்',
@@ -783,6 +837,24 @@ export const wealthHi: WealthStrings = {
   docsLocalNote: 'सिर्फ़ इसी फ़ोन में रहता है, अपलोड नहीं होता।',
   docsEmpty: 'किरायानामा या दूसरे काग़ज़ जोड़ें।',
   renameDoc: 'नाम बदलें',
+  docSlotAgreement: 'किरायानामा',
+  docSlotTenantId: 'किरायेदार की आईडी',
+  docSlotMoveIn: 'मूव-इन फ़ोटो',
+  docSlotPolice: 'पुलिस वेरिफ़िकेशन',
+  docSlotOther: 'अन्य',
+  docOf: '{a} / {b}',
+  docAddTo: '{name} जोड़ें',
+  docNameTitle: 'इस दस्तावेज़ का नाम रखें',
+  docNameHint: 'जैसे बिजली का बिल',
+  docScan: 'स्कैन',
+  docReplace: 'बदलें',
+  docAddMore: 'और जोड़ें',
+  docPdf: 'PDF',
+  docPhotoOne: 'फ़ोटो',
+  docPhotos: '{n} फ़ोटो',
+  docFiles: '{n} फ़ाइलें',
+  docAdded: 'जोड़ा गया {date}',
+  docRemoveBody: '{name} से {n} फ़ाइल हटाएँ?',
   docOpenFailed: 'यह फ़ाइल नहीं खुल सकी।',
   docBadType: 'सिर्फ़ PDF या फ़ोटो जोड़ सकते हैं।',
   detailsTitle: 'विवरण',
@@ -994,6 +1066,24 @@ export const wealthAr: WealthStrings = {
   docsLocalNote: 'تبقى على هذا الهاتف فقط ولا يتم رفعها.',
   docsEmpty: 'أضف عقد الإيجار أو أوراقًا أخرى.',
   renameDoc: 'إعادة تسمية',
+  docSlotAgreement: 'عقد الإيجار',
+  docSlotTenantId: 'هوية المستأجر',
+  docSlotMoveIn: 'صور الاستلام',
+  docSlotPolice: 'التحقق الأمني',
+  docSlotOther: 'أخرى',
+  docOf: '{a} من {b}',
+  docAddTo: 'إضافة {name}',
+  docNameTitle: 'سمِّ هذا المستند',
+  docNameHint: 'مثل فاتورة الكهرباء',
+  docScan: 'مسح',
+  docReplace: 'استبدال',
+  docAddMore: 'إضافة المزيد',
+  docPdf: 'PDF',
+  docPhotoOne: 'صورة',
+  docPhotos: '{n} صور',
+  docFiles: '{n} ملفات',
+  docAdded: 'أضيف في {date}',
+  docRemoveBody: 'حذف {n} ملف(ات) من {name}؟',
   docOpenFailed: 'تعذّر فتح هذا الملف.',
   docBadType: 'يمكن إرفاق ملفات PDF أو صور فقط.',
   detailsTitle: 'التفاصيل',

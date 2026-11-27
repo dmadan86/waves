@@ -5,6 +5,12 @@ export interface LocalDoc {
   readonly name: string;
   readonly mime: string;
   readonly size: number;
+  /** Built-in slot id, or a custom slot id. Missing on documents saved before slots: they read as 'other'. */
+  readonly slot?: string;
+  /** Name of a custom slot, repeated on each of its files so the index shape stays flat. */
+  readonly slotLabel?: string;
+  /** Epoch ms the file was added. */
+  readonly added?: number;
 }
 /** property id -> its documents. */
 export type DocIndex = Readonly<Record<string, readonly LocalDoc[]>>;
@@ -83,6 +89,11 @@ export function parseIndex(text: string | null): DocIndex {
                 name: d.name,
                 mime: d.mime,
                 size: typeof d.size === 'number' ? d.size : 0,
+                ...(typeof d.slot === 'string' && d.slot ? { slot: d.slot } : {}),
+                ...(typeof d.slotLabel === 'string' && d.slotLabel
+                  ? { slotLabel: d.slotLabel }
+                  : {}),
+                ...(typeof d.added === 'number' ? { added: d.added } : {}),
               },
             ]
           : [],
@@ -98,4 +109,65 @@ export function parseIndex(text: string | null): DocIndex {
 export function formatSize(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+export type BuiltinSlot = 'agreement' | 'tenant_id' | 'move_in' | 'police';
+export const OTHER_SLOT = 'other';
+
+/** Default slots for a region (the region string from regionOf). Police verification is an India thing. */
+export function builtinSlots(region: string): BuiltinSlot[] {
+  return region === 'IN'
+    ? ['agreement', 'tenant_id', 'move_in', 'police']
+    : ['agreement', 'tenant_id', 'move_in'];
+}
+
+export interface DocSlot {
+  readonly id: string;
+  readonly builtin: boolean;
+  /** Custom name; undefined for built-ins and for the legacy 'other' slot (the screen words those). */
+  readonly label?: string;
+  readonly docs: readonly LocalDoc[];
+}
+
+/** Built-in slots (always shown), then custom ones in first-added order. Legacy docs land in 'other'. */
+export function slotsOf(docs: readonly LocalDoc[], region: string): DocSlot[] {
+  const builtin = builtinSlots(region) as string[];
+  const out: DocSlot[] = builtin.map((id) => ({
+    id,
+    builtin: true,
+    docs: docs.filter((d) => d.slot === id),
+  }));
+  const custom = new Map<string, LocalDoc[]>();
+  for (const d of docs) {
+    const id = d.slot ?? OTHER_SLOT;
+    if (builtin.includes(id)) continue;
+    custom.set(id, [...(custom.get(id) ?? []), d]);
+  }
+  for (const [id, list] of custom)
+    out.push({ id, builtin: false, label: list.find((d) => d.slotLabel)?.slotLabel, docs: list });
+  return out;
+}
+
+export const slotCount = (slots: readonly DocSlot[]): { filled: number; total: number } => ({
+  filled: slots.filter((s) => s.docs.length > 0).length,
+  total: slots.length,
+});
+
+export const newSlotId = (uniq: string): string => `c_${uniq}`;
+
+/** Rename a custom slot (every file carries the label). Blank names are ignored. */
+export function renameSlot(
+  index: DocIndex,
+  propertyId: string,
+  slot: string,
+  label: string,
+): DocIndex {
+  const clean = label.trim();
+  if (!clean) return index;
+  return {
+    ...index,
+    [propertyId]: docsOf(index, propertyId).map((d) =>
+      (d.slot ?? OTHER_SLOT) === slot ? { ...d, slotLabel: clean } : d,
+    ),
+  };
 }

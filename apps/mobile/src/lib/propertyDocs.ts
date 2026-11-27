@@ -16,6 +16,7 @@ import {
   parseIndex,
   removeDoc,
   renameDoc,
+  renameSlot,
   type DocIndex,
   type LocalDoc,
 } from './propertyDocsPure';
@@ -45,8 +46,17 @@ function writeIndex(index: DocIndex): void {
 export async function attachDoc(
   propertyId: string,
   src: { uri: string; name: string; mime: string; size: number },
+  slot?: { id: string; label?: string },
 ): Promise<LocalDoc> {
-  const doc: LocalDoc = { id: randomUUID(), name: src.name, mime: src.mime, size: src.size };
+  const doc: LocalDoc = {
+    id: randomUUID(),
+    name: src.name,
+    mime: src.mime,
+    size: src.size,
+    added: Date.now(),
+    ...(slot ? { slot: slot.id } : {}),
+    ...(slot?.label ? { slotLabel: slot.label } : {}),
+  };
   const dest = fileOf(propertyId, doc);
   dest.parentDirectory.create({ intermediates: true, idempotent: true });
   new FileSystem.File(src.uri).copy(dest);
@@ -56,6 +66,16 @@ export async function attachDoc(
 
 export async function renameLocalDoc(propertyId: string, id: string, name: string): Promise<void> {
   writeIndex(renameDoc(await readIndex(), propertyId, id, name));
+}
+
+export const localDocUri = (propertyId: string, d: LocalDoc): string => fileOf(propertyId, d).uri;
+
+export async function renameLocalSlot(
+  propertyId: string,
+  slot: string,
+  label: string,
+): Promise<void> {
+  writeIndex(renameSlot(await readIndex(), propertyId, slot, label));
 }
 
 export async function deleteLocalDoc(propertyId: string, id: string): Promise<void> {

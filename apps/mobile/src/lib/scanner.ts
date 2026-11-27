@@ -53,7 +53,7 @@ export function scannerAvailable(): boolean {
  * the OS camera instead.
  */
 export type ScanResult =
-  { kind: 'image'; uri: string } | { kind: 'cancelled' } | { kind: 'unavailable' };
+  { kind: 'image'; uri: string; uris: string[] } | { kind: 'cancelled' } | { kind: 'unavailable' };
 
 /**
  * Open the scanner and report how it ended (see `ScanResult`).
@@ -62,7 +62,7 @@ export type ScanResult =
  * to be reconciled against the first before either could become an expense —
  * work with no home in ADR-008's "the model proposes, the person confirms".
  */
-export async function scanDocument(): Promise<ScanResult> {
+export async function scanDocument(maxPages = 1): Promise<ScanResult> {
   if (!scannerAvailable()) return { kind: 'unavailable' };
 
   let scanner: DocumentScanner;
@@ -80,16 +80,17 @@ export async function scanDocument(): Promise<ScanResult> {
 
   try {
     const { scannedImages } = await scanner.scanDocument({
-      maxNumDocuments: 1,
+      maxNumDocuments: maxPages,
       // A receipt is read by a model, not looked at. Faded thermal print is
       // the whole difficulty, and compression artefacts land on exactly the
       // strokes that were already marginal.
       croppedImageQuality: 100,
     });
-    const uri = scannedImages?.[0];
+    const uris = scannedImages ?? [];
+    const uri = uris[0];
     // An image means success. No image with no throw is the person backing out
     // of the scanner — a cancel, not a reason to open another camera.
-    return uri ? { kind: 'image', uri } : { kind: 'cancelled' };
+    return uri ? { kind: 'image', uri, uris } : { kind: 'cancelled' };
   } catch {
     // A scanner that will not open at all is a reason to fall back to the plain
     // camera, not to put an error in front of somebody holding a bill.

@@ -453,7 +453,7 @@ function DetailBody() {
           </StandardCard>
         ) : null}
 
-        <DocumentsCard propertyId={prop.id} />
+        <DocumentsCard propertyId={prop.id} region={region} />
         <DetailsCard prop={prop} tenancy={tn} />
 
         {tn ? (
