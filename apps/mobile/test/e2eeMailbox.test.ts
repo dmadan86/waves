@@ -102,6 +102,20 @@ describe('partner device changes', () => {
 });
 
 describe('housekeeping failures', () => {
+  it('skips a group the server no longer lets this phone into, silently, every round', async () => {
+    const server = world();
+    server.groups.set('group-lost', [{ memberId: 'mC', profileId: 'pC' }]);
+    const a = phone(server, 'pA', 'mA', 1, undefined, [G, 'group-lost']);
+    await a.deviceId();
+    for (let i = 0; i < 6; i++) {
+      a.clock.t += 120_000;
+      await a.sync().catch(() => undefined);
+    }
+    expect(a.reports.map((r) => r.where).filter((w) => w.startsWith('e2ee.housekeeping'))).toEqual(
+      [],
+    );
+  });
+
   it('a transient failure is retried silently, a persistent one is reported', async () => {
     const server = world();
     const b = phone(server, 'pB', 'mB', 2, undefined, [G]);
@@ -111,13 +125,13 @@ describe('housekeeping failures', () => {
     b.clock.t += 120_000; // past the directory cache
     await b.sync().catch(() => undefined);
     await b.sync().catch(() => undefined);
-    expect(b.reports.map((r) => r.where)).not.toContain('e2ee.housekeeping');
+    expect(b.reports.map((r) => r.where)).not.toContain('e2ee.housekeeping.directory');
     server.failDirectory = 100;
     for (let i = 0; i < 6; i++) {
       b.clock.t += 120_000;
       await b.sync().catch(() => undefined);
     }
-    expect(b.reports.map((r) => r.where)).toContain('e2ee.housekeeping');
+    expect(b.reports.map((r) => r.where)).toContain('e2ee.housekeeping.directory');
   });
 });
 

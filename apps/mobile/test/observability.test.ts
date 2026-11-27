@@ -166,4 +166,9 @@ describe('describeError on sensitive paths', () => {
     expect(obs.describeError(err, 'e2ee.x')).toBe('42501');
     expect(obs.describeError({ code: '23514', message: 'Ravi' }, 'e2ee.x')).toBe('Error [23514]');
   });
+  it('looks through a wrapper to the code of the error it carries', async () => {
+    const obs = await import('../src/lib/observability');
+    const wrapped = Object.assign(new Error('e2ee: transient'), { cause: { code: '42501' } });
+    expect(obs.describeError(wrapped, 'e2ee.housekeeping.directory')).toBe('Error [42501]');
+  });
 });

@@ -150,7 +150,9 @@ export function safeCode(error: unknown): string {
 export function describeError(error: unknown, where: string): string {
   if (isSensitivePath(where)) {
     // A server error's code (SQLSTATE / PGRST) names the failure and carries no user data.
-    const code = (error as { code?: unknown } | null)?.code;
+    // A wrapper (e.g. a transient-dependency error) carries the server error as its cause.
+    const inner = (error as { cause?: unknown } | null)?.cause ?? error;
+    const code = (inner as { code?: unknown } | null)?.code;
     const shown = typeof code === 'string' && /^([0-9A-Z]{5}|PGRST\d+)$/.test(code) ? code : null;
     const base = safeCode(error);
     return shown && shown !== base ? `${base} [${shown}]` : base;
