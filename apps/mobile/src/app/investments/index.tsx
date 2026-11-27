@@ -19,6 +19,7 @@ import { StatusPill, useWealthMoney } from '@/components/wealth/parts';
 import { todayIso, usePersonalLedger } from '@/data/personal';
 import { usePersonalWealth } from '@/data/personalWealth';
 import { fill, useStrings } from '@/i18n';
+import { Stagger } from '@/lib/anim';
 import { useDefaultCurrency } from '@/lib/currency';
 import { useBottomClearance } from '@/lib/clearance';
 import { useEntitlement } from '@/lib/useEntitlement';
@@ -147,29 +148,34 @@ function InvestmentsBody() {
           </Row>
         </StandardCard>
 
-        {groups.map((g) => (
-          <View key={g.type} style={{ gap: theme.spacing.sm }}>
-            <SectionHeader title={w.types[g.type as InvestmentType]} />
-            <StandardCard>
-              {g.rows.map((inv, i) => (
-                <ListRow
-                  key={inv.id}
-                  title={inv.name}
-                  subtitle={inv.status === 'closed' ? w.closed : nextLabel(inv)}
-                  amount={fmt(investedSoFar({ ...inv, currency: cur(inv) }, ledger.txns), cur(inv))}
-                  trailing={
-                    inv.status === 'closed' ? (
-                      <StatusPill label={w.closed} tone="neutral" />
-                    ) : undefined
-                  }
-                  onPress={() =>
-                    router.push({ pathname: '/investments/[id]', params: { id: inv.id } })
-                  }
-                  divider={i < g.rows.length - 1}
-                />
-              ))}
-            </StandardCard>
-          </View>
+        {groups.map((g, gi) => (
+          <Stagger key={g.type} index={gi}>
+            <View style={{ gap: theme.spacing.sm }}>
+              <SectionHeader title={w.types[g.type as InvestmentType]} />
+              <StandardCard>
+                {g.rows.map((inv, i) => (
+                  <ListRow
+                    key={inv.id}
+                    title={inv.name}
+                    subtitle={inv.status === 'closed' ? w.closed : nextLabel(inv)}
+                    amount={fmt(
+                      investedSoFar({ ...inv, currency: cur(inv) }, ledger.txns),
+                      cur(inv),
+                    )}
+                    trailing={
+                      inv.status === 'closed' ? (
+                        <StatusPill label={w.closed} tone="neutral" />
+                      ) : undefined
+                    }
+                    onPress={() =>
+                      router.push({ pathname: '/investments/[id]', params: { id: inv.id } })
+                    }
+                    divider={i < g.rows.length - 1}
+                  />
+                ))}
+              </StandardCard>
+            </View>
+          </Stagger>
         ))}
         {limit ? (
           <Text variant="caption" tone="muted">

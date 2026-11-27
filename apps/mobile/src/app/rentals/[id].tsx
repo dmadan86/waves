@@ -1,10 +1,18 @@
 /** One rental property: the tenant, rent due and received, expenses, and the actions. */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 // The OS share sheet, opened only when the owner taps "Share receipt".
 import { Pressable, ScrollView, Share, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import Animated, {
+  FadeInDown,
+  FadeOut,
+  LinearTransition,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { leaseEndsIn, linkedPersonalTxnIds, settleDeposit, type PersonalTxn } from '@waves/core';
 import {
@@ -22,6 +30,7 @@ import {
 
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonalGuard } from '@/components/PersonalGuard';
+import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { PlainHeader, SectionHeader, StandardCard } from '@/components/standard';
 import { PropertyArt } from '@/components/wealth/PropertyArt';
 import { DetailsCard, DocumentsCard } from '@/components/wealth/RentalExtras';
@@ -44,6 +53,9 @@ import { memberLookup, useGroup } from '@/data/hooks';
 import { memberNameById } from '@/lib/memberName';
 import { liveDocPropertyIds, spaceParams } from '@/lib/rentalScope';
 import { fill, useStrings } from '@/i18n';
+import { DetailEnter, EASE_OUT, popEntering, PressableScale, settleEntering } from '@/lib/anim';
+import { hapticSuccess } from '@/lib/assistantHaptics';
+import { useReducedMotion } from '@/lib/reducedMotion';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
@@ -85,7 +97,7 @@ function TintButton({
 }) {
   const theme = useTheme();
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: !!disabled }}
@@ -107,7 +119,76 @@ function TintButton({
       <Text variant="body" style={{ fontWeight: '700', color: fg }}>
         {label}
       </Text>
-    </Pressable>
+    </PressableScale>
+  );
+}
+
+/** The hero figure: when it changes, the old one dissolves under the new one in place. */
+function SwapText({ value }: { value: string }) {
+  const reduce = useReducedMotion();
+  const [prev, setPrev] = useState(value);
+  const mix = useSharedValue(1);
+  const shown = useRef(value);
+  useEffect(() => {
+    if (shown.current === value) return;
+    const masked = value === BALANCE_MASK || shown.current === BALANCE_MASK;
+    setPrev(shown.current);
+    shown.current = value;
+    // Hiding or revealing amounts is a hard cut: never show the old figure while masking.
+    if (masked) {
+      mix.set(1);
+      return;
+    }
+    mix.set(reduce ? 1 : 0);
+    if (!reduce) mix.set(withTiming(1, { duration: 180 }));
+  }, [value, reduce, mix]);
+  const next = useAnimatedStyle(() => ({ opacity: mix.get() }));
+  const old = useAnimatedStyle(() => ({ opacity: 1 - mix.get(), position: 'absolute' }));
+  const style = { fontWeight: '800', fontSize: 34, lineHeight: 40 } as const;
+  return (
+    <View>
+      <Animated.View
+        style={old}
+        pointerEvents="none"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Text variant="title" style={style}>
+          {prev}
+        </Text>
+      </Animated.View>
+      <Animated.View style={next}>
+        <Text variant="title" style={style}>
+          {value}
+        </Text>
+      </Animated.View>
+    </View>
+  );
+}
+
+/** A strip cell's badge: the check pops only when the month turns paid while you watch. */
+function StripBadge({ mark }: { mark: string }) {
+  const theme = useTheme();
+  const reduce = useReducedMotion();
+  const [markAtMount] = useState(mark);
+  const pop = !reduce && markAtMount !== 'check';
+  return (
+    <View
+      style={{
+        width: 18,
+        height: 14,
+        borderRadius: 5,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: mark === 'check' ? GREEN_TINT : theme.color.surfaceMuted,
+      }}
+    >
+      {mark === 'check' ? (
+        <Animated.View entering={pop ? popEntering(120) : undefined}>
+          <Ionicons name="checkmark" size={11} color={GREEN} />
+        </Animated.View>
+      ) : null}
+    </View>
   );
 }
 
@@ -116,6 +197,8 @@ function DetailBody() {
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { confirm } = useDialog();
+  const reduce = useReducedMotion();
+  const glide = reduce ? undefined : LinearTransition.springify().damping(24).stiffness(220);
   const [renaming, setRenaming] = useState(false);
   const w = t.wealth;
   const fmt = useWealthMoney();
@@ -194,7 +277,8 @@ function DetailBody() {
   const record = (amount: bigint, date: string): void => {
     // A full payment of an untouched due date keeps one fixed id (see recordRent).
     const full = unpaid && unpaid.paid === 0n && amount === unpaid.amount ? unpaid.date : null;
-    if (v.rule) void writes.recordRent(v.rule, prop.id, amount, date, unit, full);
+    if (!v.rule) return;
+    void writes.recordRent(v.rule, prop.id, amount, date, unit, full).then(hapticSuccess, () => {});
   };
   const lastBy = lastPayment
     ? store.records.find((r) => r.id === lastPayment.id)?.created_by
@@ -324,283 +408,297 @@ function DetailBody() {
           </IconButton>
         }
       />
-      <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: theme.spacing.lg,
-          paddingBottom: theme.spacing.lg,
-          gap: theme.spacing.md,
-        }}
-      >
-        <StandardCard
-          style={{ backgroundColor: theme.color.brandSoft, borderColor: theme.color.brandSoft }}
+      <DetailEnter>
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: theme.spacing.lg,
+            paddingBottom: theme.spacing.lg,
+            gap: theme.spacing.md,
+          }}
         >
-          <Row style={{ alignItems: 'center' }}>
-            <View style={{ flex: 1, gap: theme.spacing.xs }}>
-              {tn ? (
-                <>
-                  <Text variant="body" tone="muted">
-                    {w.rentDueCap}
+          <Animated.View layout={glide}>
+            <StandardCard
+              style={{ backgroundColor: theme.color.brandSoft, borderColor: theme.color.brandSoft }}
+            >
+              <Row style={{ alignItems: 'center' }}>
+                <View style={{ flex: 1, gap: theme.spacing.xs }}>
+                  {tn ? (
+                    <>
+                      <Text variant="body" tone="muted">
+                        {w.rentDueCap}
+                      </Text>
+                      <SwapText value={fmt(remaining, cur)} />
+                      <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+                        <Ionicons
+                          name="calendar-outline"
+                          size={iconSize.sm}
+                          color={theme.color.textMuted}
+                        />
+                        <Text variant="caption" tone="muted">
+                          {w[heroCaptionKey(v.status)]}
+                        </Text>
+                      </Row>
+                      {space && recordedBy ? (
+                        <Text variant="caption" tone="muted">
+                          {fill(w.recordedBy, { name: recordedBy })}
+                        </Text>
+                      ) : null}
+                      {part ? (
+                        <Text variant="caption">
+                          {fill(w.partLine, {
+                            paid: fmt(part.paid, cur),
+                            due: fmt(part.amount, cur),
+                            left: fmt(part.amount - part.paid, cur),
+                          })}
+                        </Text>
+                      ) : null}
+                      {v.next ? (
+                        <Text variant="caption" tone="muted">
+                          {fill(w.raiseFuture, {
+                            amount: fmt(v.next.amount, cur),
+                            date: day(v.next.anchorDate),
+                          })}
+                        </Text>
+                      ) : null}
+                      <View style={{ marginTop: theme.spacing.sm }}>
+                        <Button
+                          label={w.recordRent}
+                          icon={
+                            <Ionicons
+                              name="wallet-outline"
+                              size={iconSize.md}
+                              color={theme.color.onButtonPrimary}
+                            />
+                          }
+                          onPress={() => setOpen('rent')}
+                        />
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <Text variant="caption" tone="muted">
+                        {w.vacantNote}
+                      </Text>
+                      <View style={{ marginTop: theme.spacing.sm }}>
+                        <Button
+                          label={w.addTenant}
+                          onPress={() =>
+                            router.push({
+                              pathname: '/rentals/tenant',
+                              params: { id: prop.id, ...spaceParams(space) },
+                            })
+                          }
+                        />
+                      </View>
+                    </>
+                  )}
+                </View>
+                <Animated.View entering={reduce ? undefined : settleEntering(80)}>
+                  <PropertyArt type={prop.type} />
+                </Animated.View>
+              </Row>
+            </StandardCard>
+          </Animated.View>
+
+          {raise ? (
+            <Animated.View layout={glide}>
+              <RaiseCard prompt={raise} groupId={space} />
+            </Animated.View>
+          ) : null}
+
+          {tn && unpaid && asked ? (
+            <Animated.View exiting={FadeOut.duration(160)}>
+              <StandardCard style={{ gap: theme.spacing.md }}>
+                <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: theme.radius.md,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: GREEN_TINT,
+                    }}
+                  >
+                    <Ionicons name="wallet-outline" size={iconSize.md} color={GREEN} />
+                  </View>
+                  <Text variant="body" style={{ fontWeight: '600', flex: 1 }}>
+                    {fill(w.confirmQ, { name: tn.tenantName, amount: fmt(remaining, cur), unit })}
                   </Text>
-                  <Text variant="title" style={{ fontWeight: '800', fontSize: 34, lineHeight: 40 }}>
-                    {fmt(remaining, cur)}
-                  </Text>
-                  <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-                    <Ionicons
-                      name="calendar-outline"
-                      size={iconSize.sm}
-                      color={theme.color.textMuted}
-                    />
-                    <Text variant="caption" tone="muted">
-                      {w[heroCaptionKey(v.status)]}
-                    </Text>
-                  </Row>
-                  {space && recordedBy ? (
-                    <Text variant="caption" tone="muted">
-                      {fill(w.recordedBy, { name: recordedBy })}
-                    </Text>
-                  ) : null}
-                  {part ? (
-                    <Text variant="caption">
-                      {fill(w.partLine, {
-                        paid: fmt(part.paid, cur),
-                        due: fmt(part.amount, cur),
-                        left: fmt(part.amount - part.paid, cur),
-                      })}
-                    </Text>
-                  ) : null}
-                  {v.next ? (
-                    <Text variant="caption" tone="muted">
-                      {fill(w.raiseFuture, {
-                        amount: fmt(v.next.amount, cur),
-                        date: day(v.next.anchorDate),
-                      })}
-                    </Text>
-                  ) : null}
-                  <View style={{ marginTop: theme.spacing.sm }}>
+                </Row>
+                <Row style={{ gap: theme.spacing.sm }}>
+                  <View style={{ flex: 1 }}>
                     <Button
-                      label={w.recordRent}
+                      label={w.yesReceived}
                       icon={
                         <Ionicons
-                          name="wallet-outline"
+                          name="checkmark"
                           size={iconSize.md}
                           color={theme.color.onButtonPrimary}
                         />
                       }
-                      onPress={() => setOpen('rent')}
+                      onPress={() => record(remaining, today)}
                     />
                   </View>
-                </>
-              ) : (
-                <>
-                  <Text variant="caption" tone="muted">
-                    {w.vacantNote}
-                  </Text>
-                  <View style={{ marginTop: theme.spacing.sm }}>
-                    <Button
-                      label={w.addTenant}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/rentals/tenant',
-                          params: { id: prop.id, ...spaceParams(space) },
-                        })
-                      }
-                    />
-                  </View>
-                </>
-              )}
-            </View>
-            <PropertyArt type={prop.type} />
-          </Row>
-        </StandardCard>
-
-        {raise ? <RaiseCard prompt={raise} groupId={space} /> : null}
-
-        {tn && unpaid && asked ? (
-          <StandardCard style={{ gap: theme.spacing.md }}>
-            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-              <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: theme.radius.md,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: GREEN_TINT,
-                }}
-              >
-                <Ionicons name="wallet-outline" size={iconSize.md} color={GREEN} />
-              </View>
-              <Text variant="body" style={{ fontWeight: '600', flex: 1 }}>
-                {fill(w.confirmQ, { name: tn.tenantName, amount: fmt(remaining, cur), unit })}
-              </Text>
-            </Row>
-            <Row style={{ gap: theme.spacing.sm }}>
-              <View style={{ flex: 1 }}>
-                <Button
-                  label={w.yesReceived}
-                  icon={
-                    <Ionicons
-                      name="checkmark"
-                      size={iconSize.md}
-                      color={theme.color.onButtonPrimary}
-                    />
-                  }
-                  onPress={() => record(remaining, today)}
-                />
-              </View>
-              <TintButton
-                label={w.notYet}
-                icon="time-outline"
-                bg={theme.color.brandSoft}
-                fg={theme.color.brand}
-                onPress={() => setAsked(false)}
-              />
-            </Row>
-          </StandardCard>
-        ) : null}
-
-        {tn ? (
-          <StandardCard style={{ gap: theme.spacing.md }}>
-            {facts.map(([icon, label, value, onPress], i) => (
-              <Pressable
-                key={label}
-                disabled={!onPress}
-                accessibilityRole={onPress ? 'button' : undefined}
-                accessibilityLabel={`${label} ${value}`}
-                onPress={onPress}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: theme.spacing.md,
-                  paddingBottom: i < facts.length - 1 ? theme.spacing.md : 0,
-                  borderBottomWidth: i < facts.length - 1 ? 1 : 0,
-                  borderBottomColor: theme.color.border,
-                }}
-              >
-                <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
-                <Text variant="caption" tone="muted" style={{ flex: 1 }}>
-                  {label}
-                </Text>
-                <Text variant="body" style={{ fontWeight: '700' }}>
-                  {value}
-                </Text>
-                {onPress ? (
-                  <Ionicons
-                    name={directionalIcon('chevron-forward')}
-                    size={iconSize.sm}
-                    color={theme.color.textMuted}
+                  <TintButton
+                    label={w.notYet}
+                    icon="time-outline"
+                    bg={theme.color.brandSoft}
+                    fg={theme.color.brand}
+                    onPress={() => setAsked(false)}
                   />
+                </Row>
+              </StandardCard>
+            </Animated.View>
+          ) : null}
+
+          {tn ? (
+            <Animated.View layout={glide}>
+              <StandardCard style={{ gap: theme.spacing.md }}>
+                {facts.map(([icon, label, value, onPress], i) => (
+                  <Pressable
+                    key={label}
+                    disabled={!onPress}
+                    accessibilityRole={onPress ? 'button' : undefined}
+                    accessibilityLabel={`${label} ${value}`}
+                    onPress={onPress}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: theme.spacing.md,
+                      paddingBottom: i < facts.length - 1 ? theme.spacing.md : 0,
+                      borderBottomWidth: i < facts.length - 1 ? 1 : 0,
+                      borderBottomColor: theme.color.border,
+                    }}
+                  >
+                    <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
+                    <Text variant="caption" tone="muted" style={{ flex: 1 }}>
+                      {label}
+                    </Text>
+                    <Text variant="body" style={{ fontWeight: '700' }}>
+                      {value}
+                    </Text>
+                    {onPress ? (
+                      <Ionicons
+                        name={directionalIcon('chevron-forward')}
+                        size={iconSize.sm}
+                        color={theme.color.textMuted}
+                      />
+                    ) : null}
+                  </Pressable>
+                ))}
+                {lease !== null ? (
+                  <StatusPill label={fill(w.leaseEndsIn, { n: lease })} tone="warning" />
                 ) : null}
-              </Pressable>
-            ))}
-            {lease !== null ? (
-              <StatusPill label={fill(w.leaseEndsIn, { n: lease })} tone="warning" />
-            ) : null}
-          </StandardCard>
-        ) : null}
+              </StandardCard>
+            </Animated.View>
+          ) : null}
 
-        <DocumentsCard propertyId={prop.id} region={region} groupId={space} />
-        <DetailsCard prop={prop} tenancy={tn} groupId={space} />
+          <Animated.View layout={glide}>
+            <DocumentsCard propertyId={prop.id} region={region} groupId={space} />
+          </Animated.View>
+          <Animated.View layout={glide}>
+            <DetailsCard prop={prop} tenancy={tn} groupId={space} />
+          </Animated.View>
 
-        {tn ? (
-          <View style={{ gap: theme.spacing.sm }}>
-            <SectionHeader title={w.last12} />
-            <StandardCard>
-              <Row style={{ alignItems: 'stretch' }}>
-                {strip.map((m, i) => {
-                  const mark = stripMark(m.state);
-                  const current = i === strip.length - 1;
-                  const color =
-                    mark === 'alert'
-                      ? theme.color.negativeText
-                      : mark === 'warn'
-                        ? theme.color.warning
-                        : mark === 'check'
-                          ? GREEN
-                          : theme.color.textMuted;
-                  return (
-                    <View
-                      key={m.month}
-                      accessible
-                      accessibilityLabel={`${month(m.month)} ${statusText[m.state] ?? ''}`}
-                      style={{
-                        flex: 1,
-                        alignItems: 'center',
-                        gap: 6,
-                        paddingVertical: 6,
-                        borderRadius: theme.radius.md,
-                        backgroundColor: current ? theme.color.negativeSoft : undefined,
-                      }}
-                    >
-                      <Text variant="micro" tone="muted">
-                        {month(m.month)}
-                      </Text>
-                      <View
+          {tn ? (
+            <Animated.View layout={glide} style={{ gap: theme.spacing.sm }}>
+              <SectionHeader title={w.last12} />
+              <StandardCard>
+                <Row style={{ alignItems: 'stretch' }}>
+                  {strip.map((m, i) => {
+                    const mark = stripMark(m.state);
+                    const current = i === strip.length - 1;
+                    const color =
+                      mark === 'alert'
+                        ? theme.color.negativeText
+                        : mark === 'warn'
+                          ? theme.color.warning
+                          : mark === 'check'
+                            ? GREEN
+                            : theme.color.textMuted;
+                    return (
+                      <Animated.View
+                        key={m.month}
+                        entering={
+                          reduce
+                            ? undefined
+                            : FadeInDown.duration(220)
+                                .easing(EASE_OUT)
+                                .delay(160 + i * 30)
+                        }
+                        accessible
+                        accessibilityLabel={`${month(m.month)} ${statusText[m.state] ?? ''}`}
                         style={{
-                          width: 18,
-                          height: 14,
-                          borderRadius: 5,
+                          flex: 1,
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          backgroundColor: mark === 'check' ? GREEN_TINT : theme.color.surfaceMuted,
+                          gap: 6,
+                          paddingVertical: 6,
+                          borderRadius: theme.radius.md,
+                          backgroundColor: current ? theme.color.negativeSoft : undefined,
                         }}
                       >
-                        {mark === 'check' ? (
-                          <Ionicons name="checkmark" size={11} color={GREEN} />
-                        ) : null}
-                      </View>
-                      {mark === 'dash' && !current ? (
-                        <Text variant="micro" style={{ color }}>
-                          -
+                        <Text variant="micro" tone="muted">
+                          {month(m.month)}
                         </Text>
-                      ) : mark === 'alert' || mark === 'warn' || mark === 'check' || current ? (
-                        <>
-                          {mark === 'alert' || mark === 'warn' ? (
-                            <Text variant="micro" style={{ color }}>
-                              •
-                            </Text>
-                          ) : null}
-                          {current ? (
-                            <Text variant="micro" numberOfLines={1} style={{ fontSize: 9, color }}>
-                              {statusText[m.state] ?? ''}
-                            </Text>
-                          ) : null}
-                        </>
-                      ) : null}
-                    </View>
-                  );
-                })}
-              </Row>
-            </StandardCard>
-          </View>
-        ) : null}
-      </ScrollView>
-      <Row
-        style={{
-          gap: theme.spacing.sm,
-          paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.sm,
-          paddingBottom: clearance + theme.spacing.sm,
-        }}
-      >
-        <TintButton
-          label={w.addExpense}
-          icon="document-text-outline"
-          bg={theme.color.brandSoft}
-          fg={theme.color.brand}
-          onPress={() => setOpen('expense')}
-        />
-        {tn ? (
+                        <StripBadge mark={mark} />
+                        {mark === 'dash' && !current ? (
+                          <Text variant="micro" style={{ color }}>
+                            -
+                          </Text>
+                        ) : mark === 'alert' || mark === 'warn' || mark === 'check' || current ? (
+                          <>
+                            {mark === 'alert' || mark === 'warn' ? (
+                              <Text variant="micro" style={{ color }}>
+                                •
+                              </Text>
+                            ) : null}
+                            {current ? (
+                              <Text
+                                variant="micro"
+                                numberOfLines={1}
+                                style={{ fontSize: 9, color }}
+                              >
+                                {statusText[m.state] ?? ''}
+                              </Text>
+                            ) : null}
+                          </>
+                        ) : null}
+                      </Animated.View>
+                    );
+                  })}
+                </Row>
+              </StandardCard>
+            </Animated.View>
+          ) : null}
+        </ScrollView>
+        <Row
+          style={{
+            gap: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.lg,
+            paddingTop: theme.spacing.sm,
+            paddingBottom: clearance + theme.spacing.sm,
+          }}
+        >
           <TintButton
-            label={w.receiptsBtn}
-            icon="receipt-outline"
-            bg={theme.color.surfaceMuted}
-            fg={theme.color.text}
-            disabled={!lastPayment}
-            onPress={() => void share()}
+            label={w.addExpense}
+            icon="document-text-outline"
+            bg={theme.color.brandSoft}
+            fg={theme.color.brand}
+            onPress={() => setOpen('expense')}
           />
-        ) : null}
-      </Row>
+          {tn ? (
+            <TintButton
+              label={w.receiptsBtn}
+              icon="receipt-outline"
+              bg={theme.color.surfaceMuted}
+              fg={theme.color.text}
+              disabled={!lastPayment}
+              onPress={() => void share()}
+            />
+          ) : null}
+        </Row>
+      </DetailEnter>
 
       <AmountSheet
         visible={open === 'rent'}

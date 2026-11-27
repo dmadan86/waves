@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
+import Animated, { FadeOut, LinearTransition } from 'react-native-reanimated';
 
 import { format, money, pickUpcoming } from '@waves/core';
 import {
@@ -26,6 +27,7 @@ import { todayIso, usePersonalLedger } from '@/data/personal';
 import { useDateOccurrences } from '@/data/personalDates';
 import { usePostRecurring } from '@/data/postRecurring';
 import { plural, useStrings } from '@/i18n';
+import { SlidingHighlight } from '@/lib/SlidingHighlight';
 import { useAuth } from '@/lib/auth';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useDefaultCurrency } from '@/lib/currency';
@@ -33,6 +35,7 @@ import { actionFor } from '@/lib/dateReminders/actions';
 import { subtitleOf, titleOf } from '@/lib/dateReminders/text';
 import { useRunDateAction } from '@/lib/dateReminders/useRunDateAction';
 import { router } from '@/lib/navigation';
+import { useReducedMotion } from '@/lib/reducedMotion';
 import {
   dateRows,
   filterUpcoming,
@@ -64,11 +67,23 @@ export default function PersonalUpcomingScreen() {
   const [today] = useState(() => todayIso());
   const [tab, setTab] = useState<UpcomingTab>('all');
   const [adding, setAdding] = useState(false);
+  const reduce = useReducedMotion();
+  const [rowWidth, setRowWidth] = useState(0);
+  // The row that was just marked paid: only it fades out, and only now do the others glide up.
+  const [postedKey, setPostedKey] = useState<string | null>(null);
+  const clearPosted = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (clearPosted.current) clearTimeout(clearPosted.current);
+    },
+    [],
+  );
   const [acting, setActing] = useState<{
     rule: (typeof ledger.recurrings)[number];
     date: string;
     title: string;
     subtitle: string;
+    key: string;
     icon: keyof typeof Ionicons.glyphMap;
     status: string;
     overdue: boolean;
@@ -116,38 +131,46 @@ export default function PersonalUpcomingScreen() {
     const amountText =
       row.amount !== undefined && row.currency ? fmt(row.amount, row.currency) : '';
     return (
-      <GroupRow
+      <Animated.View
         key={row.key}
-        title={title}
-        memberLabel={subtitle}
-        amountText={amountText}
-        directionLabel={dateLabel}
-        directionTone={row.inDays < 0 ? 'negative' : 'muted'}
-        chevron
-        tone={row.inDays < 0 ? 'negative' : undefined}
-        icon={icon}
-        iconColor={row.inDays < 0 ? theme.color.negative : undefined}
-        locale={locale}
-        divider={index > 0}
-        onPress={() => {
-          if (item) {
-            if (actionFor(item)) runDateAction(item);
-            else if (item.source === 'date')
-              router.push({ pathname: '/dates/edit', params: { id: item.id } });
-            else router.push('/dates');
-          } else if (row.href) router.push(row.href as never);
-          else if (rule)
-            setActing({
-              rule,
-              date: row.date ?? rule.nextDate,
-              title,
-              subtitle,
-              icon,
-              status: dateLabel,
-              overdue: row.inDays < 0,
-            });
-        }}
-      />
+        exiting={!reduce && postedKey === row.key ? FadeOut.duration(160) : undefined}
+        layout={
+          !reduce && postedKey ? LinearTransition.springify().damping(24).stiffness(220) : undefined
+        }
+      >
+        <GroupRow
+          title={title}
+          memberLabel={subtitle}
+          amountText={amountText}
+          directionLabel={dateLabel}
+          directionTone={row.inDays < 0 ? 'negative' : 'muted'}
+          chevron
+          tone={row.inDays < 0 ? 'negative' : undefined}
+          icon={icon}
+          iconColor={row.inDays < 0 ? theme.color.negative : undefined}
+          locale={locale}
+          divider={index > 0}
+          onPress={() => {
+            if (item) {
+              if (actionFor(item)) runDateAction(item);
+              else if (item.source === 'date')
+                router.push({ pathname: '/dates/edit', params: { id: item.id } });
+              else router.push('/dates');
+            } else if (row.href) router.push(row.href as never);
+            else if (rule)
+              setActing({
+                rule,
+                date: row.date ?? rule.nextDate,
+                key: row.key,
+                title,
+                subtitle,
+                icon,
+                status: dateLabel,
+                overdue: row.inDays < 0,
+              });
+          }}
+        />
+      </Animated.View>
     );
   };
 
@@ -184,7 +207,21 @@ export default function PersonalUpcomingScreen() {
             gap: 2,
           }}
           accessibilityLabel={h.filterLabel}
+          onLayout={(e) => setRowWidth(e.nativeEvent.layout.width)}
         >
+          <SlidingHighlight
+            index={Math.max(
+              0,
+              TABS.findIndex((x) => x.value === tab),
+            )}
+            count={TABS.length}
+            width={rowWidth}
+            color={theme.color.brand}
+            radius={theme.radius.pill}
+            inset={4}
+            gap={2}
+            height={36}
+          />
           {TABS.map(({ value, label }) => {
             const selected = value === tab;
             return (
@@ -199,7 +236,6 @@ export default function PersonalUpcomingScreen() {
                   borderRadius: theme.radius.pill,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: selected ? theme.color.brand : 'transparent',
                 }}
               >
                 <Text
@@ -304,8 +340,11 @@ export default function PersonalUpcomingScreen() {
               fullWidth
               disabled={posting}
               onPress={() => {
-                const { rule, date } = acting;
+                const { rule, date, key } = acting;
                 setActing(null);
+                setPostedKey(key);
+                if (clearPosted.current) clearTimeout(clearPosted.current);
+                clearPosted.current = setTimeout(() => setPostedKey(null), 1500);
                 void post(rule, date);
               }}
             />

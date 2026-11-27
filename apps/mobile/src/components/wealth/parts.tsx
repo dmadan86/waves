@@ -1,9 +1,17 @@
 /** Small pieces shared by the Investments and Rentals screens. */
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import Animated, {
+  FadeIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  type EntryExitAnimationFunction,
+} from 'react-native-reanimated';
 
 import { formatParts, money, type CurrencyCode } from '@waves/core';
 import {
@@ -12,6 +20,7 @@ import {
   Card,
   ChipRow,
   iconSize,
+  isRtlLayout,
   Row,
   Screen,
   Sheet,
@@ -23,11 +32,39 @@ import {
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { localIsoDate } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
+import { EASE_IN_OUT, EASE_OUT, PressableScale, SPRING_POP } from '@/lib/anim';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { dateFrom, showDate } from '@/lib/expenseDay';
+import { useReducedMotion } from '@/lib/reducedMotion';
 import { router } from '@/lib/navigation';
 import { wizardFooterPadding } from '@/lib/wealthFlow';
 import { usesTiles, type IconName } from '@/lib/wizardIcons';
+
+/** The question slides in from the trailing edge; no exit, so nothing ever waits to show the next. */
+const stepIn =
+  (dx: number): EntryExitAnimationFunction =>
+  () => {
+    'worklet';
+    return {
+      initialValues: { opacity: 0, transform: [{ translateX: dx }] },
+      animations: {
+        opacity: withTiming(1, { duration: 200 }),
+        transform: [{ translateX: withTiming(0, { duration: 220, easing: EASE_OUT }) }],
+      },
+    };
+  };
+
+/** The progress fill glides to its notch; it starts at its target, so mount does not sweep. */
+function ProgressFill({ pct }: { pct: number }) {
+  const theme = useTheme();
+  const reduce = useReducedMotion();
+  const v = useSharedValue(pct);
+  useEffect(() => {
+    v.set(reduce ? pct : withTiming(pct, { duration: 260, easing: EASE_IN_OUT }));
+  }, [pct, reduce, v]);
+  const style = useAnimatedStyle(() => ({ width: `${v.get()}%` }));
+  return <Animated.View style={[{ backgroundColor: theme.color.brand }, style]} />;
+}
 
 const TILE_TINTS = ['lilac', 'sky', 'peach', 'mint', 'pink', 'coral'] as const;
 
@@ -98,6 +135,8 @@ export function FlowShell({
   const { t } = useStrings();
   const s = t.personalSetup;
   const clearance = useTabBarClearance();
+  const reduce = useReducedMotion();
+  const entering = reduce ? FadeIn.duration(150) : stepIn(isRtlLayout() ? -16 : 16);
   return (
     <Screen>
       <View style={{ paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md, flex: 1 }}>
@@ -116,12 +155,7 @@ export function FlowShell({
               overflow: 'hidden',
             }}
           >
-            <View
-              style={{
-                width: `${((index + 1) / total) * 100}%`,
-                backgroundColor: theme.color.brand,
-              }}
-            />
+            <ProgressFill pct={((index + 1) / total) * 100} />
           </View>
           <Pressable
             accessibilityRole="button"
@@ -135,25 +169,27 @@ export function FlowShell({
         <ScrollView
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ gap: theme.spacing.lg, paddingBottom: theme.spacing.xl }}
+          contentContainerStyle={{ paddingBottom: theme.spacing.xl }}
         >
-          {icon ? (
-            <StepHeader
-              icon={icon}
-              index={index}
-              total={total}
-              stepLabel={fill(s.stepOf, { n: index + 1, total })}
-            />
-          ) : null}
-          <Text variant="title" accessibilityRole="header">
-            {title}
-          </Text>
-          {children}
-          {note ? (
-            <Text variant="caption" tone="muted">
-              {note}
+          <Animated.View key={index} entering={entering} style={{ gap: theme.spacing.lg }}>
+            {icon ? (
+              <StepHeader
+                icon={icon}
+                index={index}
+                total={total}
+                stepLabel={fill(s.stepOf, { n: index + 1, total })}
+              />
+            ) : null}
+            <Text variant="title" accessibilityRole="header">
+              {title}
             </Text>
-          ) : null}
+            {children}
+            {note ? (
+              <Text variant="caption" tone="muted">
+                {note}
+              </Text>
+            ) : null}
+          </Animated.View>
         </ScrollView>
         {onSkip ? (
           <View style={{ paddingBottom: wizardFooterPadding(clearance, theme.spacing.lg) }}>
@@ -197,51 +233,14 @@ export function Pick<T extends string>({
         const selected = o.value === value;
         const tint = theme.tint[TILE_TINTS[i % TILE_TINTS.length]!];
         return (
-          <Pressable
+          <PickTile
             key={o.value}
-            accessibilityRole="button"
-            accessibilityLabel={o.label}
-            accessibilityState={{ selected }}
-            onPress={() => onPick(o.value)}
-            style={{ flexBasis: '47%', flexGrow: 1 }}
-          >
-            <Card
-              padded={false}
-              style={{
-                alignItems: 'center',
-                gap: theme.spacing.sm,
-                paddingVertical: theme.spacing.md,
-                paddingHorizontal: theme.spacing.sm,
-                borderWidth: 2,
-                borderColor: selected ? theme.color.brand : 'transparent',
-                backgroundColor: selected ? theme.color.brandSoft : theme.color.surface,
-              }}
-            >
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: selected ? theme.color.brand : tint.bg,
-                }}
-              >
-                <Ionicons
-                  name={o.icon!}
-                  size={iconSize.lg}
-                  color={selected ? theme.color.onBrand : tint.ink}
-                />
-              </View>
-              <Text
-                variant="caption"
-                numberOfLines={2}
-                style={{ textAlign: 'center', fontWeight: selected ? '700' : '500' }}
-              >
-                {o.label}
-              </Text>
-            </Card>
-          </Pressable>
+            label={o.label}
+            icon={o.icon!}
+            tint={tint}
+            selected={selected}
+            onPick={() => onPick(o.value)}
+          />
         );
       })}
     </Row>
@@ -479,5 +478,117 @@ export function RenameSheet({
         />
       </View>
     </Sheet>
+  );
+}
+
+/** One icon tile of a `Pick`: the selected look fades in as overlays, and the icon bubble pops. */
+function PickTile({
+  label,
+  icon,
+  tint,
+  selected,
+  onPick,
+}: {
+  label: string;
+  icon: IconName;
+  tint: { bg: string; ink: string };
+  selected: boolean;
+  onPick: () => void;
+}) {
+  const theme = useTheme();
+  const reduce = useReducedMotion();
+  const sel = useSharedValue(selected ? 1 : 0);
+  const bubble = useSharedValue(1);
+  const wasSelected = useRef(selected);
+  useEffect(() => {
+    sel.set(withTiming(selected ? 1 : 0, { duration: reduce ? 0 : 150, easing: EASE_OUT }));
+    if (selected && !wasSelected.current && !reduce) {
+      bubble.set(0.9);
+      bubble.set(withSpring(1, SPRING_POP));
+    }
+    wasSelected.current = selected;
+  }, [selected, reduce, sel, bubble]);
+  const fillStyle = useAnimatedStyle(() => ({ opacity: sel.get() }));
+  const bubbleStyle = useAnimatedStyle(() => ({ transform: [{ scale: bubble.get() }] }));
+  const radius = theme.scenic ? theme.radius.md : theme.radius.lg;
+  return (
+    <PressableScale
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
+      onPress={onPick}
+      style={{ flexBasis: '47%', flexGrow: 1 }}
+    >
+      <Card
+        padded={false}
+        style={{
+          alignItems: 'center',
+          gap: theme.spacing.sm,
+          paddingVertical: theme.spacing.md,
+          paddingHorizontal: theme.spacing.sm,
+          borderWidth: 2,
+          borderColor: 'transparent',
+          backgroundColor: theme.color.surface,
+        }}
+      >
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              top: -2,
+              bottom: -2,
+              left: -2,
+              right: -2,
+              borderRadius: radius,
+              backgroundColor: theme.color.brandSoft,
+            },
+            fillStyle,
+          ]}
+        />
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              top: -2,
+              bottom: -2,
+              left: -2,
+              right: -2,
+              borderRadius: radius,
+              borderWidth: 2,
+              borderColor: theme.color.brand,
+            },
+            fillStyle,
+          ]}
+        />
+        <Animated.View
+          style={[
+            {
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: selected ? theme.color.brand : tint.bg,
+            },
+            bubbleStyle,
+          ]}
+        >
+          <Ionicons
+            name={icon}
+            size={iconSize.lg}
+            color={selected ? theme.color.onBrand : tint.ink}
+          />
+        </Animated.View>
+        <Text
+          variant="caption"
+          numberOfLines={2}
+          style={{ textAlign: 'center', fontWeight: selected ? '700' : '500' }}
+        >
+          {label}
+        </Text>
+      </Card>
+    </PressableScale>
   );
 }

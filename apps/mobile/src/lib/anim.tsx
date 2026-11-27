@@ -2,20 +2,22 @@
  * The app's motion, in one place.
  *
  * Motion is a response, not a scene: entrances are short, the count keeps to
- * well under a second, and a press answers under the finger. The animations
- * always play — there is no preference gating them off.
+ * well under a second, and a press answers under the finger. Animations are
+ * skipped when the OS asks for reduced motion (`useReducedMotion`).
  *
  * The pure maths lives at the bottom, exported, because a count that lands on
  * the wrong number or a stagger that never stops is a bug you want to catch in
  * a test rather than by watching the screen.
  */
 
-import { useEffect, type ReactNode } from 'react';
-import { Pressable, type PressableProps, type ViewStyle } from 'react-native';
+import { useEffect, type ReactNode, type Ref } from 'react';
+import { Pressable, type PressableProps, type View, type ViewStyle } from 'react-native';
 import Animated, {
+  Easing,
   FadeInDown,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withSpring,
   withTiming,
   type EntryExitAnimationFunction,
@@ -51,6 +53,15 @@ export function useCrossfade(active: boolean, duration = 180) {
     not a scene — used by the navigator's `animationDuration`. */
 export const TRANSITION_MS = 260;
 
+/** Strong ease-out for entrances and anything answering a touch. */
+export const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
+/** Strong ease-in-out for things moving on screen (progress, sliding highlight). */
+export const EASE_IN_OUT = Easing.bezier(0.77, 0, 0.175, 1);
+/** Default settle for anything the user can touch: critically damped, no overshoot. */
+export const SPRING_SETTLE = { duration: 350, dampingRatio: 1 } as const;
+/** A small, rare pop (money arrived, a choice made). Slight overshoot, never on frequent controls. */
+export const SPRING_POP = { duration: 400, dampingRatio: 0.7 } as const;
+
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /** The spring a press answers with: quick, barely overshooting, back to rest. */
@@ -71,7 +82,11 @@ export function Stagger({ index = 0, children }: { index?: number; children: Rea
   const reduceMotion = useReducedMotion();
   return (
     <Animated.View
-      entering={reduceMotion ? undefined : FadeInDown.duration(340).delay(staggerDelay(index))}
+      entering={
+        reduceMotion
+          ? undefined
+          : FadeInDown.duration(260).easing(EASE_OUT).delay(staggerDelay(index))
+      }
     >
       {children}
     </Animated.View>
@@ -87,10 +102,16 @@ export function Stagger({ index = 0, children }: { index?: number; children: Rea
 export function PressableScale({
   children,
   style,
+  pressedScale = 0.96,
   onPressIn,
   onPressOut,
   ...rest
-}: Omit<PressableProps, 'style'> & { children: ReactNode; style?: ViewStyle }) {
+}: Omit<PressableProps, 'style'> & {
+  children: ReactNode;
+  style?: ViewStyle;
+  pressedScale?: number;
+  ref?: Ref<View>;
+}) {
   const reduceMotion = useReducedMotion();
   // `.get()`/`.set()` rather than `.value`: the same shared value, through the
   // method API Reanimated 4 added — a call, not an assignment to a property the
@@ -102,7 +123,7 @@ export function PressableScale({
     <AnimatedPressable
       style={[animatedStyle, style]}
       onPressIn={(event) => {
-        if (!reduceMotion) scale.set(withSpring(0.96, PRESS_SPRING));
+        if (!reduceMotion) scale.set(withSpring(pressedScale, PRESS_SPRING));
         onPressIn?.(event);
       }}
       onPressOut={(event) => {
@@ -154,3 +175,43 @@ const detailEntering: EntryExitAnimationFunction = () => {
     },
   };
 };
+
+/** A small element arriving with a pop: starts at 60% and a touch transparent, overshoots slightly. */
+export function popEntering(delay = 0): EntryExitAnimationFunction {
+  return () => {
+    'worklet';
+    return {
+      initialValues: { opacity: 0, transform: [{ scale: 0.6 }] },
+      animations: {
+        opacity: withDelay(delay, withTiming(1, { duration: 140 })),
+        transform: [{ scale: withDelay(delay, withSpring(1, SPRING_POP)) }],
+      },
+    };
+  };
+}
+
+/** A picture that rises 12px into place while fading in (first-run empty states). */
+export const houseEntering: EntryExitAnimationFunction = () => {
+  'worklet';
+  return {
+    initialValues: { opacity: 0, transform: [{ translateY: 12 }] },
+    animations: {
+      opacity: withTiming(1, { duration: 200 }),
+      transform: [{ translateY: withSpring(0, SPRING_SETTLE) }],
+    },
+  };
+};
+
+/** A picture that settles into place: rises 8px while fading in. */
+export function settleEntering(delay = 0): EntryExitAnimationFunction {
+  return () => {
+    'worklet';
+    return {
+      initialValues: { opacity: 0, transform: [{ translateY: 8 }] },
+      animations: {
+        opacity: withDelay(delay, withTiming(1, { duration: 200 })),
+        transform: [{ translateY: withDelay(delay, withSpring(0, SPRING_SETTLE)) }],
+      },
+    };
+  };
+}
