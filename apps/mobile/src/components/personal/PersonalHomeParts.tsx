@@ -18,6 +18,7 @@ import { useDateOccurrences } from '@/data/personalDates';
 import { usePersonalWealth } from '@/data/personalWealth';
 import { fill, plural, useStrings } from '@/i18n';
 import { PressableScale } from '@/lib/anim';
+import { badgeLabel } from '@/lib/countBadge';
 import { useAuth } from '@/lib/auth';
 import { actionFor } from '@/lib/dateReminders/actions';
 import { subtitleOf, titleOf } from '@/lib/dateReminders/text';
@@ -159,19 +160,55 @@ export function CardTitle({
   title,
   action,
   onAction,
+  count,
   children,
 }: {
   title: string;
   action?: string;
   onAction?: () => void;
+  /** Pill right after the title; hidden at 0, capped at 99+. */
+  count?: number;
   children?: React.ReactNode;
 }) {
   const theme = useTheme();
+  const badge = badgeLabel(count);
   return (
     <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-      <Text accessibilityRole="header" variant="subheading" numberOfLines={1} style={{ flex: 1 }}>
-        {title}
-      </Text>
+      <Row
+        accessible={badge !== null}
+        accessibilityRole={badge !== null ? 'header' : undefined}
+        accessibilityLabel={badge !== null ? `${title}, ${count} items` : undefined}
+        style={{ flex: 1, alignItems: 'center', gap: theme.spacing.sm }}
+      >
+        <Text
+          accessibilityRole={badge === null ? 'header' : undefined}
+          variant="subheading"
+          numberOfLines={1}
+          style={{ flexShrink: 1 }}
+        >
+          {title}
+        </Text>
+        {badge !== null ? (
+          <View
+            style={{
+              minWidth: 22,
+              height: 22,
+              paddingHorizontal: 7,
+              borderRadius: 11,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.negativeSoft,
+            }}
+          >
+            <Text
+              variant="caption"
+              style={{ fontSize: 12, fontWeight: '700', color: theme.color.negativeText }}
+            >
+              {badge}
+            </Text>
+          </View>
+        ) : null}
+      </Row>
       {children}
       {action && onAction ? (
         <Pressable
