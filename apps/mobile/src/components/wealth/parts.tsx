@@ -522,11 +522,12 @@ function PickTile({
       accessibilityLabel={label}
       accessibilityState={{ selected }}
       onPress={onPick}
-      style={{ flexBasis: '47%', flexGrow: 1 }}
+      style={{ flexBasis: '47%', flexGrow: 1, alignSelf: 'stretch' }}
     >
       <Card
         padded={false}
         style={{
+          flexGrow: 1,
           alignItems: 'center',
           gap: theme.spacing.sm,
           paddingVertical: theme.spacing.md,

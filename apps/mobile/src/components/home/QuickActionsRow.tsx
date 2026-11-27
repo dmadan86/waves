@@ -40,6 +40,7 @@ export interface QuickAction {
   ref?: RefObject<View | null>;
 }
 
+// Labels wrap to a second line rather than shrink, so every label shares one type size.
 export function QuickActionsRow({
   actions,
   radius,
@@ -109,9 +110,7 @@ export function QuickActionsRow({
               <Text
                 variant="micro"
                 align="center"
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.8}
+                numberOfLines={2}
                 style={{ maxWidth: '100%', fontWeight: '600', color: ink }}
               >
                 {action.label}
@@ -224,9 +223,7 @@ export function QuickActionsRow({
             <Text
               variant="micro"
               align="center"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.8}
+              numberOfLines={2}
               style={{
                 maxWidth: '100%',
                 fontWeight: '600',

@@ -172,30 +172,32 @@ function Shell({
             <Ionicons name="close" size={iconSize.md} color={theme.color.textMuted} />
           </Pressable>
         </Row>
+        {/* The step header stays put; only the answers scroll beneath it. */}
+        <StepHeader
+          icon={icon}
+          index={index}
+          total={total}
+          stepLabel={fill(s.stepOf, { n: index + 1, total })}
+        />
+        <Text variant="title" accessibilityRole="header">
+          {title}
+        </Text>
         <ScrollView
+          style={{ flex: 1 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ gap: theme.spacing.lg, paddingBottom: theme.spacing.xl }}
+          contentContainerStyle={{ gap: theme.spacing.lg, paddingBottom: theme.spacing.md }}
         >
-          <StepHeader
-            icon={icon}
-            index={index}
-            total={total}
-            stepLabel={fill(s.stepOf, { n: index + 1, total })}
-          />
-          <Text variant="title" accessibilityRole="header">
-            {title}
-          </Text>
           {children}
-          {privateLine ? (
-            <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-              <Ionicons name="lock-closed-outline" size={14} color={theme.color.textMuted} />
-              <Text variant="caption" tone="muted" style={{ flex: 1 }}>
-                {s.privateLine}
-              </Text>
-            </Row>
-          ) : null}
         </ScrollView>
+        {privateLine ? (
+          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+            <Ionicons name="lock-closed-outline" size={14} color={theme.color.textMuted} />
+            <Text variant="caption" tone="muted" style={{ flex: 1 }}>
+              {s.privateLine}
+            </Text>
+          </Row>
+        ) : null}
         {onSkip ? (
           <View style={{ paddingBottom: clearance + theme.spacing.lg }}>
             <Button fullWidth label={s.skip} variant="ghost" onPress={onSkip} />
