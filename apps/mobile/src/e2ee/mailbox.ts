@@ -13,7 +13,14 @@ import { bytesToBase64 } from '@/sync/rowCipher';
 import type { E2eeOutboxRow } from '@/sync/store';
 
 import { fromBytea } from './deviceKey';
-import { diffDevices, memoryMeta, NoticeStore, type KnownDevice, type Meta } from './deviceNotice';
+import {
+  diffDevices,
+  removedDevices,
+  memoryMeta,
+  NoticeStore,
+  type KnownDevice,
+  type Meta,
+} from './deviceNotice';
 import { snapshotOps, type E2eeSpace, type Incoming, type OutboxMsg } from './space';
 
 /** The slice of the Supabase client this uses, so tests can stand in a fake server. */
@@ -52,16 +59,18 @@ const FETCH_PAGE = 200;
 const STALE_MS = 30 * 24 * 3_600_000;
 /** One snapshot per requester per hour, and one request per group per hour. */
 const RESYNC_GAP_MS = 3_600_000;
-/** Pads the msgId while chunking, so a chunk also fits the sender's size budget. */
-const CHUNK_PAD = 'x'.repeat(512);
-/** Room for the msgId prefix, the seal and the wrapper under the server's 64 KiB limit. */
-const SIZE_BUDGET = e2ee.MAX_MESSAGE_BYTES - 512;
+/** Pads the msgId while chunking: room for the real id and the `to` field the answer adds. */
+const CHUNK_PAD = 'x'.repeat(160);
+/** Exact bytes this message takes on the server: frame byte + msgId + nonce + tag + plaintext. */
+const wireSize = (pt: e2ee.Plaintext): number =>
+  1 + utf8.encode(pt.msgId).length + 40 + utf8.encode(e2ee.encodeJson(pt)).length;
+const fits = (pt: e2ee.Plaintext): boolean => wireSize(pt) <= e2ee.MAX_MESSAGE_BYTES;
 
 const utf8 = new TextEncoder();
 
 /** Halve a message until each part fits; a single op that still does not is returned alone. */
 function splitToFit(pt: e2ee.Plaintext): e2ee.Plaintext[] {
-  if (utf8.encode(e2ee.encodeJson(pt)).length <= SIZE_BUDGET || pt.ops.length < 2) return [pt];
+  if (fits(pt) || pt.ops.length < 2) return [pt];
   const mid = pt.ops.length >> 1;
   return [
     ...splitToFit({ ...pt, msgId: `${pt.msgId}.a`, ops: pt.ops.slice(0, mid) }),
@@ -92,6 +101,7 @@ export function createMailbox(deps: MailboxDeps) {
   const meta = deps.meta ?? memoryMeta();
   const notices = new NoticeStore(meta);
   const answered = new Map<string, number>();
+  const parts = new Map<string, Set<number>>();
   const devicesCache = new Map<string, { at: number; list: GroupDevice[] }>();
   const pairKeys = new Map<string, Uint8Array>();
   const attempts = new Map<string, { n: number; next: number }>();
@@ -138,10 +148,12 @@ export function createMailbox(deps: MailboxDeps) {
     const recipients = (await groupDevices(row.groupId)).filter(
       (d) => d.deviceId !== me && (msg.to === undefined || d.deviceId === msg.to),
     );
+    // An answer to a phone that is gone (removed) would block every later message: drop it.
+    if (recipients.length === 0 && msg.to !== undefined) return 'drop';
     // Nobody to tell yet (the partner has not set up): keep it for when they do.
     if (recipients.length === 0) return 'wait';
     const parts = splitToFit(msg.plaintext);
-    if (parts.some((p) => utf8.encode(e2ee.encodeJson(p)).length > SIZE_BUDGET)) {
+    if (parts.some((p) => !fits(p))) {
       deps.report(new Error('e2ee: record too large to send'), 'e2ee.send.tooLarge');
       return 'drop';
     }
@@ -234,6 +246,12 @@ export function createMailbox(deps: MailboxDeps) {
     const me = await keys.deviceId();
     let applied = 0;
     const refreshed = new Set<string>();
+    const asked = new Set<string>();
+    const closed = new Set<string>();
+    for (const g of deps.groups?.() ?? []) {
+      const at = Number((await meta.get(`open:${g}`)) ?? 0);
+      if (deps.now() - at < 24 * RESYNC_GAP_MS) asked.add(g);
+    }
     for (let round = 0; round < 10; round++) {
       const res = await client
         .from('group_mailbox')
@@ -276,8 +294,24 @@ export function createMailbox(deps: MailboxDeps) {
           // An op this build does not know is skipped.
           for (const op of pt.ops as { op: string }[]) {
             if (op.op === 'put' || op.op === 'del') merge.push(op as e2ee.MergeOp);
-            else if (op.op === 'snapshot') snap.push(...(op as e2ee.SnapshotOp).records);
-            else if (op.op === 'resync_req')
+            else if (op.op === 'snapshot') {
+              // Sealed for this phone already; `to` also has to say so.
+              if ((op as { to?: string }).to === me) {
+                const so = op as e2ee.SnapshotOp;
+                snap.push(...so.records);
+                const key = `${row.group_id}|${sender.deviceId}|${so.of}`;
+                const seen = (parts.get(key) ?? new Set<number>()).add(so.part);
+                parts.set(key, seen);
+                if (seen.size === so.of) {
+                  parts.delete(key);
+                  closed.add(row.group_id);
+                }
+              } else
+                reportOnce(
+                  new Error('e2ee: snapshot not addressed to this phone'),
+                  'e2ee.snapshot',
+                );
+            } else if (op.op === 'resync_req')
               answers.push({ groupId: row.group_id, to: sender.deviceId });
           }
           if (merge.length > 0)
@@ -288,8 +322,14 @@ export function createMailbox(deps: MailboxDeps) {
               groupId: row.group_id,
               ops: snapshotOps(snap),
               senderMemberId: sender.memberId,
-              trusted: true,
+              // Only an answer to a request this phone made: an unsolicited snapshot may not
+              // name another member as author (it then goes through the normal author checks).
+              trusted: asked.has(row.group_id),
+              // (untrusted when unsolicited: reported below)
+              authors: new Set(devices.map((d) => d.memberId)),
             });
+          if (snap.length > 0 && !asked.has(row.group_id))
+            reportOnce(new Error('e2ee: unsolicited snapshot'), 'e2ee.snapshot');
           done.push(row.id);
         } catch (error) {
           // Never blocks the queue: drop it, say so once.
@@ -299,6 +339,7 @@ export function createMailbox(deps: MailboxDeps) {
       }
       await space.applyIncoming(entries);
       applied += entries.length;
+      for (const g of closed) await meta.set(`open:${g}`, '0');
       for (const a of answers) await answer(a.groupId, a.to);
       if (done.length > 0) {
         const del = await client.from('group_mailbox').delete().in('id', done);
@@ -311,22 +352,25 @@ export function createMailbox(deps: MailboxDeps) {
 
   /** Send my whole group state to one phone that asked, at most once an hour per phone. */
   async function answer(groupId: string, to: string): Promise<void> {
-    const last = answered.get(to);
+    const last = answered.get(`${to}|${groupId}`);
     if (last !== undefined && deps.now() - last < RESYNC_GAP_MS) return;
     const records = space.snapshot(groupId);
     if (records.length === 0) return;
-    answered.set(to, deps.now());
+    answered.set(`${to}|${groupId}`, deps.now());
     try {
       for (const part of e2ee.chunkSnapshot(records, CHUNK_PAD))
-        await space.queue(groupId, [part], to);
-    } catch (error) {
-      reportOnce(error, 'e2ee.resync.answer');
+        await space.queue(groupId, [{ ...part, to }], to);
+    } catch {
+      // Not the error itself: it names a record id.
+      reportOnce(new Error('e2ee: snapshot too large to send'), 'e2ee.resync.answer');
     }
   }
 
   /** Ask the group's other phones for everything (a new phone, or one away over 30 days). */
   async function requestResync(groupId: string): Promise<void> {
     await meta.set(`asked:${groupId}`, String(deps.now()));
+    // Open until every part of the answer has arrived: only then may a snapshot be trusted.
+    await meta.set(`open:${groupId}`, String(deps.now()));
     await space.queue(groupId, [{ op: 'resync_req' }]);
   }
 
@@ -355,7 +399,15 @@ export function createMailbox(deps: MailboxDeps) {
           current,
           current.find((d) => d.deviceId === me)?.memberId ?? null,
         );
-        await notices.add(fresh.map((d) => ({ ...d, groupId })));
+        const myMember = current.find((d) => d.deviceId === me)?.memberId ?? null;
+        await notices.add([
+          ...fresh.map((d) => ({ ...d, groupId })),
+          ...removedDevices(known, current, myMember).map((d) => ({
+            ...d,
+            groupId,
+            removed: true,
+          })),
+        ]);
         await meta.set(`devices:${groupId}`, JSON.stringify(current));
       } catch (error) {
         reportOnce(error, 'e2ee.housekeeping');

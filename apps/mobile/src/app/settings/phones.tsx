@@ -89,7 +89,7 @@ export default function PhonesScreen() {
                     })}
                   </Text>
                 </View>
-                {mine ? null : (
+                {mine || !phones.data.mine ? null : (
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={t.wealth.removePhone}

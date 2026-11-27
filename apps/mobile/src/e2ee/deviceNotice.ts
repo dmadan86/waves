@@ -11,6 +11,19 @@ export interface KnownDevice {
 
 export interface DeviceNotice extends KnownDevice {
   readonly groupId: string;
+  /** The partner removed this phone (rather than added it). */
+  readonly removed?: boolean;
+}
+
+/** Partner phones that were in the last list and are gone now. */
+export function removedDevices(
+  known: readonly KnownDevice[] | null,
+  current: readonly KnownDevice[],
+  myMemberId: string | null,
+): KnownDevice[] {
+  if (known === null) return [];
+  const has = new Set(current.map((d) => d.deviceId));
+  return known.filter((d) => !has.has(d.deviceId) && d.memberId !== myMemberId);
 }
 
 /** `known` is null the first time a group is seen: that is a baseline, never a notice. */

@@ -177,6 +177,7 @@ export interface WealthStrings {
   /** The lock line on a couple/home group's Rentals screen. */
   e2eeNote: string;
   phoneAdded: string;
+  phoneRemoved: string;
   dismiss: string;
   formerCouple: string;
   formerCouplesTitle: string;
@@ -442,6 +443,7 @@ export const wealthEn: WealthStrings = {
   sendToPartner: 'Send to partner',
   e2eeNote: 'End-to-end encrypted. Only you and your partner can read this.',
   phoneAdded: '{name} added a new phone.',
+  phoneRemoved: '{name} removed a phone.',
   dismiss: 'Dismiss',
   formerCouple: 'Former couple: {name}',
   formerCouplesTitle: 'Former couples',
@@ -699,6 +701,7 @@ export const wealthTa: WealthStrings = {
   sendToPartner: 'துணைக்கு அனுப்பு',
   e2eeNote: 'முழுமையாக குறியாக்கம் செய்யப்பட்டது. நீங்களும் உங்கள் துணையும் மட்டுமே இதைப் படிக்க முடியும்.',
   phoneAdded: '{name} புதிய ஃபோனைச் சேர்த்தார்.',
+  phoneRemoved: '{name} ஒரு ஃபோனை நீக்கினார்.',
   dismiss: 'மூடு',
   formerCouple: 'முன்னாள் ஜோடி: {name}',
   formerCouplesTitle: 'முன்னாள் ஜோடிகள்',
@@ -956,6 +959,7 @@ export const wealthHi: WealthStrings = {
   sendToPartner: 'साथी को भेजें',
   e2eeNote: 'एंड-टू-एंड एन्क्रिप्टेड। इसे केवल आप और आपके साथी पढ़ सकते हैं।',
   phoneAdded: '{name} ने नया फ़ोन जोड़ा।',
+  phoneRemoved: '{name} ने एक फ़ोन हटाया।',
   dismiss: 'बंद करें',
   formerCouple: 'पूर्व जोड़ी: {name}',
   formerCouplesTitle: 'पूर्व जोड़ियाँ',
@@ -1212,6 +1216,7 @@ export const wealthAr: WealthStrings = {
   sendToPartner: 'إرسال إلى الشريك',
   e2eeNote: 'مشفّر من طرف إلى طرف. أنت وشريكك فقط يمكنكما قراءة هذا.',
   phoneAdded: '{name} أضاف هاتفًا جديدًا.',
+  phoneRemoved: '{name} أزال هاتفًا.',
   dismiss: 'إغلاق',
   formerCouple: 'الزوجان السابقان: {name}',
   formerCouplesTitle: 'الأزواج السابقون',

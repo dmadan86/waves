@@ -10,6 +10,13 @@ export const MAX_MESSAGE_BYTES = 64 * 1024;
 const SEAL_OVERHEAD = 24 + 16;
 const byteLen = (s: string): number => new TextEncoder().encode(s).length;
 
+/**
+ * Bytes one message occupies in the mailbox: `[msgId length: 1][msgId][nonce 24][sealed][tag 16]`.
+ * The one calculation chunking and the mailbox both use, so neither can drift from the 64 KiB limit.
+ */
+export const wireSize = (msgId: string, plaintextJson: string): number =>
+  1 + byteLen(msgId) + SEAL_OVERHEAD + byteLen(plaintextJson);
+
 export interface SnapshotOp {
   readonly op: 'snapshot';
   readonly part: number;
@@ -20,14 +27,14 @@ export interface SnapshotOp {
 /** `msgId` is the id of the envelope that will carry each part (sizes its wrapper). */
 export function chunkSnapshot(records: readonly RecordState[], msgId: string): SnapshotOp[] {
   // Wrapper sized with 9-digit part/of so any real count fits.
-  const base =
-    byteLen(
-      encodeJson({
-        v: 1,
-        msgId,
-        ops: [{ op: 'snapshot', part: 999999999, of: 999999999, records: [] }],
-      }),
-    ) + SEAL_OVERHEAD;
+  const base = wireSize(
+    msgId,
+    encodeJson({
+      v: 1,
+      msgId,
+      ops: [{ op: 'snapshot', part: 999999999, of: 999999999, records: [] }],
+    }),
+  );
   const groups: RecordState[][] = [[]];
   let size = base;
   for (const r of records) {

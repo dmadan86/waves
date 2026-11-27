@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { buildBody, parseBody } from '../src/lib/backup/payload';
 import { shouldPromptCoupleBackup } from '../src/lib/backup/couplePrompt';
+import { snapshotOps } from '../src/e2ee/space';
 import { FakeServer, phone } from './e2eeFake';
 
 vi.mock('expo-secure-store', () => ({}));
@@ -148,9 +149,16 @@ describe('new phone notice', () => {
     await a.sync();
     expect(a.mailbox.notices.list()).toHaveLength(1); // my own other phone: no notice
 
+    // The partner removing a phone is shown too.
+    server.devices = server.devices.filter((d) => d.id !== b2Id);
+    clock.t += 61_000;
+    await a.sync();
+    expect(a.mailbox.notices.list().filter((n) => n.removed)).toHaveLength(1);
+
     a.mailbox.notices.dismiss(a.mailbox.notices.list()[0]!.deviceId);
     clock.t += 61_000;
     await a.sync();
+    await Promise.all(a.mailbox.notices.list().map((n) => a.mailbox.notices.dismiss(n.deviceId)));
     expect(a.mailbox.notices.list()).toEqual([]);
   });
 });
@@ -192,5 +200,54 @@ describe('sign-out back-up prompt', () => {
     expect(shouldPromptCoupleBackup({ coupleRecords: 3, lastBackupAt: now - 10 * DAY, now })).toBe(
       true,
     );
+  });
+});
+
+describe('snapshot trust', () => {
+  const forged = (createdBy: string) => ({
+    id: 'f1',
+    kind: 'property',
+    createdBy,
+    fields: { name: ['Forged', '9999999999999:0:ckA'] },
+  });
+
+  it('an unsolicited snapshot cannot plant a record authored by someone else', async () => {
+    const { server, clock, a, b1 } = await setup();
+    clock.t += 25 * HOUR; // any earlier request of b1's has expired
+    const bId = await b1.deviceId();
+    await a.space.queue(
+      G,
+      [{ op: 'snapshot', part: 0, of: 1, to: bId, records: [forged('mB')] }],
+      bId,
+    );
+    await a.mailbox.flushOutbox();
+    expect(server.mailbox.length).toBeGreaterThan(0);
+    await b1.sync();
+    expect(b1.data(G)).not.toHaveProperty('f1');
+  });
+
+  it('a snapshot addressed to another device is ignored', async () => {
+    const { clock, a, b2 } = await setup();
+    clock.t += 61_000;
+    await b2.sync(); // asks, so a snapshot would be trusted
+    const b2Id = await b2.deviceId();
+    await a.space.queue(
+      G,
+      [{ op: 'snapshot', part: 0, of: 1, to: await a.deviceId(), records: [forged('mA')] }],
+      b2Id,
+    );
+    await a.mailbox.flushOutbox();
+    await b2.sync();
+    expect(b2.data(G)).not.toHaveProperty('f1');
+  });
+
+  it('a snapshot can never change the author of a record the phone already has', async () => {
+    const { a } = await setup();
+    const p1 = a.space.snapshot(G).find((r) => r.id === 'p1')!;
+    const early = { ...p1, createdBy: 'mX', fields: { name: ['Early', '1:0:ckZ'] } };
+    await a.space.applyIncoming([
+      { groupId: G, ops: snapshotOps([early]), senderMemberId: 'mB', trusted: true },
+    ]);
+    expect(a.space.records(G).find((r) => r.id === 'p1')!.created_by).toBe('mA');
   });
 });

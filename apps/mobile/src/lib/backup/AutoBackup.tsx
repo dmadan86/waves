@@ -19,7 +19,7 @@
  * daily, which is the population the setting is for.
  */
 
-import { coupleBackup } from '@/e2ee/runtime';
+import { coupleBackup, coupleRecordCount } from '@/e2ee/runtime';
 import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
@@ -69,7 +69,7 @@ export function AutoBackup() {
 
       await recoverBackground(ownerId);
       // Nothing to protect, and an empty seal is the one thing that must never go out.
-      if (recordsRef.current.length === 0) return;
+      if (recordsRef.current.length === 0 && coupleRecordCount() === 0) return;
       const settings = await loadBackupSettings(ownerId);
       if (!isDue(settings.last?.at ?? null, settings.frequency, now)) return;
 

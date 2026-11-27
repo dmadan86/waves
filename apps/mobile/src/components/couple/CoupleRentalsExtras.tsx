@@ -27,7 +27,7 @@ export function NewPhoneNotice({ groupId }: { groupId?: string }) {
           <Row key={n.deviceId} style={{ alignItems: 'center', gap: theme.spacing.xs }}>
             <Ionicons name="phone-portrait-outline" size={iconSize.sm} color={theme.color.brand} />
             <Text variant="caption" style={{ flex: 1 }}>
-              {fill(t.wealth.phoneAdded, { name })}
+              {fill(n.removed ? t.wealth.phoneRemoved : t.wealth.phoneAdded, { name })}
             </Text>
             <Pressable
               accessibilityRole="button"

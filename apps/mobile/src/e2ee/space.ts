@@ -61,6 +61,8 @@ export interface Incoming {
   readonly senderMemberId: string;
   /** A snapshot from a partner's phone: first-sight author checks do not apply. */
   readonly trusted?: boolean;
+  /** With `trusted`: an unknown record's author must be one of these (the group's members). */
+  readonly authors?: ReadonlySet<string>;
 }
 
 /** A snapshot's records as merge ops (a put per record, plus its delete stamp). */
@@ -378,7 +380,18 @@ export class E2eeSpace {
           next: this.stores.get(e.groupId) ?? {},
           touched: new Set<string>(),
         };
-        g.next = e2ee.applyOps(g.next, e.ops, e.senderMemberId, { trusted: e.trusted });
+        let ops = e.ops;
+        if (e.trusted) {
+          // A snapshot never changes a known record's author, and never names a stranger.
+          const base = g.next;
+          ops = ops.flatMap((op): e2ee.MergeOp[] => {
+            if (op.op !== 'put') return [op];
+            const known = base[op.id];
+            if (known && known.createdBy !== '') return [{ ...op, createdBy: known.createdBy }];
+            return e.authors && !e.authors.has(op.createdBy) ? [] : [op];
+          });
+        }
+        g.next = e2ee.applyOps(g.next, ops, e.senderMemberId, { trusted: e.trusted });
         for (const op of e.ops) g.touched.add(op.id);
         byGroup.set(e.groupId, g);
       }
