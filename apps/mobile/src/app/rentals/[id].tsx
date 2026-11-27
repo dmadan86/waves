@@ -106,7 +106,7 @@ function TintButton({
       onPress={onPress}
       style={{
         flex: 1,
-        minHeight: 48,
+        minHeight: 44,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -423,10 +423,29 @@ function DetailBody() {
         <ScrollView
           contentContainerStyle={{
             paddingHorizontal: theme.spacing.lg,
-            paddingBottom: theme.spacing.lg,
+            paddingBottom: clearance + theme.spacing.lg,
             gap: theme.spacing.md,
           }}
         >
+          <Row style={{ gap: theme.spacing.sm }}>
+            <TintButton
+              label={w.addExpense}
+              icon="document-text-outline"
+              bg={theme.color.brandSoft}
+              fg={theme.color.brand}
+              onPress={() => setOpen('expense')}
+            />
+            {tn ? (
+              <TintButton
+                label={w.receiptsBtn}
+                icon="receipt-outline"
+                bg={theme.color.surfaceMuted}
+                fg={theme.color.text}
+                disabled={!lastPayment}
+                onPress={() => void share()}
+              />
+            ) : null}
+          </Row>
           <Animated.View layout={glide}>
             <StandardCard
               style={{ backgroundColor: theme.color.brandSoft, borderColor: theme.color.brandSoft }}
@@ -683,32 +702,6 @@ function DetailBody() {
             </Animated.View>
           ) : null}
         </ScrollView>
-        <Row
-          style={{
-            gap: theme.spacing.sm,
-            paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.sm,
-            paddingBottom: clearance + theme.spacing.sm,
-          }}
-        >
-          <TintButton
-            label={w.addExpense}
-            icon="document-text-outline"
-            bg={theme.color.brandSoft}
-            fg={theme.color.brand}
-            onPress={() => setOpen('expense')}
-          />
-          {tn ? (
-            <TintButton
-              label={w.receiptsBtn}
-              icon="receipt-outline"
-              bg={theme.color.surfaceMuted}
-              fg={theme.color.text}
-              disabled={!lastPayment}
-              onPress={() => void share()}
-            />
-          ) : null}
-        </Row>
       </DetailEnter>
 
       <AmountSheet
