@@ -23,6 +23,7 @@ beforeEach(() => {
 describe('device key', () => {
   it('is generated once, kept in the keystore with the mirror key accessibility', async () => {
     const m = await import('../src/e2ee/deviceKey');
+    await m.loadDeviceKey('acct-a');
     const a = await m.loadDeviceKey('acct-a');
     const b = await m.loadDeviceKey('acct-a');
     expect(b).toBe(a);
@@ -52,6 +53,24 @@ describe('device key', () => {
     expect(sent[0]).toMatch(/^\\x[0-9a-f]{64}$/);
     expect(m.registeredDeviceId('acct-a')).toBe('dev-1');
     m.forgetDeviceId('acct-a');
+    expect(m.registeredDeviceId('acct-a')).toBeNull();
+  });
+
+  it('discards a device registration that finishes after forgetDeviceId', async () => {
+    const m = await import('../src/e2ee/deviceKey');
+    await m.loadDeviceKey('acct-a');
+    let finish!: (id: string) => void;
+    const registering = m.registerDevice(
+      'acct-a',
+      () =>
+        new Promise<string>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    await vi.waitFor(() => expect(finish).toBeTypeOf('function'));
+    m.forgetDeviceId('acct-a');
+    finish('stale-device');
+    await expect(registering).rejects.toThrow('outlived its session');
     expect(m.registeredDeviceId('acct-a')).toBeNull();
   });
 

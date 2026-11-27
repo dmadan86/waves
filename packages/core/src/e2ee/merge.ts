@@ -88,6 +88,10 @@ export function getMergeDiagnostics(store: Store): {
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const OBJECT_PROTOTYPE_KEYS = new Set([
+  ...Object.getOwnPropertyNames(Object.prototype),
+  'prototype',
+]);
 const FIELDS: Record<string, ReadonlySet<string>> = {
   txn: new Set([
     'kind',
@@ -303,6 +307,7 @@ export function validateOp(
     for (const [name, raw] of entries) {
       if (
         !/^[A-Za-z_][A-Za-z0-9_]{0,127}$/.test(name) ||
+        OBJECT_PROTOTYPE_KEYS.has(name) ||
         !Array.isArray(raw) ||
         raw.length !== 2 ||
         typeof raw[1] !== 'string'
@@ -391,7 +396,7 @@ export function applyOps(
   senderMemberId: string,
   opts: { trusted?: boolean; isSharedId?: (id: string) => boolean } = {},
 ): MergeResult {
-  const out: Record<string, RecordState> = { ...store };
+  const out: Record<string, RecordState> = Object.assign(Object.create(null), store);
   const rejected: { op: unknown; reason: string }[] = [];
   const pending: MergeOp[] = [];
   for (const raw of ops as readonly unknown[]) {
@@ -401,7 +406,7 @@ export function applyOps(
       continue;
     }
     const op = valid.op;
-    const cur = out[op.id];
+    const cur = Object.hasOwn(out, op.id) ? out[op.id] : undefined;
     if (op.op === 'del') {
       if (!cur) out[op.id] = { id: op.id, kind: '', createdBy: '', fields: {}, deleted: op.hlc };
       else if (newer(op.hlc, cur.deleted)) out[op.id] = { ...cur, deleted: op.hlc };
@@ -425,9 +430,9 @@ export function applyOps(
           !(shared && op.create !== true)))
     )
       continue;
-    const fields: Record<string, Field> = { ...cur?.fields };
+    const fields: Record<string, Field> = Object.assign(Object.create(null), cur?.fields);
     for (const [k, f] of Object.entries(op.fields))
-      if (!fields[k] || newer(f[1], fields[k]![1])) fields[k] = f;
+      if (!Object.hasOwn(fields, k) || newer(f[1], fields[k]![1])) fields[k] = f;
     let createdBy = op.createdBy;
     let createdHlc = minHlc(op.fields);
     if (known) {
@@ -466,7 +471,7 @@ export function mergePending(store: Store, pending: readonly PendingOp[]): Merge
   let result: MergeResult = store;
   const wait: PendingOp[] = [];
   for (const item of pending) {
-    if (!store[item.op.id]?.createdBy) {
+    if (!Object.hasOwn(store, item.op.id) || !store[item.op.id]?.createdBy) {
       wait.push(item);
       continue;
     }
@@ -478,10 +483,10 @@ export function mergePending(store: Store, pending: readonly PendingOp[]): Merge
 
 /** Plain record for the UI, or null when tombstoned. Hlcs are stripped. */
 export function materialise(rec: RecordState): Record<string, unknown> | null {
-  const data: Record<string, unknown> = {};
+  const data: Record<string, unknown> = Object.create(null);
   let alive = false;
   for (const [k, [v, h]] of Object.entries(rec.fields)) {
-    if (newer(h, rec.deleted)) {
+    if (FIELDS[rec.kind]?.has(k) && newer(h, rec.deleted)) {
       data[k] = v;
       alive = true;
     }

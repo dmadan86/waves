@@ -12,7 +12,7 @@ import {
   encodeTenancy,
   encodeTxn,
 } from '../src/personal/types';
-import { validateMessage } from '../src/e2ee/merge';
+import { validateMessage, validateOp } from '../src/e2ee/merge';
 import {
   applyOps,
   chunkSnapshot,
@@ -366,6 +366,51 @@ describe('merge', () => {
     expect(materialise(result.store.ok!)).toMatchObject({ amount: 1n });
   });
 
+  it('rejects prototype-sensitive field names, including own __proto__ JSON keys', () => {
+    const before = Object.prototype.polluted;
+    for (const name of [
+      '__proto__',
+      'constructor',
+      'prototype',
+      'toString',
+      'valueOf',
+      'hasOwnProperty',
+      '__defineGetter__',
+    ]) {
+      const fields = JSON.parse(`{"${name}":[{"polluted":true},"1:0:A"]}`);
+      const op = { op: 'put', id: 'safe', kind: 'rent', createdBy: 'A', fields };
+      expect(validateOp(op).ok).toBe(false);
+      expect(applyOps({}, [op as unknown as MergeOp], 'A')).toEqual({});
+      expect(Object.prototype.polluted).toBe(before);
+    }
+  });
+
+  it('round-trips carried fields without letting them override allowlisted record metadata', () => {
+    const carried = JSON.parse(
+      '{"amount":["12","1:0:A"],"createdBy":["attacker","2:0:A"],"kind":["loan","3:0:A"],"amounts":["999","4:0:A"],"status":["closed","5:0:A"]}',
+    );
+    const op = {
+      op: 'put',
+      id: 'safe',
+      kind: 'rent',
+      createdBy: 'A',
+      fields: carried,
+    } as unknown as MergeOp;
+    const accepted = validateOp(op);
+    expect(accepted.ok).toBe(true);
+    if (!accepted.ok) return;
+    const merged = applyOps({}, [accepted.op], 'A');
+    const decoded = JSON.parse(JSON.stringify(merged));
+    expect(decoded.safe.fields.status[0]).toBe('closed');
+    expect(materialise(decoded.safe)).toEqual({
+      amount: '12',
+      status: 'closed',
+      id: 'safe',
+      kind: 'rent',
+      createdBy: 'A',
+    });
+  });
+
   it('buffers edits before immutable creation and resolves in every three-author delivery order', () => {
     const create = put('pending-record', 'A', { title: ['created', '10:0:A'] });
     const editB = put('pending-record', 'A', { note: ['B edit', '11:0:B'] });
@@ -541,7 +586,8 @@ describe('double creation of one id', () => {
     const x = runThree([createA, editByB, createB]);
     const y = runThree([createB, createA, editByB]);
     expect(y).toEqual(x);
-    expect(materialise(y.three!)).toMatchObject({ partner: 'edit' });
+    expect(y.three!.fields.partner?.[0]).toBe('edit');
+    expect(materialise(y.three!)).not.toHaveProperty('partner');
   });
 });
 

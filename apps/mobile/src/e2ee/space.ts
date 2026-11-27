@@ -102,7 +102,7 @@ const same = (a: unknown, b: unknown): boolean => e2ee.encodeJson(a) === e2ee.en
 
 /** The fields of a record that are newer than its delete. */
 function aliveFields(rec: e2ee.RecordState): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
+  const out: Record<string, unknown> = Object.create(null);
   for (const [k, [v, h]] of Object.entries(rec.fields))
     if (rec.deleted === undefined || e2ee.compareHlc(h, rec.deleted) > 0) out[k] = v;
   return out;
@@ -147,8 +147,8 @@ export class E2eeSpace {
       const pendingByGroup = new Map(await this.io.readE2eePending());
       if (!canCommit() || generation !== this.generation) return;
       for (const r of rows) {
-        const s = stores.get(r.groupId) ?? {};
-        s[r.id] = r.state;
+        const s = stores.get(r.groupId) ?? Object.create(null);
+        s[r.id] = { ...r.state, fields: Object.assign(Object.create(null), r.state.fields) };
         stores.set(r.groupId, s);
       }
       this.stores = stores;
@@ -281,13 +281,17 @@ export class E2eeSpace {
       if (this.stores.has(FORMER + c.groupId)) continue;
       const records = e2ee.decodeJson(c.records) as e2ee.RecordState[];
       if (!Array.isArray(records)) throw new Error('e2ee: invalid couple backup records');
-      const validation = e2ee.validateMessage({ msgId: 'restore', ops: snapshotOps(records) });
+      const safeRecords = records.map((record) => ({
+        ...record,
+        fields: Object.assign(Object.create(null), record.fields),
+      }));
+      const validation = e2ee.validateMessage({ msgId: 'restore', ops: snapshotOps(safeRecords) });
       if (!validation.ok || validation.rejected.length)
         throw new Error('e2ee: invalid couple backup records');
       await this.io.writeE2eePending(c.groupId, []);
       this.pendingByGroup.delete(c.groupId);
       await this.applyIncoming([
-        { groupId: c.groupId, ops: snapshotOps(records), senderMemberId: '', trusted: true },
+        { groupId: c.groupId, ops: snapshotOps(safeRecords), senderMemberId: '', trusted: true },
       ]);
       if (c.former || !liveGroupIds.includes(c.groupId)) await this.retire(c.groupId, c.name);
     }
@@ -363,7 +367,7 @@ export class E2eeSpace {
   ): Promise<void> {
     return this.run(async () => {
       if (isFormer(groupId)) throw new Error('e2ee: a former couple is read-only');
-      const store = this.stores.get(groupId) ?? {};
+      const store = this.stores.get(groupId) ?? Object.create(null);
       const cur = store[id];
       const known = cur && cur.createdBy !== '' ? cur : undefined;
       if (known && known.kind !== kind) throw new Error('e2ee: a record cannot change kind');
@@ -394,7 +398,7 @@ export class E2eeSpace {
   del(groupId: string, me: Me, id: string): Promise<void> {
     return this.run(async () => {
       if (isFormer(groupId)) throw new Error('e2ee: a former couple is read-only');
-      const store = this.stores.get(groupId) ?? {};
+      const store = this.stores.get(groupId) ?? Object.create(null);
       const rec = store[id];
       if (!rec || rec.createdBy === '') return;
       const hlc = e2ee.tick(lastHlc(store), this.clock.now(), me.clockId);
@@ -439,7 +443,7 @@ export class E2eeSpace {
       const byGroup = new Map<string, { next: Store; touched: Set<string> }>();
       for (const e of entries) {
         const g = byGroup.get(e.groupId) ?? {
-          next: this.stores.get(e.groupId) ?? {},
+          next: this.stores.get(e.groupId) ?? Object.create(null),
           touched: new Set<string>(),
         };
         let ops = e.ops;
