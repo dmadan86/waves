@@ -367,7 +367,7 @@ describe('merge', () => {
   });
 
   it('rejects prototype-sensitive field names, including own __proto__ JSON keys', () => {
-    const before = Object.prototype.polluted;
+    const before = (Object.prototype as Record<string, unknown>).polluted;
     for (const name of [
       '__proto__',
       'constructor',
@@ -381,7 +381,7 @@ describe('merge', () => {
       const op = { op: 'put', id: 'safe', kind: 'rent', createdBy: 'A', fields };
       expect(validateOp(op).ok).toBe(false);
       expect(applyOps({}, [op as unknown as MergeOp], 'A')).toEqual({});
-      expect(Object.prototype.polluted).toBe(before);
+      expect((Object.prototype as Record<string, unknown>).polluted).toBe(before);
     }
   });
 
@@ -425,11 +425,13 @@ describe('merge', () => {
         state = res;
         pending = [
           ...pending,
-          ...getMergeDiagnostics(res).pending.map((pendingOp) => ({
-            op: pendingOp,
-            sender,
-            receivedAt: 0,
-          })),
+          ...getMergeDiagnostics(res).pending.map(
+            (pendingOp): import('../src/e2ee/merge').PendingOp => ({
+              op: pendingOp as MergeOp, // only validated ops are ever buffered
+              sender,
+              receivedAt: 0,
+            }),
+          ),
         ];
       }
       const resolved = mergePending(state, pending);

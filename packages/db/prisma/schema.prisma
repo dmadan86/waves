@@ -3209,6 +3209,10 @@ model GroupMailbox {
   recipientDeviceId String   @map("recipient_device_id") @db.Uuid
   ciphertext        Bytes
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  /// Stable per sender+recipient+message+part: a retried send inserts nothing new.
+  deliveryId        String?  @map("delivery_id") @db.Uuid
+  /// Survives deletion of the sender device, for the per-profile retained-bytes cap.
+  senderProfileId   String?  @map("sender_profile_id") @db.Uuid
 
   group     Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
   sender    E2eeDevice? @relation("MailboxSender", fields: [senderDeviceId], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "group_mailbox_sender_fkey")
@@ -3218,6 +3222,19 @@ model GroupMailbox {
   @@index([groupId], map: "group_mailbox_group_id_idx")
   @@index([senderDeviceId], map: "group_mailbox_sender_idx")
   @@map("group_mailbox")
+  @@schema("public")
+}
+
+/// Delivery receipts: outlive the mailbox row so a retry after the receiver acked is a no-op.
+/// Server-only (service_role); RLS on, no policies.
+model GroupMailboxReceipt {
+  senderDeviceId  String   @map("sender_device_id") @db.Uuid
+  deliveryId      String   @map("delivery_id") @db.Uuid
+  senderProfileId String   @map("sender_profile_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([senderDeviceId, deliveryId])
+  @@map("group_mailbox_receipts")
   @@schema("public")
 }
 
