@@ -18,6 +18,7 @@ import { RenameSheet, TextAnswer } from '@/components/wealth/parts';
 import { localIsoDate } from '@/data/personal';
 import { useWealthWrites } from '@/data/personalWealth';
 import { useStrings } from '@/i18n';
+import { PressableScale } from '@/lib/anim';
 import { useDialog } from '@/lib/dialog';
 import { dateFrom, showDate } from '@/lib/expenseDay';
 import { pickReceiptImage, pickReceiptPhoto } from '@/lib/image';
@@ -444,8 +445,9 @@ export function DocumentsCard({
   const viewingSlot = slots.find((s) => s.id === viewing) ?? null;
 
   const emptyTile = (key: string, name: string, label: string, onPress: () => void) => (
-    <Pressable
+    <PressableScale
       key={key}
+      pressedScale={0.98}
       accessibilityRole="button"
       accessibilityLabel={label}
       disabled={busy}
@@ -466,7 +468,7 @@ export function DocumentsCard({
       <Text variant="caption" numberOfLines={2} style={{ fontWeight: '600', textAlign: 'center' }}>
         {name}
       </Text>
-    </Pressable>
+    </PressableScale>
   );
 
   return (
@@ -491,8 +493,9 @@ export function DocumentsCard({
             const first = s.docs[0]!;
             const when = addedOf(s);
             return (
-              <Pressable
+              <PressableScale
                 key={s.id}
+                pressedScale={0.98}
                 accessibilityRole="button"
                 accessibilityLabel={`${name}, ${kindOf(s)}${when ? `, ${w.docAdded.replace('{date}', when)}` : ''}`}
                 onPress={() => tap(s)}
@@ -558,7 +561,7 @@ export function DocumentsCard({
                     color={theme.color.textMuted}
                   />
                 </Pressable>
-              </Pressable>
+              </PressableScale>
             );
           })}
           {emptyTile(

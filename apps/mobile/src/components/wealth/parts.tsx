@@ -23,6 +23,7 @@ import {
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { localIsoDate } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
+import { PressableScale } from '@/lib/anim';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { dateFrom, showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
@@ -197,7 +198,7 @@ export function Pick<T extends string>({
         const selected = o.value === value;
         const tint = theme.tint[TILE_TINTS[i % TILE_TINTS.length]!];
         return (
-          <Pressable
+          <PressableScale
             key={o.value}
             accessibilityRole="button"
             accessibilityLabel={o.label}
@@ -241,7 +242,7 @@ export function Pick<T extends string>({
                 {o.label}
               </Text>
             </Card>
-          </Pressable>
+          </PressableScale>
         );
       })}
     </Row>

@@ -44,6 +44,7 @@ import { memberLookup, useGroup } from '@/data/hooks';
 import { memberNameById } from '@/lib/memberName';
 import { liveDocPropertyIds, spaceParams } from '@/lib/rentalScope';
 import { fill, useStrings } from '@/i18n';
+import { PressableScale } from '@/lib/anim';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
@@ -85,7 +86,7 @@ function TintButton({
 }) {
   const theme = useTheme();
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: !!disabled }}
@@ -107,7 +108,7 @@ function TintButton({
       <Text variant="body" style={{ fontWeight: '700', color: fg }}>
         {label}
       </Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 

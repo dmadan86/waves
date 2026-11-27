@@ -14,7 +14,9 @@ import { StatusPill, useWealthMoney, type PillTone } from '@/components/wealth/p
 import { todayIso, usePersonalLedger } from '@/data/personal';
 import { useOwnPropertyCount, usePersonalWealth, useSpaceName } from '@/data/personalWealth';
 import { fill, useStrings } from '@/i18n';
+import { PressableScale } from '@/lib/anim';
 import { useBottomClearance } from '@/lib/clearance';
+
 import { useDefaultCurrency } from '@/lib/currency';
 import { router } from '@/lib/navigation';
 import { spaceParams } from '@/lib/rentalScope';
@@ -219,8 +221,9 @@ function RentalsBody() {
           const tn = v.tenancy;
           const lease = tn ? leaseEndsIn(tn.endDate, today, 60) : null;
           return (
-            <Pressable
+            <PressableScale
               key={p.id}
+              pressedScale={0.98}
               accessibilityRole="button"
               accessibilityLabel={p.name}
               onPress={() =>
@@ -293,7 +296,7 @@ function RentalsBody() {
                   <StatusPill label={fill(w.leaseEndsIn, { n: lease })} tone="warning" />
                 ) : null}
               </StandardCard>
-            </Pressable>
+            </PressableScale>
           );
         })}
         {limit ? (
