@@ -21,8 +21,7 @@ import { BudgetSummary } from '@/components/home/MonthParts';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { EmptyCard } from '@/components/standard';
-import { GroupRow } from '@/components/home/GroupRow';
-import { CardTitle, PrivacyPill } from '@/components/personal/PersonalHomeParts';
+import { CardTitle } from '@/components/personal/PersonalHomeParts';
 import { useUpdateGroupRecurring } from '@/data/groupRecurring';
 import type { IncomePlan } from '@/data/groupIncome';
 import { expenseTitle } from '@/data/expenseTitle';
@@ -227,65 +226,6 @@ function UpcomingList({ rows, data }: { rows: readonly HouseholdUpcoming[]; data
   );
 }
 
-/** The home card's rows: the shared GroupRow, as the Personal Upcoming card draws them. */
-function UpcomingCardRows({
-  rows,
-  data,
-}: {
-  rows: readonly HouseholdUpcoming[];
-  data: HouseholdData;
-}) {
-  const { t, locale } = useStrings();
-  const whenText = useWhenText();
-  const theme = useTheme();
-  if (rows.length === 0)
-    return (
-      <EmptyCard
-        icon="calendar-outline"
-        title={t.personalHome.emptyUpcomingTitle}
-        helper={t.personalHome.emptyUpcomingHelp}
-        action={{
-          label: t.personalHome.addBill,
-          onPress: () => router.push(`/group/${data.groupId}/add-bills`),
-        }}
-      />
-    );
-  return (
-    <View>
-      {rows.map((row, i) => {
-        const day = new Intl.DateTimeFormat(locale, {
-          day: 'numeric',
-          month: 'short',
-          timeZone: 'UTC',
-        }).format(new Date(`${row.date}T00:00:00Z`));
-        return (
-          <GroupRow
-            key={row.key}
-            title={row.title}
-            memberLabel={
-              row.payerId
-                ? fill(t.household.billPays, { name: data.nameOf(row.payerId), when: day })
-                : day
-            }
-            amountText={data.fmt(row.amount)}
-            chevron
-            directionLabel={whenText(row.inDays)}
-            directionTone={row.inDays < 0 ? 'negative' : 'muted'}
-            locale={locale}
-            divider={i < rows.length - 1}
-            icon="receipt-outline"
-            iconColor={row.inDays < 0 ? theme.color.negative : theme.color.brand}
-            tone={row.inDays < 0 ? 'negative' : undefined}
-            onPress={() =>
-              router.push(`/group/${data.groupId}/recurring-edit?ruleId=${row.ruleId}`)
-            }
-          />
-        );
-      })}
-    </View>
-  );
-}
-
 // ───────────────────────────────────────────────────────────── Overview ──
 
 /** The "This month" card: the month pill and the household budget. */
@@ -326,50 +266,6 @@ function BudgetCard({ data }: { data: HouseholdData }) {
         </Pressable>
       )}
     </Card>
-  );
-}
-
-export function OverviewTab({ data }: { data: HouseholdData }) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const h = t.hhome;
-  return (
-    <View style={{ gap: theme.spacing[gap] }}>
-      <BudgetCard data={data} />
-
-      <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
-        <CardTitle
-          title={h.upcomingTitle}
-          action={t.homeToday.seeAll}
-          onAction={() => data.onTab('upcoming')}
-        />
-        <UpcomingCardRows rows={data.upcoming.slice(0, 3)} data={data} />
-      </Card>
-
-      <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
-        <CardTitle
-          title={h.recentTitle}
-          action={t.personal.dash.viewAll}
-          onAction={() => data.onLedger()}
-        />
-        {data.recent.length === 0 ? (
-          <EmptyCard
-            icon="receipt-outline"
-            title={t.personalHome.emptyRecentTitle}
-            helper={t.personalHome.emptyRecentHelp}
-          />
-        ) : (
-          data.recent.map((row, i) => (
-            <RecentRow key={row.id} row={row} data={data} last={i === data.recent.length - 1} />
-          ))
-        )}
-      </Card>
-
-      <PrivacyPill
-        label={h.sharedNote}
-        onPress={() => router.push(`/group/${data.groupId}/settings`)}
-      />
-    </View>
   );
 }
 
