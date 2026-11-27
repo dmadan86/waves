@@ -550,6 +550,8 @@ export function useHomeSummary(profileId: string | null) {
     // are a pile of numbers with no units.
     const currencyByGroup = new Map<string, string>();
     const awaiting = new Set<string>();
+    // Groups where I still hold a balance in a currency other than the group's own.
+    const openOtherCurrency = new Set<string>();
     // My own share of everything dated in the current month, per currency — the
     // dashboard's "this month" slide. Summed from expense shares, not balances:
     // it is money I am on the hook for this month regardless of who has paid.
@@ -639,7 +641,10 @@ export function useHomeSummary(profileId: string | null) {
         for (const [bucketCurrency, perMember] of net) {
           if (bucketCurrency === currency) continue;
           const balance = perMember.get(mine.id) ?? 0n;
-          if (balance !== 0n) myBuckets.push([bucketCurrency, balance]);
+          if (balance !== 0n) {
+            myBuckets.push([bucketCurrency, balance]);
+            openOtherCurrency.add(group.id);
+          }
         }
         for (const snapshot of snapshots) {
           if (snapshot.deletedAt) continue;
@@ -720,6 +725,7 @@ export function useHomeSummary(profileId: string | null) {
       byGroup,
       membersByGroup,
       awaiting,
+      openOtherCurrency,
       totals,
       monthSpent,
       lastMonthSpent,
@@ -740,6 +746,8 @@ export function useHomeSummary(profileId: string | null) {
       membersFor: (groupId: string) => summary.membersByGroup.get(groupId) ?? [],
       memberCountFor: (groupId: string) => summary.membersByGroup.get(groupId)?.length ?? 0,
       hasPending: (groupId: string) => summary.awaiting.has(groupId),
+      /** A non-zero balance in a currency other than the group's own. */
+      hasOtherCurrencyBalance: (groupId: string) => summary.openOtherCurrency.has(groupId),
       /** Whether this group's ledger has materialised yet — false for the brief
        *  window after an import lands the group but before its expenses arrive. */
       hasLedger: (groupId: string) => summary.withLedger.has(groupId),

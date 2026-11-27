@@ -11,7 +11,7 @@ import { useAdPlan } from '@/lib/useAdPlan';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { InteractionManager, Pressable, RefreshControl, View } from 'react-native';
+import { InteractionManager, RefreshControl, View } from 'react-native';
 
 import { fallbackCurrency, type GuestGate } from '@waves/core';
 import { Button, Popup, Row, Screen, Text, useTheme } from '@waves/ui';
@@ -72,7 +72,6 @@ import { HomeSnapshotView } from '@/components/home/HomeSnapshotView';
 import { serialiseSnapshot, type HomeSnapshot, type SnapRow } from '@/lib/homeSnapshot';
 import { clearHomeSnapshot, saveHomeSnapshot, useHomeSnapshot } from '@/lib/homeSnapshotStore';
 import { usePullRefresh } from '@/lib/pullRefresh';
-import { useSpaceSwitchItems } from '@/lib/useSpaceSwitchItems';
 import { fill } from '@/i18n';
 
 /** Dashboard route with duplicate-safe jumps to stable primary destinations. */
@@ -142,15 +141,6 @@ function HomeScreen() {
   ).name;
   const firstName = displayName.trim().split(/\s+/)[0];
   const h = t.personalHome;
-  const [spaceSwitchOpen, setSpaceSwitchOpen] = useState(false);
-  const spaceSwitchItems = useSpaceSwitchItems('shared', {
-    shared: h.sharedSpace,
-    personal: h.space,
-    onlyYou: h.onlyYou,
-    sharedSubtitle: h.sharedSubtitle,
-    couple: h.groupCouple,
-    family: h.groupFamily,
-  });
   // First word only, so a long name never truncates to "Hi, Madan Dei…".
   const companyIds = useViewerCompanyIds();
 
@@ -614,31 +604,6 @@ function HomeScreen() {
               >
                 {fill(h.hi, { name: firstName ?? '' })}
               </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${h.switchSpace}. ${h.sharedSpace}`}
-                onPress={() => setSpaceSwitchOpen(true)}
-                hitSlop={6}
-                style={({ pressed }) => ({
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 2,
-                  opacity: pressed ? 0.6 : 1,
-                })}
-              >
-                <Text
-                  variant="caption"
-                  numberOfLines={1}
-                  style={{ color: solid ? theme.color.textMuted : ink, flexShrink: 1 }}
-                >
-                  {h.sharedSpace}
-                </Text>
-                <Ionicons
-                  name="chevron-down"
-                  size={14}
-                  color={solid ? theme.color.textMuted : ink}
-                />
-              </Pressable>
             </View>
             <TabIconButton
               icon="notifications-outline"
@@ -786,11 +751,6 @@ function HomeScreen() {
           avatar: <PersonAvatar name={displayName} avatarUrl={profile?.avatar_url} size={40} />,
           route: '/settings/account',
         }}
-      />
-      <OverflowMenu
-        visible={spaceSwitchOpen}
-        onClose={() => setSpaceSwitchOpen(false)}
-        items={spaceSwitchItems}
       />
       <SpaceSwitchSheet current="personal" open={switchOpen} onClose={() => setSwitchOpen(false)} />
       <NewGroupMenu

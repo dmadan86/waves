@@ -369,6 +369,13 @@ export interface UiStrings {
     /** Quick action on All groups: open the join-by-code/QR screen. */
     joinGroupShort: string;
     spaces: string;
+    family: string;
+    myMoney: string;
+    /** Last row of All groups; `{n}` is how many are archived. */
+    archivedRow: string;
+    /** One-time offer on a settled, quiet group; `{name}` is the group. */
+    archiveSuggest: string;
+    keep: string;
     addSpace: string;
     personal: string;
     justMe: string;
@@ -9362,6 +9369,11 @@ const en: UiStrings = {
     comingUp: 'Coming up',
     addReminder: 'Add a reminder',
     spaces: 'Groups',
+    family: 'Family',
+    myMoney: 'My money',
+    archivedRow: 'Archived ({n})',
+    archiveSuggest: "Archive {name}? It's settled and quiet.",
+    keep: 'Keep',
     joinGroupShort: 'Join group',
     addSpace: 'Add a space',
     personal: 'Personal',
@@ -17723,6 +17735,11 @@ const ta: UiStrings = {
     comingUp: 'விரைவில்',
     addReminder: 'நினைவூட்டல் சேர்',
     spaces: 'குழுக்கள்',
+    family: 'குடும்பம்',
+    myMoney: 'என் பணம்',
+    archivedRow: 'காப்பகத்தில் ({n})',
+    archiveSuggest: '{name} காப்பகப்படுத்தவா? எல்லாம் தீர்ந்து அமைதியாக உள்ளது.',
+    keep: 'வைத்திரு',
     joinGroupShort: 'குழுவில் சேர்',
     addSpace: 'இடம் சேர்',
     personal: 'தனிப்பட்டது',
@@ -26156,6 +26173,11 @@ const hi: UiStrings = {
     comingUp: 'आने वाला',
     addReminder: 'रिमाइंडर जोड़ें',
     spaces: 'ग्रुप',
+    family: 'परिवार',
+    myMoney: 'मेरा पैसा',
+    archivedRow: 'संग्रहित ({n})',
+    archiveSuggest: '{name} संग्रहित करें? सब चुकता है और शांत है।',
+    keep: 'रहने दें',
     joinGroupShort: 'ग्रुप जॉइन करें',
     addSpace: 'स्पेस जोड़ें',
     personal: 'निजी',
@@ -34424,6 +34446,11 @@ const ar: UiStrings = {
     comingUp: 'قريبًا',
     addReminder: 'أضف تذكيرًا',
     spaces: 'المجموعات',
+    family: 'العائلة',
+    myMoney: 'أموالي',
+    archivedRow: 'المؤرشفة ({n})',
+    archiveSuggest: 'أرشفة {name}؟ كل شيء مسدّد وهادئ.',
+    keep: 'إبقاء',
     joinGroupShort: 'انضم لمجموعة',
     addSpace: 'أضف مساحة',
     personal: 'شخصي',

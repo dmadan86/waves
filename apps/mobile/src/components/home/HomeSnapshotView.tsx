@@ -133,7 +133,12 @@ export function HomeSnapshotView({
       ))}
     </View>
   );
-  const spaces = snapshot.personal ? [snapshot.personal, ...snapshot.groups] : snapshot.groups;
+  const family = snapshot.groups.filter((row) => row.family);
+  const others = snapshot.groups.filter((row) => !row.family);
+  const sections = [
+    ...(family.length ? [{ title: h.family, rows: family }] : []),
+    ...(others.length || !family.length ? [{ title: h.spaces, rows: others }] : []),
+  ];
   return (
     <View style={{ paddingTop: theme.spacing.sm, gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.sm }}>
@@ -196,10 +201,17 @@ export function HomeSnapshotView({
           </Text>
         )}
       </View>
-      <View style={{ gap: theme.spacing.sm }}>
-        <CardTitle title={h.spaces} action={h.seeAll} onAction={() => router.navigate('/groups')} />
-        {rowsOf(spaces, (row) => hidden || (row.key === 'personal' && personalHidden))}
-      </View>
+      {snapshot.personal ? rowsOf([snapshot.personal], () => hidden || personalHidden) : null}
+      {sections.map((section, index) => (
+        <View key={section.title} style={{ gap: theme.spacing.sm }}>
+          <CardTitle
+            title={section.title}
+            action={index === 0 ? h.seeAll : undefined}
+            onAction={index === 0 ? () => router.navigate('/groups') : undefined}
+          />
+          {rowsOf(section.rows, () => hidden)}
+        </View>
+      ))}
     </View>
   );
 }
