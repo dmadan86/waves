@@ -51,7 +51,9 @@ import {
   propertyView,
   regionOf,
   rentStrip,
+  stripMark,
 } from '@/lib/wealthPlan';
+import type { IconName } from '@/lib/wizardIcons';
 
 type Open = 'rent' | 'expense' | 'change' | 'left' | null;
 const TONE: Record<string, PillTone> = {
@@ -110,6 +112,20 @@ function DetailBody() {
   const part = v.balance.lines.find((l) => l.status === 'part');
   const lease = tn ? leaseEndsIn(tn.endDate, today, 60) : null;
   const strip = rentStrip(v.balance, today);
+  const statusText: Record<string, string> = {
+    paid: w.statusPaid,
+    part: w.statusPart,
+    due: w.statusDue,
+    overdue: w.statusOverdue,
+    vacant: w.statusVacant,
+  };
+  const facts: [IconName, string, string][] = tn
+    ? [
+        ['person-outline', w.tenantRow, tn.tenantName],
+        ['calendar-outline', w.leaseRow, tn.endDate ? day(tn.endDate) : w.openEnded],
+        ['cash-outline', w.refundableDepositHeld, fmt(tn.depositHeld, cur)],
+      ]
+    : [];
 
   const year = today.slice(0, 4);
   const mine = ledger.txns.filter(
@@ -237,80 +253,49 @@ function DetailBody() {
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: clearance + theme.spacing.xl,
-          gap: theme.spacing.lg,
+          paddingBottom: theme.spacing.lg,
+          gap: theme.spacing.md,
         }}
       >
-        <View style={{ gap: theme.spacing.sm }}>
-          <SectionHeader title={w.tenants} />
+        {tn ? (
           <StandardCard style={{ gap: theme.spacing.sm }}>
-            {tn ? (
-              <>
-                <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text variant="body" style={{ fontWeight: '700' }}>
-                    {tn.tenantName}
-                  </Text>
-                  <StatusPill
-                    label={
-                      {
-                        paid: w.statusPaid,
-                        part: w.statusPart,
-                        due: w.statusDue,
-                        overdue: w.statusOverdue,
-                        vacant: w.statusVacant,
-                      }[v.status]
-                    }
-                    tone={TONE[v.status] ?? 'neutral'}
-                  />
-                </Row>
-                {part ? (
-                  <Text variant="caption">
-                    {fill(w.partLine, {
-                      paid: fmt(part.paid, cur),
-                      due: fmt(part.amount, cur),
-                      left: fmt(part.amount - part.paid, cur),
-                    })}
-                  </Text>
-                ) : v.balance.balance > 0n ? (
-                  <Text variant="caption">
-                    {fill(w.rentOwed, { amount: fmt(v.balance.balance, cur) })}
-                  </Text>
-                ) : null}
-                {v.next ? (
-                  <Text variant="caption" tone="muted">
-                    {fill(w.raiseFuture, {
-                      amount: fmt(v.next.amount, cur),
-                      date: day(v.next.anchorDate),
-                    })}
-                  </Text>
-                ) : null}
-                {tn.depositHeld > 0n ? (
-                  <Text variant="caption" tone="muted">
-                    {fill(w.depositLine, { amount: fmt(tn.depositHeld, cur), term: noun })}
-                  </Text>
-                ) : null}
-                <Text variant="caption" tone="muted">
-                  {tn.endDate ? `${w.endDate} ${day(tn.endDate)}` : w.openEnded}
-                </Text>
-                {lease !== null ? (
-                  <StatusPill label={fill(w.leaseEndsIn, { n: lease })} tone="warning" />
-                ) : null}
-              </>
-            ) : (
-              <>
-                <Text variant="caption" tone="muted">
-                  {w.vacantNote}
-                </Text>
-                <Button
-                  label={w.addTenant}
-                  onPress={() =>
-                    router.push({ pathname: '/rentals/tenant', params: { id: prop.id } })
-                  }
-                />
-              </>
-            )}
+            <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text variant="body">{w.currentRentDue}</Text>
+              <StatusPill label={statusText[v.status] ?? ''} tone={TONE[v.status] ?? 'neutral'} />
+            </Row>
+            <Text variant="title" style={{ fontWeight: '800' }}>
+              {fmt(remaining, cur)}
+            </Text>
+            {part ? (
+              <Text variant="caption">
+                {fill(w.partLine, {
+                  paid: fmt(part.paid, cur),
+                  due: fmt(part.amount, cur),
+                  left: fmt(part.amount - part.paid, cur),
+                })}
+              </Text>
+            ) : null}
+            {v.next ? (
+              <Text variant="caption" tone="muted">
+                {fill(w.raiseFuture, {
+                  amount: fmt(v.next.amount, cur),
+                  date: day(v.next.anchorDate),
+                })}
+              </Text>
+            ) : null}
+            <Button label={w.recordRent} onPress={() => setOpen('rent')} />
           </StandardCard>
-        </View>
+        ) : (
+          <StandardCard style={{ gap: theme.spacing.sm }}>
+            <Text variant="caption" tone="muted">
+              {w.vacantNote}
+            </Text>
+            <Button
+              label={w.addTenant}
+              onPress={() => router.push({ pathname: '/rentals/tenant', params: { id: prop.id } })}
+            />
+          </StandardCard>
+        )}
 
         {raise ? <RaiseCard prompt={raise} /> : null}
 
@@ -331,72 +316,114 @@ function DetailBody() {
         ) : null}
 
         {tn ? (
+          <StandardCard style={{ gap: theme.spacing.md }}>
+            {facts.map(([icon, label, value]) => (
+              <Row key={label} style={{ alignItems: 'center', gap: theme.spacing.md }}>
+                <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
+                <Text variant="caption" tone="muted" style={{ flex: 1 }}>
+                  {label}
+                </Text>
+                <Text variant="body" style={{ fontWeight: '600' }}>
+                  {value}
+                </Text>
+              </Row>
+            ))}
+            {lease !== null ? (
+              <StatusPill label={fill(w.leaseEndsIn, { n: lease })} tone="warning" />
+            ) : null}
+          </StandardCard>
+        ) : null}
+
+        {tn ? (
           <View style={{ gap: theme.spacing.sm }}>
             <SectionHeader title={w.last12} />
             <StandardCard>
-              <Row style={{ justifyContent: 'space-between' }}>
-                {strip.map((m) => (
-                  <View key={m.month} style={{ alignItems: 'center', gap: 4 }}>
+              <Row>
+                {strip.map((m, i) => {
+                  const mark = stripMark(m.state);
+                  const current = i === strip.length - 1;
+                  const color =
+                    mark === 'alert'
+                      ? theme.color.negative
+                      : mark === 'warn'
+                        ? theme.color.warning
+                        : theme.color.textMuted;
+                  return (
                     <View
-                      accessibilityLabel={`${month(m.month)} ${m.state}`}
+                      key={m.month}
+                      accessible
+                      accessibilityLabel={`${month(m.month)} ${statusText[m.state] ?? ''}`}
                       style={{
-                        width: 18,
-                        height: 18,
-                        borderRadius: 9,
-                        backgroundColor:
-                          m.state === 'paid'
-                            ? theme.color.positive
-                            : m.state === 'part'
-                              ? theme.color.warning
-                              : m.state === 'overdue'
-                                ? theme.color.negative
-                                : theme.color.surfaceMuted,
+                        flex: 1,
+                        alignItems: 'center',
+                        gap: 4,
+                        paddingVertical: 4,
+                        borderRadius: theme.radius.sm,
+                        backgroundColor: current ? theme.color.surfaceMuted : undefined,
                       }}
-                    />
-                    <Text variant="micro" tone="muted">
-                      {month(m.month)}
-                    </Text>
-                  </View>
-                ))}
+                    >
+                      <Text variant="micro" tone="muted">
+                        {month(m.month)}
+                      </Text>
+                      {mark === 'check' ? (
+                        <Ionicons name="checkmark" size={12} color={theme.color.positive} />
+                      ) : (
+                        <Text variant="micro" style={{ color }}>
+                          {mark === 'dash' ? '-' : '•'}
+                        </Text>
+                      )}
+                      {current && mark !== 'dash' && mark !== 'check' ? (
+                        <Text variant="micro" numberOfLines={1} style={{ fontSize: 9, color }}>
+                          {statusText[m.state] ?? ''}
+                        </Text>
+                      ) : null}
+                    </View>
+                  );
+                })}
               </Row>
             </StandardCard>
           </View>
         ) : null}
 
         <StandardCard style={{ gap: theme.spacing.sm }}>
+          <Text variant="body" style={{ fontWeight: '700' }}>
+            {w.thisYear}
+          </Text>
           <Row style={{ justifyContent: 'space-between' }}>
-            <Text variant="body">{w.yearlyIncome}</Text>
+            <Text variant="body">{w.rentReceived}</Text>
             <Text variant="body" style={{ fontWeight: '700' }}>
               {fmt(income, cur)}
             </Text>
           </Row>
           <Row style={{ justifyContent: 'space-between' }}>
-            <Text variant="body">{w.yearlyExpense}</Text>
+            <Text variant="body">{w.propertyExpenses}</Text>
             <Text variant="body" style={{ fontWeight: '700' }}>
               {fmt(spent, cur)}
             </Text>
           </Row>
         </StandardCard>
-
-        <Row style={{ gap: theme.spacing.sm }}>
-          {tn ? (
-            <View style={{ flex: 1 }}>
-              <Button label={w.recordRent} onPress={() => setOpen('rent')} />
-            </View>
-          ) : null}
-          <View style={{ flex: 1 }}>
-            <Button label={w.addExpense} variant="secondary" onPress={() => setOpen('expense')} />
-          </View>
-        </Row>
-        {tn ? (
-          <Button
-            label={w.shareReceipt}
-            variant="ghost"
-            disabled={!lastPayment}
-            onPress={() => void share()}
-          />
-        ) : null}
       </ScrollView>
+      <Row
+        style={{
+          gap: theme.spacing.sm,
+          paddingHorizontal: theme.spacing.lg,
+          paddingBottom: clearance + theme.spacing.md,
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Button label={w.addExpense} variant="secondary" onPress={() => setOpen('expense')} />
+        </View>
+        {tn ? (
+          <View style={{ flex: 1 }}>
+            <Button
+              label={w.receiptsBtn}
+              variant="secondary"
+              disabled={!lastPayment}
+              onPress={() => void share()}
+            />
+          </View>
+        ) : null}
+      </Row>
 
       <AmountSheet
         visible={open === 'rent'}

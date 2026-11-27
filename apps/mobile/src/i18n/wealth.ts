@@ -19,6 +19,35 @@ export interface WealthStrings {
   valueNote: string;
   addInvestment: string;
   addRental: string;
+  trackRentTitle: string;
+  trackRentSub: string;
+  addProperty: string;
+  propertyTypeLabel: string;
+  propertyNameLabel: string;
+  currentlyRentedQ: string;
+  tenantNameLabel: string;
+  monthlyRent: string;
+  refundableDeposit: string;
+  rentDueDay: string;
+  selectDay: string;
+  dayOfMonth: string;
+  leaseEndOptional: string;
+  savePropertyBtn: string;
+  thisMonth: string;
+  receivedLabel: string;
+  expectedLabel: string;
+  percentReceived: string;
+  receivedOfExpected: string;
+  propertiesCount: string;
+  rentBalance: string;
+  addShort: string;
+  tenantRow: string;
+  leaseRow: string;
+  currentRentDue: string;
+  refundableDepositHeld: string;
+  thisYear: string;
+  propertyExpenses: string;
+  receiptsBtn: string;
   goPro: string;
   freeInvestmentLimit: string;
   freeRentalLimit: string;
@@ -170,6 +199,35 @@ export const wealthEn: WealthStrings = {
   valueNote: 'This is your own figure. Waves does not check or update it.',
   addInvestment: 'Add an investment',
   addRental: 'Add a property',
+  trackRentTitle: 'Track your rent',
+  trackRentSub: 'Keep rent payments, deposits and expenses in one place.',
+  addProperty: 'Add property',
+  propertyTypeLabel: 'Property type',
+  propertyNameLabel: 'Property name',
+  currentlyRentedQ: 'Currently rented?',
+  tenantNameLabel: 'Tenant name',
+  monthlyRent: 'Monthly rent',
+  refundableDeposit: 'Refundable deposit',
+  rentDueDay: 'Rent due day',
+  selectDay: 'Select day',
+  dayOfMonth: 'Day {n}',
+  leaseEndOptional: 'Lease end date (optional)',
+  savePropertyBtn: 'Save property',
+  thisMonth: 'This month',
+  receivedLabel: 'Received',
+  expectedLabel: 'Expected',
+  percentReceived: '{pct}% received',
+  receivedOfExpected: '{received} of {expected}',
+  propertiesCount: 'Properties ({n})',
+  rentBalance: 'Rent balance',
+  addShort: 'Add',
+  tenantRow: 'Tenant',
+  leaseRow: 'Lease',
+  currentRentDue: 'Current month rent due',
+  refundableDepositHeld: 'Refundable deposit (held)',
+  thisYear: 'This year',
+  propertyExpenses: 'Property expenses',
+  receiptsBtn: 'Receipts',
   goPro: 'Go Pro',
   freeInvestmentLimit: 'The free plan tracks 3 investments. Pro has no limit.',
   freeRentalLimit: 'The free plan tracks 1 rental property. Pro has no limit.',
@@ -334,6 +392,35 @@ export const wealthTa: WealthStrings = {
   valueNote: 'இது உங்கள் சொந்த எண். Waves இதை சரிபார்க்காது.',
   addInvestment: 'முதலீட்டைச் சேர்',
   addRental: 'சொத்தைச் சேர்',
+  trackRentTitle: 'உங்கள் வாடகையைக் கண்காணியுங்கள்',
+  trackRentSub: 'வாடகை, முன்பணம், செலவுகளை ஒரே இடத்தில் வைத்திருங்கள்.',
+  addProperty: 'சொத்தைச் சேர்',
+  propertyTypeLabel: 'சொத்து வகை',
+  propertyNameLabel: 'சொத்தின் பெயர்',
+  currentlyRentedQ: 'தற்போது வாடகைக்கு உள்ளதா?',
+  tenantNameLabel: 'குடியிருப்பவர் பெயர்',
+  monthlyRent: 'மாத வாடகை',
+  refundableDeposit: 'திரும்பப் பெறும் முன்பணம்',
+  rentDueDay: 'வாடகை செலுத்தும் நாள்',
+  selectDay: 'நாளைத் தேர்ந்தெடு',
+  dayOfMonth: 'நாள் {n}',
+  leaseEndOptional: 'குத்தகை முடிவு தேதி (விருப்பம்)',
+  savePropertyBtn: 'சொத்தைச் சேமி',
+  thisMonth: 'இந்த மாதம்',
+  receivedLabel: 'பெற்றது',
+  expectedLabel: 'எதிர்பார்ப்பு',
+  percentReceived: '{pct}% பெறப்பட்டது',
+  receivedOfExpected: '{expected} இல் {received}',
+  propertiesCount: 'சொத்துகள் ({n})',
+  rentBalance: 'வாடகை நிலுவை',
+  addShort: 'சேர்',
+  tenantRow: 'குடியிருப்பவர்',
+  leaseRow: 'குத்தகை',
+  currentRentDue: 'இந்த மாத வாடகை நிலுவை',
+  refundableDepositHeld: 'திரும்பப் பெறும் முன்பணம் (வைத்திருப்பது)',
+  thisYear: 'இந்த ஆண்டு',
+  propertyExpenses: 'சொத்து செலவுகள்',
+  receiptsBtn: 'ரசீதுகள்',
   goPro: 'Pro-ஆக மாறு',
   freeInvestmentLimit: 'இலவச திட்டத்தில் 3 முதலீடுகள் மட்டுமே. Pro-ல் வரம்பு இல்லை.',
   freeRentalLimit: 'இலவச திட்டத்தில் 1 வாடகை சொத்து மட்டுமே. Pro-ல் வரம்பு இல்லை.',
@@ -497,6 +584,35 @@ export const wealthHi: WealthStrings = {
   valueNote: 'यह आपका अपना आँकड़ा है। Waves इसे जाँचता या बदलता नहीं।',
   addInvestment: 'निवेश जोड़ें',
   addRental: 'संपत्ति जोड़ें',
+  trackRentTitle: 'अपना किराया ट्रैक करें',
+  trackRentSub: 'किराया, जमा राशि और खर्च एक ही जगह रखें।',
+  addProperty: 'संपत्ति जोड़ें',
+  propertyTypeLabel: 'संपत्ति का प्रकार',
+  propertyNameLabel: 'संपत्ति का नाम',
+  currentlyRentedQ: 'क्या अभी किराये पर है?',
+  tenantNameLabel: 'किरायेदार का नाम',
+  monthlyRent: 'मासिक किराया',
+  refundableDeposit: 'वापसी योग्य जमा राशि',
+  rentDueDay: 'किराया देय दिन',
+  selectDay: 'दिन चुनें',
+  dayOfMonth: 'दिन {n}',
+  leaseEndOptional: 'लीज़ समाप्ति तिथि (वैकल्पिक)',
+  savePropertyBtn: 'संपत्ति सहेजें',
+  thisMonth: 'इस महीने',
+  receivedLabel: 'मिला',
+  expectedLabel: 'अपेक्षित',
+  percentReceived: '{pct}% मिला',
+  receivedOfExpected: '{expected} में से {received}',
+  propertiesCount: 'संपत्तियाँ ({n})',
+  rentBalance: 'किराया बकाया',
+  addShort: 'जोड़ें',
+  tenantRow: 'किरायेदार',
+  leaseRow: 'लीज़',
+  currentRentDue: 'इस महीने का किराया बाकी',
+  refundableDepositHeld: 'वापसी योग्य जमा राशि (रखी हुई)',
+  thisYear: 'इस साल',
+  propertyExpenses: 'संपत्ति के खर्च',
+  receiptsBtn: 'रसीदें',
   goPro: 'Pro लें',
   freeInvestmentLimit: 'फ्री प्लान में 3 निवेश ट्रैक होते हैं। Pro में कोई सीमा नहीं।',
   freeRentalLimit: 'फ्री प्लान में 1 किराये की संपत्ति ट्रैक होती है। Pro में कोई सीमा नहीं।',
@@ -660,6 +776,35 @@ export const wealthAr: WealthStrings = {
   valueNote: 'هذا رقمك الخاص. لا تتحقق Waves منه ولا تعدّله.',
   addInvestment: 'أضف استثمارًا',
   addRental: 'أضف عقارًا',
+  trackRentTitle: 'تابع إيجارك',
+  trackRentSub: 'احتفظ بدفعات الإيجار والتأمين والمصروفات في مكان واحد.',
+  addProperty: 'أضف عقارًا',
+  propertyTypeLabel: 'نوع العقار',
+  propertyNameLabel: 'اسم العقار',
+  currentlyRentedQ: 'هل هو مؤجَّر حاليًا؟',
+  tenantNameLabel: 'اسم المستأجر',
+  monthlyRent: 'الإيجار الشهري',
+  refundableDeposit: 'التأمين المسترد',
+  rentDueDay: 'يوم استحقاق الإيجار',
+  selectDay: 'اختر اليوم',
+  dayOfMonth: 'اليوم {n}',
+  leaseEndOptional: 'تاريخ انتهاء العقد (اختياري)',
+  savePropertyBtn: 'احفظ العقار',
+  thisMonth: 'هذا الشهر',
+  receivedLabel: 'المستلَم',
+  expectedLabel: 'المتوقَّع',
+  percentReceived: 'تم استلام {pct}%',
+  receivedOfExpected: '{received} من {expected}',
+  propertiesCount: 'العقارات ({n})',
+  rentBalance: 'رصيد الإيجار',
+  addShort: 'إضافة',
+  tenantRow: 'المستأجر',
+  leaseRow: 'العقد',
+  currentRentDue: 'إيجار الشهر الحالي المستحق',
+  refundableDepositHeld: 'التأمين المسترد (محتجز)',
+  thisYear: 'هذا العام',
+  propertyExpenses: 'مصروفات العقار',
+  receiptsBtn: 'الإيصالات',
   goPro: 'اشترك في Pro',
   freeInvestmentLimit: 'الخطة المجانية تتابع 3 استثمارات فقط. Pro بلا حدود.',
   freeRentalLimit: 'الخطة المجانية تتابع عقارًا واحدًا للإيجار. Pro بلا حدود.',

@@ -457,6 +457,24 @@ export function rentStrip(
   });
 }
 
+/** The "This month" card: what is still due and how much of the expected rent is in (0-100). */
+export function monthTotals(received: bigint, expected: bigint): { due: bigint; percent: number } {
+  const due = expected > received ? expected - received : 0n;
+  const percent = expected > 0n ? Math.min(100, Number((received * 100n) / expected)) : 0;
+  return { due, percent };
+}
+
+/** What one month of the 12-month strip shows under its letter. */
+export function stripMark(state: RentStatus | 'none'): 'dash' | 'check' | 'warn' | 'alert' {
+  return state === 'none'
+    ? 'dash'
+    : state === 'paid'
+      ? 'check'
+      : state === 'part'
+        ? 'warn'
+        : 'alert';
+}
+
 // ───────────────────────────────────────────────── yearly rent increase ──
 
 export interface RaisePrompt {

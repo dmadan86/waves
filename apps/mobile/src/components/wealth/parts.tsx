@@ -9,6 +9,7 @@ import { formatParts, money, type CurrencyCode } from '@waves/core';
 import {
   AmountField,
   Button,
+  Card,
   ChipRow,
   iconSize,
   Row,
@@ -26,6 +27,43 @@ import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { dateFrom, showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
 import { wizardFooterPadding } from '@/lib/wealthFlow';
+import { usesTiles, type IconName } from '@/lib/wizardIcons';
+
+const TILE_TINTS = ['lilac', 'sky', 'peach', 'mint', 'pink', 'coral'] as const;
+
+/** Step icon in a soft brand circle with "Step n of N" beside it, above the question. */
+export function StepHeader({
+  icon,
+  index,
+  total,
+  stepLabel,
+}: {
+  icon: IconName;
+  index: number;
+  total: number;
+  stepLabel: string;
+}) {
+  const theme = useTheme();
+  return (
+    <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+      <View
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.brandSoft,
+        }}
+      >
+        <Ionicons name={icon} size={28} color={theme.color.brand} />
+      </View>
+      <Text variant="caption" tone="muted" accessibilityLabel={`${index + 1}/${total}`}>
+        {stepLabel}
+      </Text>
+    </Row>
+  );
+}
 
 /** Money as the person's own locale writes it: masked when amounts are hidden, no bare ".00". */
 export function useWealthMoney(): (amount: bigint, currency: CurrencyCode) => string {
@@ -46,6 +84,7 @@ export function FlowShell({
   onSkip,
   children,
   note,
+  icon,
 }: {
   title: string;
   index: number;
@@ -53,6 +92,7 @@ export function FlowShell({
   onSkip?: () => void;
   children: ReactNode;
   note?: string;
+  icon?: IconName;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -97,6 +137,14 @@ export function FlowShell({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ gap: theme.spacing.lg, paddingBottom: theme.spacing.xl }}
         >
+          {icon ? (
+            <StepHeader
+              icon={icon}
+              index={index}
+              total={total}
+              stepLabel={fill(s.stepOf, { n: index + 1, total })}
+            />
+          ) : null}
           <Text variant="title" accessibilityRole="header">
             {title}
           </Text>
@@ -117,25 +165,86 @@ export function FlowShell({
   );
 }
 
-/** Chips that answer by being tapped. */
+/**
+ * Answers that are picked by tapping: a 2-column grid of icon tiles when every
+ * option has an icon, plain chips otherwise.
+ */
 export function Pick<T extends string>({
   options,
   onPick,
   value,
 }: {
-  options: readonly { value: T; label: string }[];
+  options: readonly { value: T; label: string; icon?: IconName }[];
   onPick: (value: T) => void;
   value?: T;
 }) {
+  const theme = useTheme();
+  if (!usesTiles(options)) {
+    return (
+      <ChipRow<T>
+        wrap
+        variant="brand"
+        onCard
+        value={value ?? ('' as T)}
+        options={options.map(({ value: v, label }) => ({ value: v, label }))}
+        onChange={onPick}
+      />
+    );
+  }
   return (
-    <ChipRow<T>
-      wrap
-      variant="brand"
-      onCard
-      value={value ?? ('' as T)}
-      options={options}
-      onChange={onPick}
-    />
+    <Row style={{ flexWrap: 'wrap', gap: theme.spacing.md }}>
+      {options.map((o, i) => {
+        const selected = o.value === value;
+        const tint = theme.tint[TILE_TINTS[i % TILE_TINTS.length]!];
+        return (
+          <Pressable
+            key={o.value}
+            accessibilityRole="button"
+            accessibilityLabel={o.label}
+            accessibilityState={{ selected }}
+            onPress={() => onPick(o.value)}
+            style={{ flexBasis: '47%', flexGrow: 1 }}
+          >
+            <Card
+              padded={false}
+              style={{
+                alignItems: 'center',
+                gap: theme.spacing.sm,
+                paddingVertical: theme.spacing.md,
+                paddingHorizontal: theme.spacing.sm,
+                borderWidth: 2,
+                borderColor: selected ? theme.color.brand : 'transparent',
+                backgroundColor: selected ? theme.color.brandSoft : theme.color.surface,
+              }}
+            >
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: selected ? theme.color.brand : tint.bg,
+                }}
+              >
+                <Ionicons
+                  name={o.icon!}
+                  size={iconSize.lg}
+                  color={selected ? theme.color.onBrand : tint.ink}
+                />
+              </View>
+              <Text
+                variant="caption"
+                numberOfLines={2}
+                style={{ textAlign: 'center', fontWeight: selected ? '700' : '500' }}
+              >
+                {o.label}
+              </Text>
+            </Card>
+          </Pressable>
+        );
+      })}
+    </Row>
   );
 }
 

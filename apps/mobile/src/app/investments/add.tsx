@@ -12,6 +12,7 @@ import type { InvestmentType, RentFrequency } from '@waves/core';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { DayStepper } from '@/components/RepeatPicker';
 import { DateAnswer, FlowShell, Pick, TextAnswer } from '@/components/wealth/parts';
+import { INVESTMENT_ICON, STEP_ICON, YES_NO_ICON } from '@/lib/wizardIcons';
 import { todayIso } from '@/data/personal';
 import {
   FREE_CAP_ERROR,
@@ -120,11 +121,15 @@ function AddBody() {
 
   if (step === 'type') {
     return (
-      <FlowShell title={w.invWhatQ} {...base}>
+      <FlowShell title={w.invWhatQ} icon={STEP_ICON.invType} {...base}>
         <Pick<InvestmentType>
           options={INVESTMENT_TYPES.map((v) => {
             const hint = typeHint(v, region);
-            return { value: v, label: hint ? `${w.types[v]} (${hint})` : w.types[v] };
+            return {
+              value: v,
+              label: hint ? `${w.types[v]} (${hint})` : w.types[v],
+              icon: INVESTMENT_ICON[v],
+            };
           })}
           onPick={(v) => {
             setType(v);
@@ -136,11 +141,16 @@ function AddBody() {
   }
   if (step === 'payout') {
     return (
-      <FlowShell title={w.insuranceQ} {...base} note={payout === false ? w.insuranceNo : undefined}>
+      <FlowShell
+        title={w.insuranceQ}
+        icon={STEP_ICON.payout}
+        {...base}
+        note={payout === false ? w.insuranceNo : undefined}
+      >
         <Pick<'yes' | 'no'>
           options={[
-            { value: 'yes', label: w.yes },
-            { value: 'no', label: w.no },
+            { value: 'yes', label: w.yes, icon: YES_NO_ICON.yes },
+            { value: 'no', label: w.no, icon: YES_NO_ICON.no },
           ]}
           onPick={(v) => {
             setPayout(v === 'yes');
@@ -152,7 +162,7 @@ function AddBody() {
   }
   if (step === 'name') {
     return (
-      <FlowShell title={w.invNameQ} {...base} onSkip={next}>
+      <FlowShell title={w.invNameQ} icon={STEP_ICON.invName} {...base} onSkip={next}>
         <TextAnswer
           value={name}
           onChange={setName}
@@ -167,6 +177,7 @@ function AddBody() {
     return (
       <FlowShell
         title={w.invHowMuchQ}
+        icon={STEP_ICON.invHowMuch}
         {...base}
         onSkip={() => {
           setAmount(0n);
@@ -187,7 +198,12 @@ function AddBody() {
   }
   if (step === 'day') {
     return (
-      <FlowShell title={weekly ? w.invStartQ : w.invDayQ} {...base} onSkip={next}>
+      <FlowShell
+        title={weekly ? w.invStartQ : w.invDayQ}
+        icon={STEP_ICON.day}
+        {...base}
+        onSkip={next}
+      >
         <Card style={{ gap: theme.spacing.md }}>
           {weekly ? (
             <DateAnswer label={w.invStartQ} value={startDate} onChange={setStartDate} />
@@ -207,11 +223,16 @@ function AddBody() {
   }
   if (step === 'auto') {
     return (
-      <FlowShell title={w.invAutoQ} {...base} onSkip={() => advance(false)}>
+      <FlowShell
+        title={w.invAutoQ}
+        icon={STEP_ICON.invAuto}
+        {...base}
+        onSkip={() => advance(false)}
+      >
         <Pick<'yes' | 'no'>
           options={[
-            { value: 'yes', label: w.invAutoYes },
-            { value: 'no', label: w.invAutoNo },
+            { value: 'yes', label: w.invAutoYes, icon: YES_NO_ICON.yes },
+            { value: 'no', label: w.invAutoNo, icon: YES_NO_ICON.no },
           ]}
           onPick={(v) => {
             setAuto(v === 'yes');
@@ -225,6 +246,7 @@ function AddBody() {
     return (
       <FlowShell
         title={w.invOpeningQ}
+        icon={STEP_ICON.invOpening}
         {...base}
         onSkip={() => {
           setOpening(0n);
@@ -259,6 +281,7 @@ function AddBody() {
   return (
     <FlowShell
       title={w.invValueQ}
+      icon={STEP_ICON.invValue}
       {...base}
       note={w.valueNote}
       onSkip={() => {

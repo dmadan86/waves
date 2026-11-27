@@ -1,10 +1,11 @@
 /** Rentals: what came in this month, and one card per property. */
 
+import type { ReactElement } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { leaseEndsIn } from '@waves/core';
-import { Button, IconButton, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
+import { Button, directionalIcon, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { PlainHeader, StandardCard } from '@/components/standard';
@@ -12,12 +13,12 @@ import { StatusPill, useWealthMoney, type PillTone } from '@/components/wealth/p
 import { todayIso, usePersonalLedger } from '@/data/personal';
 import { usePersonalWealth } from '@/data/personalWealth';
 import { fill, useStrings } from '@/i18n';
-import { useAuth } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { router } from '@/lib/navigation';
 import { useEntitlement } from '@/lib/useEntitlement';
-import { atPropertyLimit, depositTerm, monthRent, propertyView, regionOf } from '@/lib/wealthPlan';
+import { PROPERTY_ICON } from '@/lib/wizardIcons';
+import { atPropertyLimit, monthRent, monthTotals, propertyView } from '@/lib/wealthPlan';
 
 export const STATUS_TONE: Record<string, PillTone> = {
   paid: 'positive',
@@ -34,8 +35,6 @@ function RentalsBody() {
   const w = t.wealth;
   const fmt = useWealthMoney();
   const dc = useDefaultCurrency();
-  const { profile } = useAuth();
-  const term = w.depositNouns[depositTerm(regionOf(profile?.country_code))];
   const ledger = usePersonalLedger();
   const { properties, tenancies } = usePersonalWealth();
   const { isPro } = useEntitlement();
@@ -61,14 +60,92 @@ function RentalsBody() {
     vacant: w.statusVacant,
   };
 
+  const totals = monthTotals(sum.received, sum.expected);
+  const pill = (status: string): ReactElement => (
+    <StatusPill label={statusText[status] ?? ''} tone={STATUS_TONE[status] ?? 'neutral'} />
+  );
+  const stat = (label: string, value: bigint, last = false): ReactElement => (
+    <View
+      style={{
+        flex: 1,
+        gap: 2,
+        paddingStart: theme.spacing.sm,
+        borderStartWidth: last || label === w.receivedLabel ? 0 : 1,
+        borderStartColor: theme.color.border,
+      }}
+    >
+      <Text variant="caption" tone="muted">
+        {label}
+      </Text>
+      <Text variant="body" numberOfLines={1} adjustsFontSizeToFit style={{ fontWeight: '700' }}>
+        {fmt(value, dc)}
+      </Text>
+    </View>
+  );
+
+  if (active.length === 0) {
+    return (
+      <Screen edges={[]}>
+        <PlainHeader title={w.rentals} />
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: theme.spacing.md,
+            paddingHorizontal: theme.spacing.xl,
+            paddingBottom: clearance + theme.spacing.xl,
+          }}
+        >
+          <View style={{ width: 120, height: 110 }}>
+            <Ionicons name="home-outline" size={96} color={theme.color.brand} />
+            <View
+              style={{
+                position: 'absolute',
+                end: 0,
+                bottom: 0,
+                width: 52,
+                height: 52,
+                borderRadius: 26,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.bg,
+              }}
+            >
+              <Ionicons name="key-outline" size={40} color={theme.color.brand} />
+            </View>
+          </View>
+          <Text variant="title" style={{ fontWeight: '800', textAlign: 'center' }}>
+            {w.trackRentTitle}
+          </Text>
+          <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
+            {w.trackRentSub}
+          </Text>
+          <View style={{ alignSelf: 'stretch', marginTop: theme.spacing.md }}>
+            <Button label={w.addProperty} onPress={add} />
+          </View>
+        </View>
+      </Screen>
+    );
+  }
+
   return (
     <Screen edges={[]}>
       <PlainHeader
         title={w.rentals}
         trailing={
-          <IconButton label={w.addRental} onPress={add}>
-            <Ionicons name="add" size={iconSize.xl} color={theme.color.brand} />
-          </IconButton>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={w.addRental}
+            hitSlop={10}
+            onPress={add}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
+          >
+            <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
+            <Text variant="body" style={{ color: theme.color.brand, fontWeight: '700' }}>
+              {w.addShort}
+            </Text>
+          </Pressable>
         }
       />
       <ScrollView
@@ -78,26 +155,50 @@ function RentalsBody() {
           gap: theme.spacing.md,
         }}
       >
-        {active.length > 0 ? (
-          <StandardCard>
-            <Text variant="body" style={{ fontWeight: '700' }}>
-              {fill(w.receivedOf, { received: fmt(sum.received, dc), due: fmt(sum.expected, dc) })}
-            </Text>
-          </StandardCard>
-        ) : (
-          <StandardCard style={{ gap: theme.spacing.md }}>
+        <StandardCard style={{ gap: theme.spacing.md }}>
+          <Text variant="body" style={{ fontWeight: '700' }}>
+            {w.thisMonth}
+          </Text>
+          <Row>
+            {stat(w.receivedLabel, sum.received)}
+            {stat(w.statusDue, totals.due)}
+            {stat(w.expectedLabel, sum.expected, true)}
+          </Row>
+          <View
+            accessible
+            accessibilityRole="progressbar"
+            accessibilityLabel={fill(w.percentReceived, { pct: totals.percent })}
+            accessibilityValue={{ min: 0, max: 100, now: totals.percent }}
+            style={{
+              height: 8,
+              borderRadius: 4,
+              flexDirection: 'row',
+              overflow: 'hidden',
+              backgroundColor: theme.color.surfaceMuted,
+            }}
+          >
+            <View style={{ width: `${totals.percent}%`, backgroundColor: theme.color.brand }} />
+          </View>
+          <Row style={{ justifyContent: 'space-between' }}>
             <Text variant="caption" tone="muted">
-              {w.emptyRentals}
+              {fill(w.percentReceived, { pct: totals.percent })}
             </Text>
-            <Button label={w.addRental} onPress={add} />
-          </StandardCard>
-        )}
+            <Text variant="caption" tone="muted">
+              {fill(w.receivedOfExpected, {
+                received: fmt(sum.received, dc),
+                expected: fmt(sum.expected, dc),
+              })}
+            </Text>
+          </Row>
+        </StandardCard>
 
+        <Text variant="body" style={{ fontWeight: '700' }}>
+          {fill(w.propertiesCount, { n: active.length })}
+        </Text>
         {views.map(({ p, v }) => {
           const cur = p.currency || dc;
           const tn = v.tenancy;
           const lease = tn ? leaseEndsIn(tn.endDate, today, 60) : null;
-          const part = v.balance.lines.find((l) => l.status === 'part');
           return (
             <Pressable
               key={p.id}
@@ -105,39 +206,64 @@ function RentalsBody() {
               accessibilityLabel={p.name}
               onPress={() => router.push({ pathname: '/rentals/[id]', params: { id: p.id } })}
             >
-              <StandardCard style={{ gap: theme.spacing.sm }}>
-                <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+              <StandardCard style={{ gap: theme.spacing.md }}>
+                <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+                  <View
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: theme.radius.sm,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: theme.color.brandSoft,
+                    }}
+                  >
+                    <Ionicons
+                      name={PROPERTY_ICON[p.type]}
+                      size={iconSize.lg}
+                      color={theme.color.brand}
+                    />
+                  </View>
                   <View style={{ flex: 1 }}>
-                    <Text variant="body" style={{ fontWeight: '700' }}>
+                    <Text variant="body" numberOfLines={1} style={{ fontWeight: '700' }}>
                       {p.name}
                     </Text>
-                    <Text variant="caption" tone="muted">
-                      {tn ? tn.tenantName : w.vacantNote}
+                    <Text variant="caption" tone="muted" numberOfLines={1}>
+                      {w.propertyTypes[p.type]} · {tn ? tn.tenantName : w.vacantNote}
                     </Text>
                   </View>
-                  <StatusPill
-                    label={statusText[v.status] ?? ''}
-                    tone={STATUS_TONE[v.status] ?? 'neutral'}
+                  {pill(v.status)}
+                  <Ionicons
+                    name={directionalIcon('chevron-forward')}
+                    size={iconSize.md}
+                    color={theme.color.textMuted}
                   />
                 </Row>
-                {part ? (
-                  <Text variant="caption">
-                    {fill(w.partLine, {
-                      paid: fmt(part.paid, cur),
-                      due: fmt(part.amount, cur),
-                      left: fmt(part.amount - part.paid, cur),
-                    })}
-                  </Text>
-                ) : null}
-                {tn && v.balance.balance > 0n ? (
-                  <Text variant="caption">
-                    {fill(w.rentOwed, { amount: fmt(v.balance.balance, cur) })}
-                  </Text>
-                ) : null}
-                {tn && tn.depositHeld > 0n ? (
-                  <Text variant="caption" tone="muted">
-                    {fill(w.depositLine, { amount: fmt(tn.depositHeld, cur), term })}
-                  </Text>
+                {tn ? (
+                  <Row
+                    style={{
+                      borderTopWidth: 1,
+                      borderTopColor: theme.color.border,
+                      paddingTop: theme.spacing.sm,
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text variant="caption" tone="muted">
+                        {w.rentBalance}
+                      </Text>
+                      <Text variant="body" style={{ fontWeight: '700' }}>
+                        {fmt(v.balance.balance, cur)}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text variant="caption" tone="muted">
+                        {w.depositHeld}
+                      </Text>
+                      <Text variant="body" style={{ fontWeight: '700' }}>
+                        {fmt(tn.depositHeld, cur)}
+                      </Text>
+                    </View>
+                  </Row>
                 ) : null}
                 {lease !== null ? (
                   <StatusPill label={fill(w.leaseEndsIn, { n: lease })} tone="warning" />

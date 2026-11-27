@@ -1,37 +1,69 @@
 /**
- * Add a property to rent out: one screen, one question at a time under a
- * progress bar, every step skippable. Saved together at the end.
+ * Add a property to rent out: one form, saved together. When it is rented, the
+ * tenant, rent, deposit, rent day and lease end are asked on the same screen.
  */
-import { useState } from 'react';
+import { useState, type ReactElement } from 'react';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Platform, Pressable, ScrollView, View } from 'react-native';
 
 import { PROPERTY_TYPES, type PropertyType } from '@waves/core';
-import { Button } from '@waves/ui';
+import { AmountField, Button, iconSize, Row, Screen, Sheet, Text, useTheme } from '@waves/ui';
 
 import { PersonalGuard } from '@/components/PersonalGuard';
-import { FlowShell, Pick, TextAnswer } from '@/components/wealth/parts';
-import { TENANT_STEPS, TenantFlow, type TenantDraft } from '@/components/wealth/TenantFlow';
-import { todayIso } from '@/data/personal';
+import { FieldLabel, SelectField } from '@/components/company/EntryForm';
+import { PlainHeader, SegmentedPills } from '@/components/standard';
+import { TextAnswer } from '@/components/wealth/parts';
+import type { TenantDraft } from '@/components/wealth/TenantFlow';
+import { dateFrom, showDate } from '@/lib/expenseDay';
+import { localIsoDate, todayIso } from '@/data/personal';
 import {
   FREE_CAP_ERROR,
   usePersonalWealth,
   useWealthWrites,
   type RentalDraft,
 } from '@/data/personalWealth';
-import { useStrings } from '@/i18n';
-import { useAuth } from '@/lib/auth';
+import { fill, useStrings } from '@/i18n';
+import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { router } from '@/lib/navigation';
-import { regionOf } from '@/lib/wealthPlan';
-import { rentalWizardSteps, wizardProgress } from '@/lib/wealthFlow';
+import { PROPERTY_ICON } from '@/lib/wizardIcons';
 
-type Step = 'type' | 'name' | 'rented' | 'tenant';
+const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
+
+/** A bordered amount box that sits two to a row. */
+function MoneyBox({
+  currency,
+  value,
+  onChange,
+}: {
+  currency: Parameters<typeof AmountField>[0]['currency'];
+  value: bigint;
+  onChange: (v: bigint) => void;
+}) {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        minHeight: 46,
+        justifyContent: 'center',
+        paddingHorizontal: theme.spacing.md,
+        borderRadius: theme.radius.lg,
+        borderWidth: 1,
+        borderColor: theme.color.border,
+      }}
+    >
+      <AmountField currency={currency} value={value} onChange={onChange} size="compact" />
+    </View>
+  );
+}
 
 function AddBody() {
-  const { t } = useStrings();
+  const theme = useTheme();
+  const clearance = useBottomClearance();
+  const { t, locale } = useStrings();
   const w = t.wealth;
-  const { profile } = useAuth();
-  const region = regionOf(profile?.country_code);
   const currency = useDefaultCurrency();
   const writes = useWealthWrites();
   const wealth = usePersonalWealth();
@@ -40,30 +72,42 @@ function AddBody() {
 
   const [type, setType] = useState<PropertyType>('house');
   const [name, setName] = useState('');
-  const [rented, setRented] = useState<boolean | null>(null);
-  const [at, setAt] = useState(0);
+  const [rented, setRented] = useState<'yes' | 'no'>('no');
+  const [tenant, setTenant] = useState('');
+  const [rent, setRent] = useState(0n);
+  const [deposit, setDeposit] = useState(0n);
+  const [day, setDay] = useState<number | null>(null);
+  const [end, setEnd] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<'type' | 'day' | null>(null);
+  const [picking, setPicking] = useState(false);
 
-  const order: Step[] = [
-    'type',
-    'name',
-    'rented',
-    ...(rented ? (Array.from({ length: TENANT_STEPS }, () => 'tenant') as Step[]) : []),
-  ];
-  const { index } = wizardProgress(at, order.length);
-  const step = order[index]!;
-  const base = { index, total: rentalWizardSteps(TENANT_STEPS) };
+  const isRented = rented === 'yes';
+  const ready = !isRented || (tenant.trim() !== '' && rent > 0n);
 
-  const save = async (tenant: TenantDraft | null): Promise<void> => {
+  const save = async (): Promise<void> => {
     if (!isPro && wealth.properties.filter((p) => p.status === 'active').length >= 1) {
       router.push('/paywall');
       return;
     }
+    const tn: TenantDraft | null = isRented
+      ? {
+          name: tenant.trim(),
+          phone: '',
+          rent,
+          frequency: 'monthly',
+          day: day ?? 1,
+          deposit,
+          startDate: today,
+          endDate: end,
+          escalationPct: null,
+        }
+      : null;
     const draft: RentalDraft = {
       type,
       name: name.trim() || w.propertyTypes[type],
       currency,
       today,
-      tenant,
+      tenant: tn,
     };
     try {
       await writes.createRental(draft);
@@ -76,64 +120,172 @@ function AddBody() {
     }
     router.back();
   };
-  const cont = t.personalSetup.cont;
 
-  switch (step) {
-    case 'type':
-      return (
-        <FlowShell title={w.propWhatQ} {...base}>
-          <Pick<PropertyType>
-            options={PROPERTY_TYPES.map((v) => ({ value: v, label: w.propertyTypes[v] }))}
-            onPick={(v) => {
-              setType(v);
-              setAt(1);
-            }}
-          />
-        </FlowShell>
-      );
-    case 'name':
-      return (
-        <FlowShell title={w.propNameQ} {...base} onSkip={() => setAt(2)}>
-          <TextAnswer
-            value={name}
-            onChange={setName}
-            placeholder={w.propNamePlaceholder}
-            label={w.propNameQ}
-          />
-          <Button label={cont} disabled={!name.trim()} onPress={() => setAt(2)} />
-        </FlowShell>
-      );
-    case 'rented':
-      return (
-        <FlowShell title={w.rentedNowQ} {...base} onSkip={() => void save(null)}>
-          <Pick<'yes' | 'no'>
-            options={[
-              { value: 'yes', label: w.yes },
-              { value: 'no', label: w.no },
-            ]}
-            onPick={(v) => {
-              if (v === 'no') void save(null);
-              else {
-                setRented(true);
-                setAt(3);
-              }
-            }}
-          />
-        </FlowShell>
-      );
-    default:
-      return (
-        <TenantFlow
-          currency={currency}
-          region={region}
-          today={today}
-          offset={3}
-          total={order.length}
-          onSkip={() => void save(null)}
-          onDone={(tn) => void save(tn)}
+  const row = (label: string, selected: boolean, onPress: () => void, icon?: ReactElement) => (
+    <Pressable
+      key={label}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        minHeight: 48,
+      }}
+    >
+      {icon}
+      <Text variant="body" style={{ flex: 1, fontWeight: selected ? '700' : '400' }}>
+        {label}
+      </Text>
+      {selected ? <Ionicons name="checkmark" size={iconSize.md} color={theme.color.brand} /> : null}
+    </Pressable>
+  );
+
+  return (
+    <Screen edges={[]}>
+      <PlainHeader title={w.addProperty} />
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{
+          paddingHorizontal: theme.spacing.lg,
+          paddingBottom: theme.spacing.lg,
+          gap: theme.spacing.md,
+        }}
+      >
+        <FieldLabel>{w.propertyTypeLabel}</FieldLabel>
+        <SelectField
+          label={w.propertyTypeLabel}
+          icon={PROPERTY_ICON[type]}
+          text={w.propertyTypes[type]}
+          onPress={() => setSheet('type')}
         />
-      );
-  }
+        <FieldLabel>{w.propertyNameLabel}</FieldLabel>
+        <TextAnswer
+          value={name}
+          onChange={setName}
+          placeholder={w.propNamePlaceholder}
+          label={w.propertyNameLabel}
+        />
+        <FieldLabel>{w.currentlyRentedQ}</FieldLabel>
+        <SegmentedPills<'yes' | 'no'>
+          value={rented}
+          onChange={setRented}
+          options={[
+            { value: 'yes', label: w.yes },
+            { value: 'no', label: w.no },
+          ]}
+        />
+        {isRented ? (
+          <>
+            <FieldLabel>{w.tenantNameLabel}</FieldLabel>
+            <TextAnswer
+              value={tenant}
+              onChange={setTenant}
+              placeholder={w.tenantNameLabel}
+              label={w.tenantNameLabel}
+            />
+            <Row style={{ gap: theme.spacing.md }}>
+              <View style={{ flex: 1, gap: theme.spacing.xs }}>
+                <FieldLabel>{w.monthlyRent}</FieldLabel>
+                <MoneyBox currency={currency} value={rent} onChange={setRent} />
+              </View>
+              <View style={{ flex: 1, gap: theme.spacing.xs }}>
+                <FieldLabel>{w.refundableDeposit}</FieldLabel>
+                <MoneyBox currency={currency} value={deposit} onChange={setDeposit} />
+              </View>
+            </Row>
+            <FieldLabel>{w.rentDueDay}</FieldLabel>
+            <SelectField
+              label={w.rentDueDay}
+              icon="calendar-outline"
+              text={day === null ? w.selectDay : fill(w.dayOfMonth, { n: day })}
+              placeholder={day === null}
+              onPress={() => setSheet('day')}
+            />
+            <FieldLabel>{w.leaseEndOptional}</FieldLabel>
+            <SelectField
+              label={w.leaseEndOptional}
+              icon="calendar-number-outline"
+              text={end ? showDate(end, locale) : w.openEnded}
+              onPress={() => setPicking(true)}
+              trailing={
+                end ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={w.openEnded}
+                    hitSlop={10}
+                    onPress={() => setEnd(null)}
+                  >
+                    <Ionicons
+                      name="close-circle-outline"
+                      size={iconSize.md}
+                      color={theme.color.textMuted}
+                    />
+                  </Pressable>
+                ) : undefined
+              }
+            />
+            {picking ? (
+              <DateTimePicker
+                value={dateFrom(end ?? localIsoDate(new Date()))}
+                mode="date"
+                onChange={(event, picked) => {
+                  if (Platform.OS !== 'ios') setPicking(false);
+                  if (event.type === 'set' && picked) setEnd(localIsoDate(picked));
+                }}
+              />
+            ) : null}
+          </>
+        ) : null}
+      </ScrollView>
+      <View
+        style={{
+          paddingHorizontal: theme.spacing.lg,
+          paddingBottom: clearance + theme.spacing.md,
+        }}
+      >
+        <Button label={w.savePropertyBtn} disabled={!ready} onPress={() => void save()} />
+      </View>
+
+      <Sheet
+        visible={sheet === 'type'}
+        onClose={() => setSheet(null)}
+        title={w.propertyTypeLabel}
+        closeLabel={t.common.close}
+      >
+        <ScrollView style={{ maxHeight: 360 }}>
+          {PROPERTY_TYPES.map((v) =>
+            row(
+              w.propertyTypes[v],
+              v === type,
+              () => {
+                setType(v);
+                setSheet(null);
+              },
+              <Ionicons name={PROPERTY_ICON[v]} size={iconSize.md} color={theme.color.brand} />,
+            ),
+          )}
+        </ScrollView>
+      </Sheet>
+      <Sheet
+        visible={sheet === 'day'}
+        onClose={() => setSheet(null)}
+        title={w.rentDueDay}
+        closeLabel={t.common.close}
+      >
+        <ScrollView style={{ maxHeight: 360 }}>
+          {DAYS.map((d) =>
+            row(fill(w.dayOfMonth, { n: d }), d === day, () => {
+              setDay(d);
+              setSheet(null);
+            }),
+          )}
+        </ScrollView>
+      </Sheet>
+    </Screen>
+  );
 }
 
 export default function AddRentalScreen() {

@@ -33,6 +33,7 @@ import {
 } from '@waves/ui';
 
 import { PersonalGuard } from '@/components/PersonalGuard';
+import { Pick, StepHeader } from '@/components/wealth/parts';
 import { DayStepper } from '@/components/RepeatPicker';
 import { todayIso, useUpsertPersonalRecord, usePersonalLedger } from '@/data/personal';
 import { deviceCountry, fill, plural, useStrings, type UiStrings } from '@/i18n';
@@ -41,6 +42,17 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { router } from '@/lib/navigation';
 import { setOverlayBusy } from '@/lib/firstRun';
 import { dismissPersonalIntro } from '@/lib/onboardingSeen';
+import {
+  EAT_ICON,
+  EATEN_EACH_ICON,
+  HOME_ICON,
+  INCOME_ICON,
+  LOAN_ICON,
+  SAVINGS_ICON,
+  STEP_ICON,
+  YES_NO_ICON,
+  type IconName,
+} from '@/lib/wizardIcons';
 import {
   answersToRecords,
   BILL_IDS,
@@ -96,6 +108,7 @@ function Shell({
   onSkip,
   children,
   privateLine,
+  icon,
 }: {
   s: S;
   title: string;
@@ -104,6 +117,7 @@ function Shell({
   onSkip?: () => void;
   children: ReactNode;
   privateLine?: boolean;
+  icon: IconName;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -163,6 +177,12 @@ function Shell({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ gap: theme.spacing.lg, paddingBottom: theme.spacing.xl }}
         >
+          <StepHeader
+            icon={icon}
+            index={index}
+            total={total}
+            stepLabel={fill(s.stepOf, { n: index + 1, total })}
+          />
           <Text variant="title" accessibilityRole="header">
             {title}
           </Text>
@@ -183,19 +203,6 @@ function Shell({
         ) : null}
       </View>
     </Screen>
-  );
-}
-
-/** Chips that answer by being tapped. */
-function Pick<T extends string>({
-  options,
-  onPick,
-}: {
-  options: readonly { value: T; label: string }[];
-  onPick: (value: T) => void;
-}) {
-  return (
-    <ChipRow<T> wrap variant="brand" onCard value={'' as T} options={options} onChange={onPick} />
   );
 }
 
@@ -295,14 +302,22 @@ function IncomeStep({ s, currency, save, skip, index, total, incomePrefill }: St
   }, [incomePrefill]);
   if (!kind) {
     return (
-      <Shell s={s} title={s.incomeQ} index={index} total={total} onSkip={skip} privateLine>
+      <Shell
+        s={s}
+        icon={STEP_ICON.income}
+        title={s.incomeQ}
+        index={index}
+        total={total}
+        onSkip={skip}
+        privateLine
+      >
         <Pick<IncomeKind | 'none'>
           options={[
-            { value: 'salary', label: s.incomeSalary },
-            { value: 'business', label: s.incomeBusiness },
-            { value: 'freelance', label: s.incomeFreelance },
-            { value: 'pension', label: s.incomePension },
-            { value: 'none', label: s.incomeNone },
+            { value: 'salary', label: s.incomeSalary, icon: INCOME_ICON.salary },
+            { value: 'business', label: s.incomeBusiness, icon: INCOME_ICON.business },
+            { value: 'freelance', label: s.incomeFreelance, icon: INCOME_ICON.freelance },
+            { value: 'pension', label: s.incomePension, icon: INCOME_ICON.pension },
+            { value: 'none', label: s.incomeNone, icon: INCOME_ICON.none },
           ]}
           onPick={(v) =>
             v === 'none'
@@ -314,7 +329,14 @@ function IncomeStep({ s, currency, save, skip, index, total, incomePrefill }: St
     );
   }
   return (
-    <Shell s={s} title={s.incomeDetailsQ} index={index} total={total} onSkip={skip}>
+    <Shell
+      s={s}
+      icon={STEP_ICON.income}
+      title={s.incomeDetailsQ}
+      index={index}
+      total={total}
+      onSkip={skip}
+    >
       <AmountDay
         s={s}
         currency={currency}
@@ -353,17 +375,18 @@ function HomeStep({ s, region, currency, save, skip, index, total, homePrefill }
   }, [homePrefill]);
   if (!kind) {
     return (
-      <Shell s={s} title={s.homeQ} index={index} total={total} onSkip={skip}>
+      <Shell s={s} icon={STEP_ICON.home} title={s.homeQ} index={index} total={total} onSkip={skip}>
         <Pick<HomeKind | 'none'>
           options={[
-            { value: 'rent', label: s.homeRent },
+            { value: 'rent', label: s.homeRent, icon: HOME_ICON.rent },
             {
               value: 'home_loan',
+              icon: HOME_ICON.home_loan,
               label: `${s.homeEmi}${regionHint('homeLoan', region)
                 .map((key) => ` · ${s[key]}`)
                 .join('')}`,
             },
-            { value: 'none', label: s.homeNone },
+            { value: 'none', label: s.homeNone, icon: HOME_ICON.none },
           ]}
           onPick={(v) =>
             v === 'none'
@@ -375,7 +398,14 @@ function HomeStep({ s, region, currency, save, skip, index, total, homePrefill }
     );
   }
   return (
-    <Shell s={s} title={s.homeDetailsQ} index={index} total={total} onSkip={skip}>
+    <Shell
+      s={s}
+      icon={STEP_ICON.home}
+      title={s.homeDetailsQ}
+      index={index}
+      total={total}
+      onSkip={skip}
+    >
       <AmountDay
         s={s}
         currency={currency}
@@ -433,7 +463,14 @@ function BillsStep({
   };
   if (!rows) {
     return (
-      <Shell s={s} title={s.billsQ} index={index} total={total} onSkip={skip}>
+      <Shell
+        s={s}
+        icon={STEP_ICON.bills}
+        title={s.billsQ}
+        index={index}
+        total={total}
+        onSkip={skip}
+      >
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
           {BILL_IDS.map((id) => {
             const on = picked.includes(id);
@@ -491,7 +528,14 @@ function BillsStep({
     setRows((r) => r?.map((x) => (x.id === id ? { ...x, ...change } : x)) ?? r);
   };
   return (
-    <Shell s={s} title={s.billsDetailsQ} index={index} total={total} onSkip={skip}>
+    <Shell
+      s={s}
+      icon={STEP_ICON.bills}
+      title={s.billsDetailsQ}
+      index={index}
+      total={total}
+      onSkip={skip}
+    >
       {rows.map((row) => (
         <View key={row.id} style={{ gap: theme.spacing.xs }}>
           <Text variant="body" style={{ fontWeight: '600' }}>
@@ -519,11 +563,11 @@ function EmiStep({ s, region, currency, save, skip, index, total }: StepProps & 
   const [draft, setDraft] = useState<EmiAnswer | null>(null);
   if (ask) {
     return (
-      <Shell s={s} title={s.loanQ} index={index} total={total} onSkip={skip}>
+      <Shell s={s} icon={STEP_ICON.emi} title={s.loanQ} index={index} total={total} onSkip={skip}>
         <Pick<'yes' | 'no'>
           options={[
-            { value: 'yes', label: s.yes },
-            { value: 'no', label: s.no },
+            { value: 'yes', label: s.yes, icon: YES_NO_ICON.yes },
+            { value: 'no', label: s.no, icon: YES_NO_ICON.no },
           ]}
           onPick={(v) =>
             v === 'no'
@@ -536,19 +580,27 @@ function EmiStep({ s, region, currency, save, skip, index, total }: StepProps & 
   }
   if (!draft) {
     return (
-      <Shell s={s} title={s.loanTypeQ} index={index} total={total} onSkip={skip}>
+      <Shell
+        s={s}
+        icon={STEP_ICON.emi}
+        title={s.loanTypeQ}
+        index={index}
+        total={total}
+        onSkip={skip}
+      >
         <Pick<LoanKind>
           options={[
-            { value: 'car', label: s.loanCar },
-            { value: 'personal', label: s.loanPersonal },
+            { value: 'car', label: s.loanCar, icon: LOAN_ICON.car },
+            { value: 'personal', label: s.loanPersonal, icon: LOAN_ICON.personal },
             {
               value: 'secured_other',
+              icon: LOAN_ICON.secured_other,
               label: `${s.loanGold}${regionHint('securedOther', region)
                 .map((key) => ` · ${s[key]}`)
                 .join('')}`,
             },
-            { value: 'education', label: s.loanEducation },
-            { value: 'card', label: s.loanCard },
+            { value: 'education', label: s.loanEducation, icon: LOAN_ICON.education },
+            { value: 'card', label: s.loanCard, icon: LOAN_ICON.card },
           ]}
           onPick={(kind) => setDraft({ kind, emi: 0n, day: 5, monthsLeft: 12 })}
         />
@@ -556,7 +608,14 @@ function EmiStep({ s, region, currency, save, skip, index, total }: StepProps & 
     );
   }
   return (
-    <Shell s={s} title={s.loanDetailsQ} index={index} total={total} onSkip={skip}>
+    <Shell
+      s={s}
+      icon={STEP_ICON.emi}
+      title={s.loanDetailsQ}
+      index={index}
+      total={total}
+      onSkip={skip}
+    >
       <AmountDay
         s={s}
         currency={currency}
@@ -596,13 +655,13 @@ function EatStep({ s, currency, locale, save, skip, index, total }: StepProps & 
   const presets = eatOutPresets(currency);
   if (!freq) {
     return (
-      <Shell s={s} title={s.eatQ} index={index} total={total} onSkip={skip}>
+      <Shell s={s} icon={STEP_ICON.eatOut} title={s.eatQ} index={index} total={total} onSkip={skip}>
         <Pick<EatFreq>
           options={[
-            { value: 'rarely', label: s.eatRarely },
-            { value: 'week12', label: s.eat12 },
-            { value: 'week34', label: s.eat34 },
-            { value: 'daily', label: s.eatMost },
+            { value: 'rarely', label: s.eatRarely, icon: EAT_ICON.rarely },
+            { value: 'week12', label: s.eat12, icon: EAT_ICON.week12 },
+            { value: 'week34', label: s.eat34, icon: EAT_ICON.week34 },
+            { value: 'daily', label: s.eatMost, icon: EAT_ICON.daily },
           ]}
           onPick={setFreq}
         />
@@ -611,11 +670,19 @@ function EatStep({ s, currency, locale, save, skip, index, total }: StepProps & 
   }
   if (each === null) {
     return (
-      <Shell s={s} title={s.eatEachQ} index={index} total={total} onSkip={skip}>
+      <Shell
+        s={s}
+        icon={STEP_ICON.eatOut}
+        title={s.eatEachQ}
+        index={index}
+        total={total}
+        onSkip={skip}
+      >
         <Pick<string>
           options={presets.map((p) => ({
             value: String(p),
             label: format(money(p, currency), { locale }),
+            icon: EATEN_EACH_ICON,
           }))}
           onPick={(v) => {
             const amount = BigInt(v);
@@ -629,6 +696,7 @@ function EatStep({ s, currency, locale, save, skip, index, total }: StepProps & 
   return (
     <Shell
       s={s}
+      icon={STEP_ICON.eatOut}
       title={fill(s.eatMonthly, { amount: format(money(monthly, currency), { locale }) })}
       index={index}
       total={total}
@@ -654,9 +722,16 @@ const BANDS: readonly [SavingsBand, PlainKey][] = [
 
 function SavingsStep({ s, save, skip, index, total }: StepProps & Pos) {
   return (
-    <Shell s={s} title={s.savingsQ} index={index} total={total} onSkip={skip}>
+    <Shell
+      s={s}
+      icon={STEP_ICON.savings}
+      title={s.savingsQ}
+      index={index}
+      total={total}
+      onSkip={skip}
+    >
       <Pick<SavingsBand>
-        options={BANDS.map(([value, key]) => ({ value, label: s[key] }))}
+        options={BANDS.map(([value, key]) => ({ value, label: s[key], icon: SAVINGS_ICON[value] }))}
         onPick={(band) => void save('savings', { savings: band }, band)}
       />
     </Shell>
@@ -667,7 +742,7 @@ function CapStep({ s, currency, free, save, skip, index, total }: StepProps & Po
   const step = budgetStep(free, currency);
   const [cap, setCap] = useState(() => (free / step) * step);
   return (
-    <Shell s={s} title={s.capQ} index={index} total={total} onSkip={skip}>
+    <Shell s={s} icon={STEP_ICON.cap} title={s.capQ} index={index} total={total} onSkip={skip}>
       <Text variant="caption" tone="muted">
         {s.capHint}
       </Text>
