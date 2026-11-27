@@ -38,7 +38,8 @@ import { clearImageCache } from '@/lib/storage/imageCache';
 import { scheduleThumbPrefetch } from '@/lib/storage/thumbPrefetch';
 import { evictGroupThumbs } from '@/lib/storage/thumbStore';
 
-import { startE2ee, stopE2ee, syncE2ee } from '@/e2ee/runtime';
+import { createForegroundPoll } from '@/e2ee/poll';
+import { hasCoupleSpace, startE2ee, stopE2ee, syncE2ee } from '@/e2ee/runtime';
 
 import { syncEngine, type SyncState } from './engine';
 import { clearLocalPrivateData } from './localWipe';
@@ -323,11 +324,17 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     // saw: a session that ended while backgrounded took its listener with it,
     // so the 'active' that would have resumed the poll was never heard, and a
     // fresh sign-in would otherwise inherit the pause for the whole session.
+    // A partner's couple-space edit has no push; poll its mailbox while the app is on screen.
+    const couplePoll = createForegroundPoll(syncE2ee, hasCoupleSpace, 10_000);
     if (AppState.currentState === 'background') syncEngine.pause();
-    else syncEngine.resume();
+    else {
+      syncEngine.resume();
+      couplePoll.start();
+    }
     const subscription = AppState.addEventListener('change', (next) => {
       if (next === 'active') {
         syncEngine.resume();
+        couplePoll.start();
         void syncEngine.flush();
         void syncE2ee();
         void resumeReceiptUploads();
@@ -336,9 +343,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         // Not on 'inactive' — that is a pulled-down notification shade or an
         // incoming call, and the app is still on screen.
         syncEngine.pause();
+        couplePoll.stop();
       }
     });
-    return () => subscription.remove();
+    return () => {
+      subscription.remove();
+      couplePoll.stop();
+    };
   }, [signedIn]);
 
   // And the moment a dead zone ends.

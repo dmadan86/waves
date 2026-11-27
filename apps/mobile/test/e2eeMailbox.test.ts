@@ -22,6 +22,30 @@ function world() {
 
 const prop = { name: 'Flat 4', currency: 'INR', status: 'active' };
 
+describe('stale device return', () => {
+  it('asks for a snapshot when the server says this device was stale', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1, undefined, [G]);
+    const b = phone(server, 'pB', 'mB', 2, a.clock, [G]);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await a.set(G, 'p1', 'property', prop);
+    await b.sync();
+    await a.sync();
+    await b.sync();
+    expect(Object.keys(b.data(G))).toEqual(['p1']);
+    // While b was stale nothing was addressed to it.
+    await a.set(G, 'p2', 'property', prop);
+    await a.mailbox.flushOutbox();
+    server.mailbox.length = 0;
+    a.clock.t += 2 * 3_600_000;
+    server.staleDevices.add(await b.deviceId());
+    await b.sync();
+    await a.sync();
+    await b.sync();
+    expect(Object.keys(b.data(G)).sort()).toEqual(['p1', 'p2']);
+  });
+});
+
 describe('mailbox send', () => {
   it('isolates cached pair keys when two accounts share the same peer device', () => {
     expect(pairCacheKey('account-a-device', 'shared-peer', 'v2')).not.toBe(
@@ -103,6 +127,8 @@ describe('mailbox send', () => {
     expect(await a.mailbox.failedOutboxGroups()).toEqual([
       { groupId: 'group-lost', reason: 'membership-lost' },
     ]);
+    // A handled, self-healing state: never an alert on a test build.
+    expect(a.reports.map((r) => r.where)).not.toContain('e2ee.send.membership:group-lost');
   });
 
   it('retries quarantined group messages after rejoining', async () => {

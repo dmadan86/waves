@@ -236,6 +236,10 @@ export function syncE2ee(): Promise<void> {
   return running;
 }
 
+/** Whether this account has a couple/home space worth polling for. */
+export const hasCoupleSpace = (): boolean =>
+  activeProfileId !== null && coupleGroupIds().length > 0;
+
 /** Groups whose queued mailbox messages were quarantined after permanent membership loss. */
 export function getE2eeOutboxFailures(): Promise<{ groupId: string; reason: string }[]> {
   return mailbox.failedOutboxGroups();
