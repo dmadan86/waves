@@ -14,7 +14,8 @@
     "./settlement": "./src/settlement/index.ts",
     "./sync": "./src/sync/index.ts",
     "./notifications": "./src/notifications/index.ts",
-    "./observability": "./src/observability/index.ts"
+    "./observability": "./src/observability/index.ts",
+    "./e2ee": "./src/e2ee/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -23,6 +24,11 @@
     "build": "esbuild src/index.ts --bundle --format=esm --platform=neutral --target=es2022 --outfile=dist/core.js",
     "build:edge": "esbuild src/index.ts --bundle --format=esm --platform=neutral --target=es2022 --outfile=../../supabase/functions/_shared/core.js",
     "coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@noble/ciphers": "2.4.0",
+    "@noble/curves": "2.2.0",
+    "@noble/hashes": "2.2.0"
   },
   "devDependencies": {
     "fast-check": "^4.11.0",
