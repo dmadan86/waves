@@ -548,7 +548,7 @@ const TabItem = memo(function TabItem({
           variant="micro"
           numberOfLines={1}
           adjustsFontSizeToFit
-          minimumFontScale={0.8}
+          minimumFontScale={0.65}
           tone={focused ? 'brand' : 'muted'}
           style={{ fontWeight: focused ? '700' : '600' }}
         >

@@ -202,7 +202,7 @@ function AllGroupsScreen() {
               >
                 {t.groupsTitle}
               </Text>
-              <Text variant="caption" numberOfLines={1} style={{ color: ink, opacity: 0.92 }}>
+              <Text variant="caption" numberOfLines={2} style={{ color: ink, opacity: 0.92 }}>
                 {t.misc.groupsSubtitle}
               </Text>
             </View>

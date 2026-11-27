@@ -74,6 +74,7 @@ export default function SyncSettingsScreen() {
                 <ListRow
                   title={row.title}
                   subtitle={row.subtitle}
+                  lines={3}
                   onPress={() => void setPreference(row.value)}
                   // A picker row, not a door: choosing is idempotent and every
                   // tap should land.

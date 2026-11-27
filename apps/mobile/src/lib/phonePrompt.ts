@@ -79,7 +79,9 @@ function daysBetween(from: string, to: string): number {
     const [year, month, date] = day.split('-').map(Number);
     return Date.UTC(year, month - 1, date);
   };
-  return Math.floor((parse(to) - parse(from)) / 86_400_000);
+  const days = Math.floor((parse(to) - parse(from)) / 86_400_000);
+  // An unreadable stored day counts as "just now": better one quiet day than a nag.
+  return Number.isNaN(days) ? 0 : days;
 }
 
 /** The state after one more "Later" today. */
@@ -89,14 +91,10 @@ export function withLater(state: PhonePromptState, today: string): PhonePromptSt
 
 /** Today as `YYYY-MM-DD` in the device's own zone — the unit "Later" counts in. */
 export function localDay(now: Date = new Date()): string {
-  try {
-    return new Intl.DateTimeFormat('en-CA').format(now);
-  } catch {
-    // Local getters, not `toISOString` — that is UTC, and near midnight it
-    // names a different day from the one on the person's phone.
-    const pad = (value: number): string => String(value).padStart(2, '0');
-    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-  }
+  // Local getters, not `Intl` (its en-CA format is not guaranteed on Hermes, and
+  // an unparseable day made "Later" never stick) and not `toISOString` (UTC).
+  const pad = (value: number): string => String(value).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
 const slot = (ownerId: string): string => `waves.phone_prompt.${ownerId}`;
@@ -112,11 +110,16 @@ export async function readPhonePromptState(ownerId: string): Promise<PhonePrompt
     const raw = await AsyncStorage.getItem(slot(ownerId));
     if (!raw) return EMPTY_PHONE_PROMPT_STATE;
     const parsed = JSON.parse(raw) as Partial<PhonePromptState>;
-    return {
-      laterCount:
-        typeof parsed.laterCount === 'number' && parsed.laterCount >= 0 ? parsed.laterCount : 0,
-      lastLaterOn: typeof parsed.lastLaterOn === 'string' ? parsed.lastLaterOn : null,
-    };
+    const laterCount =
+      typeof parsed.laterCount === 'number' && parsed.laterCount >= 0 ? parsed.laterCount : 0;
+    if (typeof parsed.lastLaterOn !== 'string') return { laterCount, lastLaterOn: null };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(parsed.lastLaterOn)) {
+      // Saved in an older, unreadable format: restart the cooldown from today, once.
+      const fixed = { laterCount, lastLaterOn: localDay() };
+      await writePhonePromptState(ownerId, fixed);
+      return fixed;
+    }
+    return { laterCount, lastLaterOn: parsed.lastLaterOn };
   } catch {
     return EMPTY_PHONE_PROMPT_STATE;
   }
