@@ -8,12 +8,14 @@ import { randomUUID } from 'expo-crypto';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
+import { pendingMoveIds, type MoveRecord } from './vehicleMove';
 import {
   addDoc,
   docFileName,
   docsOf,
   orphanFolders,
   parseIndex,
+  rekeyIndex,
   removeDoc,
   renameDoc,
   renameSlot,
@@ -110,6 +112,8 @@ export async function deleteAllDocs(propertyId: string): Promise<void> {
 /** Remove folders and index entries of properties that no longer exist. */
 export async function sweepOrphanDocs(liveIds: ReadonlySet<string>): Promise<void> {
   try {
+    // A half-done vehicle move keeps both its ids alive until it finishes.
+    liveIds = new Set([...liveIds, ...pendingMoveIds(await readMoves())]);
     if (!root().exists) return;
     const folders = root()
       .list()
@@ -129,4 +133,51 @@ export async function openLocalDoc(propertyId: string, doc: LocalDoc): Promise<b
   if (!f.exists || !(await Sharing.isAvailableAsync())) return false;
   await Sharing.shareAsync(f.uri, { mimeType: doc.mime, dialogTitle: doc.name });
   return true;
+}
+
+/** Re-key every document of one owner to another id: move the folder, then the index entry. */
+export async function rekeyDocs(from: string, to: string): Promise<void> {
+  const index = await readIndex();
+  if (!index[from]) return;
+  new FileSystem.Directory(root(), to).create({ intermediates: true, idempotent: true });
+  for (const d of index[from]) {
+    const src = fileOf(from, d);
+    if (src.exists) src.move(fileOf(to, d));
+  }
+  try {
+    const dir = new FileSystem.Directory(root(), from);
+    if (dir.exists) dir.delete();
+  } catch {
+    // Swept as an orphan later.
+  }
+  writeIndex(rekeyIndex(index, from, to));
+}
+
+const movesFile = () => new FileSystem.File(root(), 'moves.json');
+
+/** Vehicle moves that started and have not finished (kept beside the documents index). */
+export async function readMoves(): Promise<MoveRecord[]> {
+  try {
+    const f = movesFile();
+    const raw = f.exists ? (JSON.parse(await f.text()) as unknown) : [];
+    return Array.isArray(raw)
+      ? raw.filter(
+          (m): m is MoveRecord =>
+            typeof m?.sourceId === 'string' &&
+            typeof m.targetId === 'string' &&
+            ['start', 'written', 'rekeyed'].includes(m.step),
+        )
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Save (or, with `done`, remove) one move record. */
+export async function saveMove(rec: MoveRecord, done = false): Promise<void> {
+  const rest = (await readMoves()).filter((m) => m.sourceId !== rec.sourceId);
+  root().create({ intermediates: true, idempotent: true });
+  const f = movesFile();
+  if (!f.exists) f.create({ intermediates: true });
+  f.write(JSON.stringify(done ? rest : [...rest, rec]));
 }

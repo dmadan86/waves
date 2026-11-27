@@ -417,11 +417,24 @@ function DetailBody() {
           <Ionicons name={PROPERTY_ICON[prop.type]} size={iconSize.sm} color={theme.color.brand} />
         }
         trailing={
-          readOnly ? undefined : (
-            <IconButton label={t.personalHome.toolMore} onPress={() => setMenu(true)}>
-              <Ionicons name="ellipsis-vertical" size={iconSize.md} color={theme.color.text} />
-            </IconButton>
-          )
+          // The page's two everyday actions sit as icons in the top bar, beside ⋮.
+          <Row style={{ alignItems: 'center' }}>
+            {readOnly ? null : (
+              <IconButton label={w.addExpense} onPress={() => setOpen('expense')}>
+                <Ionicons name="add-circle-outline" size={iconSize.md} color={theme.color.brand} />
+              </IconButton>
+            )}
+            {tn && lastPayment ? (
+              <IconButton label={w.receiptsBtn} onPress={() => void share()}>
+                <Ionicons name="receipt-outline" size={iconSize.md} color={theme.color.text} />
+              </IconButton>
+            ) : null}
+            {readOnly ? null : (
+              <IconButton label={t.personalHome.toolMore} onPress={() => setMenu(true)}>
+                <Ionicons name="ellipsis-vertical" size={iconSize.md} color={theme.color.text} />
+              </IconButton>
+            )}
+          </Row>
         }
       />
       <DetailEnter>
@@ -437,27 +450,6 @@ function DetailBody() {
               {w.readOnlyCopy}
             </Text>
           ) : null}
-          <Row style={{ gap: theme.spacing.sm }}>
-            {readOnly ? null : (
-              <TintButton
-                label={w.addExpense}
-                icon="document-text-outline"
-                bg={theme.color.brandSoft}
-                fg={theme.color.brand}
-                onPress={() => setOpen('expense')}
-              />
-            )}
-            {tn ? (
-              <TintButton
-                label={w.receiptsBtn}
-                icon="receipt-outline"
-                bg={theme.color.surfaceMuted}
-                fg={theme.color.text}
-                disabled={!lastPayment}
-                onPress={() => void share()}
-              />
-            ) : null}
-          </Row>
           <Animated.View layout={glide}>
             <StandardCard
               style={{ backgroundColor: theme.color.brandSoft, borderColor: theme.color.brandSoft }}

@@ -19,6 +19,7 @@ export function PlainHeader({
   subtitle,
   subtitleIcon,
   onBack,
+  hideBack = false,
   trailing,
 }: {
   title: string;
@@ -28,6 +29,8 @@ export function PlainHeader({
   subtitleIcon?: ReactNode;
   /** Defaults to going back one screen. */
   onBack?: () => void;
+  /** A tab root has no way back: the bar is the navigation. */
+  hideBack?: boolean;
   trailing?: ReactNode;
 }) {
   const theme = useTheme();
@@ -43,19 +46,21 @@ export function PlainHeader({
         paddingHorizontal: theme.spacing.lg,
       }}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t.common.back}
-        hitSlop={10}
-        onPress={onBack ?? (() => router.back())}
-        style={{ minWidth: 32, minHeight: 44, justifyContent: 'center' }}
-      >
-        <Ionicons
-          name={directionalIcon('arrow-back')}
-          size={iconSize.xl}
-          color={theme.color.text}
-        />
-      </Pressable>
+      {hideBack ? null : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.common.back}
+          hitSlop={10}
+          onPress={onBack ?? (() => router.back())}
+          style={{ minWidth: 32, minHeight: 44, justifyContent: 'center' }}
+        >
+          <Ionicons
+            name={directionalIcon('arrow-back')}
+            size={iconSize.xl}
+            color={theme.color.text}
+          />
+        </Pressable>
+      )}
       <View style={{ flex: 1 }}>
         <Text variant="heading" numberOfLines={1} style={{ fontWeight: '800' }}>
           {title}

@@ -39,22 +39,20 @@ import {
 } from '@waves/ui';
 
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
-import { ChangePill, FlowTile, SpendHistoryChart } from '@/components/home/MonthParts';
 import {
   BillsTab,
   IncomeTab,
-  OverviewTab,
   PlanningTab,
   UpcomingTab,
   type HouseholdData,
 } from '@/components/household/HouseholdTabs';
 import { TabHeader, TabIconButton } from '@/components/home/TabHeader';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
-import { MonthPill, QuickActions } from '@/components/personal/PersonalHomeParts';
+import { MonthPill } from '@/components/personal/PersonalHomeParts';
 import { useBlockedUsers } from '@/data/blocked';
 import { useGroupIncome } from '@/data/groupIncome';
-import { RentalsRow } from '@/components/household/RentalsRow';
 import { groupRentalsSummary, hasGroupRentals } from '@/lib/rentalScope';
+import { ComingUpHome } from '@/components/home/ComingUpHome';
 import { occurrenceIds, useGroupRecurring, useMarkBillPaid } from '@/data/groupRecurring';
 import {
   memberLookup,
@@ -65,7 +63,7 @@ import {
 } from '@/data/hooks';
 import { todayIso, useGroupRecords } from '@/data/personal';
 import { groupLabel, isGhost } from '@/data/types';
-import { fill, useStrings } from '@/i18n';
+import { useStrings } from '@/i18n';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useViewerId } from '@/lib/auth';
 import { compactAmount, needsCompactTile } from '@/lib/householdHome';
@@ -77,7 +75,7 @@ import {
   householdLocalBack,
   householdViewFor,
 } from '@/lib/householdTab';
-import { monthLabel, monthShort, monthShortYear, monthsBetween, shiftMonth } from '@/lib/monthNav';
+import { monthLabel, monthsBetween, shiftMonth } from '@/lib/monthNav';
 import { router, runBarMove, useGoBack } from '@/lib/navigation';
 import {
   householdGearEntries,
@@ -108,7 +106,7 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
   const clearance = useTabBarClearance();
   const goBack = useGoBack('/');
   const { blockedIds } = useBlockedUsers();
-  const { hidden, toggle } = usePersonalAmountsHidden();
+  const { hidden } = usePersonalAmountsHidden();
   useGroupRealtime(groupId);
 
   const { group, everyone, expenses } = useGroup(groupId);
@@ -404,7 +402,6 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
         ? t.youAreOwed
         : t.youOwe;
   const title = group.data?.name?.trim() || groupLabel(group.data, everyone.data ?? [], viewerId);
-  const change = summary.changePct;
 
   return (
     <Screen edges={[]}>
@@ -440,6 +437,11 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
           onPress={go(pick(buttons, 'bell'))}
         />
         <TabIconButton
+          icon="mic-outline"
+          label={t.personalHome.moreVoice}
+          onPress={() => router.push({ pathname: '/voice', params: { group: groupId } })}
+        />
+        <TabIconButton
           icon="ellipsis-vertical"
           label={t.group.settings}
           onPress={() => setMenuOpen(true)}
@@ -466,155 +468,59 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
         >
           {tab === 'overview' ? (
             <>
-              <Card
-                style={{
-                  gap: theme.spacing.md,
-                  padding: theme.spacing.lg,
-                  backgroundColor: theme.color.brandSoft,
-                }}
-              >
-                <Row style={{ alignItems: 'flex-start', gap: theme.spacing.md }}>
-                  <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.xs }}>
-                    <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-                      <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-                        {monthsBack === 0
-                          ? t.personal.dash.totalSpent
-                          : fill(t.personal.dash.totalSpentIn, {
-                              month: monthLabel(month, locale),
-                            })}
-                      </Text>
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={
-                          hidden ? t.dashHero.showBalance : t.dashHero.hideBalance
-                        }
-                        onPress={toggle}
-                        hitSlop={10}
-                        style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-                      >
-                        <Ionicons
-                          name={hidden ? 'eye-off-outline' : 'eye-outline'}
-                          size={iconSize.md}
-                          color={theme.color.textMuted}
-                        />
-                      </Pressable>
-                    </Row>
-                    <Text
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.6}
-                      style={{ fontSize: 30, lineHeight: 36, fontWeight: '700' }}
-                    >
-                      {fmt(spent)}
-                    </Text>
-                    {change !== null && !hidden ? (
-                      <Row
-                        style={{ alignItems: 'center', gap: theme.spacing.sm, flexWrap: 'wrap' }}
-                      >
-                        <ChangePill change={change} />
-                        <Text variant="caption" tone="muted" numberOfLines={1}>
-                          {fill(t.personal.dash.vsMonth, {
-                            month: monthShortYear(shiftMonth(month, -1), locale),
-                          })}
-                        </Text>
-                      </Row>
-                    ) : null}
-                  </View>
-                  {!hidden && history.length > 1 ? (
-                    <SpendHistoryChart
-                      values={history.map((m) => m.total)}
-                      labels={history.map((m) => monthShort(m.month, locale))}
-                    />
-                  ) : null}
-                </Row>
-                <Row style={{ gap: theme.spacing.sm }}>
-                  <FlowTile
-                    icon="wallet-outline"
-                    tone="income"
-                    label={h.income}
-                    value={tileFmt(income)}
-                    hidden={hidden}
-                    onPress={go(pick(buttons, 'flowIncome'))}
-                  />
-                  <FlowTile
-                    icon="arrow-up"
-                    tone="negative"
-                    label={h.spent}
-                    value={tileFmt(spent)}
-                    hidden={hidden}
-                    onPress={go(pick(buttons, 'flowSpent'))}
-                  />
-                  <FlowTile
-                    icon="wallet"
-                    tone="brand"
-                    label={h.left}
-                    value={`${summary.left < 0n ? '−' : ''}${tileFmt(summary.left < 0n ? -summary.left : summary.left)}`}
-                    negative={summary.left < 0n}
-                    hidden={hidden}
-                    onPress={go(pick(buttons, 'flowLeft'))}
-                  />
-                </Row>
-              </Card>
-
-              <QuickActions
+              <ComingUpHome
+                groupId={groupId}
+                ledgerGroupId={hasGroupRentals(group.data.type) ? groupId : undefined}
+                currency={currency}
                 tiles={[
-                  {
-                    key: 'expense',
-                    tone: 'brand',
-                    icon: 'add',
-                    label: h.addExpense,
-                    onPress: go(pick(tiles, 'expense')),
-                  },
-                  {
-                    key: 'income',
-                    tone: 'positive',
-                    icon: 'arrow-down',
-                    label: h.addIncome,
-                    onPress: go(pick(tiles, 'income')),
-                  },
-                  {
-                    key: 'bills',
-                    tone: 'brand',
-                    icon: 'repeat',
-                    label: h.tabBills,
-                    onPress: go(pick(tiles, 'bills')),
-                  },
-                  {
-                    key: 'budget',
-                    tone: 'brand',
-                    icon: 'speedometer-outline',
-                    label: t.household.budgetMenu,
-                    onPress: go(pick(tiles, 'budget')),
-                  },
-                  {
-                    key: 'settle',
-                    tone: 'brand',
-                    icon: 'cash-outline',
-                    label: t.settleUp,
-                    onPress: go(pick(tiles, 'settle')),
-                  },
+                  ...(hasGroupRentals(group.data.type)
+                    ? [
+                        {
+                          key: 'rentals',
+                          icon: 'home-outline' as const,
+                          label: t.comingUp.tileRentals,
+                          onPress: () =>
+                            router.push({ pathname: '/rentals', params: { space: groupId } }),
+                        },
+                      ]
+                    : []),
+                  ...(hasGroupRentals(group.data.type)
+                    ? [
+                        {
+                          key: 'vehicles',
+                          icon: 'car-outline' as const,
+                          label: t.vehicles.vehicles,
+                          onPress: () =>
+                            router.push({ pathname: '/vehicles', params: { space: groupId } }),
+                        },
+                      ]
+                    : []),
                   {
                     key: 'members',
-                    tone: 'brand',
-                    icon: 'people-outline',
+                    icon: 'people-outline' as const,
                     label: t.members,
                     onPress: go(pick(tiles, 'members')),
                   },
                   {
-                    key: 'expenses',
-                    tone: 'brand',
-                    icon: 'receipt-outline',
-                    label: t.expenses,
-                    onPress: go(pick(tiles, 'expenses')),
+                    key: 'budgets',
+                    icon: 'speedometer-outline' as const,
+                    label: t.comingUp.tileBudgets,
+                    onPress: go(pick(tiles, 'budget')),
                   },
                   {
                     key: 'more',
-                    tone: 'brand',
-                    icon: 'ellipsis-horizontal',
+                    icon: 'ellipsis-horizontal' as const,
                     label: t.personalHome.toolMore,
                     onPress: go(pick(tiles, 'more')),
                   },
                 ]}
+                month={{
+                  label: monthLabel(month, locale),
+                  income: tileFmt(income),
+                  spent: tileFmt(spent),
+                  left: tileFmt(summary.left < 0n ? -summary.left : summary.left),
+                  leftNegative: summary.left < 0n,
+                }}
               />
 
               {/* Who owes whom: the one thing a shared ledger has that a personal one cannot. */}
@@ -662,16 +568,6 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                   />
                 </Pressable>
               </Card>
-
-              {hasGroupRentals(group.data.type) ? (
-                <RentalsRow
-                  groupId={groupId}
-                  count={rentals.count}
-                  amountText={fmt(rentals.received)}
-                />
-              ) : null}
-
-              <OverviewTab data={data} />
             </>
           ) : null}
           {tab === 'planning' ? <PlanningTab data={data} /> : null}

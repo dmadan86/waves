@@ -53,7 +53,6 @@ import {
 import { useCaptures, useVoiceAgentStatus } from '@/data/hooks';
 import { UpdateBar } from '@/components/UpdateBar';
 import { isRtl, plural, useStrings } from '@/i18n';
-import { EASE_OUT, SPRING_SETTLE } from '@/lib/anim';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { captureInboxActionState } from '@/lib/dashboardActions';
@@ -72,8 +71,8 @@ import { usePendingCount } from '@/lib/companyPending';
 import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
 import { router, runBarMove, setBackOverride, switchTab } from '@/lib/navigation';
 import { installTabBack, type TabBackDeps } from '@/lib/tabBack';
-import { resolveFab, useFabOverride } from '@/lib/fabOverride';
-import { fabDrawn, personalShowsAddFab } from '@/lib/personalLayoutRules';
+import { useFabOverride } from '@/lib/fabOverride';
+import { fabDrawn } from '@/lib/personalLayoutRules';
 import { companyTabTarget, readLastSpace } from '@/lib/spaces';
 import { useFollowSpace } from '@/lib/useSpaces';
 import { pushToTalk } from '@/lib/pushToTalk';
@@ -247,22 +246,6 @@ export function AppTabBar() {
     opacity: p.value,
     transform: reduced ? [] : [{ scale: 0.6 + mic.value * 0.4 }],
   }));
-  // The Personal add button fades with the page that covers it, rather than cutting.
-  const addVisible = personal && personalShowsAddFab(segments);
-  const presence = useSharedValue(addVisible ? 1 : 0);
-  useEffect(() => {
-    presence.set(
-      addVisible
-        ? reduced
-          ? withTiming(1, { duration: 120 })
-          : withSpring(1, SPRING_SETTLE)
-        : withTiming(0, { duration: 120, easing: EASE_OUT }),
-    );
-  }, [addVisible, reduced, presence]);
-  const presenceStyle = useAnimatedStyle(() => ({
-    opacity: presence.get(),
-    transform: reduced ? [] : [{ scale: 0.6 + presence.get() * 0.4 }],
-  }));
   // Company users get a Company tab where Review was (Review moves to Settings).
   // Derived from the local mirror, so it flips the moment they create/join/leave.
   const companySlot = reviewSlotKey(companyIds) === 'company';
@@ -334,10 +317,10 @@ export function AppTabBar() {
         ),
       },
       {
-        key: 'me',
-        label: t.personalHome.navMe,
+        key: 'accounts',
+        label: t.personalHome.navAccounts,
         icon: (color, focused) => (
-          <Ionicons name={focused ? 'person' : 'person-outline'} size={iconSize.lg} color={color} />
+          <Ionicons name={focused ? 'wallet' : 'wallet-outline'} size={iconSize.lg} color={color} />
         ),
       },
     ],
@@ -381,9 +364,10 @@ export function AppTabBar() {
   const householdItems = useMemo<PillTabItem[]>(
     () =>
       personalItems.map((item) =>
-        item.key === 'me'
+        item.key === 'accounts'
           ? {
               ...item,
+              key: 'me',
               label: t.members,
               icon: (color, focused) => (
                 <Ionicons
@@ -496,8 +480,6 @@ export function AppTabBar() {
         const how = personalBarAction(segments, route);
         if (how === 'replace') router.replace(route);
         else if (how === 'dismissTo') router.dismissTo(route);
-        else if (route === '/profile')
-          router.navigate({ pathname: '/profile', params: { space: 'personal' } });
         else switchTab(route);
         return;
       }
@@ -521,7 +503,7 @@ export function AppTabBar() {
   const personalBack =
     !nestedPersonal &&
     personal &&
-    ['home', 'transactions', 'planning', 'reports'].includes(activeKey);
+    ['home', 'transactions', 'planning', 'reports', 'accounts'].includes(activeKey);
   useEffect(
     () =>
       installTabBack(
@@ -704,25 +686,11 @@ export function AppTabBar() {
     [groupId, t.company.addEntry, fabOverride],
   );
 
-  // Personal's floating button adds an expense; speaking one lives under Money tools > More.
-  // A Personal screen may claim it (Recurring: "Add recurring"), the same way company screens do.
-  const addPersonal = useMemo<PillTabAction>(() => {
-    const fab = resolveFab(fabOverride, {
-      label: t.personal.addExpense,
-      run: () => router.push({ pathname: '/personal/entry', params: { kind: 'expense' } }),
-    });
-    return {
-      accessibilityLabel: fab.label,
-      onPress: fab.run,
-      icon: (color: string) => <Ionicons name="add" size={iconSize.xl} color={color} />,
-    };
-  }, [t.personal.addExpense, fabOverride]);
-
   // Hidden, unless a hold is running — see `holding` above. A hold wins over a
   // screen's request too: the mic is the thing under the finger at that moment,
   // and taking it away mid-sentence would cancel what somebody is saying.
   const showBar = !((hidden || suppressed) && !holding);
-  // Personal and company modes swap the raised mic for a floating button, so lists leave room.
+  // Only the company bar floats buttons (Personal and household have none), so lists leave room for it alone.
   const fab =
     alt &&
     showBar &&
@@ -801,7 +769,7 @@ export function AppTabBar() {
           />
         </Animated.View>
       ))}
-      {showFab(segments, company) ? (
+      {company && showFab(segments, company) ? (
         // Same button and the same hold-to-talk as the raised mic, floated
         // bottom-right (bottom-left in RTL) above the Personal bar.
         <Animated.View
@@ -826,18 +794,7 @@ export function AppTabBar() {
                 <CenterButton action={add} />
               </View>
             )
-          ) : personal ? (
-            <Animated.View
-              pointerEvents={addVisible ? 'auto' : 'none'}
-              accessibilityElementsHidden={!addVisible}
-              importantForAccessibility={addVisible ? 'auto' : 'no-hide-descendants'}
-              style={presenceStyle}
-            >
-              <CenterButton action={addPersonal} />
-            </Animated.View>
-          ) : (
-            <CenterButton action={voice} />
-          )}
+          ) : null}
         </Animated.View>
       ) : null}
     </>

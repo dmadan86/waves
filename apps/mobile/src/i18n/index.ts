@@ -30,6 +30,7 @@
  */
 
 import { wealthAr, wealthEn, wealthHi, wealthTa, type WealthStrings } from './wealth';
+import { vehiclesAr, vehiclesEn, vehiclesHi, vehiclesTa, type VehicleStrings } from './vehicles';
 import { createContext, useContext } from 'react';
 import type { ActivityText } from '@/lib/companyActivity';
 import { getLocales } from 'expo-localization';
@@ -190,6 +191,7 @@ export function plural(locale: string, count: number, forms: PluralForms): strin
 
 export interface UiStrings {
   wealth: WealthStrings;
+  vehicles: VehicleStrings;
   calendar: {
     title: string;
     today: string;
@@ -8486,6 +8488,54 @@ export interface UiStrings {
   /** The private personal-finance ledger (A48): the "Me" tab and its screens —
    *  solo expenses/income, recurring rules, loans and monthly budgets. */
   /** Personal home: the daily ring, save tip and weekly / monthly recaps. */
+  comingUp: {
+    dueTitle: string;
+    days30: string;
+    days90: string;
+    paymentsCount: PluralForms;
+    alreadySetAside: string;
+    otherCurrencies: string;
+    seeCalendar: string;
+    tagAuto: string;
+    tagSetAside: string;
+    tagRenew: string;
+    tagOverdue: string;
+    tagToday: string;
+    bigTitle: string;
+    bigSub: string;
+    bigSetAside: string;
+    onTrack: string;
+    behind: string;
+    bigEmptyHelp: string;
+    thisMonth: string;
+    inLabel: string;
+    spentLabel: string;
+    leftLabel: string;
+    tileRentals: string;
+    tileBudgets: string;
+    calendarTitle: string;
+    filterAll: string;
+    filterBills: string;
+    filterLoans: string;
+    filterRenewals: string;
+    filterIncome: string;
+    actPay: string;
+    actMarkPaid: string;
+    actRenew: string;
+    actRemind: string;
+    nothingThisMonth: string;
+    nothingThisMonthHelp: string;
+    bigScreenSub: string;
+    bigNext12: string;
+    setAsideEach: string;
+    startSaving: string;
+    savingOn: string;
+    setAsideSoFar: string;
+    byMonth: string;
+    fundNote: string;
+    nothingBig: string;
+    addDueDate: string;
+  };
   personalHome: {
     hi: string;
     space: string;
@@ -8524,7 +8574,30 @@ export interface UiStrings {
     navHome: string;
     navPlanning: string;
     navReports: string;
-    navMe: string;
+    navAccounts: string;
+    accountsSub: string;
+    accBudgets: string;
+    accLoans: string;
+    accInvestments: string;
+    accRentals: string;
+    budgetsLine: PluralForms;
+    budgetsNone: string;
+    loansLine: PluralForms;
+    loansNone: string;
+    investedLine: string;
+    investNone: string;
+    rentalsLine: PluralForms;
+    rentalsNone: string;
+    moreCurrencies: string;
+    vehiclesLine: PluralForms;
+    vehiclesNext: PluralForms;
+    vehiclesNone: string;
+    reportsSub: string;
+    addBill: string;
+    emptyUpcomingTitle: string;
+    emptyUpcomingHelp: string;
+    emptyRecentTitle: string;
+    emptyRecentHelp: string;
     inDays: PluralForms;
     filterAll: string;
     filterBills: string;
@@ -9119,6 +9192,7 @@ export interface UiStrings {
 
 const en: UiStrings = {
   wealth: wealthEn,
+  vehicles: vehiclesEn,
   calendar: {
     title: 'Calendar',
     today: 'Today',
@@ -16778,6 +16852,54 @@ const en: UiStrings = {
     appliesNote: 'Changing a rate never moves a bill already saved.',
   },
 
+  comingUp: {
+    dueTitle: 'Due in the next {days} days',
+    days30: '30 days',
+    days90: '90 days',
+    paymentsCount: { one: '{n} payment', other: '{n} payments' },
+    alreadySetAside: '{amount} already set aside',
+    otherCurrencies: '+ other currencies',
+    seeCalendar: 'See full calendar',
+    tagAuto: 'Auto-debit',
+    tagSetAside: 'Set aside',
+    tagRenew: 'Renew',
+    tagOverdue: 'Overdue',
+    tagToday: 'Today',
+    bigTitle: 'Big bills this year',
+    bigSub: 'Insurance, school fees, road tax and more: {amount} a year',
+    bigSetAside: 'Set aside {amount} / month',
+    onTrack: 'On track',
+    behind: 'Behind',
+    bigEmptyHelp: 'Yearly and termly costs like insurance and school fees show up here.',
+    thisMonth: 'This month',
+    inLabel: 'In',
+    spentLabel: 'Spent',
+    leftLabel: 'Left',
+    tileRentals: 'Rentals',
+    tileBudgets: 'Budgets',
+    calendarTitle: 'Money calendar',
+    filterAll: 'All',
+    filterBills: 'Bills',
+    filterLoans: 'Loans',
+    filterRenewals: 'Renewals',
+    filterIncome: 'Income',
+    actPay: 'Pay',
+    actMarkPaid: 'Mark paid',
+    actRenew: 'Renew',
+    actRemind: 'Remind',
+    nothingThisMonth: 'Nothing due this month',
+    nothingThisMonthHelp: 'Bills, loan payments, renewals and rent for this month show up here.',
+    bigScreenSub: "The costs that don't come every month",
+    bigNext12: 'Coming in the next 12 months',
+    setAsideEach: 'Set aside each month',
+    startSaving: 'Start saving',
+    savingOn: 'Saving started',
+    setAsideSoFar: "You've set aside {amount}: {pct}% ready",
+    byMonth: 'By month',
+    fundNote: 'Set aside for big bills',
+    nothingBig: 'No big bills found yet',
+    addDueDate: 'Add a bill',
+  },
   personalHome: {
     hi: 'Hi, {name} 👋',
     space: 'Personal Finance',
@@ -16816,7 +16938,36 @@ const en: UiStrings = {
     navHome: 'Home',
     navPlanning: 'Planning',
     navReports: 'Reports',
-    navMe: 'Me',
+    navAccounts: 'Accounts',
+    accountsSub: 'Money you hold',
+    accBudgets: 'Budgets',
+    accLoans: 'Loans',
+    accInvestments: 'Investments',
+    accRentals: 'Rentals',
+    budgetsLine: { one: '{n} budget · {left} left', other: '{n} budgets · {left} left' },
+    budgetsNone: 'Set a monthly limit',
+    loansLine: {
+      one: '{n} loan · {amount} outstanding',
+      other: '{n} loans · {amount} outstanding',
+    },
+    loansNone: 'Track what you owe and are owed',
+    investedLine: '{amount} invested',
+    investNone: 'Add your first investment',
+    rentalsLine: { one: '{n} property · {amount} due', other: '{n} properties · {amount} due' },
+    rentalsNone: 'Add a property',
+    moreCurrencies: '{n} more',
+    vehiclesLine: { one: '{n} vehicle', other: '{n} vehicles' },
+    vehiclesNext: {
+      one: '{n} vehicle · renewal {date}',
+      other: '{n} vehicles · next renewal {date}',
+    },
+    vehiclesNone: 'Add a vehicle',
+    reportsSub: 'Where your money went',
+    addBill: 'Add a bill',
+    emptyUpcomingTitle: 'Nothing due soon',
+    emptyUpcomingHelp: 'Bills and dates in the next 30 days show up here.',
+    emptyRecentTitle: 'No transactions yet',
+    emptyRecentHelp: 'What you spend and earn shows up here.',
     inDays: { one: 'In {n} day', other: 'In {n} days' },
     filterAll: 'All',
     filterBills: 'Bills',
@@ -17404,6 +17555,7 @@ const en: UiStrings = {
  */
 const ta: UiStrings = {
   wealth: wealthTa,
+  vehicles: vehiclesTa,
   calendar: {
     title: 'நாட்காட்டி',
     today: 'இன்று',
@@ -25149,6 +25301,54 @@ const ta: UiStrings = {
     appliesNote: 'விகிதத்தை மாற்றினாலும் ஏற்கெனவே சேமித்த பில் மாறாது.',
   },
 
+  comingUp: {
+    dueTitle: 'அடுத்த {days} நாட்களில் செலுத்த வேண்டியவை',
+    days30: '30 நாட்கள்',
+    days90: '90 நாட்கள்',
+    paymentsCount: { one: '{n} பணம் செலுத்தல்', other: '{n} பணம் செலுத்தல்கள்' },
+    alreadySetAside: '{amount} ஏற்கனவே ஒதுக்கப்பட்டது',
+    otherCurrencies: '+ பிற நாணயங்கள்',
+    seeCalendar: 'முழு நாட்காட்டியைப் பார்க்கவும்',
+    tagAuto: 'தானியங்கி பற்று',
+    tagSetAside: 'ஒதுக்கப்பட்டது',
+    tagRenew: 'புதுப்பிக்கவும்',
+    tagOverdue: 'தாமதம்',
+    tagToday: 'இன்று',
+    bigTitle: 'இந்த ஆண்டின் பெரிய செலவுகள்',
+    bigSub: 'காப்பீடு, பள்ளிக் கட்டணம், சாலை வரி மற்றும் பல: ஆண்டுக்கு {amount}',
+    bigSetAside: 'மாதம் {amount} ஒதுக்கவும்',
+    onTrack: 'சரியான பாதையில்',
+    behind: 'பின்தங்கியுள்ளது',
+    bigEmptyHelp: 'காப்பீடு, பள்ளிக் கட்டணம் போன்ற ஆண்டு மற்றும் பருவச் செலவுகள் இங்கே தோன்றும்.',
+    thisMonth: 'இந்த மாதம்',
+    inLabel: 'வரவு',
+    spentLabel: 'செலவு',
+    leftLabel: 'மீதம்',
+    tileRentals: 'வாடகைகள்',
+    tileBudgets: 'பட்ஜெட்டுகள்',
+    calendarTitle: 'பண நாட்காட்டி',
+    filterAll: 'அனைத்தும்',
+    filterBills: 'பில்கள்',
+    filterLoans: 'கடன்கள்',
+    filterRenewals: 'புதுப்பிப்புகள்',
+    filterIncome: 'வருமானம்',
+    actPay: 'செலுத்து',
+    actMarkPaid: 'செலுத்தியதாகக் குறி',
+    actRenew: 'புதுப்பி',
+    actRemind: 'நினைவூட்டு',
+    nothingThisMonth: 'இந்த மாதம் செலுத்த எதுவும் இல்லை',
+    nothingThisMonthHelp: 'இந்த மாதத்தின் பில்கள், கடன் தவணைகள், புதுப்பிப்புகள், வாடகை இங்கே தோன்றும்.',
+    bigScreenSub: 'ஒவ்வொரு மாதமும் வராத செலவுகள்',
+    bigNext12: 'அடுத்த 12 மாதங்களில் வருபவை',
+    setAsideEach: 'ஒவ்வொரு மாதமும் ஒதுக்க',
+    startSaving: 'சேமிக்கத் தொடங்கு',
+    savingOn: 'சேமிப்பு தொடங்கியது',
+    setAsideSoFar: 'நீங்கள் {amount} ஒதுக்கியுள்ளீர்கள்: {pct}% தயார்',
+    byMonth: 'மாதவாரியாக',
+    fundNote: 'பெரிய செலவுகளுக்கு ஒதுக்கீடு',
+    nothingBig: 'பெரிய செலவுகள் இன்னும் இல்லை',
+    addDueDate: 'பில் சேர்க்கவும்',
+  },
   personalHome: {
     hi: 'வணக்கம், {name} 👋',
     space: 'தனிநபர் நிதி',
@@ -25187,7 +25387,36 @@ const ta: UiStrings = {
     navHome: 'முகப்பு',
     navPlanning: 'திட்டமிடல்',
     navReports: 'அறிக்கைகள்',
-    navMe: 'நான்',
+    navAccounts: 'கணக்குகள்',
+    accountsSub: 'உங்களிடம் உள்ள பணம்',
+    accBudgets: 'பட்ஜெட்டுகள்',
+    accLoans: 'கடன்கள்',
+    accInvestments: 'முதலீடுகள்',
+    accRentals: 'வாடகைகள்',
+    budgetsLine: { one: '{n} பட்ஜெட் · {left} மீதம்', other: '{n} பட்ஜெட்டுகள் · {left} மீதம்' },
+    budgetsNone: 'மாத வரம்பை அமைக்கவும்',
+    loansLine: { one: '{n} கடன் · {amount} நிலுவை', other: '{n} கடன்கள் · {amount} நிலுவை' },
+    loansNone: 'நீங்கள் தர வேண்டியதையும் பெற வேண்டியதையும் கண்காணிக்கவும்',
+    investedLine: '{amount} முதலீடு',
+    investNone: 'முதல் முதலீட்டைச் சேர்க்கவும்',
+    rentalsLine: {
+      one: '{n} சொத்து · {amount} செலுத்த வேண்டியது',
+      other: '{n} சொத்துகள் · {amount} செலுத்த வேண்டியது',
+    },
+    rentalsNone: 'ஒரு சொத்தைச் சேர்க்கவும்',
+    moreCurrencies: 'மேலும் {n}',
+    vehiclesLine: { one: '{n} வாகனம்', other: '{n} வாகனங்கள்' },
+    vehiclesNext: {
+      one: '{n} வாகனம் · புதுப்பிப்பு {date}',
+      other: '{n} வாகனங்கள் · அடுத்த புதுப்பிப்பு {date}',
+    },
+    vehiclesNone: 'ஒரு வாகனத்தைச் சேர்க்கவும்',
+    reportsSub: 'உங்கள் பணம் எங்கே போனது',
+    addBill: 'பில் சேர்க்கவும்',
+    emptyUpcomingTitle: 'விரைவில் செலுத்த எதுவும் இல்லை',
+    emptyUpcomingHelp: 'அடுத்த 30 நாட்களின் பில்களும் தேதிகளும் இங்கே தோன்றும்.',
+    emptyRecentTitle: 'இன்னும் பரிவர்த்தனைகள் இல்லை',
+    emptyRecentHelp: 'நீங்கள் செலவிடுவதும் ஈட்டுவதும் இங்கே தோன்றும்.',
     inDays: { one: '{n} நாளில்', other: '{n} நாட்களில்' },
     filterAll: 'அனைத்தும்',
     filterBills: 'பில்கள்',
@@ -25765,6 +25994,7 @@ const ta: UiStrings = {
 
 const hi: UiStrings = {
   wealth: wealthHi,
+  vehicles: vehiclesHi,
   calendar: {
     title: 'कैलेंडर',
     today: 'आज',
@@ -33336,6 +33566,54 @@ const hi: UiStrings = {
     appliesNote: 'दर बदलने से पहले सहेजा गया बिल कभी नहीं बदलता।',
   },
 
+  comingUp: {
+    dueTitle: 'अगले {days} दिनों में देय',
+    days30: '30 दिन',
+    days90: '90 दिन',
+    paymentsCount: { one: '{n} भुगतान', other: '{n} भुगतान' },
+    alreadySetAside: '{amount} पहले ही अलग रखे गए',
+    otherCurrencies: '+ अन्य मुद्राएँ',
+    seeCalendar: 'पूरा कैलेंडर देखें',
+    tagAuto: 'ऑटो-डेबिट',
+    tagSetAside: 'अलग रखा',
+    tagRenew: 'नवीनीकरण',
+    tagOverdue: 'देर हो गई',
+    tagToday: 'आज',
+    bigTitle: 'इस साल के बड़े बिल',
+    bigSub: 'बीमा, स्कूल फीस, रोड टैक्स और बहुत कुछ: साल में {amount}',
+    bigSetAside: 'हर महीने {amount} अलग रखें',
+    onTrack: 'सही रास्ते पर',
+    behind: 'पीछे',
+    bigEmptyHelp: 'बीमा और स्कूल फीस जैसे सालाना और सत्र के खर्च यहाँ दिखेंगे।',
+    thisMonth: 'इस महीने',
+    inLabel: 'आय',
+    spentLabel: 'खर्च',
+    leftLabel: 'बचा',
+    tileRentals: 'किराये',
+    tileBudgets: 'बजट',
+    calendarTitle: 'पैसे का कैलेंडर',
+    filterAll: 'सभी',
+    filterBills: 'बिल',
+    filterLoans: 'ऋण',
+    filterRenewals: 'नवीनीकरण',
+    filterIncome: 'आय',
+    actPay: 'भुगतान',
+    actMarkPaid: 'चुकाया चिह्नित करें',
+    actRenew: 'नवीनीकरण',
+    actRemind: 'याद दिलाएँ',
+    nothingThisMonth: 'इस महीने कुछ देय नहीं',
+    nothingThisMonthHelp: 'इस महीने के बिल, ऋण किस्तें, नवीनीकरण और किराया यहाँ दिखेंगे।',
+    bigScreenSub: 'जो खर्च हर महीने नहीं आते',
+    bigNext12: 'अगले 12 महीनों में आने वाले',
+    setAsideEach: 'हर महीने अलग रखें',
+    startSaving: 'बचत शुरू करें',
+    savingOn: 'बचत शुरू हो गई',
+    setAsideSoFar: 'आपने {amount} अलग रखे हैं: {pct}% तैयार',
+    byMonth: 'महीने के अनुसार',
+    fundNote: 'बड़े बिलों के लिए अलग रखा',
+    nothingBig: 'अभी कोई बड़ा बिल नहीं',
+    addDueDate: 'बिल जोड़ें',
+  },
   personalHome: {
     hi: 'नमस्ते, {name} 👋',
     space: 'व्यक्तिगत वित्त',
@@ -33374,7 +33652,30 @@ const hi: UiStrings = {
     navHome: 'होम',
     navPlanning: 'योजना',
     navReports: 'रिपोर्ट',
-    navMe: 'मैं',
+    navAccounts: 'खाते',
+    accountsSub: 'आपके पास जो पैसा है',
+    accBudgets: 'बजट',
+    accLoans: 'ऋण',
+    accInvestments: 'निवेश',
+    accRentals: 'किराये',
+    budgetsLine: { one: '{n} बजट · {left} बाकी', other: '{n} बजट · {left} बाकी' },
+    budgetsNone: 'मासिक सीमा तय करें',
+    loansLine: { one: '{n} ऋण · {amount} बकाया', other: '{n} ऋण · {amount} बकाया' },
+    loansNone: 'जो देना और पाना है, उसका हिसाब रखें',
+    investedLine: '{amount} निवेशित',
+    investNone: 'अपना पहला निवेश जोड़ें',
+    rentalsLine: { one: '{n} संपत्ति · {amount} देय', other: '{n} संपत्तियाँ · {amount} देय' },
+    rentalsNone: 'संपत्ति जोड़ें',
+    moreCurrencies: '{n} और',
+    vehiclesLine: { one: '{n} वाहन', other: '{n} वाहन' },
+    vehiclesNext: { one: '{n} वाहन · नवीनीकरण {date}', other: '{n} वाहन · अगला नवीनीकरण {date}' },
+    vehiclesNone: 'वाहन जोड़ें',
+    reportsSub: 'आपका पैसा कहाँ गया',
+    addBill: 'बिल जोड़ें',
+    emptyUpcomingTitle: 'जल्द कुछ देय नहीं',
+    emptyUpcomingHelp: 'अगले 30 दिनों के बिल और तारीखें यहाँ दिखेंगी।',
+    emptyRecentTitle: 'अभी कोई लेन-देन नहीं',
+    emptyRecentHelp: 'आपका खर्च और कमाई यहाँ दिखेगी।',
     inDays: { one: '{n} दिन में', other: '{n} दिन में' },
     filterAll: 'सभी',
     filterBills: 'बिल',
@@ -33950,6 +34251,7 @@ const hi: UiStrings = {
  */
 const ar: UiStrings = {
   wealth: wealthAr,
+  vehicles: vehiclesAr,
   calendar: {
     title: 'التقويم',
     today: 'اليوم',
@@ -42389,6 +42691,54 @@ const ar: UiStrings = {
     appliesNote: 'تغيير السعر لا يحرّك فاتورة محفوظة أبداً.',
   },
 
+  comingUp: {
+    dueTitle: 'مستحق خلال {days} يومًا القادمة',
+    days30: '30 يومًا',
+    days90: '90 يومًا',
+    paymentsCount: { one: '{n} دفعة', other: '{n} دفعات' },
+    alreadySetAside: 'تم ادخار {amount} بالفعل',
+    otherCurrencies: '+ عملات أخرى',
+    seeCalendar: 'عرض التقويم الكامل',
+    tagAuto: 'خصم تلقائي',
+    tagSetAside: 'مدخر',
+    tagRenew: 'تجديد',
+    tagOverdue: 'متأخر',
+    tagToday: 'اليوم',
+    bigTitle: 'فواتير كبيرة هذا العام',
+    bigSub: 'تأمين ورسوم مدرسية وضريبة طرق وأكثر: {amount} في السنة',
+    bigSetAside: 'ادخر {amount} / شهر',
+    onTrack: 'على المسار',
+    behind: 'متأخر',
+    bigEmptyHelp: 'التكاليف السنوية والفصلية مثل التأمين والرسوم المدرسية تظهر هنا.',
+    thisMonth: 'هذا الشهر',
+    inLabel: 'الدخل',
+    spentLabel: 'المصروف',
+    leftLabel: 'المتبقي',
+    tileRentals: 'الإيجارات',
+    tileBudgets: 'الميزانيات',
+    calendarTitle: 'تقويم المال',
+    filterAll: 'الكل',
+    filterBills: 'الفواتير',
+    filterLoans: 'القروض',
+    filterRenewals: 'التجديدات',
+    filterIncome: 'الدخل',
+    actPay: 'ادفع',
+    actMarkPaid: 'تم الدفع',
+    actRenew: 'جدّد',
+    actRemind: 'ذكّر',
+    nothingThisMonth: 'لا شيء مستحق هذا الشهر',
+    nothingThisMonthHelp: 'تظهر هنا فواتير هذا الشهر وأقساط القروض والتجديدات والإيجار.',
+    bigScreenSub: 'التكاليف التي لا تأتي كل شهر',
+    bigNext12: 'قادم خلال 12 شهرًا',
+    setAsideEach: 'ادخر كل شهر',
+    startSaving: 'ابدأ الادخار',
+    savingOn: 'بدأ الادخار',
+    setAsideSoFar: 'لقد ادخرت {amount}: {pct}% جاهز',
+    byMonth: 'حسب الشهر',
+    fundNote: 'مدخر للفواتير الكبيرة',
+    nothingBig: 'لا فواتير كبيرة بعد',
+    addDueDate: 'إضافة فاتورة',
+  },
   personalHome: {
     hi: 'مرحبًا، {name} 👋',
     space: 'المالية الشخصية',
@@ -42427,7 +42777,30 @@ const ar: UiStrings = {
     navHome: 'الرئيسية',
     navPlanning: 'التخطيط',
     navReports: 'التقارير',
-    navMe: 'أنا',
+    navAccounts: 'الحسابات',
+    accountsSub: 'أموالك',
+    accBudgets: 'الميزانيات',
+    accLoans: 'القروض',
+    accInvestments: 'الاستثمارات',
+    accRentals: 'الإيجارات',
+    budgetsLine: { one: '{n} ميزانية · متبقٍ {left}', other: '{n} ميزانيات · متبقٍ {left}' },
+    budgetsNone: 'حدّد سقفًا شهريًا',
+    loansLine: { one: '{n} قرض · {amount} مستحق', other: '{n} قروض · {amount} مستحق' },
+    loansNone: 'تابع ما عليك وما لك',
+    investedLine: '{amount} مستثمر',
+    investNone: 'أضف أول استثمار',
+    rentalsLine: { one: '{n} عقار · {amount} مستحق', other: '{n} عقارات · {amount} مستحق' },
+    rentalsNone: 'أضف عقارًا',
+    moreCurrencies: '{n} أخرى',
+    vehiclesLine: { one: '{n} مركبة', other: '{n} مركبات' },
+    vehiclesNext: { one: '{n} مركبة · تجديد {date}', other: '{n} مركبات · التجديد القادم {date}' },
+    vehiclesNone: 'أضف مركبة',
+    reportsSub: 'أين ذهبت أموالك',
+    addBill: 'إضافة فاتورة',
+    emptyUpcomingTitle: 'لا شيء مستحق قريبًا',
+    emptyUpcomingHelp: 'تظهر هنا الفواتير والمواعيد خلال 30 يومًا القادمة.',
+    emptyRecentTitle: 'لا معاملات بعد',
+    emptyRecentHelp: 'تظهر هنا مصروفاتك ودخلك.',
     inDays: { one: 'خلال {n} يوم', other: 'خلال {n} يومًا' },
     filterAll: 'الكل',
     filterBills: 'الفواتير',
