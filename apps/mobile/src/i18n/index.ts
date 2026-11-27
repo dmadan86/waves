@@ -8718,6 +8718,12 @@ export interface UiStrings {
     collapseDay: string;
     expandDay: string;
     searchTransactions: string;
+    askByVoice: string;
+    filterLabel: string;
+    noEntriesMatch: string;
+    noEntriesIn: string;
+    clearFilters: string;
+    addTransaction: string;
     filterCategory: string;
     clearFilter: string;
     txnCount: PluralForms;
@@ -17028,6 +17034,12 @@ const en: UiStrings = {
     collapseDay: 'Collapse day',
     expandDay: 'Expand day',
     searchTransactions: 'Search transactions…',
+    askByVoice: 'Ask or add by voice',
+    filterLabel: 'Filter',
+    noEntriesMatch: 'No entries match these filters',
+    noEntriesIn: 'No entries in {month}',
+    clearFilters: 'Clear filters',
+    addTransaction: 'Add transaction',
     filterCategory: 'Filter by category',
     clearFilter: 'Clear filter',
     txnCount: { one: '{n} transaction', other: '{n} transactions' },
@@ -25393,6 +25405,12 @@ const ta: UiStrings = {
     collapseDay: 'நாளைச் சுருக்கு',
     expandDay: 'நாளை விரி',
     searchTransactions: 'பரிவர்த்தனைகளைத் தேடுங்கள்…',
+    askByVoice: 'குரலில் கேளுங்கள் அல்லது சேர்க்கவும்',
+    filterLabel: 'வடிகட்டு',
+    noEntriesMatch: 'இந்த வடிகட்டிகளுக்குப் பொருந்தும் பதிவுகள் இல்லை',
+    noEntriesIn: '{month} மாதத்தில் பதிவுகள் இல்லை',
+    clearFilters: 'வடிகட்டிகளை அழி',
+    addTransaction: 'பரிவர்த்தனையைச் சேர்',
     filterCategory: 'வகைப்படி வடிகட்டு',
     clearFilter: 'வடிகட்டியை அழி',
     txnCount: { one: '{n} பரிவர்த்தனை', other: '{n} பரிவர்த்தனைகள்' },
@@ -33574,6 +33592,12 @@ const hi: UiStrings = {
     collapseDay: 'दिन का विवरण समेटें',
     expandDay: 'दिन का विवरण खोलें',
     searchTransactions: 'लेन-देन खोजें…',
+    askByVoice: 'आवाज़ से पूछें या जोड़ें',
+    filterLabel: 'फ़िल्टर',
+    noEntriesMatch: 'इन फ़िल्टरों से मेल खाती कोई प्रविष्टि नहीं',
+    noEntriesIn: '{month} में कोई प्रविष्टि नहीं',
+    clearFilters: 'फ़िल्टर हटाएँ',
+    addTransaction: 'लेन-देन जोड़ें',
     filterCategory: 'श्रेणी से छाँटें',
     clearFilter: 'फ़िल्टर हटाएँ',
     txnCount: { one: '{n} लेन-देन', other: '{n} लेन-देन' },
@@ -42668,6 +42692,12 @@ const ar: UiStrings = {
     collapseDay: 'طي تفاصيل اليوم',
     expandDay: 'عرض تفاصيل اليوم',
     searchTransactions: 'ابحث في المعاملات…',
+    askByVoice: 'اسأل أو أضف بالصوت',
+    filterLabel: 'تصفية',
+    noEntriesMatch: 'لا توجد إدخالات تطابق هذه المرشحات',
+    noEntriesIn: 'لا توجد إدخالات في {month}',
+    clearFilters: 'مسح المرشحات',
+    addTransaction: 'إضافة معاملة',
     filterCategory: 'التصفية حسب الفئة',
     clearFilter: 'مسح التصفية',
     txnCount: {

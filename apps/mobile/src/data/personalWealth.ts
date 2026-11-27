@@ -565,7 +565,17 @@ export function useWealthWrites(groupId?: string) {
     /** Blank the personal details first, so the tombstone holds no name or phone. */
     async deleteTenancy(tn: PersonalTenancy): Promise<void> {
       const { id, ...rest } = tn;
-      await put('tenancy', id, encodeTenancy({ ...rest, tenantName: '', tenantPhone: null }));
+      await put(
+        'tenancy',
+        id,
+        encodeTenancy({
+          ...rest,
+          tenantName: '',
+          tenantPhone: null,
+          contacts: [],
+          occupants: null,
+        }),
+      );
       await store.del(id);
     },
 

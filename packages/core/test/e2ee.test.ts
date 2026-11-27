@@ -2,6 +2,7 @@ import { x25519 } from '@noble/curves/ed25519.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha.js';
 import { describe, expect, it } from 'vitest';
 import { e2ee } from '../src/index';
+import { decodeProperty, decodeTenancy } from '../src/personal/types';
 import {
   applyOps,
   chunkSnapshot,
@@ -162,6 +163,24 @@ const permutations = <T>(xs: T[]): T[][] =>
       );
 
 describe('merge', () => {
+  it('preserves property and tenancy detail shapes as JSON-safe fields', () => {
+    const state = run([
+      put('t1', 'A', {
+        contacts: [[{ label: 'A', phone: '123' }], '1:0:A'],
+        occupants: [2, '1:0:A'],
+        maintenance: ['250000', '1:0:A'],
+        maintenanceFrequency: ['monthly', '1:0:A'],
+        customFields: [[{ key: '__proto__', value: 'kept' }], '1:0:A'],
+      }),
+    ]);
+    const data = materialise(state.t1!)!;
+    expect(data.contacts).toEqual([{ label: 'A', phone: '123' }]);
+    expect(decodeTenancy('t1', data).occupants).toBe(2);
+    expect(decodeTenancy('t1', data).contacts).toEqual([{ label: 'A', phone: '123' }]);
+    expect(decodeProperty('p', data).maintenance).toBe(250000n);
+    expect(decodeProperty('p', data).customFields).toEqual([{ key: '__proto__', value: 'kept' }]);
+    expect(Object.prototype).not.toHaveProperty('kept');
+  });
   const ops: MergeOp[] = [
     put('r1', 'A', { rent: [100n, '1:0:A'], note: ['hi', '1:0:A'] }),
     put('r1', 'A', { rent: [120n, '3:0:B'] }),

@@ -31,7 +31,7 @@ describe('entry points', () => {
 
   it('4: the personal transactions header opens the assistant on the private ledger', () => {
     const transactions = src('app/personal/transactions.tsx');
-    expect(transactions).toContain('sparkles-outline');
+    expect(transactions).toContain('mic-outline');
     expect(transactions).toMatch(/pathname: '\/voice'[\s\S]{0,40}scope: 'personal'/);
     expect(src('app/voice.tsx')).toContain("params.scope === 'personal'");
   });
