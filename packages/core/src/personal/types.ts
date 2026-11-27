@@ -844,13 +844,9 @@ export function encodeProperty(p: Omit<PersonalProperty, 'id'>): Record<string, 
       status: p.status,
       note: p.note,
       ...(p.address ? { address: p.address } : {}),
-      ...(p.maintenance != null && p.maintenance !== 0n
-        ? { maintenance: serialiseAmount(p.maintenance) }
-        : {}),
-      ...(p.maintenanceFrequency && p.maintenanceFrequency !== 'monthly'
-        ? { maintenanceFrequency: p.maintenanceFrequency }
-        : {}),
-      ...(p.customFields?.length ? { customFields: normaliseCustomFields(p.customFields) } : {}),
+      maintenance: p.maintenance ? serialiseAmount(p.maintenance) : null,
+      maintenanceFrequency: p.maintenanceFrequency ?? 'monthly',
+      customFields: normaliseCustomFields(p.customFields),
     },
     p.carried,
   );
@@ -865,8 +861,8 @@ export function encodeTenancy(t: Omit<PersonalTenancy, 'id'>): Record<string, un
       tenantPhone: t.contacts?.length
         ? (normaliseContacts(t.contacts)[0]?.phone ?? t.tenantPhone)
         : t.tenantPhone,
-      ...(t.contacts?.length ? { contacts: normaliseContacts(t.contacts) } : {}),
-      ...(t.occupants != null ? { occupants: t.occupants } : {}),
+      contacts: normaliseContacts(t.contacts),
+      occupants: t.occupants ?? null,
       depositHeld: serialiseAmount(t.depositHeld),
       rentFrequency: t.rentFrequency,
       startDate: t.startDate,

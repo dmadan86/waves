@@ -84,6 +84,45 @@ describe('property details codecs', () => {
   });
 });
 
+describe('explicit clears', () => {
+  const prop = {
+    type: 'other',
+    name: 'x',
+    locality: null,
+    currency: 'INR',
+    status: 'active',
+    note: null,
+  } as const;
+  it('encodes cleared property details as null / empty so a merge overwrites the old value', () => {
+    const e = encodeProperty({ ...prop, maintenance: null, customFields: [] });
+    expect(e).toMatchObject({
+      maintenance: null,
+      customFields: [],
+      maintenanceFrequency: 'monthly',
+    });
+    const back = decodeProperty('p', e);
+    expect(back.maintenance).toBeNull();
+    expect(back.customFields).toEqual([]);
+  });
+  it('encodes blanked tenancy contacts and occupants explicitly', () => {
+    const base = decodeTenancy('t', {
+      tenantName: 'Ravi',
+      contacts: [{ label: 'A', phone: '1' }],
+      occupants: 3,
+    });
+    const { id: _id, ...rest } = base;
+    void _id;
+    const e = encodeTenancy({
+      ...rest,
+      tenantName: '',
+      tenantPhone: null,
+      contacts: [],
+      occupants: null,
+    });
+    expect(e).toMatchObject({ tenantPhone: null, contacts: [], occupants: null });
+  });
+});
+
 describe('wealth codecs', () => {
   it('investment round-trips and carries unknown fields', () => {
     const blob = {
@@ -121,7 +160,12 @@ describe('wealth codecs', () => {
       status: 'active',
       note: null,
     };
-    expect(encodeProperty(decodeProperty('p', blob))).toEqual(blob);
+    expect(encodeProperty(decodeProperty('p', blob))).toEqual({
+      ...blob,
+      maintenance: null,
+      maintenanceFrequency: 'monthly',
+      customFields: [],
+    });
   });
   it('tenancy round-trips and degrades', () => {
     const blob = {
@@ -143,7 +187,7 @@ describe('wealth codecs', () => {
     const rec = decodeTenancy('t', blob);
     expect(rec.depositHeld).toBe(18000000n);
     expect(rec.carried).toBeUndefined();
-    expect(encodeTenancy(rec)).toEqual(blob);
+    expect(encodeTenancy(rec)).toEqual({ ...blob, contacts: [], occupants: null });
     expect(decodeTenancy('t', { escalationPct: -2 }).escalationPct).toBeNull();
   });
   it('links on txn and recurring survive the round trip, without being carried', () => {
