@@ -15,6 +15,7 @@ import { backend } from '@/lib/backend';
 import { syncEngine } from '@/sync/engine';
 
 import { loadDeviceKey, registerDevice, registeredDeviceId, forgetDeviceId } from './deviceKey';
+import { coupleBridge } from '@/lib/backup/coupleBridge';
 import type { BackupCouple } from '@/lib/backup/payload';
 
 import type { Meta } from './deviceNotice';
@@ -167,9 +168,13 @@ export async function restoreCoupleFromBackup(entries: readonly BackupCouple[]):
   for (const g of live) await mailbox.requestResync(g).catch(() => undefined);
 }
 
+coupleBridge.backup = coupleBackup;
+coupleBridge.restore = restoreCoupleFromBackup;
+
 /** Live shared rentals on this phone, for the sign-out prompt. */
 export const coupleRecordCount = (): number =>
   e2eeSpace.liveGroupIds().reduce((n, g) => n + e2eeSpace.records(g).length, 0);
+coupleBridge.count = coupleRecordCount;
 
 function useSpaceVersion(): number {
   return useSyncExternalStore(

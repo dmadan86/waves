@@ -244,7 +244,7 @@ describe('snapshot trust', () => {
   it('a snapshot can never change the author of a record the phone already has', async () => {
     const { a } = await setup();
     const p1 = a.space.snapshot(G).find((r) => r.id === 'p1')!;
-    const early = { ...p1, createdBy: 'mX', fields: { name: ['Early', '1:0:ckZ'] } };
+    const early = { ...p1, createdBy: 'mX', fields: { name: ['Early', '1:0:ckZ'] as const } };
     await a.space.applyIncoming([
       { groupId: G, ops: snapshotOps([early]), senderMemberId: 'mB', trusted: true },
     ]);
