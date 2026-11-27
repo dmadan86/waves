@@ -411,7 +411,7 @@ function PersonalTransactionsScreenBody() {
             <Ionicons name={directionalIcon('chevron-back')} size={18} color={muted} />
           </IconButton>
           <Text style={{ fontSize: 14, fontWeight: '600', color: ink }}>
-            {monthEnabled ? monthLabel(browseMonth, locale) : 'All months'}
+            {monthEnabled ? monthLabel(browseMonth, locale) : t.group.allMonths}
           </Text>
           <IconButton
             label={t.personal.nextMonth}
