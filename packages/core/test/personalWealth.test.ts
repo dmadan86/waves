@@ -13,7 +13,76 @@ import {
   encodeRecurring,
   encodeTenancy,
   encodeTxn,
+  tenancyContacts,
+  normaliseContacts,
+  normaliseCustomFields,
 } from '../src/personal/types';
+
+describe('property details codecs', () => {
+  it('round-trips property and tenancy details safely', () => {
+    const p = decodeProperty('p', {
+      type: 'other',
+      name: 'x',
+      locality: null,
+      currency: 'INR',
+      status: 'active',
+      note: null,
+      maintenance: '9007199254740993123',
+      maintenanceFrequency: 'quarterly',
+      customFields: [{ key: '__proto__', value: ' line 1\nline 2 ' }],
+    });
+    expect(p.maintenance).toBe(9007199254740993123n);
+    expect(encodeProperty(p)).toMatchObject({
+      maintenance: '9007199254740993123',
+      maintenanceFrequency: 'quarterly',
+      customFields: [{ key: '__proto__', value: 'line 1\nline 2' }],
+    });
+    expect(Object.prototype).not.toHaveProperty('line 1\nline 2');
+    const t = decodeTenancy('t', {
+      tenantName: ' Ravi ',
+      tenantPhone: ' 123 ',
+      contacts: [{ label: ' A ', phone: ' 456 ' }],
+      occupants: 50,
+    });
+    expect(t.contacts).toEqual([{ label: 'A', phone: '456' }]);
+    expect(encodeTenancy(t)).toMatchObject({
+      tenantPhone: '456',
+      occupants: 50,
+      contacts: [{ label: 'A', phone: '456' }],
+    });
+  });
+  it('defaults absent and invalid values and validates boundaries', () => {
+    expect(decodeProperty('p', {}).maintenance).toBeNull();
+    expect(decodeProperty('p', {}).maintenanceFrequency).toBe('monthly');
+    expect(decodeProperty('p', { maintenanceFrequency: 'weekly' }).maintenanceFrequency).toBe(
+      'monthly',
+    );
+    for (const value of [-1, 51, 2.5, '4'])
+      expect(decodeTenancy('t', { occupants: value }).occupants).toBeNull();
+    for (const value of [0, 50])
+      expect(decodeTenancy('t', { occupants: value }).occupants).toBe(value);
+    const fields = normaliseCustomFields([
+      { key: 'a'.repeat(41), value: 'x' },
+      { key: 'ok', value: 'x'.repeat(501) },
+      { key: 'fine', value: 'a\nb' },
+      ...Array.from({ length: 31 }, (_, i) => ({ key: `k${i}`, value: 'v' })),
+    ]);
+    expect(fields).toHaveLength(30);
+    expect(fields.some((x) => x.key === 'a'.repeat(41))).toBe(false);
+    expect(normaliseCustomFields([{ key: 'fine', value: ' a\nb ' }])).toEqual([
+      { key: 'fine', value: 'a\nb' },
+    ]);
+    expect(
+      normaliseContacts([
+        { label: ' x ', phone: ' 1 ' },
+        { label: 'z', phone: ' ' },
+      ]),
+    ).toEqual([{ label: 'x', phone: '1' }]);
+    expect(tenancyContacts({ tenantName: 'Ravi', tenantPhone: '123' })).toEqual([
+      { label: 'Ravi', phone: '123' },
+    ]);
+  });
+});
 
 describe('wealth codecs', () => {
   it('investment round-trips and carries unknown fields', () => {
