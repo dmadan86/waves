@@ -39,6 +39,7 @@ import { useReducedMotion } from '@/lib/reducedMotion';
 import { router } from '@/lib/navigation';
 import { wizardFooterPadding } from '@/lib/wealthFlow';
 import { usesTiles, type IconName } from '@/lib/wizardIcons';
+import { shouldAnimateFlowStep } from '@/lib/rentalExtrasBehavior';
 
 /** The question slides in from the trailing edge; no exit, so nothing ever waits to show the next. */
 const stepIn =
@@ -136,7 +137,11 @@ export function FlowShell({
   const s = t.personalSetup;
   const clearance = useTabBarClearance();
   const reduce = useReducedMotion();
-  const entering = reduce ? FadeIn.duration(150) : stepIn(isRtlLayout() ? -16 : 16);
+  const entering = !shouldAnimateFlowStep(index)
+    ? undefined
+    : reduce
+      ? FadeIn.duration(150)
+      : stepIn(isRtlLayout() ? -16 : 16);
   return (
     <Screen>
       <View style={{ paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md, flex: 1 }}>

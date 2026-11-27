@@ -32,6 +32,7 @@ import { EASE_OUT, PressableScale, SPRING_SETTLE } from '@/lib/anim';
 import { docTileWidth, staggerDelay } from '@/lib/motionMath';
 import { useDialog } from '@/lib/dialog';
 import { useReducedMotion } from '@/lib/reducedMotion';
+import { attachRentalDocs } from '@/lib/rentalExtrasBehavior';
 import { dateFrom, showDate } from '@/lib/expenseDay';
 import { pickReceiptImage, pickReceiptPhoto } from '@/lib/image';
 import { scanDocument, scannerAvailable } from '@/lib/scanner';
@@ -470,10 +471,13 @@ export function DocumentsCard({
         if (!p) return;
         srcs = [photo(p.uri)];
       }
-      for (const src of srcs) await attachDoc(propertyId, src, target);
-      // Replace only once the new file is safely in.
-      for (const old of target.replace ?? []) await deleteLocalDoc(propertyId, old.id);
-      await reload();
+      await attachRentalDocs(
+        srcs,
+        target.replace ?? [],
+        (src) => attachDoc(propertyId, src, target),
+        (old) => deleteLocalDoc(propertyId, old.id),
+        reload,
+      );
     } catch {
       await fail(w.docOpenFailed);
     } finally {
@@ -710,6 +714,11 @@ export function DocumentsCard({
                         onPress: () => setRenaming(menu),
                       },
                     ]),
+                {
+                  icon: 'add-outline' as const,
+                  label: w.docAddMore,
+                  onPress: () => void add({ id: menu.id, label: menu.label }),
+                },
                 // Files never leave this phone on their own; in a shared space the person
                 // can hand one to their partner through the OS share sheet.
                 ...(groupId && menu.docs.length > 0

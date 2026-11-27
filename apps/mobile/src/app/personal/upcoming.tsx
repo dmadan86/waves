@@ -45,6 +45,7 @@ import {
   type UpcomingRow,
 } from '@/lib/personalUpcoming';
 import { nextDateLabel } from '@/lib/recurringList';
+import { shouldAnimatePostedLayout } from '@/lib/rentalExtrasBehavior';
 
 const TABS: { value: UpcomingTab; label: 'filterAll' | 'filterBills' | 'filterReminders' }[] = [
   { value: 'all', label: 'filterAll' },
@@ -135,7 +136,9 @@ export default function PersonalUpcomingScreen() {
         key={row.key}
         exiting={!reduce && postedKey === row.key ? FadeOut.duration(160) : undefined}
         layout={
-          !reduce && postedKey ? LinearTransition.springify().damping(24).stiffness(220) : undefined
+          !reduce && shouldAnimatePostedLayout(postedKey)
+            ? LinearTransition.springify().damping(24).stiffness(220)
+            : undefined
         }
       >
         <GroupRow
@@ -229,7 +232,11 @@ export default function PersonalUpcomingScreen() {
                 key={value}
                 accessibilityRole="tab"
                 accessibilityState={{ selected }}
-                onPress={() => setTab(value)}
+                onPress={() => {
+                  setTab(value);
+                  setPostedKey(null);
+                  if (clearPosted.current) clearTimeout(clearPosted.current);
+                }}
                 style={{
                   flex: 1,
                   height: 36,
