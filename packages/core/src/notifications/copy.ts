@@ -106,6 +106,8 @@ export enum NotificationKind {
    * and not at all to somebody who muted the group.
    */
   GroupImport = 'group_import',
+  /** Rent received, recorded in a couple/home group's rentals. No amount in the wording: those spaces keep lock screens generic. */
+  RentRecorded = 'rent_recorded',
   Resplit = 'resplit',
   /** Company mode: leave, claims, payments, tasks, calendar, estimates, complaints, vendors. */
   CompanyLeaveRequested = 'company_leave_requested',
@@ -321,6 +323,10 @@ const en: CopyStrings = {
     [NotificationKind.Resplit]: {
       title: '{actor} moved your expense shares',
       body: '{actor} moved your share of {count} expenses in {group} to the other members. Your balance there is now {amount}.',
+    },
+    [NotificationKind.RentRecorded]: {
+      title: '{actor} recorded rent received',
+      body: '{group}',
     },
     [NotificationKind.GroupImport]: {
       title: '{actor} imported expenses',
@@ -550,6 +556,10 @@ const ta: CopyStrings = {
       title: '{actor} உங்கள் செலவுப் பங்குகளை மாற்றினார்',
       body: '{group} இல் {count} செலவுகளில் உங்கள் பங்கை மற்ற உறுப்பினர்களுக்கு {actor} மாற்றினார். அங்கு உங்கள் இருப்பு இப்போது {amount}.',
     },
+    [NotificationKind.RentRecorded]: {
+      title: '{actor} வாடகை பெறப்பட்டதைப் பதிவு செய்தார்',
+      body: '{group}',
+    },
     [NotificationKind.GroupImport]: {
       title: '{actor} செலவுகளை இறக்குமதி செய்தார்',
       body: '{group} இல் {count} செலவுகள் சேர்க்கப்பட்டன',
@@ -775,6 +785,10 @@ const hi: CopyStrings = {
       title: '{actor} ने आपके खर्चों के हिस्से बाँटे',
       body: '{actor} ने {group} में {count} खर्चों का आपका हिस्सा बाकी सदस्यों में बाँट दिया। वहाँ आपका बैलेंस अब {amount} है।',
     },
+    [NotificationKind.RentRecorded]: {
+      title: '{actor} ने किराया मिलना दर्ज किया',
+      body: '{group}',
+    },
     [NotificationKind.GroupImport]: {
       title: '{actor} ने ख़र्च इम्पोर्ट किए',
       body: '{group} में {count} ख़र्च जुड़े',
@@ -998,6 +1012,10 @@ const ar: CopyStrings = {
     [NotificationKind.Resplit]: {
       title: 'نقل {actor} حصصك من المصاريف',
       body: 'نقل {actor} حصتك من {count} مصاريف في {group} إلى الأعضاء الآخرين. رصيدك هناك الآن {amount}.',
+    },
+    [NotificationKind.RentRecorded]: {
+      title: '{actor} سجّل استلام الإيجار',
+      body: '{group}',
     },
     [NotificationKind.GroupImport]: {
       title: 'استورد {actor} مصروفات',

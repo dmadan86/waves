@@ -420,6 +420,7 @@ model Group {
   planItems          TripPlanItem[]
   recurringExpenses  GroupRecurringExpense[]
   incomePlans        GroupIncomePlan[]
+  records            GroupRecord[]
   companyEntries     CompanyEntry[]
   companyProjects CompanyProject[]
   companyWageRuns CompanyWageRun[]
@@ -520,6 +521,7 @@ model GroupMember {
   recurringExpenses  GroupRecurringExpense[]
   incomePlans        GroupIncomePlan[]      @relation("IncomePlanMember")
   incomePlansCreated GroupIncomePlan[]      @relation("IncomePlanCreator")
+  recordsCreated     GroupRecord[]          @relation("GroupRecordCreator")
   managerId String? @map("manager_id") @db.Uuid
   companyAttendance CompanyAttendance[] @relation("CompanyAttendanceMember")
   markedAttendance CompanyAttendance[] @relation("CompanyAttendanceMarker")
@@ -3179,6 +3181,29 @@ model GroupIncomePlan {
   @@index([memberId])
   @@index([createdBy])
   @@map("group_income_plans")
+  @@schema("public")
+}
+
+/// Rental records kept inside a couple/home group. See `20261231090000_group_records`.
+model GroupRecord {
+  id         String    @id @db.Uuid
+  groupId    String    @map("group_id") @db.Uuid
+  /// 'property' | 'tenancy' | 'recurring' | 'txn'.
+  recordKind String    @map("record_kind")
+  /// The record's fields, shaped by `recordKind`. Opaque to the server.
+  data       Json      @default("{}")
+  createdBy  String?   @map("created_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedSeq BigInt    @default(0) @map("updated_seq")
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  group   Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  creator GroupMember? @relation("GroupRecordCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([groupId, updatedSeq])
+  @@index([createdBy])
+  @@map("group_records")
   @@schema("public")
 }
 
