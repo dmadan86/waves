@@ -9,9 +9,12 @@ import {
   generateDeviceKeyPair,
   materialise,
   materialiseAll,
+  mergePending,
+  mergeOps,
   MAX_MESSAGE_BYTES,
   open,
   pairKey,
+  pairKeyV1,
   reassemble,
   receive,
   seal,
@@ -60,6 +63,13 @@ describe('keys', () => {
     expect(pairKey(a.privateKey, b.publicKey)).not.toEqual(pairKey(a.privateKey, c.publicKey));
   });
 
+  it('versions pair key derivation while retaining v1', () => {
+    const a = generateDeviceKeyPair(seq(1));
+    const b = generateDeviceKeyPair(seq(2));
+    expect(pairKeyV1(a.privateKey, b.publicKey)).toEqual(pairKeyV1(b.privateKey, a.publicKey));
+    expect(pairKey(a.privateKey, b.publicKey)).not.toEqual(pairKeyV1(a.privateKey, b.publicKey));
+  });
+
   it('rejects an all-zero (low-order) peer key', () => {
     const a = generateDeviceKeyPair(seq(1));
     expect(() => pairKey(a.privateKey, new Uint8Array(32))).toThrow();
@@ -81,11 +91,11 @@ describe('envelope', () => {
     const sealed = seal(key, pt, aad, nonce);
     expect(sealed.subarray(0, 24)).toEqual(nonce);
     const ref = xchacha20poly1305(key, nonce, new TextEncoder().encode('g1|dA|dB|m1')).encrypt(
-      new TextEncoder().encode(JSON.stringify(pt)),
+      new TextEncoder().encode(JSON.stringify({ ...pt, kv: 2 })),
     );
     expect(toHex(sealed.subarray(24))).toBe(toHex(ref));
     expect(toHex(sealed)).toBe(KAT);
-    expect(open(key, sealed, aad)).toEqual(pt);
+    expect(open(key, sealed, aad)).toEqual({ ...pt, kv: 2 });
   });
 
   it('fresh random nonce each seal', () => {
@@ -112,7 +122,35 @@ describe('envelope', () => {
       msgId: 'm',
       ops: [{ amount: 12345678901234567890123n, list: [-5n, 0n], s: 'ok' }],
     };
-    expect(open(key, seal(key, p, aad), aad)).toEqual(p);
+    expect(open(key, seal(key, p, aad), aad)).toEqual({ ...p, kv: 2 });
+  });
+
+  it('does not expose tenant text from authenticated malformed payloads', () => {
+    const tenant = 'Acme Secret Rentals';
+    const bad = xchacha20poly1305(key, nonce, new TextEncoder().encode('g1|dA|dB|m1')).encrypt(
+      new TextEncoder().encode(`{"v":1,"msgId":"m1","ops":${tenant}`),
+    );
+    const sealed = new Uint8Array(24 + bad.length);
+    sealed.set(nonce);
+    sealed.set(bad, 24);
+    let error: unknown;
+    try {
+      open(key, sealed, aad);
+    } catch (e) {
+      error = e;
+    }
+    expect(String(error)).not.toContain(tenant);
+    expect((error as Error).message).toBe('E2EE_DECODE_FAILED');
+    expect((error as Error).stack).not.toContain(tenant);
+  });
+
+  it('opens a legacy v1 payload with an implicit key version', () => {
+    const raw = new TextEncoder().encode(JSON.stringify(pt));
+    const ct = xchacha20poly1305(key, nonce, new TextEncoder().encode('g1|dA|dB|m1')).encrypt(raw);
+    const sealed = new Uint8Array(24 + ct.length);
+    sealed.set(nonce);
+    sealed.set(ct, 24);
+    expect(open(key, sealed, aad)).toEqual({ ...pt, kv: 1 });
   });
 });
 
@@ -162,6 +200,40 @@ const permutations = <T>(xs: T[]): T[][] =>
       );
 
 describe('merge', () => {
+  it('rejects malformed ops individually while merging valid ops in the same message', () => {
+    const result = mergeOps(
+      {},
+      [
+        { op: 'put', id: 'ok', kind: 'rent', createdBy: 'A', fields: { amount: [1n, '1:0:A'] } },
+        { op: 'put', id: 'bad', kind: 'rent', createdBy: 'A', fields: { amount: [1n] } },
+      ] as unknown as MergeOp[],
+      'A',
+    );
+    expect(result.rejected).toHaveLength(1);
+    expect(materialise(result.store.ok!)).toMatchObject({ amount: 1n });
+  });
+
+  it('buffers edits before immutable creation and resolves in every three-author delivery order', () => {
+    const create = put('pending-record', 'A', { title: ['created', '10:0:A'] });
+    const editB = put('pending-record', 'A', { note: ['B edit', '11:0:B'] });
+    const editC = put('pending-record', 'A', { extra: ['C edit', '12:0:C'] });
+    const orders = permutations([create, editB, editC]);
+    const states = orders.map((order) => {
+      let state: Store = {};
+      let pending: MergeOp[] = [];
+      for (const op of order) {
+        const res = applyOps(state, [op], op === create ? 'A' : op === editB ? 'B' : 'C');
+        state = res;
+        pending = [...pending, ...(res as unknown as { pending: MergeOp[] }).pending];
+      }
+      const resolved = mergePending(state, pending);
+      return materialiseAll(resolved);
+    });
+    for (const state of states.slice(1)) expect(state).toEqual(states[0]);
+    expect(states[0]).toEqual([
+      expect.objectContaining({ createdBy: 'A', note: 'B edit', extra: 'C edit' }),
+    ]);
+  });
   const ops: MergeOp[] = [
     put('r1', 'A', { rent: [100n, '1:0:A'], note: ['hi', '1:0:A'] }),
     put('r1', 'A', { rent: [120n, '3:0:B'] }),
@@ -222,9 +294,9 @@ describe('merge', () => {
 
   it('createdBy and kind are fixed once seen', () => {
     const s = applyOps({}, [put('r', 'A', { a: [1, '1:0:A'] })], 'A');
-    // A competing creation by B merges its fields but the earlier author (A) keeps the record.
+    // A put cannot reassign ownership after creation.
     const s2 = applyOps(s, [put('r', 'B', { a: [2, '9:0:B'] })], 'B');
-    expect(materialise(s2.r!)).toMatchObject({ a: 2, createdBy: 'A' });
+    expect(materialise(s2.r!)).toMatchObject({ a: 1, createdBy: 'A' });
     // Nobody may put under someone else's name.
     expect(applyOps(s, [put('r', 'C', { a: [5, '9:0:B'] })], 'B')).toEqual(s);
     expect(applyOps(s, [{ ...put('r', 'A', { a: [2, '9:0:A'] }), kind: 'other' }], 'A')).toEqual(s);
@@ -235,8 +307,14 @@ describe('merge', () => {
 });
 
 describe('double creation of one id', () => {
-  const a = put('r', 'A', { amt: [100n, '5:0:A'], note: ['a', '5:0:A'] });
-  const b = put('r', 'B', { amt: [90n, '3:0:B'], note: ['b', '3:0:B'] });
+  const a = {
+    ...put('r', 'A', { amt: [100n, '5:0:A'], note: ['a', '5:0:A'] }),
+    create: true as const,
+  };
+  const b = {
+    ...put('r', 'B', { amt: [90n, '3:0:B'], note: ['b', '3:0:B'] }),
+    create: true as const,
+  };
   const apply = (order: [MergeOp, MergeOp]) =>
     order.reduce<Store>((s, op) => applyOps(s, [op], (op as PutOp).createdBy), {});
 
@@ -254,8 +332,8 @@ describe('double creation of one id', () => {
   });
 
   it('ties on the hlc go to the smaller author id, in either order', () => {
-    const a2 = put('r', 'A', { n: [1, '3:0:Z'] });
-    const b2 = put('r', 'B', { n: [1, '3:0:Z'] });
+    const a2 = { ...put('r', 'A', { n: [1, '3:0:Z'] }), create: true as const };
+    const b2 = { ...put('r', 'B', { n: [1, '3:0:Z'] }), create: true as const };
     expect(apply([a2, b2])).toEqual(apply([b2, a2]));
     expect(apply([a2, b2]).r!.createdBy).toBe('A');
   });
@@ -313,4 +391,4 @@ describe('chunk', () => {
 });
 
 const KAT =
-  '6465666768696a6b6c6d6e6f707172737475767778797a7b07518f92c51fa5a0ea43fa76c24d87eb368a705dc643bac3ae6f3fdc093108329124271b4094dbe583624726762e2a7d4c8dbc7cbd881697f53f312cbaaac3312b022b291e2eb48c34bff008b610161083';
+  '6465666768696a6b6c6d6e6f707172737475767778797a7b07518f92c51fa5a0ea43fa76c24d87eb368a705dc643bac3ae6f3fdc093108329124271b4094dbe583624726762e2a7d4c8dbc7cbd881697f53f312cbaaac3317af1af93f254965083d60d2b38d2cf785741ea39c884b5c0';

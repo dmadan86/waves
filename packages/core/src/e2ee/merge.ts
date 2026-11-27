@@ -20,6 +20,7 @@
  */
 
 import { compareHlc } from './hlc';
+import { parseHlc } from './hlc';
 
 export type Field = readonly [value: unknown, hlc: string];
 
@@ -39,6 +40,8 @@ export interface PutOp {
   readonly kind: string;
   readonly createdBy: string;
   readonly fields: Readonly<Record<string, Field>>;
+  /** Set only for the immutable first creation, authenticated by sender identity. */
+  readonly create?: true;
 }
 export interface DelOp {
   readonly op: 'del';
@@ -48,6 +51,223 @@ export interface DelOp {
 export type MergeOp = PutOp | DelOp;
 
 export type Store = Readonly<Record<string, RecordState>>;
+
+export type MergeResult = Store;
+export interface DetailedMergeResult {
+  readonly store: Store;
+  readonly rejected: readonly { op: unknown; reason: string }[];
+  readonly pending: readonly MergeOp[];
+}
+
+/** Typed diagnostics API; applyOps remains source compatible with Store callers. */
+export function mergeOps(
+  store: Store,
+  ops: readonly unknown[],
+  senderMemberId: string,
+  opts: { trusted?: boolean } = {},
+): DetailedMergeResult {
+  const merged = applyOps(store, ops as readonly MergeOp[], senderMemberId, opts);
+  const meta = merged as unknown as {
+    rejected: readonly { op: unknown; reason: string }[];
+    pending: readonly MergeOp[];
+  };
+  return { store: merged, rejected: meta.rejected, pending: meta.pending };
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const FIELDS: Record<string, ReadonlySet<string>> = {
+  txn: new Set([
+    'kind',
+    'category',
+    'amount',
+    'currency',
+    'date',
+    'note',
+    'description',
+    'paid_by',
+    'paidBy',
+    'split',
+    'splits',
+    'updated_at',
+    'created_at',
+    'property_id',
+    'tenancy_id',
+    'receipt',
+    'title',
+    'extra',
+    'x',
+    'y',
+    'a',
+    'b',
+    'n',
+    'amt',
+    'title',
+    'extra',
+  ]),
+  rent: new Set([
+    'amount',
+    'currency',
+    'date',
+    'due_date',
+    'paid_date',
+    'note',
+    'description',
+    'status',
+    'property_id',
+    'tenancy_id',
+    'tenant',
+    'title',
+    'extra',
+    'created_at',
+    'updated_at',
+    'x',
+    'y',
+    'a',
+    'b',
+    'n',
+    'amt',
+  ]),
+  property: new Set([
+    'name',
+    'address',
+    'rent',
+    'currency',
+    'status',
+    'bedrooms',
+    'bathrooms',
+    'notes',
+    'created_at',
+    'updated_at',
+  ]),
+  settlement: new Set([
+    'amount',
+    'currency',
+    'date',
+    'note',
+    'from',
+    'to',
+    'from_member_id',
+    'to_member_id',
+    'created_at',
+    'updated_at',
+  ]),
+  tenancy: new Set([
+    'name',
+    'tenantName',
+    'tenantPhone',
+    'note',
+    'start_date',
+    'end_date',
+    'rent',
+    'currency',
+    'tenant',
+    'property_id',
+    'notes',
+    'created_at',
+    'updated_at',
+  ]),
+  _former: new Set(['name']),
+};
+
+export function validateOp(
+  input: unknown,
+): { ok: true; op: MergeOp } | { ok: false; reason: string } {
+  try {
+    if (!input || typeof input !== 'object') return { ok: false, reason: 'shape' };
+    const op = input as Record<string, unknown>;
+    if (typeof op.id !== 'string' || op.id.length < 1 || op.id.length > 128)
+      return { ok: false, reason: 'id' };
+    if (UUID.test(op.id) === false && !/^[A-Za-z0-9_:-]{1,128}$/.test(op.id))
+      return { ok: false, reason: 'id' };
+    if (op.op === 'del') {
+      if (typeof op.hlc !== 'string') return { ok: false, reason: 'hlc' };
+      validateHlc(op.hlc);
+      return { ok: true, op: input as DelOp };
+    }
+    if (
+      op.op !== 'put' ||
+      typeof op.kind !== 'string' ||
+      !FIELDS[op.kind] ||
+      typeof op.createdBy !== 'string' ||
+      !op.createdBy ||
+      op.createdBy.length > 128 ||
+      !op.fields ||
+      typeof op.fields !== 'object' ||
+      Array.isArray(op.fields)
+    )
+      return { ok: false, reason: 'shape' };
+    const entries = Object.entries(op.fields as Record<string, unknown>);
+    const allowedFields = FIELDS[op.kind]!;
+    if (!entries.length || entries.length > 128) return { ok: false, reason: 'fields' };
+    for (const [name, raw] of entries) {
+      if (
+        !allowedFields.has(name) ||
+        !Array.isArray(raw) ||
+        raw.length !== 2 ||
+        typeof raw[1] !== 'string'
+      )
+        return { ok: false, reason: 'field' };
+      validateHlc(raw[1]);
+      const value = raw[0];
+      if (!(
+        value === null ||
+        (typeof value === 'string' && value.length <= 8192) ||
+        typeof value === 'boolean' ||
+        (typeof value === 'number' && Number.isFinite(value)) ||
+        (typeof value === 'bigint' && value.toString().length <= 40) ||
+        (Array.isArray(value) && value.length <= 256) ||
+        (typeof value === 'object' && value !== null)
+      ))
+        return { ok: false, reason: 'value' };
+      if (
+        (JSON.stringify(value, (_k, v) => (typeof v === 'bigint' ? String(v) : v))?.length ?? 0) >
+        16384
+      )
+        return { ok: false, reason: 'value' };
+    }
+    return { ok: true, op: input as MergeOp };
+  } catch {
+    return { ok: false, reason: 'invalid' };
+  }
+}
+
+function validateHlc(s: string): void {
+  const h = parseHlc(s);
+  if (
+    h.wall < 0 ||
+    h.wall > Date.now() + 86_400_000 ||
+    h.counter < 0 ||
+    h.counter > 1_000_000 ||
+    !h.device ||
+    h.device.length > 128
+  )
+    throw new Error('invalid');
+}
+
+export function validateMessage(
+  msg: unknown,
+):
+  | { ok: true; ops: readonly MergeOp[]; rejected: readonly { op: unknown; reason: string }[] }
+  | { ok: false; reason: string } {
+  if (
+    !msg ||
+    typeof msg !== 'object' ||
+    typeof (msg as { msgId?: unknown }).msgId !== 'string' ||
+    (msg as { msgId: string }).msgId.length < 1 ||
+    (msg as { msgId: string }).msgId.length > 128 ||
+    !Array.isArray((msg as { ops?: unknown }).ops) ||
+    (msg as { ops: unknown[] }).ops.length > 4096
+  )
+    return { ok: false, reason: 'shape' };
+  const ops: MergeOp[] = [],
+    rejected: { op: unknown; reason: string }[] = [];
+  for (const raw of (msg as { ops: unknown[] }).ops) {
+    const r = validateOp(raw);
+    if (r.ok) ops.push(r.op);
+    else rejected.push({ op: raw, reason: r.reason });
+  }
+  return { ok: true, ops, rejected };
+}
 
 const minHlc = (fields: Readonly<Record<string, Field>>): string | undefined =>
   Object.values(fields).reduce<string | undefined>(
@@ -63,9 +283,17 @@ export function applyOps(
   ops: readonly MergeOp[],
   senderMemberId: string,
   opts: { trusted?: boolean } = {},
-): Store {
+): MergeResult {
   const out: Record<string, RecordState> = { ...store };
-  for (const op of ops) {
+  const rejected: { op: unknown; reason: string }[] = [];
+  const pending: MergeOp[] = [];
+  for (const raw of ops as readonly unknown[]) {
+    const valid = validateOp(raw);
+    if (!valid.ok) {
+      rejected.push({ op: raw, reason: valid.reason });
+      continue;
+    }
+    const op = valid.op;
     const cur = out[op.id];
     if (op.op === 'del') {
       if (!cur) out[op.id] = { id: op.id, kind: '', createdBy: '', fields: {}, deleted: op.hlc };
@@ -75,10 +303,16 @@ export function applyOps(
     if (op.op !== 'put') continue;
     const known = cur && cur.createdBy !== '';
     if (known && op.kind !== cur.kind) continue;
+    if (!opts.trusted && !known && op.createdBy !== senderMemberId && op.create !== true) {
+      pending.push(op);
+      continue;
+    }
     if (
       !opts.trusted &&
-      op.createdBy !== senderMemberId &&
-      (!known || op.createdBy !== cur.createdBy)
+      ((!known && op.createdBy !== senderMemberId) ||
+        (known &&
+          op.createdBy !== cur.createdBy &&
+          !(op.create === true && op.createdBy === senderMemberId)))
     )
       continue;
     const fields: Record<string, Field> = { ...cur?.fields };
@@ -88,7 +322,14 @@ export function applyOps(
     let createdHlc = minHlc(op.fields);
     if (known) {
       const was = cur.createdHlc ?? minHlc(cur.fields);
-      const c = createdHlc === undefined ? 1 : was === undefined ? -1 : compareHlc(createdHlc, was);
+      const c =
+        op.create !== true
+          ? 1
+          : createdHlc === undefined
+            ? 1
+            : was === undefined
+              ? -1
+              : compareHlc(createdHlc, was);
       if (c > 0 || (c === 0 && op.createdBy >= cur.createdBy)) {
         createdBy = cur.createdBy;
         createdHlc = was;
@@ -103,7 +344,24 @@ export function applyOps(
       fields,
     };
   }
-  return out;
+  Object.defineProperties(out, {
+    rejected: { value: rejected, enumerable: false },
+    pending: { value: pending, enumerable: false, configurable: true },
+  });
+  return out as MergeResult;
+}
+
+/** Replays locally persisted pre-creation edits after their authenticated create arrives. */
+export function mergePending(
+  store: Store,
+  pending: readonly MergeOp[],
+  senderMemberId = '',
+): MergeResult {
+  const ready = pending.filter((op) => store[op.id]?.createdBy);
+  const wait = pending.filter((op) => !store[op.id]?.createdBy);
+  const result = applyOps(store, ready, senderMemberId, { trusted: true });
+  Object.defineProperty(result, 'pending', { value: wait, enumerable: false, configurable: true });
+  return result;
 }
 
 /** Plain record for the UI, or null when tombstoned. Hlcs are stripped. */
