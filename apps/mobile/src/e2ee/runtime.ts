@@ -14,7 +14,14 @@ import { reportHandled } from '@/lib/observability';
 import { backend } from '@/lib/backend';
 import { syncEngine } from '@/sync/engine';
 
-import { loadDeviceKey, registerDevice, registeredDeviceId, forgetDeviceId } from './deviceKey';
+import {
+  loadDeviceKey,
+  registerDevice,
+  registeredDeviceId,
+  forgetDeviceId,
+  readInstallDevice,
+  writeInstallDevice,
+} from './deviceKey';
 import { coupleBridge } from '@/lib/backup/coupleBridge';
 import type { BackupCouple } from '@/lib/backup/payload';
 
@@ -123,6 +130,15 @@ export async function ensureDeviceId(profileId = activeProfileId): Promise<strin
     registering.set(profileId, pending);
   }
   const id = await pending;
+  if (!current()) throw new Error('E2EE session changed');
+  // The same install now has a new device id: tell the server the old one is replaced.
+  const previous = storedDeviceId ?? (await readInstallDevice(profileId));
+  if (previous && previous !== id) {
+    await backend
+      .rpc('waves_replace_device', { p_old: previous, p_new: id })
+      .then(undefined, () => undefined); // best effort: the 30-day rule still applies
+  }
+  await writeInstallDevice(profileId, id);
   if (!current()) throw new Error('E2EE session changed');
   await AsyncStorage.setItem(`waves.e2ee.device-id.${encodeURIComponent(profileId)}`, id);
   if (!current()) throw new Error('E2EE session changed');

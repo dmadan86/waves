@@ -109,3 +109,14 @@ export function forgetDeviceId(profileId?: string): void {
     deviceIds.delete(profileId);
   }
 }
+
+// The id this install last registered. Android clears it with the app; the iOS keychain keeps it
+// across a reinstall, so a re-registration can say which id it replaces.
+const installSlot = (profileId: string) =>
+  `waves.e2ee.install-device.${encodeURIComponent(profileId)}`;
+export const readInstallDevice = (profileId: string): Promise<string | null> =>
+  SecureStore.getItemAsync(installSlot(profileId)).catch(() => null);
+export const writeInstallDevice = (profileId: string, id: string): Promise<void> =>
+  SecureStore.setItemAsync(installSlot(profileId), id, {
+    keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
+  }).catch(() => undefined);

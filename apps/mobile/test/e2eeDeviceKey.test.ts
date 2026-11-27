@@ -137,3 +137,15 @@ describe('device key', () => {
     expect(Array.from(a.privateKey)).toEqual(Array.from(old));
   });
 });
+
+describe('install device marker', () => {
+  it('is kept in the keystore and read back', async () => {
+    const m = await import('../src/e2ee/deviceKey');
+    expect(await m.readInstallDevice('acct-a')).toBeNull();
+    await m.writeInstallDevice('acct-a', 'dev-1');
+    expect(await m.readInstallDevice('acct-a')).toBe('dev-1');
+    expect(secure.sets.at(-1)![2]).toEqual({
+      keychainAccessible: 'after-first-unlock-this-device-only',
+    });
+  });
+});

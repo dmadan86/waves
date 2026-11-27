@@ -75,43 +75,58 @@ const queued = async (device: string) =>
     ).rows[0].n,
   );
 
+const replace = (profileId: string, oldId: string, newId: string) =>
+  as(profileId, () => client.query(`SELECT waves_replace_device($1, $2)`, [oldId, newId]));
+
 describe('replaced e2ee devices', () => {
-  it('drops an older unseen device once a newer sibling is live, and purges its rows', async () => {
+  it('a new id from the same install replaces the old one: not addressed, rows purged', async () => {
     const [a, b] = couple.profileIds as [string, string];
     const da = await register(a);
     const oldB = await register(b);
     await send(a, da, [oldB]);
-    await age(oldB, 4);
+    expect(await queued(oldB)).toBe(1);
     const newB = await register(b);
+    expect(await directory(a)).toEqual(expect.arrayContaining([oldB, newB])); // not yet declared
+    await replace(b, oldB, newB);
+    expect(await queued(oldB)).toBe(0);
     expect(await directory(a)).toEqual(expect.arrayContaining([da, newB]));
     expect(await directory(a)).not.toContain(oldB);
     await send(a, da, [oldB]);
-    expect(await queued(oldB)).toBe(1); // the new send was skipped
-    // The sibling's heartbeat clears what already piled up for the replaced one.
-    await as(b, () => client.query(`SELECT waves_device_seen($1)`, [newB]));
-    expect(await queued(oldB)).toBe(0);
+    expect(await queued(oldB)).toBe(0); // skipped
   });
 
-  it('keeps an older device that is the only one, or recent, or whose sibling is also idle', async () => {
+  it('keeps a real second device (phone + tablet used weekly) however long it is idle under 30 days', async () => {
     const [a, b] = couple.profileIds as [string, string];
     await register(a);
-    const only = await register(b);
-    await age(only, 10); // stale at 30d, not before: alone, so live
-    expect(await directory(a)).toContain(only);
-    const recent = await register(b);
-    await age(only, 2);
-    expect(await directory(a)).toEqual(expect.arrayContaining([only, recent]));
-    await age(only, 5);
-    await age(recent, 4); // both idle >3 days: nobody is "newer and live"
-    expect(await directory(a)).toEqual(expect.arrayContaining([only, recent]));
+    const phone = await register(b);
+    const tablet = await register(b);
+    await age(tablet, 10);
+    await age(phone, 0);
+    expect(await directory(a)).toEqual(expect.arrayContaining([phone, tablet]));
   });
 
-  it('tells a returning replaced device it was inactive', async () => {
-    const [, b] = couple.profileIds as [string, string];
+  it('only the owner can replace, and only with a device of their own', async () => {
+    const [a, b] = couple.profileIds as [string, string];
+    const da = await register(a);
     const oldB = await register(b);
-    await age(oldB, 5);
-    await register(b);
+    const newB = await register(b);
+    await expect(replace(b, oldB, da)).rejects.toThrow();
+    await replace(a, oldB, da); // not a's device: no effect
+    expect(await directory(a)).toContain(oldB);
+    await replace(b, oldB, newB);
+    expect(await directory(a)).not.toContain(oldB);
+  });
+
+  it('a returning replaced device is told so and is live again', async () => {
+    const [a, b] = couple.profileIds as [string, string];
+    await register(a);
+    const oldB = await register(b);
+    const newB = await register(b);
+    await replace(b, oldB, newB);
     const r = await as(b, () => client.query(`SELECT waves_device_seen($1) AS s`, [oldB]));
     expect(r.rows[0].s).toBe(true);
+    expect(await directory(a)).toContain(oldB);
+    const again = await as(b, () => client.query(`SELECT waves_device_seen($1) AS s`, [oldB]));
+    expect(again.rows[0].s).toBe(false);
   });
 });
