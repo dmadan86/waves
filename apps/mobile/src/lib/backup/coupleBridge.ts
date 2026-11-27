@@ -7,4 +7,6 @@ export const coupleBridge = {
   restore: (_entries: readonly BackupCouple[]): Promise<void> => Promise.resolve(),
   count: (): number => 0,
   formerCount: (): number => 0,
+  risk: (): Promise<{ outboxCount: number; lastLocalChangeAt: number | null }> =>
+    Promise.resolve({ outboxCount: 0, lastLocalChangeAt: null }),
 };

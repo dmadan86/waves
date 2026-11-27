@@ -15,7 +15,7 @@ interface Device {
 interface MailRow {
   id: string;
   group_id: string;
-  sender_device_id: string;
+  sender_device_id: string | null;
   recipient_device_id: string;
   ciphertext: string;
   created_at: string;
@@ -42,6 +42,7 @@ export class FakeServer {
   private n = 0;
   private clock = 0;
   fetchGate: Promise<void> | null = null;
+  fetchStarted: (() => void) | null = null;
 
   nextId(prefix: string): string {
     this.n += 1;
@@ -168,6 +169,7 @@ export class FakeServer {
               .sort((a, b) => a.created_at.localeCompare(b.created_at))
               .slice(0, limit)
               .map((r) => ({ ...r }));
+            server.fetchStarted?.();
             return (server.fetchGate ?? Promise.resolve())
               .then(() => ({ data: rows, error: null }))
               .then(res, rej);
@@ -253,6 +255,7 @@ export interface Phone {
   /** The groups this account is in (the mailbox's `groups()`); edit in place. */
   groups: string[];
   endSession(): void;
+  startSession(): void;
   setDeviceStatus(status: boolean): void;
   data(groupId: string): Record<string, Record<string, unknown>>;
 }
@@ -272,6 +275,7 @@ export function phone(
   const client = server.client(profileId);
   const reports: { error: unknown; where: string }[] = [];
   let current = true;
+  let sessionGeneration = 0;
   let deviceActive = status.active;
   const metaValues = new Map<string, string>();
   const meta = {
@@ -305,6 +309,10 @@ export function phone(
     now: () => clock.t,
     report: (error: unknown, where: string) => reports.push({ error, where }),
     isCurrent: () => current,
+    captureCurrent: () => {
+      const captured = sessionGeneration;
+      return () => current && sessionGeneration === captured;
+    },
     deviceStatus: async () => deviceActive,
   };
   let mailbox = createMailbox(mailboxDeps);
@@ -329,6 +337,11 @@ export function phone(
     groups,
     endSession: () => {
       current = false;
+      sessionGeneration += 1;
+    },
+    startSession: () => {
+      sessionGeneration += 1;
+      current = true;
     },
     setDeviceStatus: (active) => {
       deviceActive = active;

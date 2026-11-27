@@ -228,10 +228,10 @@ export class E2eeSpace {
   }
 
   /** Queue a message that carries no record change (a resync request or answer). */
-  queue(groupId: string, ops: readonly unknown[], to?: string): Promise<void> {
+  queue(groupId: string, ops: readonly unknown[], to?: string, stableId?: string): Promise<void> {
     return this.run(async () => {
       validateOpsSize(ops);
-      const msgId = this.clock.newId();
+      const msgId = stableId ?? this.clock.newId();
       const msg: OutboxMsg = { plaintext: { v: 1, msgId, ops }, hint: null, ...(to ? { to } : {}) };
       await this.io.writeE2eeRecords(
         [],

@@ -3,6 +3,17 @@ import { xchacha20poly1305 } from '@noble/ciphers/chacha.js';
 import { describe, expect, it } from 'vitest';
 import { e2ee } from '../src/index';
 import {
+  encodeBudget,
+  encodeDate,
+  encodeInvestment,
+  encodeLoan,
+  encodeProperty,
+  encodeRecurring,
+  encodeTenancy,
+  encodeTxn,
+} from '../src/personal/types';
+import { validateMessage } from '../src/e2ee/merge';
+import {
   applyOps,
   chunkSnapshot,
   compareHlc,
@@ -201,6 +212,145 @@ const permutations = <T>(xs: T[]): T[][] =>
       );
 
 describe('merge', () => {
+  it('accepts every real personal encoder payload through op and message validation', () => {
+    const payloads = [
+      [
+        'txn',
+        encodeTxn({
+          id: 't',
+          kind: 'expense',
+          amount: 123n,
+          currency: 'INR',
+          category: 'home',
+          note: 'n',
+          date: '2026-01-01',
+          loanId: 'l',
+          recurringId: 'r',
+          paymentMethod: 'cash',
+          place: 'shop',
+          reimbursable: true,
+          receiptKey: 'receipt',
+          investmentId: 'i',
+          propertyId: 'p',
+        } as never),
+      ],
+      [
+        'recurring',
+        encodeRecurring({
+          id: 'r',
+          txnKind: 'expense',
+          amount: 123n,
+          currency: 'INR',
+          category: 'home',
+          note: 'n',
+          cadence: 'monthly',
+          interval: 2,
+          secondDay: 15,
+          anchorDate: '2026-01-01',
+          nextDate: '2026-02-01',
+          endDate: '2026-12-01',
+          autoPost: true,
+          active: true,
+          investmentId: 'i',
+          tenancyId: 't',
+        } as never),
+      ],
+      [
+        'loan',
+        encodeLoan({
+          id: 'l',
+          direction: 'lent',
+          counterpart: 'Sam',
+          principal: 123n,
+          currency: 'INR',
+          note: 'n',
+          startDate: '2026-01-01',
+          status: 'active',
+          shareSeq: 2,
+        } as never),
+      ],
+      [
+        'budget',
+        encodeBudget({ id: 'b', category: 'home', limit: 1000n, currency: 'INR' } as never),
+      ],
+      [
+        'date',
+        encodeDate({
+          id: 'd',
+          label: 'anniversary',
+          name: 'Us',
+          day: 1,
+          month: 2,
+          year: 2020,
+        } as never),
+      ],
+      [
+        'investment',
+        encodeInvestment({
+          id: 'i',
+          type: 'fund',
+          name: 'Fund',
+          currency: 'INR',
+          openingInvested: 100n,
+          openingAsOf: '2026-01-01',
+          currentValue: 120n,
+          valueAsOf: '2026-02-01',
+          maturityDate: '2028-01-01',
+          taxWrapper: true,
+          status: 'active',
+          note: 'n',
+        } as never),
+      ],
+      [
+        'property',
+        encodeProperty({
+          id: 'p',
+          type: 'apartment',
+          name: 'Flat',
+          locality: 'City',
+          currency: 'INR',
+          status: 'active',
+          note: 'n',
+          address: 'Road',
+        } as never),
+      ],
+      [
+        'tenancy',
+        encodeTenancy({
+          id: 't',
+          propertyId: 'p',
+          unit: '4',
+          tenantName: 'Tenant',
+          tenantPhone: '123',
+          depositHeld: 100n,
+          rentFrequency: 'monthly',
+          startDate: '2026-01-01',
+          endDate: '2026-12-01',
+          escalationPct: 5,
+          status: 'active',
+          endedOn: null,
+          depositReturned: 10n,
+          depositKept: 20n,
+          note: 'n',
+        } as never),
+      ],
+    ] as const;
+    const msg = validateMessage({
+      msgId: 'encoders',
+      ops: payloads.map(([kind, values], i) => ({
+        op: 'put',
+        id: `record-${i}`,
+        kind,
+        createdBy: 'member',
+        fields: Object.fromEntries(
+          Object.entries(values).map(([field, value]) => [field, [value, '1:0:device']]),
+        ),
+      })),
+    });
+    expect(msg.ok).toBe(true);
+    if (msg.ok) expect(msg.rejected).toEqual([]);
+  });
+
   it('rejects malformed ops individually while merging valid ops in the same message', () => {
     const result = mergeOps(
       {},
@@ -402,6 +552,24 @@ describe('chunk', () => {
       .reverse()
       .sort((a, b) => ((a.part * 7) % 5) - ((b.part * 7) % 5));
     expect(reassemble(shuffled)).toEqual(records);
+  });
+
+  it('sizes snapshot chunks with the recipient field included', () => {
+    const to = 'device-id-that-adds-bytes-to-every-snapshot-part';
+    const records = Array.from({ length: 40 }, (_, i) => rec(i, 1400));
+    const parts = chunkSnapshot(records, 'm-1', to);
+    for (const part of parts) {
+      expect(
+        seal(
+          key,
+          { v: 1, msgId: 'm-1', ops: [{ ...part, to }] },
+          {
+            ...aad,
+            recipientDevice: to,
+          },
+        ).length,
+      ).toBeLessThan(MAX_MESSAGE_BYTES);
+    }
   });
 
   it('is incomplete until every part is present', () => {

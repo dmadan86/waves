@@ -250,9 +250,9 @@ describe('send validation', () => {
     const b = await register(couple.profileIds[bob]!);
     // Seed the pending mailbox at the 8 MiB recipient ceiling.
     await client.query(
-      `INSERT INTO group_mailbox(group_id, sender_device_id, recipient_device_id, ciphertext)
-      SELECT $1, $2, $3, decode(repeat('00', 65536), 'hex') FROM generate_series(1, 128)`,
-      [couple.groupId, a, b],
+      `INSERT INTO group_mailbox(group_id, sender_device_id, sender_profile_id, recipient_device_id, ciphertext)
+      SELECT $1, $2, $3, $4, decode(repeat('00', 65536), 'hex') FROM generate_series(1, 128)`,
+      [couple.groupId, a, couple.profileIds[alice], b],
     );
     await expect(
       send(couple.profileIds[alice]!, couple.groupId, a, [
@@ -269,9 +269,9 @@ describe('send validation', () => {
     );
     for (const device of partnerDevices) {
       await client.query(
-        `INSERT INTO group_mailbox(group_id, sender_device_id, recipient_device_id, ciphertext)
-        SELECT $1, $2, $3, decode(repeat('00', 65536), 'hex') FROM generate_series(1, 128)`,
-        [couple.groupId, a, device],
+        `INSERT INTO group_mailbox(group_id, sender_device_id, sender_profile_id, recipient_device_id, ciphertext)
+        SELECT $1, $2, $3, $4, decode(repeat('00', 65536), 'hex') FROM generate_series(1, 128)`,
+        [couple.groupId, a, couple.profileIds[alice], device],
       );
     }
     await expect(

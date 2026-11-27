@@ -1,5 +1,5 @@
 -- Durable delivery receipts and sender ownership survive mailbox acknowledgement/device deletion.
-CREATE TABLE public.group_mailbox_receipts (
+CREATE TABLE IF NOT EXISTS public.group_mailbox_receipts (
   sender_device_id uuid NOT NULL,
   delivery_id uuid NOT NULL,
   sender_profile_id uuid NOT NULL,
@@ -9,7 +9,7 @@ CREATE TABLE public.group_mailbox_receipts (
 ALTER TABLE public.group_mailbox_receipts ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.group_mailbox_receipts FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.group_mailbox_receipts TO service_role;
-ALTER TABLE public.group_mailbox ADD COLUMN sender_profile_id uuid;
+ALTER TABLE public.group_mailbox ADD COLUMN IF NOT EXISTS sender_profile_id uuid;
 UPDATE public.group_mailbox m SET sender_profile_id = d.profile_id FROM public.e2ee_devices d WHERE d.id = m.sender_device_id;
 
 CREATE OR REPLACE FUNCTION public.waves_mailbox_send(

@@ -197,6 +197,30 @@ describe('sign-out back-up prompt', () => {
     expect(shouldPromptCoupleBackup({ coupleRecords: 3, lastBackupAt: now - 2 * DAY, now })).toBe(
       false,
     );
+    expect(
+      shouldPromptCoupleBackup({
+        coupleRecords: 3,
+        lastBackupAt: now - 2 * DAY,
+        now,
+        outboxCount: 1,
+      }),
+    ).toBe(true);
+    expect(
+      shouldPromptCoupleBackup({
+        coupleRecords: 3,
+        lastBackupAt: now - 2 * DAY,
+        now,
+        lastLocalChangeAt: now - DAY,
+      }),
+    ).toBe(true);
+    expect(
+      shouldPromptCoupleBackup({
+        coupleRecords: 3,
+        lastBackupAt: now - 2 * DAY,
+        now,
+        lastLocalChangeAt: now - 3 * DAY,
+      }),
+    ).toBe(false);
     expect(shouldPromptCoupleBackup({ coupleRecords: 3, lastBackupAt: now - 10 * DAY, now })).toBe(
       true,
     );

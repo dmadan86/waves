@@ -25,14 +25,18 @@ export interface SnapshotOp {
 }
 
 /** `msgId` is the id of the envelope that will carry each part (sizes its wrapper). */
-export function chunkSnapshot(records: readonly RecordState[], msgId: string): SnapshotOp[] {
+export function chunkSnapshot(
+  records: readonly RecordState[],
+  msgId: string,
+  to?: string,
+): SnapshotOp[] {
   // Wrapper sized with 9-digit part/of so any real count fits.
   const base = wireSize(
     msgId,
     encodeJson({
       v: 1,
       msgId,
-      ops: [{ op: 'snapshot', part: 999999999, of: 999999999, records: [] }],
+      ops: [{ op: 'snapshot', part: 999999999, of: 999999999, records: [], ...(to ? { to } : {}) }],
     }),
   );
   const groups: RecordState[][] = [[]];

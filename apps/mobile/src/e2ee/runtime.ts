@@ -292,6 +292,19 @@ export const coupleRecordCount = (): number =>
   e2eeSpace.liveGroupIds().reduce((n, g) => n + e2eeSpace.records(g).length, 0);
 coupleBridge.count = coupleRecordCount;
 coupleBridge.formerCount = () => e2eeSpace.formerGroups().length;
+coupleBridge.risk = async () => {
+  const records = e2eeSpace.groupIds().flatMap((groupId) => e2eeSpace.snapshot(groupId));
+  const walls = records
+    .flatMap((record) => [
+      ...Object.values(record.fields).map(([, hlc]) => Number(hlc.split(':', 1)[0])),
+      ...(record.deleted ? [Number(record.deleted.split(':', 1)[0])] : []),
+    ])
+    .filter(Number.isFinite);
+  return {
+    outboxCount: (await syncEngine.localStore.readE2eeOutbox()).length,
+    lastLocalChangeAt: walls.length ? Math.max(...walls) : null,
+  };
+};
 
 function useSpaceVersion(): number {
   return useSyncExternalStore(

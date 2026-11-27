@@ -130,8 +130,13 @@ describe('mailbox send', () => {
     const a2Id = await a2.deviceId();
     const row = server.mailbox.find((r) => r.recipient_device_id === b1Id)!;
     const bytes = fromBytea(row.ciphertext);
-    const msgId = new TextDecoder().decode(bytes.subarray(1, 1 + bytes[0]!));
-    const sealed = bytes.subarray(1 + bytes[0]!);
+    const senderLength = bytes[1]!;
+    const msgOffset = 2 + senderLength;
+    const msgLength = bytes[msgOffset]!;
+    const msgId = new TextDecoder().decode(
+      bytes.subarray(msgOffset + 1, msgOffset + 1 + msgLength),
+    );
+    const sealed = bytes.subarray(msgOffset + 1 + msgLength);
     const aad = {
       groupId: G,
       senderDevice: await a1.deviceId(),
@@ -144,6 +149,40 @@ describe('mailbox send', () => {
     expect(pt.ops[0]).toMatchObject({ op: 'put', id: 'p1', kind: 'property', createdBy: 'mA' });
     expect(() => e2ee.open(key, sealed, { ...aad, recipientDevice: a2Id })).toThrow();
     expect(() => e2ee.open(key, sealed, { ...aad, groupId: 'other' })).toThrow();
+  });
+
+  it('authenticates the sender id from the sealed envelope when the row column is null', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1);
+    const b = phone(server, 'pB', 'mB', 2);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await a.set(G, 'p1', 'property', prop);
+    await a.mailbox.flushOutbox();
+    server.mailbox[0]!.sender_device_id = null;
+    expect(await b.mailbox.fetch()).toBeGreaterThan(0);
+    expect(b.data(G).p1).toMatchObject({ name: 'Flat 4' });
+  });
+
+  it('discards a blocked fetch after the account generation changes', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1);
+    const b = phone(server, 'pB', 'mB', 2);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await a.set(G, 'p1', 'property', prop);
+    await a.mailbox.flushOutbox();
+    let release!: () => void;
+    let entered!: () => void;
+    const atFetch = new Promise<void>((resolve) => (entered = resolve));
+    server.fetchGate = new Promise<void>((resolve) => (release = resolve));
+    server.fetchStarted = entered;
+    const running = b.mailbox.fetch();
+    await atFetch;
+    b.endSession();
+    b.startSession();
+    release();
+    expect(await running).toBe(0);
+    expect(b.data(G)).toEqual({});
+    expect(server.mailbox).toHaveLength(1);
   });
 
   it('sends at most 200 items per call and notifies only on the first', async () => {

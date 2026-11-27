@@ -231,14 +231,17 @@ function useCoupleAtRisk(visible: boolean, ownerId: string): boolean {
     let alive = true;
     void loadBackupSettings(ownerId)
       .then((settings) => {
-        if (alive)
-          setAtRisk(
-            shouldPromptCoupleBackup({
-              coupleRecords: coupleRecordCount() + coupleBridge.formerCount(),
-              lastBackupAt: settings.last?.at ?? null,
-              now: Date.now(),
-            }),
-          );
+        return coupleBridge.risk().then((risk) => {
+          if (alive)
+            setAtRisk(
+              shouldPromptCoupleBackup({
+                coupleRecords: coupleRecordCount() + coupleBridge.formerCount(),
+                lastBackupAt: settings.last?.at ?? null,
+                ...risk,
+                now: Date.now(),
+              }),
+            );
+        });
       })
       .catch((error: unknown) => reportHandled(error, 'signOut.coupleBackup'));
     return () => {
