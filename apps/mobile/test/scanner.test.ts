@@ -72,8 +72,22 @@ describe('scanning a receipt', () => {
   it('hands back the one flattened page, asking for full quality', async () => {
     scan.mockResolvedValue({ scannedImages: ['file:///scan.jpg'] });
 
-    await expect(scanDocument()).resolves.toEqual({ kind: 'image', uri: 'file:///scan.jpg' });
+    await expect(scanDocument()).resolves.toEqual({
+      kind: 'image',
+      uri: 'file:///scan.jpg',
+      uris: ['file:///scan.jpg'],
+    });
     expect(scan).toHaveBeenCalledWith({ maxNumDocuments: 1, croppedImageQuality: 100 });
+  });
+
+  it('hands back every page of a multi-page scan', async () => {
+    scan.mockResolvedValue({ scannedImages: ['file:///p1.jpg', 'file:///p2.jpg'] });
+    await expect(scanDocument(5)).resolves.toEqual({
+      kind: 'image',
+      uri: 'file:///p1.jpg',
+      uris: ['file:///p1.jpg', 'file:///p2.jpg'],
+    });
+    expect(scan).toHaveBeenCalledWith({ maxNumDocuments: 5, croppedImageQuality: 100 });
   });
 
   it('calls backing out a cancel, not a reason to open another camera', async () => {
