@@ -157,7 +157,7 @@ export function FlowShell({
         </ScrollView>
         {onSkip ? (
           <View style={{ paddingBottom: wizardFooterPadding(clearance, theme.spacing.lg) }}>
-            <Button label={s.skip} variant="ghost" onPress={onSkip} />
+            <Button fullWidth label={s.skip} variant="ghost" onPress={onSkip} />
           </View>
         ) : null}
       </View>
@@ -433,6 +433,7 @@ export function AmountSheet({
           />
         ) : null}
         <Button
+          fullWidth
           label={saveLabel}
           disabled={amount <= 0n}
           onPress={() => {
@@ -471,6 +472,7 @@ export function RenameSheet({
       <View style={{ gap: theme.spacing.lg }}>
         <TextAnswer value={name} onChange={setName} placeholder={placeholder} label={placeholder} />
         <Button
+          fullWidth
           label={t.common.save}
           disabled={name.trim() === ''}
           onPress={() => onSave(name.trim())}

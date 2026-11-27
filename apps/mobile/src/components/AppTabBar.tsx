@@ -72,7 +72,7 @@ import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
 import { router, runBarMove, setBackOverride, switchTab } from '@/lib/navigation';
 import { installTabBack, type TabBackDeps } from '@/lib/tabBack';
 import { resolveFab, useFabOverride } from '@/lib/fabOverride';
-import { personalShowsAddFab } from '@/lib/personalLayoutRules';
+import { fabDrawn, personalShowsAddFab } from '@/lib/personalLayoutRules';
 import { companyTabTarget, readLastSpace } from '@/lib/spaces';
 import { useFollowSpace } from '@/lib/useSpaces';
 import { pushToTalk } from '@/lib/pushToTalk';
@@ -706,7 +706,11 @@ export function AppTabBar() {
   // and taking it away mid-sentence would cancel what somebody is saying.
   const showBar = !((hidden || suppressed) && !holding);
   // Personal and company modes swap the raised mic for a floating button, so lists leave room.
-  const fab = alt && showBar && showFab(segments, company);
+  const fab =
+    alt &&
+    showBar &&
+    showFab(segments, company) &&
+    fabDrawn({ personal, company, noAdd, segments });
   useEffect(() => {
     setTabBarFab(fab);
     return () => setTabBarFab(false);

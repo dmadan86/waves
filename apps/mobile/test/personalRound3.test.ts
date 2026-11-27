@@ -57,3 +57,28 @@ describe('one add control per Personal screen', () => {
     expect(personalActiveKey(['settings', 'lock'], 'personal')).toBe('me');
   });
 });
+
+describe('room for the round + only where it is drawn', () => {
+  it('reserves space only when a button actually shows', async () => {
+    const { fabDrawn } = await import('../src/lib/personalLayoutRules');
+    // Personal screens that hide the + must not keep an empty band above the tab bar.
+    expect(
+      fabDrawn({ personal: true, company: false, noAdd: false, segments: ['rentals', 'abc'] }),
+    ).toBe(false);
+    expect(
+      fabDrawn({ personal: true, company: false, noAdd: false, segments: ['personal', 'loans'] }),
+    ).toBe(false);
+    expect(
+      fabDrawn({ personal: true, company: false, noAdd: false, segments: ['(tabs)', 'me'] }),
+    ).toBe(true);
+    expect(
+      fabDrawn({ personal: false, company: true, noAdd: true, segments: ['group', 'g1'] }),
+    ).toBe(false);
+    expect(
+      fabDrawn({ personal: false, company: true, noAdd: false, segments: ['group', 'g1'] }),
+    ).toBe(true);
+    expect(
+      fabDrawn({ personal: false, company: false, noAdd: false, segments: ['group', 'g1'] }),
+    ).toBe(true);
+  });
+});

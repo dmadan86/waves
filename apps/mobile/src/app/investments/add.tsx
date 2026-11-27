@@ -169,7 +169,7 @@ function AddBody() {
           placeholder={w.invNamePlaceholder}
           label={w.invNameQ}
         />
-        <Button label={t.personalSetup.cont} disabled={!name.trim()} onPress={next} />
+        <Button fullWidth label={t.personalSetup.cont} disabled={!name.trim()} onPress={next} />
       </FlowShell>
     );
   }
@@ -192,7 +192,7 @@ function AddBody() {
             onPick={setFrequency}
           />
         </Card>
-        <Button label={t.personalSetup.cont} disabled={amount <= 0n} onPress={next} />
+        <Button fullWidth label={t.personalSetup.cont} disabled={amount <= 0n} onPress={next} />
       </FlowShell>
     );
   }
@@ -217,7 +217,7 @@ function AddBody() {
             />
           )}
         </Card>
-        <Button label={t.personalSetup.cont} onPress={next} />
+        <Button fullWidth label={t.personalSetup.cont} onPress={next} />
       </FlowShell>
     );
   }
@@ -274,7 +274,7 @@ function AddBody() {
             </Row>
           ) : null}
         </Card>
-        <Button label={t.personalSetup.cont} onPress={next} />
+        <Button fullWidth label={t.personalSetup.cont} onPress={next} />
       </FlowShell>
     );
   }
@@ -301,7 +301,7 @@ function AddBody() {
         ) : null}
       </Card>
       <View>
-        <Button label={w.save} onPress={() => void finish(auto ?? false, false)} />
+        <Button fullWidth label={w.save} onPress={() => void finish(auto ?? false, false)} />
       </View>
     </FlowShell>
   );
