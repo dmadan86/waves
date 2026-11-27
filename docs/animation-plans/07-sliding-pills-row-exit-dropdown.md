@@ -58,8 +58,25 @@ onPress={() => { const { rule, date } = acting; setActing(null); void post(rule,
 
 ```tsx
 /** The selected-segment highlight that slides between equal segments instead of swapping background. */
-export function SlidingHighlight({ index, count, width, color, radius, inset = 0, gap = 0, height }:
-  { index: number; count: number; width: number; color: string; radius: number; inset?: number; gap?: number; height: number }) {
+export function SlidingHighlight({
+  index,
+  count,
+  width,
+  color,
+  radius,
+  inset = 0,
+  gap = 0,
+  height,
+}: {
+  index: number;
+  count: number;
+  width: number;
+  color: string;
+  radius: number;
+  inset?: number;
+  gap?: number;
+  height: number;
+}) {
   const reduce = useReducedMotion();
   const seg = count > 0 ? (width - inset * 2 - gap * (count - 1)) / count : 0;
   const x = inset + index * (seg + gap);
@@ -70,7 +87,23 @@ export function SlidingHighlight({ index, count, width, color, radius, inset = 0
     if (width > 0) first.current = false;
   }, [x, width, reduce, tx]);
   const style = useAnimatedStyle(() => ({ transform: [{ translateX: tx.get() }] }));
-  return <Animated.View pointerEvents="none" style={[{ position: 'absolute', top: inset, start: 0, width: seg, height, borderRadius: radius, backgroundColor: color }, style]} />;
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: 'absolute',
+          top: inset,
+          start: 0,
+          width: seg,
+          height,
+          borderRadius: radius,
+          backgroundColor: color,
+        },
+        style,
+      ]}
+    />
+  );
 }
 ```
 

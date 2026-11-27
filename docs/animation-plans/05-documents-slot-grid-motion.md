@@ -19,7 +19,12 @@ const emptyTile = (key, name, label, onPress) => (
 
 ```tsx
 // RentalExtras.tsx:516-521 - thumbnail
-<Image source={{ uri: localDocUri(propertyId, first) }} style={{ width: '100%', height: '100%' }} contentFit="cover" accessibilityIgnoresInvertColors />
+<Image
+  source={{ uri: localDocUri(propertyId, first) }}
+  style={{ width: '100%', height: '100%' }}
+  contentFit="cover"
+  accessibilityIgnoresInvertColors
+/>
 ```
 
 ```tsx

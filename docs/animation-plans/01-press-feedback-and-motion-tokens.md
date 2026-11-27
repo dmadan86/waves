@@ -77,9 +77,9 @@ export function PressableScale({ children, style, pressedScale = 0.96, onPressIn
 
 Values per surface:
 
-| Surface | `pressedScale` |
-| --- | --- |
-| Property card (`rentals/index.tsx:222`), doc tiles | 0.98 |
+| Surface                                                       | `pressedScale` |
+| ------------------------------------------------------------- | -------------- |
+| Property card (`rentals/index.tsx:222`), doc tiles            | 0.98           |
 | `TintButton`, `Pick` tile, QuickActions tile, MoneyTools tile | 0.96 (default) |
 
 Press-in stays under 100ms to start moving (spring, `mass 0.5`), release is the same spring (the existing asymmetric-free house choice). Reduced motion: no scale (existing behaviour); keep the colour/opacity change where one already exists.

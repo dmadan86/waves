@@ -77,16 +77,22 @@ function SwapText({ value }: { value: string }) {
   const style = { fontWeight: '800', fontSize: 34, lineHeight: 40 } as const;
   return (
     <View>
-      <Animated.View style={old} pointerEvents="none"><Text variant="title" style={style}>{prev}</Text></Animated.View>
-      <Animated.View style={next}><Text variant="title" style={style}>{value}</Text></Animated.View>
+      <Animated.View style={old} pointerEvents="none">
+        <Text variant="title" style={style}>
+          {prev}
+        </Text>
+      </Animated.View>
+      <Animated.View style={next}>
+        <Text variant="title" style={style}>
+          {value}
+        </Text>
+      </Animated.View>
     </View>
   );
 }
 ```
 
-   Imports needed: `useEffect, useRef, useState`. The accessible text is the real `Text`; mark the old layer `accessibilityElementsHidden importantForAccessibility="no-hide-descendants"`.
-5. Strip check: in the `strip.map`, keep `const prevMarks = useRef<Record<string, string>>({})` declared ABOVE the early return in `DetailBody` (hooks order). After rendering, an effect sets `prevMarks.current[m.month] = mark` per cell. A cell is "newly checked" when the stored mark exists and is not `'check'` and the current one is. Render the check `Ionicons` as `<Animated.View entering={popEntering(120)}>` only for newly checked cells; all other cells render the plain icon as today. (Simple form: keep `Set` of months that flipped, computed in an effect with `useState`, cleared after 600ms.)
-6. Haptic: in `record` (line 194) after `void writes.recordRent(...)`: fire the success haptic. Do not fire it from the sheet's cancel path.
+Imports needed: `useEffect, useRef, useState`. The accessible text is the real `Text`; mark the old layer `accessibilityElementsHidden importantForAccessibility="no-hide-descendants"`. 5. Strip check: in the `strip.map`, keep `const prevMarks = useRef<Record<string, string>>({})` declared ABOVE the early return in `DetailBody` (hooks order). After rendering, an effect sets `prevMarks.current[m.month] = mark` per cell. A cell is "newly checked" when the stored mark exists and is not `'check'` and the current one is. Render the check `Ionicons` as `<Animated.View entering={popEntering(120)}>` only for newly checked cells; all other cells render the plain icon as today. (Simple form: keep `Set` of months that flipped, computed in an effect with `useState`, cleared after 600ms.) 6. Haptic: in `record` (line 194) after `void writes.recordRent(...)`: fire the success haptic. Do not fire it from the sheet's cancel path.
 
 ## Boundaries
 

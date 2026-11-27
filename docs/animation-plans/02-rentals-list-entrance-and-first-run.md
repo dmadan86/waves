@@ -90,7 +90,10 @@ function FillBar({ percent }: { percent: number }) {
   const first = useRef(true);
   const p = useSharedValue(reduce ? percent : 0);
   useEffect(() => {
-    if (reduce) { p.set(percent); return; }
+    if (reduce) {
+      p.set(percent);
+      return;
+    }
     const move = withTiming(percent, { duration: first.current ? 600 : 400, easing: EASE_OUT });
     p.set(first.current ? withDelay(120, move) : move);
     first.current = false;
@@ -100,11 +103,7 @@ function FillBar({ percent }: { percent: number }) {
 }
 ```
 
-   `theme` is not in scope there: call `const theme = useTheme();` inside `FillBar`.
-4. Replace line 199 (`<View style={{ width: ..., backgroundColor: theme.color.brand }} />`) with `<FillBar percent={totals.percent} />`. Keep the surrounding `progressbar` View and its accessibility props unchanged.
-5. Wrap, in the non-empty return: the summary `StandardCard` in `<Stagger index={0}>`, the `propertiesCount` `Text` in `<Stagger index={1}>`, and each property `PressableScale` in `<Stagger key={p.id} index={i + 2}>` (move `key` to the `Stagger`; use the map index). The `lock` row above the card stays unwrapped.
-6. Empty state (lines 116-142): wrap the house `Ionicons` in an `Animated.View` with `entering={reduce ? undefined : houseEntering}` where `houseEntering` is a module-level worklet (same shape as `detailEntering`: `initialValues { opacity: 0, transform: [{ translateY: 12 }] }`, animations `opacity: withTiming(1, { duration: 200 })`, `transform: [{ translateY: withSpring(0, SPRING_SETTLE) }]`). Key badge `View` becomes `Animated.View entering={reduce ? undefined : popEntering(160)}` (keep its style). The three text/button blocks become `Animated.View` with `entering={reduce ? undefined : FadeInDown.duration(260).easing(EASE_OUT).delay(240 | 300 | 360)}`. Get `reduce` from `useReducedMotion()` at the top of `RentalsBody`. Export `houseEntering` from `anim.tsx` rather than the screen if you prefer; either is fine.
-7. `apps/mobile/src/app/investments/index.tsx:112`: wrap each `groups.map` group `View` (key `g.type`) in `<Stagger index={gi}>` (use the map index). Do not wrap individual `ListRow`s.
+`theme` is not in scope there: call `const theme = useTheme();` inside `FillBar`. 4. Replace line 199 (`<View style={{ width: ..., backgroundColor: theme.color.brand }} />`) with `<FillBar percent={totals.percent} />`. Keep the surrounding `progressbar` View and its accessibility props unchanged. 5. Wrap, in the non-empty return: the summary `StandardCard` in `<Stagger index={0}>`, the `propertiesCount` `Text` in `<Stagger index={1}>`, and each property `PressableScale` in `<Stagger key={p.id} index={i + 2}>` (move `key` to the `Stagger`; use the map index). The `lock` row above the card stays unwrapped. 6. Empty state (lines 116-142): wrap the house `Ionicons` in an `Animated.View` with `entering={reduce ? undefined : houseEntering}` where `houseEntering` is a module-level worklet (same shape as `detailEntering`: `initialValues { opacity: 0, transform: [{ translateY: 12 }] }`, animations `opacity: withTiming(1, { duration: 200 })`, `transform: [{ translateY: withSpring(0, SPRING_SETTLE) }]`). Key badge `View` becomes `Animated.View entering={reduce ? undefined : popEntering(160)}` (keep its style). The three text/button blocks become `Animated.View` with `entering={reduce ? undefined : FadeInDown.duration(260).easing(EASE_OUT).delay(240 | 300 | 360)}`. Get `reduce` from `useReducedMotion()` at the top of `RentalsBody`. Export `houseEntering` from `anim.tsx` rather than the screen if you prefer; either is fine. 7. `apps/mobile/src/app/investments/index.tsx:112`: wrap each `groups.map` group `View` (key `g.type`) in `<Stagger index={gi}>` (use the map index). Do not wrap individual `ListRow`s.
 
 ## Boundaries
 

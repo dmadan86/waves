@@ -54,7 +54,9 @@ Presence animates, only for the Personal add button, not for the company or shar
 useEffect(() => {
   presence.set(
     addVisible
-      ? reduced ? withTiming(1, { duration: 120 }) : withSpring(1, SPRING_SETTLE)
+      ? reduced
+        ? withTiming(1, { duration: 120 })
+        : withSpring(1, SPRING_SETTLE)
       : withTiming(0, { duration: 120, easing: EASE_OUT }),
   );
 }, [addVisible, reduced, presence]);
@@ -64,8 +66,7 @@ const presenceStyle = useAnimatedStyle(() => ({
 }));
 ```
 
-   Scale is `0.6 + 0.4 * presence` (min 0.6, never 0), matching the existing mode-switch FAB; the hide leg ends at 0.6 while fading out.
-2. Replace lines 811-815's `personal ? (personalShowsAddFab(segments) ? <CenterButton .../> : null)` with an always-mounted wrapper for the personal case only:
+Scale is `0.6 + 0.4 * presence` (min 0.6, never 0), matching the existing mode-switch FAB; the hide leg ends at 0.6 while fading out. 2. Replace lines 811-815's `personal ? (personalShowsAddFab(segments) ? <CenterButton .../> : null)` with an always-mounted wrapper for the personal case only:
 
 ```tsx
 ) : personal ? (
@@ -80,9 +81,7 @@ const presenceStyle = useAnimatedStyle(() => ({
 ) : (
 ```
 
-   The company branch and the shared (`voice`) branch stay exactly as they are. Make sure `addPersonal` is still defined whenever `personal` is true (it is used there today).
-3. `fabDrawn(...)` (line 713) is used so screens reserve room only when the button is drawn; leave it. While the button fades out the reserved room collapses at once, which is fine (the covering page is arriving).
-4. Do not change `showFab(segments, company)` (line 805).
+The company branch and the shared (`voice`) branch stay exactly as they are. Make sure `addPersonal` is still defined whenever `personal` is true (it is used there today). 3. `fabDrawn(...)` (line 713) is used so screens reserve room only when the button is drawn; leave it. While the button fades out the reserved room collapses at once, which is fine (the covering page is arriving). 4. Do not change `showFab(segments, company)` (line 805).
 
 ## Boundaries
 
