@@ -559,12 +559,14 @@ function PersonalTransactionsScreenBody() {
             <EmptyStateCta
               title={
                 filter || query || tab !== 'all' || drillIn
-                  ? 'No entries match these filters'
-                  : `No entries in ${monthLabel(browseMonth, locale)}`
+                  ? t.personal.noEntriesMatch
+                  : t.personal.noEntriesIn.replace('{month}', monthLabel(browseMonth, locale))
               }
               body={t.personal.transactionsSubtitle}
               action={
-                filter || query || tab !== 'all' || drillIn ? 'Clear filters' : t.personal.add
+                filter || query || tab !== 'all' || drillIn
+                  ? t.personal.clearFilters
+                  : t.personal.add
               }
               onAdd={filter || query || tab !== 'all' || drillIn ? clearFilters : addExpense}
             />

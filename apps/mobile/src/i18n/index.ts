@@ -8713,6 +8713,9 @@ export interface UiStrings {
     searchTransactions: string;
     askByVoice: string;
     filterLabel: string;
+    noEntriesMatch: string;
+    noEntriesIn: string;
+    clearFilters: string;
     addTransaction: string;
     filterCategory: string;
     clearFilter: string;
@@ -17017,6 +17020,9 @@ const en: UiStrings = {
     searchTransactions: 'Search transactions…',
     askByVoice: 'Ask or add by voice',
     filterLabel: 'Filter',
+    noEntriesMatch: 'No entries match these filters',
+    noEntriesIn: 'No entries in {month}',
+    clearFilters: 'Clear filters',
     addTransaction: 'Add transaction',
     filterCategory: 'Filter by category',
     clearFilter: 'Clear filter',
@@ -25376,6 +25382,9 @@ const ta: UiStrings = {
     searchTransactions: 'பரிவர்த்தனைகளைத் தேடுங்கள்…',
     askByVoice: 'குரலில் கேளுங்கள் அல்லது சேர்க்கவும்',
     filterLabel: 'வடிகட்டு',
+    noEntriesMatch: 'இந்த வடிகட்டிகளுக்குப் பொருந்தும் பதிவுகள் இல்லை',
+    noEntriesIn: '{month} மாதத்தில் பதிவுகள் இல்லை',
+    clearFilters: 'வடிகட்டிகளை அழி',
     addTransaction: 'பரிவர்த்தனையைச் சேர்',
     filterCategory: 'வகைப்படி வடிகட்டு',
     clearFilter: 'வடிகட்டியை அழி',
@@ -33551,6 +33560,9 @@ const hi: UiStrings = {
     searchTransactions: 'लेन-देन खोजें…',
     askByVoice: 'आवाज़ से पूछें या जोड़ें',
     filterLabel: 'फ़िल्टर',
+    noEntriesMatch: 'इन फ़िल्टरों से मेल खाती कोई प्रविष्टि नहीं',
+    noEntriesIn: '{month} में कोई प्रविष्टि नहीं',
+    clearFilters: 'फ़िल्टर हटाएँ',
     addTransaction: 'लेन-देन जोड़ें',
     filterCategory: 'श्रेणी से छाँटें',
     clearFilter: 'फ़िल्टर हटाएँ',
@@ -42639,6 +42651,9 @@ const ar: UiStrings = {
     searchTransactions: 'ابحث في المعاملات…',
     askByVoice: 'اسأل أو أضف بالصوت',
     filterLabel: 'تصفية',
+    noEntriesMatch: 'لا توجد إدخالات تطابق هذه المرشحات',
+    noEntriesIn: 'لا توجد إدخالات في {month}',
+    clearFilters: 'مسح المرشحات',
     addTransaction: 'إضافة معاملة',
     filterCategory: 'التصفية حسب الفئة',
     clearFilter: 'مسح التصفية',
