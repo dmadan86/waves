@@ -507,6 +507,9 @@ function wouldLose(
   const localCount = local.length + newCouple.records;
   if (existingCount === 0) return false;
   if (localCount === 0) return true;
+  // Personal rows are protected on their own: couple rows must not hide an emptied ledger.
+  if (existing.ids.length > 0 && local.length === 0) return true;
+  if (existing.ids.length >= 10 && local.length < existing.ids.length / 2) return true;
   const have = new Set(local.map((r) => r.id));
   const missing = existing.ids.some((id) => !have.has(id));
   const foreign = Date.parse(existing.createdAt) > (knownBackupAt ?? 0);

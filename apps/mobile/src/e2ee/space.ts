@@ -540,6 +540,9 @@ export class E2eeSpace {
           throw new Error('E2EE_PENDING_LIMIT');
         }
         pendingUpdates.set(e.groupId, unique);
+        // Records a pending replay changed must be saved too, or the replayed edit is lost on reload.
+        for (const id of Object.keys(replayed))
+          if (replayed[id] !== g.next[id] && merged.store[id] !== replayed[id]) g.touched.add(id);
         g.next = replayed;
         for (const op of e.ops) g.touched.add(op.id);
         byGroup.set(e.groupId, g);

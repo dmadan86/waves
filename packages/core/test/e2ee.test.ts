@@ -735,3 +735,18 @@ describe('creation floor and shared ids (review round)', () => {
     expect(isSharedOccurrenceId('other', { recurringId: ['rule-1', '1:0:A'] })).toBe(false);
   });
 });
+
+describe('authenticated creates and long values (review round)', () => {
+  it('rejects an explicit create that names someone other than the sender', () => {
+    const store = applyOps({}, [{ ...put('x', 'A', { a: [1, '1:0:A'] }), create: true }], 'A');
+    const forged = { ...put('x', 'A', { a: [2, '9:0:B'] }), create: true as const };
+    const out = mergeOps(store, [forged], 'B');
+    expect(out.rejected.map((r) => r.reason)).toEqual(['create-author']);
+    expect(out.store.x!.createdHlc).toBe('1:0:A');
+  });
+
+  it('accepts a note longer than 8192 characters', () => {
+    const op = put('n', 'A', { note: ['x'.repeat(9000), '1:0:A'] });
+    expect(validateOp(op).ok).toBe(true);
+  });
+});

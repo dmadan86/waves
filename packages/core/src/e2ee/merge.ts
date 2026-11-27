@@ -337,7 +337,7 @@ export function validateOp(
       if (!(
         value === null ||
         value === undefined || // an encoder's unset optional field; it serialises as null
-        (typeof value === 'string' && value.length <= 8192) ||
+        (typeof value === 'string' && value.length <= 30000) ||
         typeof value === 'boolean' ||
         (typeof value === 'number' && Number.isFinite(value)) ||
         (typeof value === 'bigint' && value.toString().length <= 40) ||
@@ -346,11 +346,11 @@ export function validateOp(
         return { ok: false, reason: 'value' };
       if (isEncodedObject) {
         const json = JSON.stringify(value);
-        if (!json || json.length > 8192) return { ok: false, reason: 'value' };
+        if (!json || json.length > 30000) return { ok: false, reason: 'value' };
       }
       if (
         (JSON.stringify(value, (_k, v) => (typeof v === 'bigint' ? String(v) : v))?.length ?? 0) >
-        16384
+        32768
       )
         return { ok: false, reason: 'value' };
     }
@@ -442,7 +442,16 @@ export function applyOps(
       pending.push(op);
       continue;
     }
-    const shared = opts.isSharedId?.(op.id, { ...cur?.fields, ...op.fields }) ?? false;
+    // Untrusted: an explicit create must be the sender's own.
+    if (!opts.trusted && op.create === true && op.createdBy !== senderMemberId) {
+      rejected.push({ op: raw, reason: 'create-author' });
+      continue;
+    }
+    // Classify with the fields field-LWW will keep, not the raw incoming overlay.
+    const kept: Record<string, Field> = Object.assign(Object.create(null), cur?.fields);
+    for (const [k, f] of Object.entries(op.fields))
+      if (!Object.hasOwn(kept, k) || newer(f[1], kept[k]![1])) kept[k] = f;
+    const shared = opts.isSharedId?.(op.id, kept) ?? false;
     if (
       !opts.trusted &&
       ((!known && op.createdBy !== senderMemberId) ||
