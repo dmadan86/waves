@@ -5,9 +5,17 @@
  * principal less those payments. The editor is an inline sheet.
  */
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  type EntryExitAnimationFunction,
+} from 'react-native-reanimated';
 import { useLocalSearchParams } from 'expo-router';
 import {
   Image,
@@ -68,7 +76,9 @@ import {
 import { useDefaultCurrency } from '@/lib/currency';
 import { fill, useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
+import { EASE_OUT } from '@/lib/anim';
 import { useBottomClearance } from '@/lib/clearance';
+import { useReducedMotion } from '@/lib/reducedMotion';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
@@ -620,6 +630,35 @@ function LoansScreenBody() {
   );
 }
 
+/** The names dropdown grows from just under its field: 3% scale and a fade, from the top edge. */
+const dropdownIn: EntryExitAnimationFunction = () => {
+  'worklet';
+  return {
+    initialValues: { opacity: 0, transform: [{ scale: 0.97 }] },
+    animations: {
+      opacity: withTiming(1, { duration: 160, easing: EASE_OUT }),
+      transform: [{ scale: withTiming(1, { duration: 160, easing: EASE_OUT }) }],
+    },
+  };
+};
+
+/** One chevron that turns over when the dropdown opens, rather than swapping glyphs. */
+function DropChevron({ open, color }: { open: boolean; color: string }) {
+  const reduce = useReducedMotion();
+  const turn = useSharedValue(open ? 1 : 0);
+  useEffect(() => {
+    turn.set(
+      reduce ? (open ? 1 : 0) : withTiming(open ? 1 : 0, { duration: 180, easing: EASE_OUT }),
+    );
+  }, [open, reduce, turn]);
+  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.get() * 180}deg` }] }));
+  return (
+    <Animated.View style={style}>
+      <Ionicons name="chevron-down" size={20} color={color} />
+    </Animated.View>
+  );
+}
+
 function loanMenuItems(
   loan: PersonalLoan,
   left: bigint,
@@ -711,6 +750,7 @@ function LoanEditor({
   const { t, locale } = useStrings();
   const { dark, ink, muted, accent, lavender } = useLoanInks();
   const [namesOpen, setNamesOpen] = useState(false);
+  const reduce = useReducedMotion();
   const upsert = useUpsertPersonalRecord();
   const { txns } = usePersonalLedger();
   const payments = loan ? txns.filter((x) => x.loanId === loan.id).slice(0, 5) : [];
@@ -942,13 +982,16 @@ function LoanEditor({
                 onPress={() => setNamesOpen((open) => !open)}
                 hitSlop={10}
               >
-                <Ionicons name={namesOpen ? 'chevron-up' : 'chevron-down'} size={20} color={ink} />
+                <DropChevron open={namesOpen} color={ink} />
               </Pressable>
             ) : null}
           </View>
           {namesOpen && others.length > 0 ? (
-            <View
+            <Animated.View
+              entering={reduce ? FadeIn.duration(160) : dropdownIn}
+              exiting={FadeOut.duration(120)}
               style={{
+                transformOrigin: 'top',
                 borderRadius: 14,
                 backgroundColor: theme.color.surface,
                 borderWidth: 1,
@@ -974,7 +1017,7 @@ function LoanEditor({
                   <Text style={{ fontSize: 15, color: ink }}>{name}</Text>
                 </Pressable>
               ))}
-            </View>
+            </Animated.View>
           ) : null}
         </View>
 

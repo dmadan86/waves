@@ -878,14 +878,10 @@ function LedgerGroupScreen() {
   const isPool = isPoolGroup(group.data);
   const householdBudget = useGroupBudget(groupId);
   const rentalRecords = useGroupRecords(hasGroupRentals(group.data?.type) ? groupId : undefined);
+  const rentalMonth = todayIso().slice(0, 7);
   const rentals = useMemo(
-    () =>
-      groupRentalsSummary(
-        rentalRecords,
-        todayIso().slice(0, 7),
-        group.data?.default_currency ?? 'INR',
-      ),
-    [rentalRecords, group.data?.default_currency],
+    () => groupRentalsSummary(rentalRecords, rentalMonth, group.data?.default_currency ?? 'INR'),
+    [rentalRecords, rentalMonth, group.data?.default_currency],
   );
   const householdSpent = useMemo(
     () =>

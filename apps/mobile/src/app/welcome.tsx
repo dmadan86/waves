@@ -21,7 +21,7 @@
 
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image, Platform, Pressable, useWindowDimensions, View } from 'react-native';
+import { Image, Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
@@ -41,6 +41,7 @@ import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
 import { useSessionLost } from '@/lib/sessionLost';
 import { COMPACT_TYPE_CAP } from '@/lib/typeCap';
+import { welcomeFit } from '@/lib/welcomeFitPure';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { phoneSignInAvailable } from '@/lib/phoneAuth';
 
@@ -96,16 +97,19 @@ export default function WelcomeScreen() {
   // cards over them are sized to it, so on a short phone they shrink rather
   // than climb over the words.
   const [stage, setStage] = useState(0);
-  const friendsH = Math.max(90, Math.min(windowWidth * 1.08 * (614 / 1200), stage - 8));
-  const friendsW = friendsH * (1200 / 614);
-  // The mockup's lockup is 53% of the screen's width (measured off the design at
-  // 849px wide: 450px, from a 50px margin), whatever the phone.
-  const headlineW = windowWidth * 0.53;
+  // Short phones shrink the picture, then drop it; the sheet never moves.
+  const { friendsH, friendsW, headlineW, showFriends, needsScroll } = welcomeFit({
+    stage,
+    windowWidth,
+    windowHeight: screenHeight,
+  });
   // Where each card floats, as the mockup has it: its top a share of the
   // screen's height above the sheet's edge (the stage's foot). Held inside the
   // stage, so a short phone never pushes one up over the words.
   const chipAt = (aboveSheet: number): number =>
     Math.max(0, Math.min(screenHeight * aboveSheet, stage) - 46);
+  // Three chips need ~430pt of width; narrower phones get two, apart, at the edges.
+  const narrow = windowWidth < 428;
   const canGoBack = router.canGoBack();
 
   // The same busy/error pair the auth sheet keeps: one provider round-trip at a
@@ -208,210 +212,271 @@ export default function WelcomeScreen() {
       </View>
 
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-        {/* The header: back when there is somewhere to go back to, otherwise
-            the language; and Skip, which is the guest way in. */}
-        <Row
-          style={{
-            minHeight: 44,
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingHorizontal: theme.spacing.lg,
-          }}
+        {/* Last resort for tiny screens or huge text: scroll rather than clip. */}
+        <ScrollView
+          bounces={false}
+          scrollEnabled={needsScroll}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1 }}
         >
-          {canGoBack ? (
-            <HeaderGlyph
-              label={t.common.back}
-              icon={directionalIcon('chevron-back')}
-              onPress={() => router.back()}
-            />
-          ) : (
+          {/* The header: back when there is somewhere to go back to, otherwise
+            the language; and Skip, which is the guest way in. */}
+          <Row
+            style={{
+              minHeight: 44,
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: theme.spacing.lg,
+            }}
+          >
+            {canGoBack ? (
+              <HeaderGlyph
+                label={t.common.back}
+                icon={directionalIcon('chevron-back')}
+                onPress={() => router.back()}
+              />
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.language}
+                onPress={() => router.push('/language')}
+                hitSlop={8}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  height: 40,
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <Ionicons name="globe-outline" size={20} color={theme.color.text} />
+                <Text
+                  maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+                  style={{ fontSize: 15, fontWeight: '600', color: theme.color.text }}
+                >
+                  {LANGUAGE_NAMES[language].own}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color={theme.color.text} />
+              </Pressable>
+            )}
             <Pressable
+              testID="welcome-skip"
               accessibilityRole="button"
-              accessibilityLabel={t.language}
-              onPress={() => router.push('/language')}
+              accessibilityLabel={t.common.skip}
+              accessibilityState={{ disabled: busy }}
+              disabled={busy}
+              onPress={() => router.push('/guest-welcome')}
               hitSlop={8}
               style={({ pressed }) => ({
+                height: 40,
+                paddingHorizontal: 16,
+                borderRadius: 12,
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 6,
-                height: 40,
-                opacity: pressed ? 0.6 : 1,
+                backgroundColor: 'rgba(255,255,255,0.8)',
+                opacity: busy ? 0.45 : pressed ? 0.7 : 1,
               })}
             >
-              <Ionicons name="globe-outline" size={20} color={theme.color.text} />
               <Text
                 maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-                style={{ fontSize: 15, fontWeight: '600', color: theme.color.text }}
+                style={{ fontSize: 16, fontWeight: '700', color: theme.color.text }}
               >
-                {LANGUAGE_NAMES[language].own}
+                {t.common.skip}
               </Text>
-              <Ionicons name="chevron-down" size={16} color={theme.color.text} />
-            </Pressable>
-          )}
-          <Pressable
-            testID="welcome-skip"
-            accessibilityRole="button"
-            accessibilityLabel={t.common.skip}
-            accessibilityState={{ disabled: busy }}
-            disabled={busy}
-            onPress={() => router.push('/guest-welcome')}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              height: 40,
-              paddingHorizontal: 16,
-              borderRadius: 12,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-              backgroundColor: 'rgba(255,255,255,0.8)',
-              opacity: busy ? 0.45 : pressed ? 0.7 : 1,
-            })}
-          >
-            <Text
-              maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-              style={{ fontSize: 16, fontWeight: '700', color: theme.color.text }}
-            >
-              {t.common.skip}
-            </Text>
-            <Ionicons name={directionalIcon('arrow-forward')} size={18} color={theme.color.text} />
-          </Pressable>
-        </Row>
-
-        {/* The words, over the top of the picture, rising into place. */}
-        <Animated.View
-          style={[{ paddingHorizontal: theme.spacing.xl, paddingTop: 12, gap: 8 }, heroStyle]}
-        >
-          {language === Language.En ? (
-            // English: the designed lockup — wordmark, headline and line — as
-            // drawn. Read out as the words it shows.
-            <Image
-              source={HEADLINE}
-              accessible
-              accessibilityRole="header"
-              accessibilityLabel={`${t.common.appName}. ${t.signIn.splitAnything.replace(/\n/g, ' ')}. ${t.signIn.heroTagline}`}
-              resizeMode="contain"
-              style={{ width: headlineW, height: headlineW * (693 / 1000), marginTop: 4 }}
-            />
-          ) : (
-            // Every other language sets the same three lines in type, since
-            // the drawing only speaks English.
-            <>
-              <Image
-                source={WORDMARK}
-                accessibilityRole="header"
-                accessibilityLabel={t.common.appName}
-                resizeMode="contain"
-                style={{
-                  width: 140,
-                  height: 140 * (256 / 720),
-                  marginBottom: 2,
-                  tintColor: theme.color.brand,
-                }}
+              <Ionicons
+                name={directionalIcon('arrow-forward')}
+                size={18}
+                color={theme.color.text}
               />
-              <Text
-                maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-                style={{
-                  fontFamily: DISPLAY,
-                  fontSize: 38,
-                  lineHeight: 44,
-                  color: theme.color.text,
-                  letterSpacing: -1,
-                }}
-              >
-                {t.signIn.splitAnything}
-              </Text>
-              <Text
-                maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-                // Narrow enough to break after "bills", where the mockup breaks it.
-                style={{
-                  fontFamily: BODY,
-                  fontSize: 16,
-                  lineHeight: 23,
-                  color: '#4A4E68',
-                  maxWidth: 226,
-                }}
-              >
-                {t.signIn.heroTagline}
-              </Text>
-            </>
-          )}
-        </Animated.View>
+            </Pressable>
+          </Row>
 
-        {/* The friends at their table, standing on the sheet's edge, with a few
-            of the things they split floating over them. Decorative. */}
-        <View
-          pointerEvents="none"
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          onLayout={(event) => setStage(event.nativeEvent.layout.height)}
-          style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}
-        >
-          <Image
-            source={FRIENDS}
-            resizeMode="contain"
-            style={{ width: friendsW, height: friendsH, marginBottom: -22 }}
-          />
-          <SplitChip
-            icon="home-outline"
-            label={t.signIn.chipRent}
-            amount={chipAmount(320)}
-            faces={[0, 1]}
-            style={{ position: 'absolute', left: windowWidth * 0.077, bottom: chipAt(0.267) }}
-          />
-          <SplitChip
-            icon="airplane-outline"
-            label={t.signIn.chipTrip}
-            amount={chipAmount(620)}
-            faces={[2, 1, 0]}
-            style={{ position: 'absolute', left: windowWidth * 0.473, bottom: chipAt(0.31) }}
-          />
-          <SplitChip
-            icon="restaurant-outline"
-            label={t.signIn.chipDinner}
-            amount={chipAmount(48)}
-            faces={[3, 1, 2]}
-            style={{
-              position: 'absolute',
-              left: windowWidth * 0.727,
-              bottom: chipAt(0.254),
-              transform: [{ rotate: '4deg' }],
-            }}
-          />
-        </View>
-
-        {/* The ways in, on a white sheet that rises over the picture's foot. */}
-        <Animated.View
-          style={[
-            {
-              backgroundColor: theme.color.bg,
-              borderTopLeftRadius: 32,
-              borderTopRightRadius: 32,
-              paddingHorizontal: theme.spacing.xl,
-              paddingTop: 16,
-              paddingBottom: theme.spacing.sm,
-              gap: 9,
-            },
-            waysStyle,
-          ]}
-        >
-          {error ? <Callout tone="negative">{error}</Callout> : null}
-          {sessionLost && !error ? (
-            <Callout tone="negative">{t.signOutSheet.sessionLost}</Callout>
-          ) : null}
-
-          <Pressable
-            testID="welcome-provider"
-            accessibilityRole="button"
-            accessibilityLabel={labelFor(first)}
-            accessibilityState={{ disabled: busy }}
-            disabled={busy}
-            onPress={() => signInWith(first)}
-            style={({ pressed }) => ({ opacity: busy ? 0.5 : pressed ? 0.9 : 1 })}
+          {/* The words, over the top of the picture, rising into place. */}
+          <Animated.View
+            style={[{ paddingHorizontal: theme.spacing.xl, paddingTop: 12, gap: 8 }, heroStyle]}
           >
-            <View style={[{ backgroundColor: theme.color.buttonPrimary }, providerRow]}>
-              <View style={markDisc}>
-                {first === 'apple' ? (
-                  <AppleMark size={20} color="#000000" />
+            {language === Language.En ? (
+              // English: the designed lockup — wordmark, headline and line — as
+              // drawn. Read out as the words it shows.
+              <Image
+                source={HEADLINE}
+                accessible
+                accessibilityRole="header"
+                accessibilityLabel={`${t.common.appName}. ${t.signIn.splitAnything.replace(/\n/g, ' ')}. ${t.signIn.heroTagline}`}
+                resizeMode="contain"
+                style={{ width: headlineW, height: headlineW * (693 / 1000), marginTop: 4 }}
+              />
+            ) : (
+              // Every other language sets the same three lines in type, since
+              // the drawing only speaks English.
+              <>
+                <Image
+                  source={WORDMARK}
+                  accessibilityRole="header"
+                  accessibilityLabel={t.common.appName}
+                  resizeMode="contain"
+                  style={{
+                    width: 140,
+                    height: 140 * (256 / 720),
+                    marginBottom: 2,
+                    tintColor: theme.color.brand,
+                  }}
+                />
+                <Text
+                  maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+                  style={{
+                    fontFamily: DISPLAY,
+                    fontSize: 38,
+                    lineHeight: 44,
+                    color: theme.color.text,
+                    letterSpacing: -1,
+                  }}
+                >
+                  {t.signIn.splitAnything}
+                </Text>
+                <Text
+                  maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+                  // Narrow enough to break after "bills", where the mockup breaks it.
+                  style={{
+                    fontFamily: BODY,
+                    fontSize: 16,
+                    lineHeight: 23,
+                    color: '#4A4E68',
+                    maxWidth: 226,
+                  }}
+                >
+                  {t.signIn.heroTagline}
+                </Text>
+              </>
+            )}
+          </Animated.View>
+
+          {/* The friends at their table, standing on the sheet's edge, with a few
+            of the things they split floating over them. Decorative. */}
+          <View
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            onLayout={(event) => setStage(event.nativeEvent.layout.height)}
+            style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}
+          >
+            {showFriends ? (
+              <>
+                <Image
+                  source={FRIENDS}
+                  resizeMode="contain"
+                  style={{ width: friendsW, height: friendsH, marginBottom: -22 }}
+                />
+                <SplitChip
+                  icon="home-outline"
+                  label={t.signIn.chipRent}
+                  amount={chipAmount(320)}
+                  faces={[0, 1]}
+                  style={{ position: 'absolute', left: windowWidth * 0.077, bottom: chipAt(0.267) }}
+                />
+                {narrow ? null : (
+                  <SplitChip
+                    icon="airplane-outline"
+                    label={t.signIn.chipTrip}
+                    amount={chipAmount(620)}
+                    faces={[2, 1, 0]}
+                    style={{
+                      position: 'absolute',
+                      left: windowWidth * 0.473,
+                      bottom: chipAt(0.31),
+                    }}
+                  />
+                )}
+                <SplitChip
+                  icon="restaurant-outline"
+                  label={t.signIn.chipDinner}
+                  amount={chipAmount(48)}
+                  faces={[3, 1, 2]}
+                  style={{
+                    position: 'absolute',
+                    ...(narrow ? { end: 12 } : { left: windowWidth * 0.727 }),
+                    bottom: chipAt(0.254),
+                    transform: [{ rotate: '4deg' }],
+                  }}
+                />
+              </>
+            ) : null}
+          </View>
+
+          {/* The ways in, on a white sheet that rises over the picture's foot. */}
+          <Animated.View
+            style={[
+              {
+                backgroundColor: theme.color.bg,
+                borderTopLeftRadius: 32,
+                borderTopRightRadius: 32,
+                paddingHorizontal: theme.spacing.xl,
+                paddingTop: 16,
+                paddingBottom: theme.spacing.sm,
+                gap: 9,
+              },
+              waysStyle,
+            ]}
+          >
+            {error ? <Callout tone="negative">{error}</Callout> : null}
+            {sessionLost && !error ? (
+              <Callout tone="negative">{t.signOutSheet.sessionLost}</Callout>
+            ) : null}
+
+            <Pressable
+              testID="welcome-provider"
+              accessibilityRole="button"
+              accessibilityLabel={labelFor(first)}
+              accessibilityState={{ disabled: busy }}
+              disabled={busy}
+              onPress={() => signInWith(first)}
+              style={({ pressed }) => ({ opacity: busy ? 0.5 : pressed ? 0.9 : 1 })}
+            >
+              <View style={[{ backgroundColor: theme.color.buttonPrimary }, providerRow]}>
+                <View style={markDisc}>
+                  {first === 'apple' ? (
+                    <AppleMark size={20} color="#000000" />
+                  ) : (
+                    <GoogleMark size={20} />
+                  )}
+                </View>
+                <Text
+                  maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+                  style={{
+                    flex: 1,
+                    textAlign: 'center',
+                    fontSize: 15,
+                    fontWeight: '700',
+                    color: '#FFFFFF',
+                  }}
+                >
+                  {labelFor(first)}
+                </Text>
+                <Ionicons name={directionalIcon('chevron-forward')} size={20} color="#FFFFFF" />
+              </View>
+            </Pressable>
+
+            <Pressable
+              testID={`auth-${second}`}
+              accessibilityRole="button"
+              accessibilityLabel={labelFor(second)}
+              accessibilityState={{ disabled: busy }}
+              disabled={busy}
+              onPress={() => signInWith(second)}
+              style={({ pressed }) => [
+                providerRow,
+                {
+                  backgroundColor: '#FFFFFF',
+                  borderWidth: 1,
+                  borderColor: theme.color.border,
+                  opacity: busy ? 0.5 : pressed ? 0.9 : 1,
+                },
+              ]}
+            >
+              <View style={[markDisc, { backgroundColor: 'transparent' }]}>
+                {second === 'apple' ? (
+                  <AppleMark size={24} color="#000000" />
                 ) : (
                   <GoogleMark size={20} />
                 )}
@@ -423,141 +488,107 @@ export default function WelcomeScreen() {
                   textAlign: 'center',
                   fontSize: 15,
                   fontWeight: '700',
-                  color: '#FFFFFF',
+                  color: theme.color.text,
                 }}
               >
-                {labelFor(first)}
-              </Text>
-              <Ionicons name={directionalIcon('chevron-forward')} size={20} color="#FFFFFF" />
-            </View>
-          </Pressable>
-
-          <Pressable
-            testID={`auth-${second}`}
-            accessibilityRole="button"
-            accessibilityLabel={labelFor(second)}
-            accessibilityState={{ disabled: busy }}
-            disabled={busy}
-            onPress={() => signInWith(second)}
-            style={({ pressed }) => [
-              providerRow,
-              {
-                backgroundColor: '#FFFFFF',
-                borderWidth: 1,
-                borderColor: theme.color.border,
-                opacity: busy ? 0.5 : pressed ? 0.9 : 1,
-              },
-            ]}
-          >
-            <View style={[markDisc, { backgroundColor: 'transparent' }]}>
-              {second === 'apple' ? (
-                <AppleMark size={24} color="#000000" />
-              ) : (
-                <GoogleMark size={20} />
-              )}
-            </View>
-            <Text
-              maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-              style={{
-                flex: 1,
-                textAlign: 'center',
-                fontSize: 15,
-                fontWeight: '700',
-                color: theme.color.text,
-              }}
-            >
-              {labelFor(second)}
-            </Text>
-            <Ionicons
-              name={directionalIcon('chevron-forward')}
-              size={20}
-              color={theme.color.text}
-            />
-          </Pressable>
-
-          <Row style={{ alignItems: 'center', gap: 12, marginVertical: 2 }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
-            <Text
-              maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-              style={{ fontSize: 14, color: theme.color.textMuted }}
-            >
-              {t.signIn.orContinueWithCap}
-            </Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
-          </Row>
-
-          <Row style={{ gap: 12 }}>
-            {/* Only where the build can actually do it: Firebase sends the code,
-                and a binary made before it existed would draw a dead door. */}
-            {phoneSignInAvailable() ? (
-              <WayTile
-                testID="auth-phone"
-                icon="call-outline"
-                label={t.signIn.providerPhone}
-                accessibilityLabel={t.signIn.continuePhone}
-                disabled={busy}
-                onPress={() => router.push('/phone')}
-              />
-            ) : null}
-            <WayTile
-              testID="auth-email"
-              icon="mail-outline"
-              label={t.signIn.providerEmail}
-              accessibilityLabel={t.signIn.continueEmail}
-              disabled={busy}
-              onPress={() => router.push('/sign-up')}
-            />
-          </Row>
-
-          <LegalLine
-            textStyle={{ color: theme.color.textMuted, fontSize: 13, lineHeight: 18, marginTop: 2 }}
-          />
-
-          <View
-            style={{
-              height: 1,
-              backgroundColor: theme.color.border,
-              marginHorizontal: 40,
-              marginTop: 4,
-            }}
-          />
-
-          <Row style={{ justifyContent: 'center', alignItems: 'center', gap: 8 }}>
-            <Text
-              maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-              style={{ fontSize: 16, color: theme.color.textMuted }}
-            >
-              {t.signIn.haveAccountPrompt}
-            </Text>
-            <Pressable
-              testID="welcome-sign-in"
-              accessibilityRole="button"
-              accessibilityLabel={t.signIn.signInAction}
-              accessibilityState={{ disabled: busy }}
-              disabled={busy}
-              onPress={() => router.push('/sign-in')}
-              hitSlop={8}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              <Text
-                maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-                style={{ fontSize: 17, fontWeight: '800', color: theme.color.brand }}
-              >
-                {t.signIn.signInAction}
+                {labelFor(second)}
               </Text>
               <Ionicons
-                name={directionalIcon('arrow-forward')}
-                size={18}
-                color={theme.color.brand}
+                name={directionalIcon('chevron-forward')}
+                size={20}
+                color={theme.color.text}
               />
             </Pressable>
-          </Row>
-        </Animated.View>
+
+            <Row style={{ alignItems: 'center', gap: 12, marginVertical: 2 }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
+              <Text
+                maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+                style={{ fontSize: 14, color: theme.color.textMuted }}
+              >
+                {t.signIn.orContinueWithCap}
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
+            </Row>
+
+            <Row style={{ gap: 12 }}>
+              {/* Only where the build can actually do it: Firebase sends the code,
+                and a binary made before it existed would draw a dead door. */}
+              {phoneSignInAvailable() ? (
+                <WayTile
+                  testID="auth-phone"
+                  icon="call-outline"
+                  label={t.signIn.providerPhone}
+                  accessibilityLabel={t.signIn.continuePhone}
+                  disabled={busy}
+                  onPress={() => router.push('/phone')}
+                />
+              ) : null}
+              <WayTile
+                testID="auth-email"
+                icon="mail-outline"
+                label={t.signIn.providerEmail}
+                accessibilityLabel={t.signIn.continueEmail}
+                disabled={busy}
+                onPress={() => router.push('/sign-up')}
+              />
+            </Row>
+
+            <LegalLine
+              textStyle={{
+                color: theme.color.textMuted,
+                fontSize: 13,
+                lineHeight: 18,
+                marginTop: 2,
+              }}
+            />
+
+            <View
+              style={{
+                height: 1,
+                backgroundColor: theme.color.border,
+                marginHorizontal: 40,
+                marginTop: 4,
+              }}
+            />
+
+            <Row style={{ justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+              <Text
+                maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+                style={{ fontSize: 16, color: theme.color.textMuted }}
+              >
+                {t.signIn.haveAccountPrompt}
+              </Text>
+              <Pressable
+                testID="welcome-sign-in"
+                accessibilityRole="button"
+                accessibilityLabel={t.signIn.signInAction}
+                accessibilityState={{ disabled: busy }}
+                disabled={busy}
+                onPress={() => router.push('/sign-in')}
+                hitSlop={8}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <Text
+                  maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+                  style={{ fontSize: 17, fontWeight: '800', color: theme.color.brand }}
+                >
+                  {t.signIn.signInAction}
+                </Text>
+                <Ionicons
+                  name={directionalIcon('arrow-forward')}
+                  size={18}
+                  color={theme.color.brand}
+                />
+              </Pressable>
+            </Row>
+          </Animated.View>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );

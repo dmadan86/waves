@@ -17,6 +17,7 @@ import { RaiseCard, useRaisePrompts } from '@/components/wealth/RaiseCard';
 import { useDateOccurrences } from '@/data/personalDates';
 import { usePersonalWealth } from '@/data/personalWealth';
 import { fill, plural, useStrings } from '@/i18n';
+import { PressableScale } from '@/lib/anim';
 import { useAuth } from '@/lib/auth';
 import { actionFor } from '@/lib/dateReminders/actions';
 import { subtitleOf, titleOf } from '@/lib/dateReminders/text';
@@ -257,13 +258,13 @@ export function QuickActions({
       {rows.map((row, r) => (
         <Row key={r} style={{ gap: theme.spacing.sm }}>
           {row.map((tile) => (
-            <Pressable
+            <PressableScale
               key={tile.key}
               ref={tile.ref}
               accessibilityRole="button"
               accessibilityLabel={tile.label}
               onPress={tile.onPress}
-              style={({ pressed }) => ({
+              style={{
                 flex: 1,
                 minWidth: 0,
                 alignItems: 'center',
@@ -274,8 +275,7 @@ export function QuickActions({
                 borderWidth: 1,
                 borderColor: theme.color.border,
                 backgroundColor: theme.color.surface,
-                opacity: pressed ? 0.7 : 1,
-              })}
+              }}
             >
               <View
                 style={{
@@ -297,7 +297,7 @@ export function QuickActions({
               <Text variant="micro" numberOfLines={2} align="center" style={{ fontWeight: '600' }}>
                 {tile.label}
               </Text>
-            </Pressable>
+            </PressableScale>
           ))}
         </Row>
       ))}
@@ -317,12 +317,12 @@ export function MoneyToolsRow({ tiles }: { tiles: readonly (Tile & { tint: TintN
       {tiles.map((tile) => {
         const tint = theme.tint[tile.tint];
         return (
-          <Pressable
+          <PressableScale
             key={tile.key}
             accessibilityRole="button"
             accessibilityLabel={tile.label}
             onPress={tile.onPress}
-            style={({ pressed }) => ({
+            style={{
               width: 84,
               minHeight: 72,
               alignItems: 'center',
@@ -331,14 +331,13 @@ export function MoneyToolsRow({ tiles }: { tiles: readonly (Tile & { tint: TintN
               padding: theme.spacing.sm,
               borderRadius: theme.radius.md,
               backgroundColor: tint.bg,
-              opacity: pressed ? 0.7 : 1,
-            })}
+            }}
           >
             <Ionicons name={tile.icon} size={iconSize.md} color={tint.ink} />
             <Text variant="micro" align="center" numberOfLines={2} style={{ fontWeight: '600' }}>
               {tile.label}
             </Text>
-          </Pressable>
+          </PressableScale>
         );
       })}
     </ScrollView>

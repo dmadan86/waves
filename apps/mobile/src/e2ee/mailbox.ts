@@ -103,14 +103,6 @@ async function metaWrite(meta: Meta, key: string, value: string): Promise<void> 
   }
 }
 
-async function transient<T>(work: () => Promise<T>): Promise<T> {
-  try {
-    return await work();
-  } catch (error) {
-    throw new TransientMailboxError(error);
-  }
-}
-
 /** Halve a message until each part fits; a single op that still does not is returned alone. */
 function splitToFit(pt: e2ee.Plaintext): e2ee.Plaintext[] {
   if (fits(pt) || pt.ops.length < 2) return [pt];

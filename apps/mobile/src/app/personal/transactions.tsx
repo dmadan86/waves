@@ -58,6 +58,7 @@ import { monthlySpendEntries } from '@/lib/monthlySpend';
 import { deviceCountry, plural, useStrings } from '@/i18n';
 import { paymentMethodLabel } from '@/lib/paymentMethodLabel';
 import { PersonalGuard } from '@/components/PersonalGuard';
+import { SlidingHighlight } from '@/lib/SlidingHighlight';
 import { useBottomClearance } from '@/lib/clearance';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { loanScope } from '@/lib/personalLoanScope';
@@ -129,6 +130,7 @@ function PersonalTransactionsScreenBody() {
   const uncategorizedOnly = params.uncategorized === '1' && !dropUncategorized;
 
   const [tab, setTab] = useState<Tab>(kindParam ?? 'all');
+  const [tabsWidth, setTabsWidth] = useState(0);
   const [browseMonth, setBrowseMonth] = useState(month ?? localMonth());
   const [monthEnabled, setMonthEnabled] = useState(true);
   const [query, setQuery] = useState('');
@@ -402,7 +404,40 @@ function PersonalTransactionsScreenBody() {
           </Pressable>
         </Row>
 
-        <Row accessibilityRole="tablist" style={{ gap: 5 }}>
+        <Row
+          accessibilityRole="tablist"
+          style={{ gap: 5 }}
+          onLayout={(e) => setTabsWidth(e.nativeEvent.layout.width)}
+        >
+          {/* Resting segment backgrounds sit under the sliding highlight. */}
+          <Row
+            pointerEvents="none"
+            style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, gap: 5 }}
+          >
+            {tabs.map((item) => (
+              <View
+                key={item.value}
+                style={{
+                  flex: 1,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: theme.color.surface,
+                }}
+              />
+            ))}
+          </Row>
+          <SlidingHighlight
+            index={Math.max(
+              0,
+              tabs.findIndex((x) => x.value === tab),
+            )}
+            count={tabs.length}
+            width={tabsWidth}
+            color={accent}
+            radius={18}
+            gap={5}
+            height={36}
+          />
           {tabs.map((item) => {
             const on = item.value === tab;
             return (
@@ -420,7 +455,6 @@ function PersonalTransactionsScreenBody() {
                   borderRadius: 18,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: on ? accent : theme.color.surface,
                 }}
               >
                 <View

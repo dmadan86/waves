@@ -6,8 +6,7 @@
  * nothing but a fake mailbox between them.
  */
 
-import { e2ee } from '@waves/core';
-import { isSharedOccurrenceId } from '@waves/core';
+import { e2ee, isSharedOccurrenceId } from '@waves/core';
 
 import type { BackupCouple } from '@/lib/backup/payload';
 import type { E2eeOutboxRow, E2eeRecordRow } from '@/sync/store';

@@ -8,7 +8,15 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { easeOutCubic, lerpBig, MAX_SAFE_MINOR, staggerDelay } from '@/lib/motionMath';
+import {
+  easeOutCubic,
+  docTileWidth,
+  lerpBig,
+  MAX_SAFE_MINOR,
+  segmentWidth,
+  segmentX,
+  staggerDelay,
+} from '@/lib/motionMath';
 
 describe('easeOutCubic', () => {
   it('pins the ends and eases in between', () => {
@@ -21,6 +29,19 @@ describe('easeOutCubic', () => {
   it('clamps input outside [0, 1] rather than overshooting', () => {
     expect(easeOutCubic(-1)).toBe(0);
     expect(easeOutCubic(2)).toBe(1);
+  });
+});
+
+describe('docTileWidth', () => {
+  it('leaves about a third of the next tile peeking at the measured width', () => {
+    expect(docTileWidth(320, 8, 96, 160)).toBe(130.28571428571428);
+    expect(docTileWidth(240, 8, 96, 200)).toBe(96);
+  });
+
+  it('clamps narrow and wide containers and handles an unmeasured container', () => {
+    expect(docTileWidth(120, 8, 96, 180)).toBe(96);
+    expect(docTileWidth(500, 8, 96, 180)).toBe(180);
+    expect(docTileWidth(0, 8, 96, 180)).toBe(96);
   });
 });
 
@@ -67,5 +88,18 @@ describe('staggerDelay', () => {
 describe('MAX_SAFE_MINOR', () => {
   it('is the Number safe-integer ceiling, as a bigint', () => {
     expect(MAX_SAFE_MINOR).toBe(9_007_199_254_740_991n);
+  });
+});
+
+describe('segmentX', () => {
+  it('places segment n after n widths and n gaps, inside the inset', () => {
+    expect(segmentX(0, 3, 306, 4, 2)).toBe(4);
+    expect(segmentX(1, 3, 306, 4, 2)).toBe(4 + (306 - 8 - 4) / 3 + 2);
+    expect(segmentWidth(3, 306, 4, 2)).toBe(98);
+  });
+
+  it('is safe before the row is measured', () => {
+    expect(segmentWidth(3, 0)).toBe(0);
+    expect(segmentWidth(0, 300)).toBe(0);
   });
 });

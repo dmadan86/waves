@@ -11,6 +11,7 @@ import {
   type PersonalProperty,
   type PersonalTenancy,
   type PersonalTxn,
+  type RentLine,
 } from '@waves/core';
 
 /** One row of whichever store the screen is reading: Personal's records or a group's. */
@@ -67,6 +68,30 @@ export function rentEntryId(
 ): string {
   return groupScoped && fullDueDate ? recurringOccurrenceId(ruleId, fullDueDate) : fresh();
 }
+
+/** What is still owed on the oldest unpaid due: zero when everything is paid (never the full instalment). */
+export const outstandingRent = (due: Pick<RentLine, 'amount' | 'paid'> | undefined): bigint =>
+  due ? due.amount - due.paid : 0n;
+
+/** A full payment of an untouched due, keyed by the rule that generated it (not today's rule). */
+export function fullPaymentOf(
+  due: Pick<RentLine, 'amount' | 'paid' | 'date' | 'ruleId'> | undefined,
+  amount: bigint,
+): { date: string; ruleId: string } | null {
+  return due && due.paid === 0n && amount === due.amount
+    ? { date: due.date, ruleId: due.ruleId }
+    : null;
+}
+
+/** Saving in a group needs the viewer's member id, which loads after the records. */
+export const writesReady = (groupId: string | undefined, memberId: string | null): boolean =>
+  !groupId || !!memberId;
+
+/** The privacy line: a couple is two people; anything else (or not yet known) says members of the group. */
+export const e2eeNoteFor = (
+  w: { e2eeNote: string; e2eeNoteHome: string },
+  type: string | null | undefined,
+): string => (type === 'couple' ? w.e2eeNote : w.e2eeNoteHome);
 
 /** Rent received in `month` (YYYY-MM) in one currency: what the household Income figure adds. */
 export function rentReceivedInMonth(

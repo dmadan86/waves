@@ -146,6 +146,11 @@ export function useSpaceName(groupId?: string): string | undefined {
   return groupId ? (group.data?.name ?? undefined) : undefined;
 }
 
+export function useSpaceType(groupId?: string): string | undefined {
+  const { group } = useGroup(isFormer(groupId ?? '') ? '' : (groupId ?? ''));
+  return groupId ? group.data?.type : undefined;
+}
+
 export function usePersonalWealth(groupId?: string): PersonalWealth {
   const { records } = useRentalStore(groupId);
   return useMemo(() => decodeWealth(records), [records]);
@@ -434,11 +439,11 @@ export function useWealthWrites(groupId?: string) {
       amount: bigint,
       date: string,
       label: string,
-      fullDue: string | null = null,
+      fullDue: { date: string; ruleId: string } | null = null,
     ) =>
       put(
         'txn',
-        rentEntryId(!!groupId, rule.id, fullDue, randomUUID),
+        rentEntryId(!!groupId, fullDue?.ruleId ?? rule.id, fullDue?.date ?? null, randomUUID),
         encodeTxn({
           kind: 'income',
           amount,
@@ -448,7 +453,7 @@ export function useWealthWrites(groupId?: string) {
           note: `Rent · ${label}`,
           date,
           loanId: null,
-          recurringId: rule.id,
+          recurringId: fullDue?.ruleId ?? rule.id,
           propertyId,
         }),
       ),

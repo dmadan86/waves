@@ -21,6 +21,7 @@ vi.mock('react-native-reanimated', async () => {
   const fade = (duration = 0, delay = 0) => ({
     kind: 'FadeInDown',
     duration: (d: number) => fade(d, delay),
+    easing: () => fade(duration, delay),
     delay: (d: number) => fade(duration, d),
     value: { duration, delay },
   });
@@ -30,6 +31,8 @@ vi.mock('react-native-reanimated', async () => {
       createAnimatedComponent: (c: unknown) => `Animated(${String(c)})`,
     },
     FadeInDown: fade(),
+    Easing: { bezier: () => 'bezier' },
+    withDelay: (_d: number, v: unknown) => v,
     useSharedValue: (initial: number) => {
       const ref = react.useRef({ v: initial as unknown });
       return {
@@ -55,7 +58,7 @@ describe('Stagger', () => {
       .current as FakeElement;
     expect(el.type).toBe('Animated.View');
     expect((el.props.entering as { value: unknown }).value).toEqual({
-      duration: 340,
+      duration: 260,
       delay: staggerDelay(3),
     });
     expect(el.props.children).toBe('row');

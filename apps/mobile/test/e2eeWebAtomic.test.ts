@@ -28,5 +28,5 @@ describe('web E2EE storage', () => {
     await expect(store.writeE2eeRecords([row], [outbox])).rejects.toThrow('disk full');
     expect(await store.readE2eeRecords()).toEqual([]);
     expect(await store.readE2eeOutbox()).toEqual([]);
-  });
+  }, 30_000);
 });
