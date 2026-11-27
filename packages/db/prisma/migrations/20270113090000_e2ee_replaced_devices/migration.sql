@@ -9,6 +9,7 @@ ALTER TABLE public.e2ee_devices ADD COLUMN replaced_at timestamptz;
 CREATE FUNCTION public.waves_e2ee_device_inactive(p_replaced timestamptz, p_seen timestamptz)
     RETURNS boolean
     LANGUAGE sql STABLE
+    SET search_path TO 'public', 'pg_temp'
     AS $$
   SELECT p_replaced IS NOT NULL OR p_seen < now() - interval '30 days';
 $$;
