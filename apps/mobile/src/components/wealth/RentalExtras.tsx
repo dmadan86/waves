@@ -343,10 +343,14 @@ export function DocumentsCard({
   propertyId,
   region,
   groupId,
+  slotNames,
 }: {
+  /** The owner's id: a property, vehicle or licence. */
   propertyId: string;
   region: string;
   groupId?: string;
+  /** Fixed slots (id -> name) for owners other than a rental. */
+  slotNames?: Readonly<Record<string, string>>;
 }) {
   const theme = useTheme();
   const reduce = useReducedMotion();
@@ -386,7 +390,7 @@ export function DocumentsCard({
     };
   }, [propertyId]);
 
-  const slots = slotsOf(docs, region);
+  const slots = slotsOf(docs, region, slotNames ? Object.keys(slotNames) : undefined);
   const filledIds = new Set(slots.filter((s) => s.docs.length > 0).map((s) => s.id));
   const filledIdKey = [...filledIds].sort().join('\u0000');
   const newFilledIds = new Set(seenIds ? [...filledIds].filter((id) => !seenIds.has(id)) : []);
@@ -409,7 +413,9 @@ export function DocumentsCard({
   }, [loaded, filledIdKey]);
   const { filled, total } = slotCount(slots);
   const nameOf = (s: DocSlot): string =>
-    s.builtin ? w[SLOT_KEY[s.id as keyof typeof SLOT_KEY]] : (s.label ?? w.docSlotOther);
+    s.builtin
+      ? (slotNames?.[s.id] ?? w[SLOT_KEY[s.id as keyof typeof SLOT_KEY]])
+      : (s.label ?? w.docSlotOther);
   const dateOf = (ms: number): string =>
     new Date(ms).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
   const kindOf = (s: DocSlot): string => {
