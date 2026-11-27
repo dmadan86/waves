@@ -26,7 +26,6 @@ import {
   encodeTxn,
   Frequency,
   IncomeSourceId,
-  isIncomeSourceId,
   scheduleFor,
   type CurrencyCode,
   type PersonalRecordKind,
@@ -192,7 +191,12 @@ export function quickPickIds(kind: TxnKind): readonly string[] {
 
 /** Income sources and spend categories are different lists: switching direction
  *  keeps the pick only when it still belongs to the new kind. */
-export function categoryAfterKindChange(category: string | null, next: TxnKind): string | null {
-  if (category === null) return null;
-  return isIncomeSourceId(category) === (next === 'income') ? category : null;
+export function categoryAfterKindChange(
+  category: string | null,
+  from: TxnKind,
+  next: TxnKind,
+): string | null {
+  // The pick belongs to the old kind's list (built-in or custom), so a real switch
+  // drops it; a tap on the kind already chosen keeps it.
+  return from === next ? category : null;
 }

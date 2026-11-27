@@ -109,6 +109,7 @@ import {
   repeatOf,
   type EntryRepeat,
 } from '@/lib/personalEntry';
+import { recurringTabMemory } from '@/lib/recurringList';
 import { KindPills } from '@/components/KindPills';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
@@ -312,6 +313,7 @@ function EntryForm({
           }
           // A new repeating item lands on the list that shows it, even when
           // the form was opened from somewhere else.
+          if (repeat) recurringTabMemory.tab = kind;
           if (repeat && !editingRule && !startRepeating) router.replace('/personal/recurring');
           else router.back();
         },
@@ -395,7 +397,7 @@ function EntryForm({
                 onChange={(next) => {
                   setKind(next);
                   // Spend categories and income sources are different lists.
-                  setCategory((current) => categoryAfterKindChange(current, next));
+                  setCategory((current) => categoryAfterKindChange(current, kind, next));
                 }}
                 expenseLabel={t.personal.expense}
                 incomeLabel={t.personal.incomeKind}

@@ -18,13 +18,16 @@ describe('quickPickIds', () => {
 });
 
 describe('categoryAfterKindChange', () => {
-  it('drops a spend category when switching to income, and the reverse', () => {
-    expect(categoryAfterKindChange('food', 'income')).toBeNull();
-    expect(categoryAfterKindChange('inc.salary', 'expense')).toBeNull();
+  it('keeps a custom tag when the same kind is tapped again', () => {
+    expect(categoryAfterKindChange('my-tag', 'income', 'income')).toBe('my-tag');
+    expect(categoryAfterKindChange('my-tag', 'income', 'expense')).toBeNull();
   });
-  it('keeps one that belongs to the new kind, and a null', () => {
-    expect(categoryAfterKindChange('inc.salary', 'income')).toBe('inc.salary');
-    expect(categoryAfterKindChange('food', 'expense')).toBe('food');
-    expect(categoryAfterKindChange(null, 'income')).toBeNull();
+  it('drops a spend category when switching to income, and the reverse', () => {
+    expect(categoryAfterKindChange('food', 'expense', 'income')).toBeNull();
+    expect(categoryAfterKindChange('inc.salary', 'income', 'expense')).toBeNull();
+  });
+  it('keeps a null, and a pick when the kind did not change', () => {
+    expect(categoryAfterKindChange(null, 'expense', 'income')).toBeNull();
+    expect(categoryAfterKindChange('food', 'expense', 'expense')).toBe('food');
   });
 });

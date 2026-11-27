@@ -31,7 +31,12 @@ import { PlainHeader, StandardCard } from '@/components/standard';
 import { CategoryBadge } from '@/components/Category';
 import { SourceGlyph, useSourceLabel } from '@/components/IncomeSource';
 import { EmptyStateCta } from '@/components/EmptyStateCta';
-import { nextDateLabel, sectionRecurrings, recurringTab } from '@/lib/recurringList';
+import {
+  nextDateLabel,
+  recurringTab,
+  recurringTabMemory,
+  sectionRecurrings,
+} from '@/lib/recurringList';
 import { usePostRecurring } from '@/data/postRecurring';
 import {
   todayIso,
@@ -47,9 +52,6 @@ import { frequencyLabel } from '@/lib/frequencyLabel';
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { useClaimFab } from '@/lib/fabOverride';
 
-/** The tab last used, kept for the session. */
-let lastTab: 'expense' | 'income' = 'expense';
-
 function RecurringScreenBody() {
   const focused = useIsFocused();
   const theme = useTheme();
@@ -62,7 +64,13 @@ function RecurringScreenBody() {
 
   const deletion = useDeletePersonalRecord();
   const [menuRule, setMenuRule] = useState<PersonalRecurring | null>(null);
-  const [tab, setTab] = useState<'expense' | 'income'>(lastTab);
+  const [tab, setTab] = useState<'expense' | 'income'>(recurringTabMemory.tab);
+  // Coming back from a save of the other kind lands on the tab that shows it.
+  const [wasFocused, setWasFocused] = useState(focused);
+  if (focused !== wasFocused) {
+    setWasFocused(focused);
+    if (focused) setTab(recurringTabMemory.tab);
+  }
   const [today] = useState(() => todayIso());
   useClaimFab(focused, t.personal.addRecurringItem.replace(/^\+\s*/, ''), () =>
     router.push({
@@ -152,7 +160,7 @@ function RecurringScreenBody() {
         <KindPills
           value={tab}
           onChange={(next) => {
-            lastTab = next;
+            recurringTabMemory.tab = next;
             setTab(next);
           }}
           expenseLabel={`${t.personal.expense} · ${view.counts.expense}`}

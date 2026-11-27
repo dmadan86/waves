@@ -38,7 +38,13 @@ export function KindPills({
     >
       {options.map((option) => {
         const active = option.value === value;
-        const ink = active ? '#FFFFFF' : dark ? theme.color.text : SPEC_INK;
+        const ink = active
+          ? dark
+            ? theme.color.onBrand
+            : '#FFFFFF'
+          : dark
+            ? theme.color.text
+            : SPEC_INK;
         return (
           <Pressable
             key={option.value}
@@ -48,7 +54,7 @@ export function KindPills({
             onPress={() => onChange(option.value)}
             style={({ pressed }) => ({
               flex: 1,
-              height: 34,
+              minHeight: 40,
               borderRadius: 20,
               flexDirection: 'row',
               alignItems: 'center',

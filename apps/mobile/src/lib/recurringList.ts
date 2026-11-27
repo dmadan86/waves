@@ -113,6 +113,9 @@ export function ruleTimeline(
   return occurrences(rule, txns, { from, to }, today);
 }
 
+/** The list's tab for the session; a save of the other kind moves it. */
+export const recurringTabMemory: { tab: 'expense' | 'income' } = { tab: 'expense' };
+
 /** One tab of the recurring list: that kind's rules, active ones by due date and
  *  paused ones after them, with both tabs' counts for the pills. */
 export function recurringTab<T extends Pick<PersonalRecurring, 'txnKind' | 'active' | 'nextDate'>>(

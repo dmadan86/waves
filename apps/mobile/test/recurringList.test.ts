@@ -67,8 +67,12 @@ describe('ruleTimeline', () => {
 });
 
 describe('recurringTab', () => {
-  const rule = (id: string, txnKind: 'income' | 'expense', active: boolean, nextDate: string) =>
-    ({ id, txnKind, active, nextDate }) as never;
+  const rule = (id: string, txnKind: 'income' | 'expense', active: boolean, nextDate: string) => ({
+    id,
+    txnKind,
+    active,
+    nextDate,
+  });
   const rules = [
     rule('a', 'expense', false, '2027-01-01'),
     rule('b', 'expense', true, '2027-03-01'),
