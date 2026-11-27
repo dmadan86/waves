@@ -196,6 +196,7 @@ model Profile {
   captures                  Capture[]
   categoryTags              CategoryTag[]
   personalRecords           PersonalRecord[]
+  e2eeDevices               E2eeDevice[]
   packInstalls              PackInstall[]
   packRequests              PackRequest[]
   groupPins                 GroupPin[]
@@ -420,7 +421,7 @@ model Group {
   planItems          TripPlanItem[]
   recurringExpenses  GroupRecurringExpense[]
   incomePlans        GroupIncomePlan[]
-  records            GroupRecord[]
+  mailbox            GroupMailbox[]
   companyEntries     CompanyEntry[]
   companyProjects CompanyProject[]
   companyWageRuns CompanyWageRun[]
@@ -521,7 +522,6 @@ model GroupMember {
   recurringExpenses  GroupRecurringExpense[]
   incomePlans        GroupIncomePlan[]      @relation("IncomePlanMember")
   incomePlansCreated GroupIncomePlan[]      @relation("IncomePlanCreator")
-  recordsCreated     GroupRecord[]          @relation("GroupRecordCreator")
   managerId String? @map("manager_id") @db.Uuid
   companyAttendance CompanyAttendance[] @relation("CompanyAttendanceMember")
   markedAttendance CompanyAttendance[] @relation("CompanyAttendanceMarker")
@@ -3184,26 +3184,38 @@ model GroupIncomePlan {
   @@schema("public")
 }
 
-/// Rental records kept inside a couple/home group. See `20261231090000_group_records`.
-model GroupRecord {
-  id         String    @id @db.Uuid
-  groupId    String    @map("group_id") @db.Uuid
-  /// 'property' | 'tenancy' | 'recurring' | 'txn'.
-  recordKind String    @map("record_kind")
-  /// The record's fields, shaped by `recordKind`. Opaque to the server.
-  data       Json      @default("{}")
-  createdBy  String?   @map("created_by") @db.Uuid
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  updatedSeq BigInt    @default(0) @map("updated_seq")
-  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz(6)
+/// One phone (public key) of a person, for end-to-end encrypted couple rentals. See `20270101090000_e2ee_mailbox`.
+model E2eeDevice {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId  String   @map("profile_id") @db.Uuid
+  publicKey  Bytes    @map("public_key")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastSeenAt DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(6)
 
-  group   Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  creator GroupMember? @relation("GroupRecordCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  profile  Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  sent     GroupMailbox[] @relation("MailboxSender")
+  received GroupMailbox[] @relation("MailboxRecipient")
 
-  @@index([groupId, updatedSeq])
-  @@index([createdBy])
-  @@map("group_records")
+  @@unique([profileId, publicKey])
+  @@map("e2ee_devices")
+  @@schema("public")
+}
+
+/// Ciphertext waiting for one device. The recipient deletes the row once applied; the server never reads it.
+model GroupMailbox {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId           String   @map("group_id") @db.Uuid
+  senderDeviceId    String?  @map("sender_device_id") @db.Uuid
+  recipientDeviceId String   @map("recipient_device_id") @db.Uuid
+  ciphertext        Bytes
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  group     Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sender    E2eeDevice? @relation("MailboxSender", fields: [senderDeviceId], references: [id], onDelete: SetNull)
+  recipient E2eeDevice  @relation("MailboxRecipient", fields: [recipientDeviceId], references: [id], onDelete: Cascade)
+
+  @@index([recipientDeviceId, createdAt])
+  @@map("group_mailbox")
   @@schema("public")
 }
 

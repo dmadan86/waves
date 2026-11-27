@@ -79,8 +79,6 @@ type MutationKind =
   // The private personal-finance ledger (A48): personal like captures, under its
   // own suffixed scope. One generic upsert/delete covers all four record kinds.
   | 'personal.upsert'
-  | 'group_record.upsert'
-  | 'group_record.delete'
   | 'personal.delete'
   // Trip plan + budgets (A23) — group-scoped, authorised by membership, so NOT
   // in isPersonalKind below.
@@ -357,7 +355,6 @@ const PERSONAL_RECORD_KINDS = [
   'property',
   'tenancy',
 ];
-const GROUP_RECORD_KINDS = ['property', 'tenancy', 'recurring', 'txn'];
 
 /**
  * Every group-scoped table one pull walks, with the shape each is read in.
@@ -390,7 +387,6 @@ const GROUP_TABLES = [
   ['group_recurring_expenses', '*'],
   // Household income plans (RLS: members only). Deleted plans arrive with deleted_at set.
   ['group_income_plans', '*'],
-  ['group_records', '*'],
   // Company employees receive only their own entries, including tombstones.
   // Phase 3 fields travel through these wildcard projections under caller RLS:
   // groups: company_tags, company_industry, company_policies, company_policy_revision, company_default_mileage_rate_minor;
@@ -472,7 +468,6 @@ const GROUP_SEQ_STAMPED_TABLES = new Set([
   'trip_member_budgets',
   'group_recurring_expenses',
   'group_income_plans',
-  'group_records',
   'company_entries',
   'company_entry_attachments',
   'company_projects',
@@ -1069,16 +1064,6 @@ export class SyncSession {
         return await this.upsertPersonal(mutation);
       case 'personal.delete':
         return await this.deletePersonal(mutation);
-      case 'group_record.upsert':
-        return await this.upsertRecord(
-          mutation,
-          'group_records',
-          'group_id',
-          mutation.groupId,
-          GROUP_RECORD_KINDS,
-        );
-      case 'group_record.delete':
-        return await this.deleteGroupRecord(mutation);
       case 'plan_item.create':
         return await this.rpcAsCaller('waves_add_plan_item', {
           p_group_id: mutation.groupId,
@@ -2536,14 +2521,13 @@ export class SyncSession {
   }
 
   /**
-   * The merge/CAS body shared by `personal_records` (scoped by owner) and
-   * `group_records` (scoped by group). See `upsertPersonal`'s history above:
+   * The merge/CAS body shared by `personal_records` (scoped by owner). See `upsertPersonal`'s history above:
    * read, per-field merge, compare-and-swap on `updated_seq`, a bounded retry,
    * and the old whole-record write as the last resort.
    */
   private async upsertRecord(
     mutation: MutationEnvelope,
-    table: 'personal_records' | 'group_records',
+    table: 'personal_records',
     scopeColumn: 'owner_user_id' | 'group_id',
     scopeValue: string,
     kinds: readonly string[],
@@ -2648,17 +2632,6 @@ export class SyncSession {
       },
       { onConflict: 'id' },
     );
-    if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
-    return { recordId };
-  }
-
-  private async deleteGroupRecord(mutation: MutationEnvelope): Promise<unknown> {
-    const recordId = requireString(mutation.payload.recordId, 'recordId');
-    const { error } = await this.caller
-      .from('group_records')
-      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-      .eq('id', recordId)
-      .eq('group_id', mutation.groupId);
     if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
     return { recordId };
   }
@@ -2817,10 +2790,6 @@ export async function pull(
 
     const tablesToRead = GROUP_TABLES.filter(([table]) => {
       if (table.startsWith('company_') && group.type !== 'company') return false;
-      // Rentals live only in a couple/home group (HOUSEHOLD_HOME_TYPES).
-      if (table === 'group_records' && group.type !== 'couple' && group.type !== 'home') {
-        return false;
-      }
       return highWater > since || !GROUP_SEQ_STAMPED_TABLES.has(table);
     });
     const pages = await Promise.all(

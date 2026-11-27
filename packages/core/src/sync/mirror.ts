@@ -83,9 +83,6 @@ import type {
   CompanyMemberProjectsSetPayload,
   GroupIncomeDeletePayload,
   GroupIncomeSetPayload,
-  GroupRecordDeletePayload,
-  GroupRecordKind,
-  GroupRecordUpsertPayload,
   GroupRecurringCreatePayload,
   GroupRecurringUpdatePayload,
   MemberBudgetSetPayload,
@@ -132,7 +129,6 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.TripPlanItems,
   SyncTable.GroupRecurringExpenses,
   SyncTable.GroupIncomePlans,
-  SyncTable.GroupRecords,
   SyncTable.CompanyEntries,
   SyncTable.CompanyEntryAttachments,
   SyncTable.CompanyProjects,
@@ -1732,61 +1728,6 @@ export function materialiseGroupRecurring(
     const right = String(b.created_at ?? '');
     return left === right ? String(a.id).localeCompare(String(b.id)) : right.localeCompare(left);
   });
-}
-
-// ─────────────────────────────────────────── rentals inside a household ──
-
-export interface MirrorGroupRecord extends MirrorRow {
-  readonly id: string;
-  readonly group_id: string;
-  readonly record_kind: GroupRecordKind;
-  readonly data: Record<string, unknown>;
-  readonly created_at: string;
-  readonly deleted_at: string | null;
-  readonly pending?: boolean;
-}
-
-/**
- * One group's rental records with the queue replayed on top, like
- * `materialisePersonalRecords` but keyed by the group. An upsert clears
- * `deleted_at` (the server does too); deleted rows are dropped.
- */
-export function materialiseGroupRecords(
-  state: MirrorState,
-  queue: readonly QueuedMutation[],
-  options: { readonly groupId: string },
-): MirrorGroupRecord[] {
-  const byId = new Map<string, MirrorGroupRecord>();
-  for (const row of rowsFor(
-    state,
-    SyncTable.GroupRecords,
-    options.groupId,
-  ) as MirrorGroupRecord[]) {
-    byId.set(row.id, row);
-  }
-  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
-    if (mutation.groupId !== options.groupId) continue;
-    if (mutation.kind === 'group_record.upsert') {
-      const payload = mutation.payload as unknown as GroupRecordUpsertPayload;
-      const existing = byId.get(payload.recordId);
-      byId.set(payload.recordId, {
-        id: payload.recordId,
-        group_id: options.groupId,
-        record_kind: payload.recordKind,
-        data: { ...payload.data },
-        created_at: existing?.created_at ?? mutation.clientCreatedAt,
-        deleted_at: null,
-        pending: true,
-      });
-    } else if (mutation.kind === 'group_record.delete') {
-      const { recordId } = mutation.payload as unknown as GroupRecordDeletePayload;
-      const existing = byId.get(recordId);
-      if (existing) {
-        byId.set(recordId, { ...existing, deleted_at: mutation.clientCreatedAt, pending: true });
-      }
-    }
-  }
-  return [...byId.values()].filter((record) => record.deleted_at === null);
 }
 
 // ─────────────────────────────────────────────── household income plans ──

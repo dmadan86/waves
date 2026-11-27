@@ -355,21 +355,6 @@ function targetOf(mutation: MutationEnvelope): MutationTarget | null {
     };
   }
 
-  if (
-    recordId &&
-    (mutation.kind === MutationKind.GroupRecordUpsert ||
-      mutation.kind === MutationKind.GroupRecordDelete)
-  ) {
-    return {
-      primaryKind: MutationKind.GroupRecordUpsert,
-      correctionKinds: [MutationKind.GroupRecordUpsert],
-      removalKinds: [MutationKind.GroupRecordDelete],
-      groupId: mutation.groupId,
-      id: recordId,
-      mergeCorrection: false,
-    };
-  }
-
   // A pin, so that unpinning a refused one *removes* it rather than queueing a
   // clear behind a permanent blocker. This is the rule the feature is built
   // around: a refusal must cost the pin and nothing else. Without this case the
