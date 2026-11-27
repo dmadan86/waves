@@ -273,6 +273,11 @@ export function useWealthWrites() {
       return put('property', id, encodeProperty(rest));
     },
 
+    saveTenancy: (tn: PersonalTenancy) => {
+      const { id, ...rest } = tn;
+      return put('tenancy', id, encodeTenancy(rest));
+    },
+
     /** Money in (an expense entry) or out (an income entry) of one investment. */
     addEntry: (
       inv: PersonalInvestment,
@@ -321,6 +326,7 @@ export function useWealthWrites() {
             type: d.type,
             name: d.name,
             locality: null,
+            address: null,
             currency: d.currency,
             status: 'active',
             note: null,

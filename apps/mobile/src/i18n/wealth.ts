@@ -133,6 +133,23 @@ export interface WealthStrings {
   partLine: string;
   /** {n} */
   leaseEndsIn: string;
+  documents: string;
+  attachDoc: string;
+  attachPhoto: string;
+  attachFile: string;
+  docsLocalNote: string;
+  docsEmpty: string;
+  renameDoc: string;
+  docOpenFailed: string;
+  docBadType: string;
+  detailsTitle: string;
+  addressLabel: string;
+  notesLabel: string;
+  agreementStart: string;
+  agreementEnd: string;
+  callTenant: string;
+  whatsappTenant: string;
+  notAdded: string;
   tenants: string;
   unit: string;
   recordRent: string;
@@ -337,6 +354,23 @@ export const wealthEn: WealthStrings = {
   depositLine: 'You hold {amount} as {term}. It goes back when the tenant leaves.',
   partLine: 'Part paid: {paid} of {due}. {left} still due.',
   leaseEndsIn: 'Lease ends in {n} days',
+  documents: 'Documents',
+  attachDoc: 'Attach',
+  attachPhoto: 'Photo',
+  attachFile: 'File (PDF)',
+  docsLocalNote: 'Kept only on this phone, never uploaded.',
+  docsEmpty: 'Add the rental agreement or other papers.',
+  renameDoc: 'Rename',
+  docOpenFailed: 'Could not open this file.',
+  docBadType: 'Only PDF or photos can be attached.',
+  detailsTitle: 'Details',
+  addressLabel: 'Address',
+  notesLabel: 'Notes',
+  agreementStart: 'Agreement start',
+  agreementEnd: 'Agreement end',
+  callTenant: 'Call',
+  whatsappTenant: 'WhatsApp',
+  notAdded: 'Not added',
   tenants: 'Tenants',
   unit: 'Unit (optional)',
   recordRent: 'Record rent',
@@ -531,6 +565,23 @@ export const wealthTa: WealthStrings = {
   depositLine: 'நீங்கள் {term} ஆக {amount} வைத்திருக்கிறீர்கள். குத்தகைதாரர் போகும்போது திரும்பி போகும்.',
   partLine: 'பகுதி செலுத்தியது: {due}-இல் {paid}. {left} இன்னும் வரவேண்டும்.',
   leaseEndsIn: 'குத்தகை {n} நாட்களில் முடிகிறது',
+  documents: 'ஆவணங்கள்',
+  attachDoc: 'இணை',
+  attachPhoto: 'புகைப்படம்',
+  attachFile: 'கோப்பு (PDF)',
+  docsLocalNote: 'இந்த போனில் மட்டும் வைக்கப்படும்; பதிவேற்றப்படாது.',
+  docsEmpty: 'வாடகை ஒப்பந்தம் அல்லது பிற ஆவணங்களை சேர்க்கவும்.',
+  renameDoc: 'பெயர் மாற்று',
+  docOpenFailed: 'இந்த கோப்பை திறக்க முடியவில்லை.',
+  docBadType: 'PDF அல்லது புகைப்படங்களை மட்டுமே இணைக்கலாம்.',
+  detailsTitle: 'விவரங்கள்',
+  addressLabel: 'முகவரி',
+  notesLabel: 'குறிப்புகள்',
+  agreementStart: 'ஒப்பந்த தொடக்கம்',
+  agreementEnd: 'ஒப்பந்த முடிவு',
+  callTenant: 'அழை',
+  whatsappTenant: 'வாட்ஸ்அப்',
+  notAdded: 'சேர்க்கவில்லை',
   tenants: 'குத்தகைதாரர்கள்',
   unit: 'யூனிட் (விருப்பமானால்)',
   recordRent: 'வாடகையைப் பதிவுசெய்',
@@ -725,6 +776,23 @@ export const wealthHi: WealthStrings = {
   depositLine: 'आपने {term} के रूप में {amount} रखा है। किरायेदार जाने पर वापस मिलेगा।',
   partLine: 'आंशिक मिला: {due} में से {paid}। {left} अभी बाकी है।',
   leaseEndsIn: 'किरायानामा {n} दिनों में खत्म होगा',
+  documents: 'दस्तावेज़',
+  attachDoc: 'जोड़ें',
+  attachPhoto: 'फ़ोटो',
+  attachFile: 'फ़ाइल (PDF)',
+  docsLocalNote: 'सिर्फ़ इसी फ़ोन में रहता है, अपलोड नहीं होता।',
+  docsEmpty: 'किरायानामा या दूसरे काग़ज़ जोड़ें।',
+  renameDoc: 'नाम बदलें',
+  docOpenFailed: 'यह फ़ाइल नहीं खुल सकी।',
+  docBadType: 'सिर्फ़ PDF या फ़ोटो जोड़ सकते हैं।',
+  detailsTitle: 'विवरण',
+  addressLabel: 'पता',
+  notesLabel: 'नोट्स',
+  agreementStart: 'किरायानामा शुरू',
+  agreementEnd: 'किरायानामा खत्म',
+  callTenant: 'कॉल करें',
+  whatsappTenant: 'व्हाट्सऐप',
+  notAdded: 'जोड़ा नहीं',
   tenants: 'किरायेदार',
   unit: 'यूनिट (वैकल्पिक)',
   recordRent: 'किराया दर्ज करें',
@@ -919,6 +987,23 @@ export const wealthAr: WealthStrings = {
   depositLine: 'لديك {amount} كـ{term}. يُعاد للمستأجر عند مغادرته.',
   partLine: 'مدفوع جزئيًا: {paid} من {due}. {left} لا يزال مستحقًا.',
   leaseEndsIn: 'ينتهي العقد خلال {n} أيام',
+  documents: 'المستندات',
+  attachDoc: 'إرفاق',
+  attachPhoto: 'صورة',
+  attachFile: 'ملف (PDF)',
+  docsLocalNote: 'تبقى على هذا الهاتف فقط ولا يتم رفعها.',
+  docsEmpty: 'أضف عقد الإيجار أو أوراقًا أخرى.',
+  renameDoc: 'إعادة تسمية',
+  docOpenFailed: 'تعذّر فتح هذا الملف.',
+  docBadType: 'يمكن إرفاق ملفات PDF أو صور فقط.',
+  detailsTitle: 'التفاصيل',
+  addressLabel: 'العنوان',
+  notesLabel: 'ملاحظات',
+  agreementStart: 'بداية العقد',
+  agreementEnd: 'نهاية العقد',
+  callTenant: 'اتصال',
+  whatsappTenant: 'واتساب',
+  notAdded: 'غير مضاف',
   tenants: 'المستأجرون',
   unit: 'الوحدة (اختياري)',
   recordRent: 'سجّل الإيجار',

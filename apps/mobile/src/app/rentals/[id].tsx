@@ -1,6 +1,6 @@
 /** One rental property: the tenant, rent due and received, expenses, and the actions. */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 // The OS share sheet, opened only when the owner taps "Share receipt".
 import { Pressable, ScrollView, Share, View } from 'react-native';
@@ -24,6 +24,7 @@ import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { PlainHeader, SectionHeader, StandardCard } from '@/components/standard';
 import { PropertyArt } from '@/components/wealth/PropertyArt';
+import { DetailsCard, DocumentsCard } from '@/components/wealth/RentalExtras';
 import { RaiseCard, useRaisePrompts } from '@/components/wealth/RaiseCard';
 import { AmountSheet, RenameSheet, StatusPill, useWealthMoney } from '@/components/wealth/parts';
 import { todayIso, useDeletePersonalRecord, usePersonalLedger } from '@/data/personal';
@@ -34,6 +35,7 @@ import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { useDialog } from '@/lib/dialog';
 import { router } from '@/lib/navigation';
+import { deleteAllDocs, sweepOrphanDocs } from '@/lib/propertyDocs';
 import { useEntitlement } from '@/lib/useEntitlement';
 import {
   depositTerm,
@@ -120,6 +122,11 @@ function DetailBody() {
   const raise = useRaisePrompts(today).find((p) => p.propertyId === id) ?? null;
 
   const prop = properties.find((p) => p.id === id);
+  // Only once this property has loaded, so a still-empty list never looks like "all deleted".
+  const loaded = prop !== undefined;
+  useEffect(() => {
+    if (loaded) void sweepOrphanDocs(new Set(properties.map((p) => p.id)));
+  }, [loaded, properties]);
   if (!prop) {
     return (
       <Screen edges={[]}>
@@ -227,6 +234,7 @@ function DetailBody() {
               for (const txnId of linkedPersonalTxnIds(ledger.txns, { propertyId: prop.id }))
                 await del.mutateAsync(txnId);
               await del.mutateAsync(prop.id);
+              await deleteAllDocs(prop.id);
               router.back();
             })();
           },
@@ -252,6 +260,7 @@ function DetailBody() {
               for (const txnId of linkedPersonalTxnIds(ledger.txns, { propertyId: prop.id }))
                 await del.mutateAsync(txnId);
               await del.mutateAsync(prop.id);
+              await deleteAllDocs(prop.id);
               router.back();
             })(),
         },
@@ -443,6 +452,9 @@ function DetailBody() {
             ) : null}
           </StandardCard>
         ) : null}
+
+        <DocumentsCard propertyId={prop.id} />
+        <DetailsCard prop={prop} tenancy={tn} />
 
         {tn ? (
           <View style={{ gap: theme.spacing.sm }}>

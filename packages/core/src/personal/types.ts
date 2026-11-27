@@ -288,6 +288,8 @@ export interface PersonalProperty {
   readonly currency: CurrencyCode;
   readonly status: WealthStatus;
   readonly note: string | null;
+  /** Street address; the older `locality` stays as it was. */
+  readonly address?: string | null;
   readonly carried?: Readonly<Record<string, unknown>>;
 }
 
@@ -397,7 +399,7 @@ const KNOWN_INVESTMENT = [
   'status',
   'note',
 ];
-const KNOWN_PROPERTY = ['type', 'name', 'locality', 'currency', 'status', 'note'];
+const KNOWN_PROPERTY = ['type', 'name', 'locality', 'currency', 'status', 'note', 'address'];
 const KNOWN_TENANCY = [
   'propertyId',
   'unit',
@@ -617,6 +619,7 @@ export function decodeProperty(id: string, data: Record<string, unknown>): Perso
     currency: str(data.currency) ?? '',
     status: oneOf(data.status, ['active', 'closed'] as const, 'active'),
     note: str(data.note),
+    address: str(data.address),
     carried: carry(data, KNOWN_PROPERTY),
   };
 }
@@ -761,6 +764,7 @@ export function encodeProperty(p: Omit<PersonalProperty, 'id'>): Record<string, 
       currency: p.currency,
       status: p.status,
       note: p.note,
+      address: p.address ?? null,
     },
     p.carried,
   );
