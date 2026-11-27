@@ -21,13 +21,13 @@ describe('rental property actions', () => {
 describe('rental property read-only copy (former couple)', () => {
   it('hides every write action when readOnly', () => {
     expect(src).toContain("const readOnly = isFormer(space ?? '')");
-    expect(src).toMatch(/readOnly \? null : \(\s*<TintButton\s+label=\{w\.addExpense\}/);
+    expect(src).toMatch(/readOnly \? null : \(\s*<IconButton label=\{w\.addExpense\}/);
     expect(src).toMatch(/readOnly \? null : \(\s*<View[^>]*>\s*<Button\s+label=\{w\.recordRent\}/);
     expect(src).toMatch(/readOnly \? null : \(\s*<View[^>]*>\s*<Button\s+label=\{w\.addTenant\}/);
     expect(src).toContain('asked && !readOnly');
     expect(src).toContain('raise && !readOnly');
     expect(src).toContain("readOnly ? undefined : () => setOpen('deposit')");
-    expect(src).toMatch(/readOnly \? undefined : \(\s*<IconButton/);
+    expect(src).toMatch(/readOnly \? null : \(\s*<IconButton label=\{t\.personalHome\.toolMore\}/);
     expect(src).toContain('readOnly={readOnly}');
   });
 

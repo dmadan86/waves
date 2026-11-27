@@ -81,3 +81,32 @@ export function tourMayStart(g: TourGate): boolean {
     g.interactionsDone
   );
 }
+
+/**
+ * True while a first-run gate covers Home: the intro cards, or the setup flow
+ * (its spinner while `/start` loads, and `/start` itself). The tour stays down.
+ */
+export function firstRunGateUp(g: {
+  showIntro: boolean;
+  signedIn: boolean;
+  flow: 'wait' | 'show' | 'skip' | 'mark-existing';
+}): boolean {
+  return (g.showIntro && g.signedIn) || g.flow === 'show';
+}
+
+/** A measured target is only worth a spotlight if it sits on the screen. */
+export function tourRectVisible(
+  r: { x: number; y: number; width: number; height: number } | undefined,
+  screenW: number,
+  screenH: number,
+): boolean {
+  return (
+    !!r &&
+    r.width > 0 &&
+    r.height > 0 &&
+    r.x + r.width > 0 &&
+    r.y + r.height > 0 &&
+    r.x < screenW &&
+    r.y < screenH
+  );
+}

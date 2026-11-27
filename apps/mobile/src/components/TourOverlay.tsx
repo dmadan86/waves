@@ -26,7 +26,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 
 import { Button, iconSize, Text, useTheme } from '@waves/ui';
 
-import { useOverlayBusy } from '@/lib/firstRun';
+import { tourRectVisible, useOverlayBusy } from '@/lib/firstRun';
 import { useStrings } from '@/i18n';
 import { TOUR_STEPS, useTour } from '@/lib/tour';
 
@@ -94,7 +94,8 @@ export function TourOverlay() {
   if (!active || busyElsewhere) return null;
 
   const current = TOUR_STEPS[step];
-  const rect = rectFor(current.anchor);
+  const measured = rectFor(current.anchor);
+  const rect = tourRectVisible(measured, screenW, screenH) ? measured : undefined;
   const isLast = step >= total - 1;
 
   // A padded box around the target, clamped to the screen.

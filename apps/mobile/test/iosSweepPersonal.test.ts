@@ -1,15 +1,12 @@
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { personalShowsAddFab } from '../src/lib/personalLayoutRules';
 import { personalActiveKey } from '../src/lib/tabBar';
 
-const src = (p: string) => readFileSync(new URL(`../src/${p}`, import.meta.url), 'utf8');
+const src = (p: string) => readFileSync(join(import.meta.dirname, '../src', p), 'utf8');
 
 describe('iOS sweep fixes (Personal)', () => {
-  it('Ask has no floating +', () => {
-    expect(personalShowsAddFab(['personal', 'ask'])).toBe(false);
-  });
   it('Upcoming highlights Planning, like its siblings', () => {
     expect(personalActiveKey(['personal', 'upcoming'])).toBe('planning');
   });

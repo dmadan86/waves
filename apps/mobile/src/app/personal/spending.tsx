@@ -56,7 +56,7 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { fill, useStrings } from '@/i18n';
 import { EmptyStateCta } from '@/components/EmptyStateCta';
 import { router } from '@/lib/navigation';
-import { PlainHeader } from '@/components/standard';
+import { MonthSwitcher, PlainHeader } from '@/components/standard';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
@@ -78,7 +78,10 @@ function SpendingScreenBody() {
   const [thisMonth] = useState(() => todayIso().slice(0, 7));
   const months = useMemo(() => recentMonths(thisMonth, WINDOW), [thisMonth]);
   // The dashboard's "See all" opens on the month its card showed, if it is in the window.
-  const { month: monthParam } = useLocalSearchParams<{ month?: string }>();
+  const { month: monthParam, returnTo } = useLocalSearchParams<{
+    month?: string;
+    returnTo?: string;
+  }>();
   const [month, setMonth] = useState(() =>
     typeof monthParam === 'string' && months.includes(monthParam) ? monthParam : thisMonth,
   );
@@ -119,36 +122,23 @@ function SpendingScreenBody() {
   const dark = theme.scheme === 'dark';
   const ink = dark ? theme.color.text : SPEC_INK;
   const muted = dark ? theme.color.textMuted : SPEC_MUTED;
-  const accent = dark ? theme.color.brand : SPEC_ACCENT;
 
   return (
     <Screen>
-      <PlainHeader title={t.personal.nav.spending} />
+      {/* A tab root has no way back; opened from another screen (returnTo) it keeps one. */}
+      <PlainHeader
+        hideBack={!returnTo}
+        title={t.personalHome.navReports}
+        subtitle={t.personalHome.reportsSub}
+      />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: clearance,
+          paddingBottom: clearance + theme.spacing.xl,
           gap: theme.spacing.md,
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* The header: the title big, the line on what the screen is,
-            and the picture beside them. */}
-        <View style={{ paddingTop: theme.spacing.sm, minHeight: 104 }}>
-          <SpendingArt />
-          <Text
-            style={{
-              marginTop: 2,
-              maxWidth: '56%',
-              fontSize: 13,
-              lineHeight: 18,
-              color: muted,
-            }}
-          >
-            {t.personal.spendingSub}
-          </Text>
-        </View>
-
         {txns.length === 0 ? (
           // A first run, not a chart of zeroes. Six empty columns and four rows
           // reading nought look like a screen that failed to load; they also ask
@@ -190,58 +180,15 @@ function SpendingScreenBody() {
               />
             </SoftCard>
 
-            {/* The switch that makes the six columns comparable, as a card of its
-                own: a month the rent lands in looks nothing like one it does not. */}
-            <SoftCard
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: theme.spacing.md,
-                paddingVertical: theme.spacing.md,
-              }}
-            >
-              <IconDisc icon="document-text-outline" color={accent} soft={theme.color.brandSoft} />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: ink }}>
-                  {t.personal.includeBills}
-                </Text>
-                <Text style={{ fontSize: 12, lineHeight: 16, color: muted }}>
-                  {t.personal.includeBillsHint}
-                </Text>
-              </View>
-              <Toggle
-                value={includeBills}
-                onValueChange={setIncludeBills}
-                accessibilityLabel={t.personal.includeBills}
-              />
-            </SoftCard>
-
-            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-              <StepButton
-                icon={directionalIcon('chevron-back')}
-                label={t.personal.prevMonth}
-                disabled={index <= 0}
-                onPress={() => setMonth(months[index - 1] ?? month)}
-              />
-              <Text
-                numberOfLines={1}
-                style={{
-                  flex: 1,
-                  textAlign: 'center',
-                  fontSize: 16,
-                  fontWeight: '700',
-                  color: ink,
-                }}
-              >
-                {monthLabel(month, locale)}
-              </Text>
-              <StepButton
-                icon={directionalIcon('chevron-forward')}
-                label={t.personal.nextMonth}
-                disabled={index < 0 || index >= months.length - 1}
-                onPress={() => setMonth(months[index + 1] ?? month)}
-              />
-            </Row>
+            <MonthSwitcher
+              label={monthLabel(month, locale)}
+              prevLabel={t.personal.prevMonth}
+              nextLabel={t.personal.nextMonth}
+              prevDisabled={index <= 0}
+              nextDisabled={index < 0 || index >= months.length - 1}
+              onPrev={() => setMonth(months[index - 1] ?? month)}
+              onNext={() => setMonth(months[index + 1] ?? month)}
+            />
 
             <SoftCard style={{ gap: theme.spacing.md }}>
               <SplitRow
@@ -271,47 +218,39 @@ function SpendingScreenBody() {
 
               <View style={{ height: 1, backgroundColor: theme.color.border }} />
 
-              {/* What was left, on a soft green panel — the one figure here that
-                  is good news when it is big. Not "saved": the app cannot see a
-                  savings account, and the line under it says so every time. */}
-              <Row
-                style={{
-                  alignItems: 'center',
-                  gap: theme.spacing.md,
-                  paddingHorizontal: theme.spacing.md,
-                  paddingVertical: theme.spacing.sm,
-                  marginHorizontal: -theme.spacing.xs,
-                  borderRadius: 16,
-                  backgroundColor: dark ? 'rgba(40, 180, 110, 0.10)' : '#EEF8F1',
+              {/* Not "saved": the app cannot see a savings account, and the caption says so. */}
+              <SplitRow
+                icon="pie-chart"
+                tint={{
+                  bg: dark ? 'rgba(40,180,110,0.18)' : '#DDF1E4',
+                  ink: LEFT_OVER_GREEN,
                 }}
-              >
-                <IconDisc
-                  icon="pie-chart"
-                  color={LEFT_OVER_GREEN}
-                  soft={dark ? 'rgba(40,180,110,0.18)' : '#DDF1E4'}
-                />
+                label={t.personal.leftOver}
+                sub={t.personal.leftOverHint}
+                amount={`${split.leftOver < 0n ? '−' : ''}${fmt(
+                  split.leftOver < 0n ? -split.leftOver : split.leftOver,
+                )}`}
+                amountColor={split.leftOver < 0n ? theme.color.negative : LEFT_OVER_GREEN}
+              />
+
+              <View style={{ height: 1, backgroundColor: theme.color.border }} />
+
+              {/* The switch that makes the six columns comparable: a month the rent lands in
+                  looks nothing like one it does not. */}
+              <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: ink }}>
-                    {t.personal.leftOver}
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: ink }}>
+                    {t.personal.includeBills}
                   </Text>
-                  <Text style={{ fontSize: 11, lineHeight: 15, color: muted }}>
-                    {t.personal.leftOverHint}
+                  <Text numberOfLines={2} style={{ fontSize: 12, color: muted }}>
+                    {t.personal.includeBillsHint}
                   </Text>
                 </View>
-                <Text
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.7}
-                  style={{
-                    fontSize: 16,
-                    fontWeight: '800',
-                    fontVariant: ['tabular-nums'],
-                    color: split.leftOver < 0n ? theme.color.negative : LEFT_OVER_GREEN,
-                  }}
-                >
-                  {split.leftOver < 0n ? '−' : ''}
-                  {fmt(split.leftOver < 0n ? -split.leftOver : split.leftOver)}
-                </Text>
+                <Toggle
+                  value={includeBills}
+                  onValueChange={setIncludeBills}
+                  accessibilityLabel={t.personal.includeBills}
+                />
               </Row>
             </SoftCard>
 
@@ -649,6 +588,7 @@ function SplitRow({
   label,
   sub,
   amount,
+  amountColor,
   onPress,
 }: {
   icon: React.ComponentProps<typeof Ionicons>['name'];
@@ -656,6 +596,7 @@ function SplitRow({
   label: string;
   sub: string;
   amount: string;
+  amountColor?: string;
   onPress?: () => void;
 }) {
   const theme = useTheme();
@@ -677,7 +618,7 @@ function SplitRow({
           {label}
         </Text>
         <Text
-          numberOfLines={1}
+          numberOfLines={2}
           style={{ fontSize: 12, color: dark ? theme.color.textMuted : SPEC_MUTED }}
         >
           {sub}
@@ -689,7 +630,7 @@ function SplitRow({
           fontSize: 15,
           fontWeight: '800',
           fontVariant: ['tabular-nums'],
-          color: dark ? theme.color.text : SPEC_INK,
+          color: amountColor ?? (dark ? theme.color.text : SPEC_INK),
         }}
       >
         {amount}
@@ -702,81 +643,6 @@ function SplitRow({
         />
       ) : null}
     </Pressable>
-  );
-}
-
-/**
- * A month step: a soft round button. Disabled at the ends of the window rather
- * than hidden, so the month name never jumps sideways as it reaches the edge —
- * and disabled in the way a screen reader can hear.
- */
-function StepButton({
-  icon,
-  label,
-  disabled,
-  onPress,
-}: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  label: string;
-  disabled: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#ECEBF6',
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <Ionicons
-        name={icon}
-        size={18}
-        color={
-          disabled ? theme.color.textFaint : theme.scheme === 'dark' ? theme.color.text : SPEC_INK
-        }
-      />
-    </Pressable>
-  );
-}
-
-/** The header's picture, in the top-right corner behind the title. A stand-in
- *  until the final artwork (a wallet, coins and a plant). */
-function SpendingArt() {
-  const theme = useTheme();
-  return (
-    <View
-      pointerEvents="none"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{
-        position: 'absolute',
-        top: theme.spacing.xs,
-        right: 0,
-        width: 96,
-        height: 96,
-        borderRadius: 48,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: theme.scheme === 'dark' ? 'rgba(255,255,255,0.05)' : '#ECEAFB',
-      }}
-    >
-      <Ionicons
-        name="wallet"
-        size={44}
-        color={theme.scheme === 'dark' ? theme.color.brand : '#7B6CF0'}
-      />
-    </View>
   );
 }
 

@@ -20,6 +20,7 @@ import { AddFamilyMember } from '@/components/household/HouseholdParts';
 import { BudgetSummary } from '@/components/home/MonthParts';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
+import { EmptyCard } from '@/components/standard';
 import { GroupRow } from '@/components/home/GroupRow';
 import { CardTitle, PrivacyPill } from '@/components/personal/PersonalHomeParts';
 import { useUpdateGroupRecurring } from '@/data/groupRecurring';
@@ -207,9 +208,15 @@ function UpcomingList({ rows, data }: { rows: readonly HouseholdUpcoming[]; data
   const { t } = useStrings();
   if (rows.length === 0)
     return (
-      <Text variant="caption" tone="muted">
-        {t.hhome.upcomingEmpty}
-      </Text>
+      <EmptyCard
+        icon="calendar-outline"
+        title={t.personalHome.emptyUpcomingTitle}
+        helper={t.personalHome.emptyUpcomingHelp}
+        action={{
+          label: t.personalHome.addBill,
+          onPress: () => router.push(`/group/${data.groupId}/add-bills`),
+        }}
+      />
     );
   return (
     <View>
@@ -233,9 +240,15 @@ function UpcomingCardRows({
   const theme = useTheme();
   if (rows.length === 0)
     return (
-      <Text variant="caption" tone="muted">
-        {t.hhome.upcomingEmpty}
-      </Text>
+      <EmptyCard
+        icon="calendar-outline"
+        title={t.personalHome.emptyUpcomingTitle}
+        helper={t.personalHome.emptyUpcomingHelp}
+        action={{
+          label: t.personalHome.addBill,
+          onPress: () => router.push(`/group/${data.groupId}/add-bills`),
+        }}
+      />
     );
   return (
     <View>
@@ -340,9 +353,11 @@ export function OverviewTab({ data }: { data: HouseholdData }) {
           onAction={() => data.onLedger()}
         />
         {data.recent.length === 0 ? (
-          <Text variant="caption" tone="muted">
-            {h.noExpenses}
-          </Text>
+          <EmptyCard
+            icon="receipt-outline"
+            title={t.personalHome.emptyRecentTitle}
+            helper={t.personalHome.emptyRecentHelp}
+          />
         ) : (
           data.recent.map((row, i) => (
             <RecentRow key={row.id} row={row} data={data} last={i === data.recent.length - 1} />
