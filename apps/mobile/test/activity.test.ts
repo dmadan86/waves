@@ -1119,3 +1119,20 @@ describe('re-split activity headlines', () => {
     ).toBe('Undid split after Someone left');
   });
 });
+
+describe('rent recorded in a couple/home group', () => {
+  const rent = (payload: Record<string, unknown>) =>
+    row({ verb: 'rent_recorded', object_type: 'group_record', payload });
+
+  it('says who recorded rent received, with the amount', () => {
+    const entry = rent({ amount: '2500000', currency: 'INR', note: 'Rent · Flat' });
+    expect(describeActivity(entry, 'me')).toMatch(/^Ravi recorded rent received .*25,000/);
+    expect(activityHeadline(entry)).toMatch(/^Rent received .*25,000/);
+    expect(verbIcon('rent_recorded')).toBe('home-outline');
+  });
+
+  it('still reads when the payload carries no amount', () => {
+    expect(describeActivity(rent({}), 'me')).toBe('Ravi recorded rent received');
+    expect(activityHeadline(rent({}))).toBe('Rent received');
+  });
+});

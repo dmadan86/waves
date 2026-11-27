@@ -1741,6 +1741,8 @@ export interface MirrorGroupRecord extends MirrorRow {
   readonly group_id: string;
   readonly record_kind: GroupRecordKind;
   readonly data: Record<string, unknown>;
+  /** The group member who wrote it; absent on a change still in the queue. */
+  readonly created_by?: string | null;
   readonly created_at: string;
   readonly deleted_at: string | null;
   readonly pending?: boolean;
@@ -1774,6 +1776,7 @@ export function materialiseGroupRecords(
         group_id: options.groupId,
         record_kind: payload.recordKind,
         data: { ...payload.data },
+        created_by: existing?.created_by ?? null,
         created_at: existing?.created_at ?? mutation.clientCreatedAt,
         deleted_at: null,
         pending: true,

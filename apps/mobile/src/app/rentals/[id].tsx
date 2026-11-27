@@ -1,6 +1,6 @@
 /** One rental property: the tenant, rent due and received, expenses, and the actions. */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 // The OS share sheet, opened only when the owner taps "Share receipt".
 import { Pressable, ScrollView, Share, View } from 'react-native';
@@ -27,10 +27,24 @@ import { PropertyArt } from '@/components/wealth/PropertyArt';
 import { DetailsCard, DocumentsCard } from '@/components/wealth/RentalExtras';
 import { RaiseCard, useRaisePrompts } from '@/components/wealth/RaiseCard';
 import { AmountSheet, RenameSheet, StatusPill, useWealthMoney } from '@/components/wealth/parts';
-import { todayIso, useDeletePersonalRecord, usePersonalLedger } from '@/data/personal';
-import { usePersonalWealth, useWealthWrites } from '@/data/personalWealth';
+import {
+  todayIso,
+  useAllGroupRecords,
+  usePersonalLedger,
+  usePersonalRecords,
+} from '@/data/personal';
+import {
+  usePersonalWealth,
+  useRentalStore,
+  useSpaceName,
+  useWealthWrites,
+} from '@/data/personalWealth';
+import { useBlockedUsers } from '@/data/blocked';
+import { memberLookup, useGroup } from '@/data/hooks';
+import { memberNameById } from '@/lib/memberName';
+import { liveDocPropertyIds, spaceParams } from '@/lib/rentalScope';
 import { fill, useStrings } from '@/i18n';
-import { useAuth } from '@/lib/auth';
+import { useAuth, useViewerId } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { useDialog } from '@/lib/dialog';
@@ -108,25 +122,34 @@ function DetailBody() {
   const dc = useDefaultCurrency();
   const { profile } = useAuth();
   const region = regionOf(profile?.country_code);
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const ledger = usePersonalLedger();
-  const { properties, tenancies } = usePersonalWealth();
-  const writes = useWealthWrites();
-  const del = useDeletePersonalRecord();
+  const { id, space } = useLocalSearchParams<{ id: string; space?: string }>();
+  const spaceName = useSpaceName(space);
+  const ledger = usePersonalLedger(space);
+  const { properties, tenancies } = usePersonalWealth(space);
+  const writes = useWealthWrites(space);
+  const store = useRentalStore(space);
+  const del = { mutateAsync: store.del };
+  const personalRecords = usePersonalRecords();
+  const groupRecords = useAllGroupRecords();
+  const { everyone } = useGroup(space ?? '');
+  const viewerId = useViewerId();
+  const { blockedIds } = useBlockedUsers();
+  const members = useMemo(() => memberLookup(everyone.data), [everyone.data]);
   const { isPro } = useEntitlement();
   const [open, setOpen] = useState<Open>(null);
   const [menu, setMenu] = useState(false);
   const [asked, setAsked] = useState(true);
   const [returned, setReturned] = useState<bigint | null>(null);
   const [today] = useState(() => todayIso());
-  const raise = useRaisePrompts(today).find((p) => p.propertyId === id) ?? null;
+  const raise = useRaisePrompts(today, space).find((p) => p.propertyId === id) ?? null;
 
   const prop = properties.find((p) => p.id === id);
   // Only once this property has loaded, so a still-empty list never looks like "all deleted".
   const loaded = prop !== undefined;
+  // Keep every document whose property exists in Personal or in any group the person is in.
   useEffect(() => {
-    if (loaded) void sweepOrphanDocs(new Set(properties.map((p) => p.id)));
-  }, [loaded, properties]);
+    if (loaded) void sweepOrphanDocs(liveDocPropertyIds(personalRecords, groupRecords));
+  }, [loaded, personalRecords, groupRecords]);
   if (!prop) {
     return (
       <Screen edges={[]}>
@@ -169,8 +192,21 @@ function DetailBody() {
   const lastPayment = [...payments].sort((a, b) => (a.date < b.date ? 1 : -1))[0] ?? null;
 
   const record = (amount: bigint, date: string): void => {
-    if (v.rule) void writes.recordRent(v.rule, prop.id, amount, date, unit);
+    // A full payment of an untouched due date keeps one fixed id (see recordRent).
+    const full = unpaid && unpaid.paid === 0n && amount === unpaid.amount ? unpaid.date : null;
+    if (v.rule) void writes.recordRent(v.rule, prop.id, amount, date, unit, full);
   };
+  const lastBy = lastPayment
+    ? store.records.find((r) => r.id === lastPayment.id)?.created_by
+    : null;
+  const recordedBy = lastBy
+    ? memberNameById(members, lastBy, {
+        viewerId,
+        blocked: blockedIds,
+        someone: t.misc.someone,
+        leftLabel: t.misc.memberLeft,
+      })
+    : null;
   const share = async (): Promise<void> => {
     if (!isPro) {
       router.push('/paywall');
@@ -276,7 +312,9 @@ function DetailBody() {
     <Screen edges={[]}>
       <PlainHeader
         title={prop.name}
-        subtitle={w.propertyTypes[prop.type]}
+        subtitle={
+          spaceName ? `${w.propertyTypes[prop.type]} · ${spaceName}` : w.propertyTypes[prop.type]
+        }
         subtitleIcon={
           <Ionicons name={PROPERTY_ICON[prop.type]} size={iconSize.sm} color={theme.color.brand} />
         }
@@ -316,6 +354,11 @@ function DetailBody() {
                       {w[heroCaptionKey(v.status)]}
                     </Text>
                   </Row>
+                  {space && recordedBy ? (
+                    <Text variant="caption" tone="muted">
+                      {fill(w.recordedBy, { name: recordedBy })}
+                    </Text>
+                  ) : null}
                   {part ? (
                     <Text variant="caption">
                       {fill(w.partLine, {
@@ -356,7 +399,10 @@ function DetailBody() {
                     <Button
                       label={w.addTenant}
                       onPress={() =>
-                        router.push({ pathname: '/rentals/tenant', params: { id: prop.id } })
+                        router.push({
+                          pathname: '/rentals/tenant',
+                          params: { id: prop.id, ...spaceParams(space) },
+                        })
                       }
                     />
                   </View>
@@ -367,7 +413,7 @@ function DetailBody() {
           </Row>
         </StandardCard>
 
-        {raise ? <RaiseCard prompt={raise} /> : null}
+        {raise ? <RaiseCard prompt={raise} groupId={space} /> : null}
 
         {tn && unpaid && asked ? (
           <StandardCard style={{ gap: theme.spacing.md }}>
@@ -453,14 +499,14 @@ function DetailBody() {
           </StandardCard>
         ) : null}
 
-        <DocumentsCard propertyId={prop.id} />
-        <DetailsCard prop={prop} tenancy={tn} />
+        <DocumentsCard propertyId={prop.id} groupId={space} />
+        <DetailsCard prop={prop} tenancy={tn} groupId={space} />
 
         {tn ? (
           <View style={{ gap: theme.spacing.sm }}>
             <SectionHeader title={w.last12} />
             <StandardCard>
-              <Row>
+              <Row style={{ alignItems: 'stretch' }}>
                 {strip.map((m, i) => {
                   const mark = stripMark(m.state);
                   const current = i === strip.length - 1;

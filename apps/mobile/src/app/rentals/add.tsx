@@ -6,6 +6,7 @@ import { useState, type ReactElement } from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Platform, Pressable, ScrollView, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 
 import { PROPERTY_TYPES, type PropertyType } from '@waves/core';
 import { AmountField, Button, iconSize, Row, Screen, Sheet, Text, useTheme } from '@waves/ui';
@@ -19,7 +20,8 @@ import { dateFrom, showDate } from '@/lib/expenseDay';
 import { localIsoDate, todayIso } from '@/data/personal';
 import {
   FREE_CAP_ERROR,
-  usePersonalWealth,
+  useOwnPropertyCount,
+  useSpaceName,
   useWealthWrites,
   type RentalDraft,
 } from '@/data/personalWealth';
@@ -118,8 +120,10 @@ function AddBody() {
   const { t, locale } = useStrings();
   const w = t.wealth;
   const currency = useDefaultCurrency();
-  const writes = useWealthWrites();
-  const wealth = usePersonalWealth();
+  const { space } = useLocalSearchParams<{ space?: string }>();
+  const writes = useWealthWrites(space);
+  const ownCount = useOwnPropertyCount(space);
+  const subtitle = useSpaceName(space);
   const { isPro } = useEntitlement();
   const [today] = useState(() => todayIso());
 
@@ -139,7 +143,7 @@ function AddBody() {
   const ready = !isRented || (tenant.trim() !== '' && rent > 0n);
 
   const save = async (): Promise<void> => {
-    if (!isPro && wealth.properties.filter((p) => p.status === 'active').length >= 1) {
+    if (!isPro && ownCount >= 1) {
       router.push('/paywall');
       return;
     }
@@ -199,7 +203,7 @@ function AddBody() {
 
   return (
     <Screen edges={[]}>
-      <PlainHeader title={w.addProperty} />
+      <PlainHeader title={w.addProperty} subtitle={subtitle} />
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{

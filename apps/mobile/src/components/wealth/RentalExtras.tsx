@@ -47,6 +47,8 @@ function Line({
   trailing?: React.ReactNode;
   last?: boolean;
 }) {
+  const { t } = useStrings();
+  const empty = value === t.wealth.notAdded;
   const theme = useTheme();
   return (
     <Pressable
@@ -69,8 +71,9 @@ function Line({
       </Text>
       <Text
         variant="body"
+        tone={empty ? 'muted' : undefined}
         numberOfLines={2}
-        style={{ flex: 1, fontWeight: '600', textAlign: 'right' }}
+        style={{ flex: 1, fontWeight: empty ? '400' : '600', textAlign: 'right' }}
       >
         {value}
       </Text>
@@ -116,14 +119,16 @@ type Field = 'phone' | 'address' | 'note';
 export function DetailsCard({
   prop,
   tenancy,
+  groupId,
 }: {
   prop: PersonalProperty;
   tenancy: PersonalTenancy | null;
+  groupId?: string;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const w = t.wealth;
-  const writes = useWealthWrites();
+  const writes = useWealthWrites(groupId);
   const [field, setField] = useState<Field | null>(null);
   const [picking, setPicking] = useState<'start' | 'end' | null>(null);
   const none = w.notAdded;
@@ -271,7 +276,7 @@ export function DetailsCard({
 const iconFor = (mime: string): IconName =>
   mime === 'application/pdf' ? 'document-text-outline' : 'image-outline';
 
-export function DocumentsCard({ propertyId }: { propertyId: string }) {
+export function DocumentsCard({ propertyId, groupId }: { propertyId: string; groupId?: string }) {
   const theme = useTheme();
   const { t } = useStrings();
   const w = t.wealth;
@@ -432,6 +437,17 @@ export function DocumentsCard({ propertyId }: { propertyId: string }) {
                   label: w.renameDoc,
                   onPress: () => setRenaming(menuDoc),
                 },
+                // Documents never leave this phone on their own; in a shared space the
+                // person can hand one to their partner through the OS share sheet.
+                ...(groupId
+                  ? [
+                      {
+                        icon: 'share-outline' as const,
+                        label: w.sendToPartner,
+                        onPress: () => void open(menuDoc),
+                      },
+                    ]
+                  : []),
                 {
                   icon: 'trash-outline',
                   label: t.common.delete,

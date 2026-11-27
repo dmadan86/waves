@@ -126,7 +126,8 @@ import { AnimatedFlashList } from '@/components/hero/ScenicScreen';
 import { HouseholdHome } from '@/components/HouseholdHome';
 import { HouseholdScreen } from '@/components/household/HouseholdScreen';
 import { monthSpend } from '@/lib/householdHome';
-import { todayIso } from '@/data/personal';
+import { todayIso, useGroupRecords } from '@/data/personal';
+import { groupRentalsSummary, hasGroupRentals } from '@/lib/rentalScope';
 import { PendingMark } from '@/components/PendingMark';
 import { PendingPaymentCard } from '@/components/PendingPaymentCard';
 import { SyncBanner } from '@/components/SyncBanner';
@@ -876,6 +877,16 @@ function LedgerGroupScreen() {
   // Share it: this month's spend against the household's monthly budget.
   const isPool = isPoolGroup(group.data);
   const householdBudget = useGroupBudget(groupId);
+  const rentalRecords = useGroupRecords(hasGroupRentals(group.data?.type) ? groupId : undefined);
+  const rentals = useMemo(
+    () =>
+      groupRentalsSummary(
+        rentalRecords,
+        todayIso().slice(0, 7),
+        group.data?.default_currency ?? 'INR',
+      ),
+    [rentalRecords, group.data?.default_currency],
+  );
   const householdSpent = useMemo(
     () =>
       isPool
@@ -2124,6 +2135,7 @@ function LedgerGroupScreen() {
                           rules={repeatingRules}
                           nameOf={nameOf}
                           onWhoPaid={() => setTab(Tab.Balances)}
+                          rentals={hasGroupRentals(group.data?.type) ? rentals : undefined}
                         />
                       </View>
                     ) : null}

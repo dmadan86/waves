@@ -53,6 +53,8 @@ import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { MonthPill, QuickActions } from '@/components/personal/PersonalHomeParts';
 import { useBlockedUsers } from '@/data/blocked';
 import { useGroupIncome } from '@/data/groupIncome';
+import { RentalsRow } from '@/components/household/RentalsRow';
+import { groupRentalsSummary, hasGroupRentals } from '@/lib/rentalScope';
 import { occurrenceIds, useGroupRecurring, useMarkBillPaid } from '@/data/groupRecurring';
 import {
   memberLookup,
@@ -61,7 +63,7 @@ import {
   useGroupLedger,
   useGroupRealtime,
 } from '@/data/hooks';
-import { todayIso } from '@/data/personal';
+import { todayIso, useGroupRecords } from '@/data/personal';
 import { groupLabel, isGhost } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
@@ -198,7 +200,13 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
   );
   const spent = history[history.length - 1]?.total ?? 0n;
   const last = history[history.length - 2]?.total ?? 0n;
-  const income = incomeTotal(plans, currency);
+  // Rent received this month in the household's own rentals counts as income.
+  const rentalRecords = useGroupRecords(hasGroupRentals(group.data?.type) ? groupId : undefined);
+  const rentals = useMemo(
+    () => groupRentalsSummary(rentalRecords, month, currency),
+    [rentalRecords, month, currency],
+  );
+  const income = incomeTotal(plans, currency) + rentals.received;
   const summary = householdSummary({ spent, lastMonthSpent: last, income });
   const budgetMinor = budget.data?.amountMinor ?? null;
   const limit =
@@ -654,6 +662,14 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                   />
                 </Pressable>
               </Card>
+
+              {hasGroupRentals(group.data.type) ? (
+                <RentalsRow
+                  groupId={groupId}
+                  count={rentals.count}
+                  amountText={fmt(rentals.received)}
+                />
+              ) : null}
 
               <OverviewTab data={data} />
             </>
