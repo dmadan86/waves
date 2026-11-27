@@ -1007,6 +1007,8 @@ function AuthGate() {
           <Stack.Screen name="group/[id]/plan" />
           <Stack.Screen name="group/[id]/recurring" />
           <Stack.Screen name="group/[id]/recurring-edit" />
+          <Stack.Screen name="group/[id]/calendar" />
+          <Stack.Screen name="group/[id]/bigbills" />
           <Stack.Screen name="group/[id]/company-entry" />
           <Stack.Screen name="group/[id]/company-statement" />
           <Stack.Screen name="group/[id]/company-wages" />
@@ -1044,6 +1046,8 @@ function AuthGate() {
           <Stack.Screen name="personal/recurring" options={{ animation: 'none' }} />
           <Stack.Screen name="personal/accounts" options={{ animation: 'none' }} />
           <Stack.Screen name="personal/loans" />
+          <Stack.Screen name="personal/calendar" />
+          <Stack.Screen name="personal/bigbills" />
           <Stack.Screen name="personal/budgets" />
           <Stack.Screen name="personal/setup" options={slide} />
           <Stack.Screen name="personal/source/[id]" />

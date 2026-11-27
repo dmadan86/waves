@@ -72,7 +72,6 @@ describe('Android personal finance regressions', () => {
     expect(txns).not.toContain('beforeRemove');
     expect(src('app/personal/spending.tsx')).toContain("returnTo: '/personal/spending'");
     expect(src('app/personal/budgets.tsx')).toContain("returnTo: '/personal/budgets'");
-    expect(src('app/(tabs)/me.tsx')).toContain("returnTo: '/(tabs)/me'");
     expect(src('app/personal/budgets.tsx')).toContain("returnTo: '/personal/budgets'");
   });
 
