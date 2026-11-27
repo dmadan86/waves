@@ -18,6 +18,11 @@ export interface WealthStrings {
   currentValue: string;
   valueNote: string;
   addInvestment: string;
+  investmentTypeLabel: string;
+  recurringAmountLabel: string;
+  howOftenLabel: string;
+  saveInvestmentBtn: string;
+  trackInvTitle: string;
   addRental: string;
   trackRentTitle: string;
   trackRentSub: string;
@@ -240,6 +245,11 @@ export const wealthEn: WealthStrings = {
   currentValue: 'Current value (you entered)',
   valueNote: 'This is your own figure. Waves does not check or update it.',
   addInvestment: 'Add an investment',
+  investmentTypeLabel: 'Investment type',
+  recurringAmountLabel: 'Amount each time',
+  howOftenLabel: 'How often',
+  saveInvestmentBtn: 'Save investment',
+  trackInvTitle: 'Track your investments',
   addRental: 'Add a property',
   trackRentTitle: 'Track your rent',
   trackRentSub: 'Keep rent payments, deposits and expenses in one place.',
@@ -474,6 +484,11 @@ export const wealthTa: WealthStrings = {
   currentValue: 'தற்போதைய மதிப்பு (நீங்கள் கொடுத்தது)',
   valueNote: 'இது உங்கள் சொந்த எண். Waves இதை சரிபார்க்காது.',
   addInvestment: 'முதலீட்டைச் சேர்',
+  investmentTypeLabel: 'முதலீட்டு வகை',
+  recurringAmountLabel: 'ஒவ்வொரு முறையும் தொகை',
+  howOftenLabel: 'எத்தனை முறை',
+  saveInvestmentBtn: 'முதலீட்டைச் சேமி',
+  trackInvTitle: 'உங்கள் முதலீடுகளைக் கண்காணியுங்கள்',
   addRental: 'சொத்தைச் சேர்',
   trackRentTitle: 'உங்கள் வாடகையைக் கண்காணியுங்கள்',
   trackRentSub: 'வாடகை, முன்பணம், செலவுகளை ஒரே இடத்தில் வைத்திருங்கள்.',
@@ -707,6 +722,11 @@ export const wealthHi: WealthStrings = {
   currentValue: 'मौजूदा मूल्य (आपका दर्ज किया)',
   valueNote: 'यह आपका अपना आँकड़ा है। Waves इसे जाँचता या बदलता नहीं।',
   addInvestment: 'निवेश जोड़ें',
+  investmentTypeLabel: 'निवेश का प्रकार',
+  recurringAmountLabel: 'हर बार की राशि',
+  howOftenLabel: 'कितनी बार',
+  saveInvestmentBtn: 'निवेश सहेजें',
+  trackInvTitle: 'अपने निवेश ट्रैक करें',
   addRental: 'संपत्ति जोड़ें',
   trackRentTitle: 'अपना किराया ट्रैक करें',
   trackRentSub: 'किराया, जमा राशि और खर्च एक ही जगह रखें।',
@@ -940,6 +960,11 @@ export const wealthAr: WealthStrings = {
   currentValue: 'القيمة الحالية (أدخلتها أنت)',
   valueNote: 'هذا رقمك الخاص. لا تتحقق Waves منه ولا تعدّله.',
   addInvestment: 'أضف استثمارًا',
+  investmentTypeLabel: 'نوع الاستثمار',
+  recurringAmountLabel: 'المبلغ في كل مرة',
+  howOftenLabel: 'كم مرة',
+  saveInvestmentBtn: 'احفظ الاستثمار',
+  trackInvTitle: 'تابع استثماراتك',
   addRental: 'أضف عقارًا',
   trackRentTitle: 'تابع إيجارك',
   trackRentSub: 'احتفظ بدفعات الإيجار والتأمين والمصروفات في مكان واحد.',

@@ -9,11 +9,12 @@ import { Platform, Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
 import { PROPERTY_TYPES, type PropertyType } from '@waves/core';
-import { AmountField, Button, iconSize, Row, Screen, Sheet, Text, useTheme } from '@waves/ui';
+import { Button, iconSize, Row, Screen, Sheet, Text, useTheme } from '@waves/ui';
 
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { FieldLabel, SelectField } from '@/components/company/EntryForm';
 import { PlainHeader } from '@/components/standard';
+import { MoneyBox, YesNoPills } from '@/components/wealth/FormParts';
 import { TextAnswer } from '@/components/wealth/parts';
 import type { TenantDraft } from '@/components/wealth/TenantFlow';
 import { dateFrom, showDate } from '@/lib/expenseDay';
@@ -34,86 +35,6 @@ import { reportHandled } from '@/lib/observability';
 import { PROPERTY_ICON } from '@/lib/wizardIcons';
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
-
-/** A bordered amount box that sits two to a row. */
-function MoneyBox({
-  currency,
-  value,
-  onChange,
-}: {
-  currency: Parameters<typeof AmountField>[0]['currency'];
-  value: bigint;
-  onChange: (v: bigint) => void;
-}) {
-  const theme = useTheme();
-  return (
-    <View
-      style={{
-        minHeight: 46,
-        justifyContent: 'center',
-        paddingHorizontal: theme.spacing.md,
-        borderRadius: theme.radius.lg,
-        borderWidth: 1,
-        borderColor: theme.color.border,
-      }}
-    >
-      <AmountField
-        currency={currency}
-        value={value}
-        onChange={onChange}
-        size="compact"
-        align="start"
-      />
-    </View>
-  );
-}
-
-/** Two equal pills; the chosen one is filled with the brand colour (owner's mockup). */
-function YesNoPills({
-  value,
-  onChange,
-  options,
-}: {
-  value: 'yes' | 'no';
-  onChange: (v: 'yes' | 'no') => void;
-  options: readonly { value: 'yes' | 'no'; label: string }[];
-}) {
-  const theme = useTheme();
-  return (
-    <Row accessibilityRole="radiogroup" style={{ gap: theme.spacing.sm }}>
-      {options.map((o) => {
-        const selected = o.value === value;
-        return (
-          <Pressable
-            key={o.value}
-            accessibilityRole="radio"
-            accessibilityState={{ selected }}
-            accessibilityLabel={o.label}
-            onPress={() => onChange(o.value)}
-            style={{
-              flex: 1,
-              minHeight: 44,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: theme.radius.lg,
-              backgroundColor: selected ? theme.color.brand : theme.color.surfaceMuted,
-            }}
-          >
-            <Text
-              variant="body"
-              style={{
-                fontWeight: '700',
-                color: selected ? theme.color.onBrand : theme.color.textMuted,
-              }}
-            >
-              {o.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </Row>
-  );
-}
 
 function AddBody() {
   const theme = useTheme();

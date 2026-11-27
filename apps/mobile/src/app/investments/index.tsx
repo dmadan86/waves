@@ -69,6 +69,52 @@ function InvestmentsBody() {
 
   const add = (): void => router.push(limit ? '/paywall' : '/investments/add');
 
+  if (investments.length === 0) {
+    return (
+      <Screen edges={[]}>
+        <PlainHeader title={w.investments} />
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: theme.spacing.md,
+            paddingHorizontal: theme.spacing.xl,
+            paddingBottom: clearance + theme.spacing.xl,
+          }}
+        >
+          <View style={{ width: 120, height: 110 }}>
+            <Ionicons name="trending-up-outline" size={96} color={theme.color.brand} />
+            <View
+              style={{
+                position: 'absolute',
+                end: 0,
+                bottom: 0,
+                width: 52,
+                height: 52,
+                borderRadius: 26,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.bg,
+              }}
+            >
+              <Ionicons name="wallet-outline" size={40} color={theme.color.brand} />
+            </View>
+          </View>
+          <Text variant="title" style={{ fontWeight: '800', textAlign: 'center' }}>
+            {w.trackInvTitle}
+          </Text>
+          <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
+            {w.emptyInvestments}
+          </Text>
+          <View style={{ alignSelf: 'center', width: '70%', marginTop: theme.spacing.md }}>
+            <Button label={w.addInvestment} fullWidth onPress={add} />
+          </View>
+        </View>
+      </Screen>
+    );
+  }
+
   return (
     <Screen edges={[]}>
       <PlainHeader
@@ -101,42 +147,30 @@ function InvestmentsBody() {
           </Row>
         </StandardCard>
 
-        {investments.length === 0 ? (
-          <StandardCard style={{ gap: theme.spacing.md }}>
-            <Text variant="caption" tone="muted">
-              {w.emptyInvestments}
-            </Text>
-            <Button label={w.addInvestment} onPress={add} />
-          </StandardCard>
-        ) : (
-          groups.map((g) => (
-            <View key={g.type} style={{ gap: theme.spacing.sm }}>
-              <SectionHeader title={w.types[g.type as InvestmentType]} />
-              <StandardCard>
-                {g.rows.map((inv, i) => (
-                  <ListRow
-                    key={inv.id}
-                    title={inv.name}
-                    subtitle={inv.status === 'closed' ? w.closed : nextLabel(inv)}
-                    amount={fmt(
-                      investedSoFar({ ...inv, currency: cur(inv) }, ledger.txns),
-                      cur(inv),
-                    )}
-                    trailing={
-                      inv.status === 'closed' ? (
-                        <StatusPill label={w.closed} tone="neutral" />
-                      ) : undefined
-                    }
-                    onPress={() =>
-                      router.push({ pathname: '/investments/[id]', params: { id: inv.id } })
-                    }
-                    divider={i < g.rows.length - 1}
-                  />
-                ))}
-              </StandardCard>
-            </View>
-          ))
-        )}
+        {groups.map((g) => (
+          <View key={g.type} style={{ gap: theme.spacing.sm }}>
+            <SectionHeader title={w.types[g.type as InvestmentType]} />
+            <StandardCard>
+              {g.rows.map((inv, i) => (
+                <ListRow
+                  key={inv.id}
+                  title={inv.name}
+                  subtitle={inv.status === 'closed' ? w.closed : nextLabel(inv)}
+                  amount={fmt(investedSoFar({ ...inv, currency: cur(inv) }, ledger.txns), cur(inv))}
+                  trailing={
+                    inv.status === 'closed' ? (
+                      <StatusPill label={w.closed} tone="neutral" />
+                    ) : undefined
+                  }
+                  onPress={() =>
+                    router.push({ pathname: '/investments/[id]', params: { id: inv.id } })
+                  }
+                  divider={i < g.rows.length - 1}
+                />
+              ))}
+            </StandardCard>
+          </View>
+        ))}
         {limit ? (
           <Text variant="caption" tone="muted">
             {w.freeInvestmentLimit}
