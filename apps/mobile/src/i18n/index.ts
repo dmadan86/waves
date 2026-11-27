@@ -8528,7 +8528,7 @@ export interface UiStrings {
     fundNote: string;
     nothingBig: string;
     addDueDate: string;
-  },
+  };
   personalHome: {
     hi: string;
     space: string;
@@ -16877,12 +16877,12 @@ const en: UiStrings = {
     actRemind: 'Remind',
     nothingThisMonth: 'Nothing due this month',
     nothingThisMonthHelp: 'Bills, loan payments, renewals and rent for this month show up here.',
-    bigScreenSub: 'The costs that don\'t come every month',
+    bigScreenSub: "The costs that don't come every month",
     bigNext12: 'Coming in the next 12 months',
     setAsideEach: 'Set aside each month',
     startSaving: 'Start saving',
     savingOn: 'Saving started',
-    setAsideSoFar: 'You\'ve set aside {amount}: {pct}% ready',
+    setAsideSoFar: "You've set aside {amount}: {pct}% ready",
     byMonth: 'By month',
     fundNote: 'Set aside for big bills',
     nothingBig: 'No big bills found yet',
