@@ -91,7 +91,7 @@ export function TenantFlow({
             label={w.tenantPhone}
             keyboardType="phone-pad"
           />
-          <Button label={cont} disabled={!name.trim()} onPress={next} />
+          <Button fullWidth label={cont} disabled={!name.trim()} onPress={next} />
         </FlowShell>
       );
     case 'rent':
@@ -105,7 +105,7 @@ export function TenantFlow({
               onPick={setFrequency}
             />
           </Card>
-          <Button label={cont} disabled={rent <= 0n} onPress={next} />
+          <Button fullWidth label={cont} disabled={rent <= 0n} onPress={next} />
         </FlowShell>
       );
     case 'day':
@@ -129,7 +129,7 @@ export function TenantFlow({
               />
             )}
           </Card>
-          <Button label={cont} onPress={next} />
+          <Button fullWidth label={cont} onPress={next} />
         </FlowShell>
       );
     case 'deposit':
@@ -146,7 +146,7 @@ export function TenantFlow({
           <Card>
             <AmountField currency={currency} value={deposit} onChange={setDeposit} />
           </Card>
-          <Button label={cont} onPress={next} />
+          <Button fullWidth label={cont} onPress={next} />
         </FlowShell>
       );
     case 'dates':
@@ -156,7 +156,7 @@ export function TenantFlow({
             <DateAnswer label={w.startDate} value={start} onChange={setStart} />
             <DateAnswer label={w.endDate} value={end} onChange={setEnd} clearLabel={w.openEnded} />
           </Card>
-          <Button label={cont} onPress={next} />
+          <Button fullWidth label={cont} onPress={next} />
         </FlowShell>
       );
     default:

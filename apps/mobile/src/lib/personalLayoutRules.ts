@@ -25,3 +25,18 @@ export function personalShowsAddFab(segments: readonly string[]): boolean {
     segments[0] === 'settings'
   );
 }
+
+/**
+ * Whether the floating button is actually drawn, so screens reserve room for it
+ * only then (an empty band above the tab bar otherwise pushes footers up).
+ */
+export function fabDrawn(input: {
+  personal: boolean;
+  company: boolean;
+  noAdd: boolean;
+  segments: readonly string[];
+}): boolean {
+  if (input.company) return !input.noAdd;
+  if (input.personal) return personalShowsAddFab(input.segments);
+  return true;
+}
