@@ -11,7 +11,6 @@ import {
   encodeRecurring,
   encodeTenancy,
   encodeTxn,
-  MutationKind,
   type CurrencyCode,
   type InvestmentType,
   type PersonalInvestment,
@@ -40,7 +39,7 @@ import {
   selectRentalRecords,
   type RentalRecord,
 } from '@/lib/rentalScope';
-import { useSync } from '@/sync';
+import { clockId, e2eeSpace } from '@/e2ee/runtime';
 import {
   cadenceFor,
   firstDue,
@@ -71,7 +70,8 @@ export interface RentalStore {
 
 /**
  * Where a rentals screen reads and writes: Personal's private records, or, with a
- * `groupId`, that couple/home group's `group_records` through the same offline queue.
+ * `groupId`, that couple/home group's records, which live only on the partners' phones
+ * (end to end encrypted, `e2ee/`): written here first, then sent to the partner.
  * Both hold the same record shapes, so everything above this decodes them alike.
  */
 export function useRentalStore(groupId?: string): RentalStore {
@@ -79,14 +79,20 @@ export function useRentalStore(groupId?: string): RentalStore {
   const group = useGroupRecords(groupId);
   const upsertPersonal = useUpsertPersonalRecord();
   const delPersonal = useDeletePersonalRecord();
-  const { mutate } = useSync();
+  const memberId = useMyMemberId(groupId);
+  const me = async () => {
+    if (!groupId || !memberId) throw new Error('This space is not ready yet');
+    return { memberId, clockId: await clockId() };
+  };
   const upsertGroup = useMutation({
-    mutationFn: (input: { recordId: string; recordKind: string; data: Record<string, unknown> }) =>
-      mutate(MutationKind.GroupRecordUpsert, groupId ?? '', input),
+    mutationFn: async (input: {
+      recordId: string;
+      recordKind: string;
+      data: Record<string, unknown>;
+    }) => e2eeSpace.upsert(groupId ?? '', await me(), input.recordId, input.recordKind, input.data),
   });
   const delGroup = useMutation({
-    mutationFn: (recordId: string) =>
-      mutate(MutationKind.GroupRecordDelete, groupId ?? '', { recordId }),
+    mutationFn: async (recordId: string) => e2eeSpace.del(groupId ?? '', await me(), recordId),
   });
   const records = selectRentalRecords<RentalRecord>(groupId, personal, group);
   return useMemo(

@@ -22,6 +22,7 @@ import {
 // The module also exports hooks; keep their native and React-context imports
 // out of a pure test of the catch-up function.
 vi.mock('expo-crypto', () => ({ randomUUID: () => 'uuid' }));
+vi.mock('@/e2ee/runtime', () => ({ useE2eeRecords: () => [], useAllE2eeRecords: () => [] }));
 vi.mock('@/lib/auth', () => ({ useAuth: () => ({ session: null }) }));
 vi.mock('@/sync', () => ({ useSync: () => ({ mutate: vi.fn() }) }));
 

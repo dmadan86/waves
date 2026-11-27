@@ -38,6 +38,8 @@ import { clearImageCache } from '@/lib/storage/imageCache';
 import { scheduleThumbPrefetch } from '@/lib/storage/thumbPrefetch';
 import { evictGroupThumbs } from '@/lib/storage/thumbStore';
 
+import { startE2ee, stopE2ee, syncE2ee } from '@/e2ee/runtime';
+
 import { syncEngine, type SyncState } from './engine';
 import { clearLocalPrivateData } from './localWipe';
 import {
@@ -220,6 +222,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       if (!next.hydrated || next.lastSyncedAt === null || next.lastSyncedAt === seen) return;
       seen = next.lastSyncedAt;
       scheduleThumbPrefetch(next.mirror);
+      // A sync cycle landed: the couple mailbox is worth a look too.
+      void syncE2ee();
     });
   }, [signedIn]);
 
@@ -249,6 +253,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       }
       lastOwnerId.current = null;
       syncEngine.stop();
+      stopE2ee();
       return;
     }
 
@@ -288,6 +293,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       syncEngine.start();
       void syncEngine.flush();
+      // Load the couple space from disk, tell the server about this phone, pick up mail.
+      void startE2ee().catch((error: unknown) => reportHandled(error, 'e2ee.start'));
       // Launch is the moment an upload the app was killed mid-way through gets
       // picked back up. It runs after the wipe-then-hydrate dance above, so a
       // previous account's cleanup can never delete the bytes this one is sending.
@@ -318,6 +325,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       if (next === 'active') {
         syncEngine.resume();
         void syncEngine.flush();
+        void syncE2ee();
         void resumeReceiptUploads();
       } else if (next === 'background') {
         // No poll while nobody is looking; the flush above catches up on return.

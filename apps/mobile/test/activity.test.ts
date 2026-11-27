@@ -1122,7 +1122,7 @@ describe('re-split activity headlines', () => {
 
 describe('rent recorded in a couple/home group', () => {
   const rent = (payload: Record<string, unknown>) =>
-    row({ verb: 'rent_recorded', object_type: 'group_record', payload });
+    row({ verb: 'rent_recorded', object_type: 'group', payload });
 
   it('says who recorded rent received, with the amount', () => {
     const entry = rent({ amount: '2500000', currency: 'INR', note: 'Rent · Flat' });

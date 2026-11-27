@@ -11,16 +11,25 @@
 
 import * as SQLite from 'expo-sqlite';
 
+import { e2ee } from '@waves/core';
 import type { MirrorRow, QueuedMutation, SyncTable } from '@waves/core';
 
 import { reportHandled } from '@/lib/observability';
 
 import { mapYielding } from './hydrateChunk';
 import { DATABASE_NAME, migrateLegacyDatabaseFile } from './legacyDatabase';
-import { decryptWith, destroyKey, encryptWith, isSealed, loadKey } from './rowCipher';
+import {
+  decryptWith,
+  destroyE2eeKey,
+  destroyKey,
+  encryptWith,
+  isSealed,
+  loadE2eeKey,
+  loadKey,
+} from './rowCipher';
 import type { RetainedWork } from './retention';
 import { Serial } from './serial';
-import type { LocalStore, StoredRow } from './store';
+import type { E2eeOutboxRow, E2eeRecordRow, LocalStore, StoredRow } from './store';
 
 // The mirror stores the whole ledger; every `json` payload is sealed at rest
 // (see rowCipher.ts). Bump when a step in `migrate` below needs to run again.
@@ -28,7 +37,10 @@ import type { LocalStore, StoredRow } from './store';
 //   2 — pull everything once more: the pull started carrying `fx` and
 //       `receipt_id` on expense versions (#935), and cursors only ever hand
 //       back what changed, so rows already mirrored would never get them.
-const SCHEMA_VERSION = 2;
+//   3 — the couple e2ee tables (`e2ee_records`, `e2ee_outbox`). They are created by
+//       SCHEMA below, so there is nothing to backfill; the bump records that this
+//       file now has them.
+const SCHEMA_VERSION = 3;
 
 // Associated data bound into each sealed payload: the table plus the row's
 // identity. It is authenticated, not encrypted, so a ciphertext copied to a
@@ -41,6 +53,10 @@ const mirrorAad = (table: string, id: string, groupId: string, seq: number): str
 const queueAad = (clientMutationId: string, seq: number): string =>
   ['pending_mutations', clientMutationId, seq].join(AAD_SEP);
 const draftAad = (key: string): string => ['drafts', key].join(AAD_SEP);
+const e2eeRecordAad = (groupId: string, id: string): string =>
+  ['e2ee_records', groupId, id].join(AAD_SEP);
+const e2eeOutboxAad = (id: string, groupId: string): string =>
+  ['e2ee_outbox', id, groupId].join(AAD_SEP);
 
 /**
  * A row whose ciphertext will not open is skipped, not fatal.
@@ -128,6 +144,21 @@ CREATE TABLE IF NOT EXISTS drafts (
 -- rather than the keystore so the stamp and the rows it describes share one
 -- fate: a marker that outlived its data, or data that outlived its marker,
 -- would be the one state with no safe answer.
+CREATE TABLE IF NOT EXISTS e2ee_records (
+  group_id TEXT NOT NULL,
+  id       TEXT NOT NULL,
+  kind     TEXT NOT NULL,
+  json     TEXT NOT NULL,
+  PRIMARY KEY (group_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS e2ee_outbox (
+  id         TEXT PRIMARY KEY,
+  group_id   TEXT NOT NULL,
+  msg_json   TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS retained_work (
   id          INTEGER PRIMARY KEY CHECK (id = 1),
   owner_id    TEXT NOT NULL,
@@ -199,6 +230,7 @@ class SqliteStore implements LocalStore {
       await database.runAsync(`DELETE FROM sync_cursors WHERE 1 = 1`);
     }
     // `user_version` takes a literal, not a bound parameter.
+    // from < 3: nothing to do, SCHEMA created the e2ee tables.
     await database.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
   }
 
@@ -616,6 +648,129 @@ class SqliteStore implements LocalStore {
           [ownerId, retainedAt],
         );
       });
+    });
+  }
+
+  writeE2eeRecords(
+    rows: readonly E2eeRecordRow[],
+    outbox: readonly E2eeOutboxRow[] = [],
+  ): Promise<void> {
+    if (rows.length === 0 && outbox.length === 0) return Promise.resolve();
+    return this.serial.run(async () => {
+      const database = await this.db();
+      const key = await loadE2eeKey();
+      await database.withTransactionAsync(async () => {
+        for (const row of rows)
+          await database.runAsync(
+            `INSERT INTO e2ee_records (group_id, id, kind, json) VALUES (?, ?, ?, ?)
+             ON CONFLICT (group_id, id) DO UPDATE SET kind = excluded.kind, json = excluded.json`,
+            [
+              row.groupId,
+              row.id,
+              row.kind,
+              encryptWith(key, e2ee.encodeJson(row.state), e2eeRecordAad(row.groupId, row.id)),
+            ],
+          );
+        for (const item of outbox)
+          await database.runAsync(
+            `INSERT INTO e2ee_outbox (id, group_id, msg_json, created_at) VALUES (?, ?, ?, ?)
+             ON CONFLICT (id) DO NOTHING`,
+            [
+              item.id,
+              item.groupId,
+              encryptWith(key, e2ee.encodeJson(item.msg), e2eeOutboxAad(item.id, item.groupId)),
+              item.createdAt,
+            ],
+          );
+      });
+    });
+  }
+
+  readE2eeRecords(): Promise<E2eeRecordRow[]> {
+    return this.serial.run(async () => {
+      const database = await this.db();
+      const key = await loadE2eeKey();
+      const rows = await database.getAllAsync<{
+        group_id: string;
+        id: string;
+        kind: string;
+        json: string;
+      }>(`SELECT group_id, id, kind, json FROM e2ee_records`);
+      const out: E2eeRecordRow[] = [];
+      let skipped = 0;
+      let firstFailure: unknown;
+      for (const row of rows) {
+        try {
+          out.push({
+            groupId: row.group_id,
+            id: row.id,
+            kind: row.kind,
+            state: e2ee.decodeJson(
+              decryptWith(key, row.json, e2eeRecordAad(row.group_id, row.id)),
+            ) as e2ee.RecordState,
+          });
+        } catch (error) {
+          skipped += 1;
+          firstFailure ??= error;
+        }
+      }
+      reportQuarantine('e2ee_records', skipped, rows.length, firstFailure);
+      return out;
+    });
+  }
+
+  readE2eeOutbox(): Promise<E2eeOutboxRow[]> {
+    return this.serial.run(async () => {
+      const database = await this.db();
+      const key = await loadE2eeKey();
+      const rows = await database.getAllAsync<{
+        id: string;
+        group_id: string;
+        msg_json: string;
+        created_at: string;
+      }>(`SELECT id, group_id, msg_json, created_at FROM e2ee_outbox ORDER BY created_at ASC`);
+      const out: E2eeOutboxRow[] = [];
+      let skipped = 0;
+      let firstFailure: unknown;
+      for (const row of rows) {
+        try {
+          out.push({
+            id: row.id,
+            groupId: row.group_id,
+            msg: e2ee.decodeJson(
+              decryptWith(key, row.msg_json, e2eeOutboxAad(row.id, row.group_id)),
+            ),
+            createdAt: row.created_at,
+          });
+        } catch (error) {
+          skipped += 1;
+          firstFailure ??= error;
+        }
+      }
+      reportQuarantine('e2ee_outbox', skipped, rows.length, firstFailure);
+      return out;
+    });
+  }
+
+  deleteE2eeOutbox(ids: readonly string[]): Promise<void> {
+    if (ids.length === 0) return Promise.resolve();
+    return this.serial.run(async () => {
+      const database = await this.db();
+      await database.withTransactionAsync(async () => {
+        for (const id of ids) await database.runAsync(`DELETE FROM e2ee_outbox WHERE id = ?`, [id]);
+      });
+    });
+  }
+
+  /** Sign-out only. TODO(slice 5): the "back up first" prompt runs before this. */
+  wipeE2ee(): Promise<void> {
+    return this.serial.run(async () => {
+      const database = await this.db();
+      await database.withTransactionAsync(async () => {
+        await database.runAsync(`DELETE FROM e2ee_records WHERE 1 = 1`);
+        await database.runAsync(`DELETE FROM e2ee_outbox WHERE 1 = 1`);
+      });
+      await destroyE2eeKey();
     });
   }
 

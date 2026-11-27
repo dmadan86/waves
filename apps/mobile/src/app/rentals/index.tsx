@@ -89,6 +89,16 @@ function RentalsBody() {
     </View>
   );
 
+  // Only in a couple/home space: what is said there is read by the two of them alone.
+  const lock = space ? (
+    <Row style={{ alignItems: 'center', justifyContent: 'center', gap: theme.spacing.xs }}>
+      <Ionicons name="lock-closed-outline" size={iconSize.sm} color={theme.color.textMuted} />
+      <Text variant="micro" tone="muted" style={{ flexShrink: 1, textAlign: 'center' }}>
+        {w.e2eeNote}
+      </Text>
+    </Row>
+  ) : null;
+
   if (active.length === 0) {
     return (
       <Screen edges={[]}>
@@ -130,6 +140,7 @@ function RentalsBody() {
           <View style={{ alignSelf: 'center', width: '70%', marginTop: theme.spacing.md }}>
             <Button label={w.addProperty} fullWidth onPress={add} />
           </View>
+          {lock}
         </View>
       </Screen>
     );
@@ -162,6 +173,7 @@ function RentalsBody() {
           gap: theme.spacing.md,
         }}
       >
+        {lock}
         <StandardCard style={{ gap: theme.spacing.md }}>
           <Text variant="body" style={{ fontWeight: '700' }}>
             {w.thisMonth}

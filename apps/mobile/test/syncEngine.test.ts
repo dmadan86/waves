@@ -114,6 +114,7 @@ vi.mock('../src/sync/store', () => ({
       delete h.disk.cursors[groupId];
       h.disk.queue = [...queue];
     },
+    wipeE2ee: async () => {},
     reset: async () => {
       h.disk.rows.clear();
       h.disk.cursors = {};

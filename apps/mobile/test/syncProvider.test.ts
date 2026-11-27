@@ -131,6 +131,11 @@ vi.mock('@/lib/storage/imageCache', () => ({ clearImageCache: h.clearImageCache 
 vi.mock('@/lib/storage/thumbPrefetch', () => ({ scheduleThumbPrefetch: h.scheduleThumbPrefetch }));
 vi.mock('@/lib/storage/thumbStore', () => ({ evictGroupThumbs: h.evictGroupThumbs }));
 vi.mock('@/sync/engine', () => ({ syncEngine: h.engine }));
+vi.mock('@/e2ee/runtime', () => ({
+  startE2ee: async () => undefined,
+  stopE2ee: () => undefined,
+  syncE2ee: async () => undefined,
+}));
 vi.mock('@/sync/localWipe', () => ({ clearLocalPrivateData: h.clearLocalPrivateData }));
 
 /** Let the provider's fire-and-forget async chains run to their end. */

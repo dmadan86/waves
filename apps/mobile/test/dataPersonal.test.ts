@@ -42,6 +42,7 @@ vi.mock('@tanstack/react-query', () => ({
   }),
 }));
 vi.mock('expo-crypto', () => ({ randomUUID: () => 'minted-uuid' }));
+vi.mock('@/e2ee/runtime', () => ({ useE2eeRecords: () => [], useAllE2eeRecords: () => [] }));
 vi.mock('@/lib/auth', () => ({ useAuth: () => ({ session: state.session }) }));
 vi.mock('@/sync', () => ({
   useSync: () => ({ mirror: state.mirror, queue: state.queue, mutate: state.mutate }),

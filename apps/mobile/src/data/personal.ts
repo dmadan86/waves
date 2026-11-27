@@ -23,13 +23,10 @@ import {
   decodeTxn,
   encodeRecurring,
   encodeTxn,
-  materialiseGroupRecords,
   materialisePersonalRecords,
   MutationKind,
   personalScope,
   recurringOccurrenceId,
-  SyncTable,
-  type MirrorGroupRecord,
   type MirrorPersonalRecord,
   type PersonalBudget,
   type PersonalLoan,
@@ -45,6 +42,8 @@ import {
   orphanedPersonalTxnIds,
   releaseOrphanDelete,
 } from '@/lib/personalOrphans';
+import { useAllE2eeRecords, useE2eeRecords } from '@/e2ee/runtime';
+import type { GroupRecord } from '@/e2ee/space';
 import { recurringTxnLinks } from '@/lib/recurringLinks';
 import { useSync } from '@/sync';
 
@@ -96,27 +95,17 @@ export function usePersonalRecords(includeDeleted = false): readonly MirrorPerso
   );
 }
 
-const NO_GROUP_RECORDS: readonly MirrorGroupRecord[] = [];
-
-/** One couple/home group's rental rows (property, tenancy, rent rule, entry), queue replayed. Empty without a group. */
-export function useGroupRecords(groupId?: string): readonly MirrorGroupRecord[] {
-  const { mirror, queue } = useSync();
-  return useMemo(
-    () => (groupId ? materialiseGroupRecords(mirror, queue, { groupId }) : NO_GROUP_RECORDS),
-    [mirror, queue, groupId],
-  );
+/**
+ * One couple/home group's rental rows (property, tenancy, rent rule, entry). They live
+ * only on the partners' phones, end to end encrypted (`e2ee/`). Empty without a group.
+ */
+export function useGroupRecords(groupId?: string): readonly GroupRecord[] {
+  return useE2eeRecords(groupId);
 }
 
 /** Every rental record of every group this phone knows, for the document sweep. */
-export function useAllGroupRecords(): readonly MirrorGroupRecord[] {
-  const { mirror, queue } = useSync();
-  return useMemo(() => {
-    const groups = new Set<string>();
-    for (const row of Object.values(mirror.tables[SyncTable.GroupRecords] ?? {}))
-      if (typeof row.group_id === 'string') groups.add(row.group_id);
-    for (const m of queue) if (m.kind.startsWith('group_record.')) groups.add(m.groupId);
-    return [...groups].flatMap((groupId) => materialiseGroupRecords(mirror, queue, { groupId }));
-  }, [mirror, queue]);
+export function useAllGroupRecords(): readonly GroupRecord[] {
+  return useAllE2eeRecords();
 }
 
 /**
@@ -144,7 +133,9 @@ export function usePersonalRecordIds(): ReadonlySet<string> {
 export function usePersonalLedger(groupId?: string): PersonalLedger {
   const personalRecords = usePersonalRecords(true);
   const groupRecords = useGroupRecords(groupId);
-  const records = (groupId ? groupRecords : personalRecords) as readonly MirrorPersonalRecord[];
+  const records = (groupId
+    ? groupRecords
+    : personalRecords) as unknown as readonly MirrorPersonalRecord[];
   const remove = useDeletePersonalRecord();
   const deleteRecord = remove.mutate;
 

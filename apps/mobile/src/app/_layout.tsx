@@ -118,6 +118,7 @@ import {
   takeQueuedDeepLink,
 } from '@/lib/deepLink';
 import { COMPANIES_ENABLED, isCompanyRoute } from '@/lib/companiesEnabled';
+import { syncE2ee } from '@/e2ee/runtime';
 import { ensureAndroidChannel, pushSupported, routeForNotification } from '@/lib/push';
 import { applyStoredSessionReplayConsent } from '@/lib/sessionReplay';
 import { holdPhonesUpright } from '@/lib/phoneOrientation';
@@ -497,6 +498,8 @@ function PushRouting() {
     // One gate for both paths: the cold-start "last response" survives root
     // remounts, so without it the same tap re-navigated every time.
     const handle = async (response: Notifications.NotificationResponse) => {
+      // A "rent recorded" push means mail is waiting in the couple mailbox; fetch it now.
+      if (signedIn.current) void syncE2ee();
       const planData = response.notification.request.content.data as
         { key?: unknown; ownerId?: unknown; fireAt?: unknown } | undefined;
       if (planData?.key === PLAN_KEY) {

@@ -221,6 +221,11 @@ const QUIET_RETRY_MS = 30_000;
 
 export class SyncEngine {
   private store: LocalStore = createLocalStore();
+
+  /** The one store (one connection, one lock), for the couple space's tables. */
+  get localStore(): LocalStore {
+    return this.store;
+  }
   private state: SyncState = {
     status: SyncStatus.Idle,
     hydrated: false,
@@ -355,6 +360,9 @@ export class SyncEngine {
   async clear(): Promise<void> {
     await this.settleFlush();
     await this.store.reset();
+    // TODO(slice 5): offer "back up your rentals first?" before this line. Until then the
+    // couple space is wiped with the rest of the account, as it must not outlive it.
+    await this.store.wipeE2ee();
     this.forgetInMemory();
   }
 
