@@ -107,6 +107,11 @@ export function identifyForReporting(userId: string | null): void {
  * by hand.
  */
 export function reportHandled(error: unknown, where: string): void {
+  // Also to the device log (logcat / Console), so a tester can see it without Sentry.
+  console.warn(
+    `[handled] ${where}:`,
+    error instanceof Error ? `${error.name}: ${error.message}` : error,
+  );
   if (!reportingEnabled) return;
   Sentry.captureException(error, { tags: { where } });
 }
