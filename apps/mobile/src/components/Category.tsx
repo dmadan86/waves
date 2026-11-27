@@ -95,6 +95,7 @@ export function CategoryBadge({
   meta,
   description,
   size = 42,
+  shape = 'circle',
   accent,
   iconOverride,
 }: {
@@ -110,6 +111,7 @@ export function CategoryBadge({
    *  overrides a custom tag's chosen icon. */
   description?: string | null;
   size?: number;
+  shape?: 'circle' | 'square';
 }) {
   const theme = useTheme();
   const resolved = resolveCategory(category, meta ?? null);
@@ -123,7 +125,7 @@ export function CategoryBadge({
       style={{
         width: size,
         height: size,
-        borderRadius: size / 2,
+        borderRadius: shape === 'square' ? size * 0.3 : size / 2,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: accent ? `${accent}40` : tint.bg,

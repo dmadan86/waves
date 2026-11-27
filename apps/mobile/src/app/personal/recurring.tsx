@@ -18,7 +18,6 @@ import {
   Button,
   Card,
   Divider,
-  ChipRow,
   IconButton,
   iconSize,
   Row,
@@ -27,14 +26,16 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { KindPills } from '@/components/KindPills';
+import { PlainHeader, StandardCard } from '@/components/standard';
 import { CategoryBadge } from '@/components/Category';
 import { SourceGlyph, useSourceLabel } from '@/components/IncomeSource';
 import { EmptyStateCta } from '@/components/EmptyStateCta';
 import {
-  filterRecurrings,
   nextDateLabel,
+  recurringTab,
+  recurringTabMemory,
   sectionRecurrings,
-  type RecurringFilter,
 } from '@/lib/recurringList';
 import { usePostRecurring } from '@/data/postRecurring';
 import {
@@ -63,17 +64,24 @@ function RecurringScreenBody() {
 
   const deletion = useDeletePersonalRecord();
   const [menuRule, setMenuRule] = useState<PersonalRecurring | null>(null);
-  const [filter, setFilter] = useState<RecurringFilter>('all');
+  const [tab, setTab] = useState<'expense' | 'income'>(recurringTabMemory.tab);
+  // Coming back from a save of the other kind lands on the tab that shows it.
+  const [wasFocused, setWasFocused] = useState(focused);
+  if (focused !== wasFocused) {
+    setWasFocused(focused);
+    if (focused) setTab(recurringTabMemory.tab);
+  }
   const [today] = useState(() => todayIso());
   useClaimFab(focused, t.personal.addRecurringItem.replace(/^\+\s*/, ''), () =>
-    router.push({ pathname: '/personal/entry', params: { repeats: '1', addRecurring: '1' } }),
+    router.push({
+      pathname: '/personal/entry',
+      params: { repeats: '1', addRecurring: '1', kind: tab },
+    }),
   );
 
   const cadenceLabel = (rule: PersonalRecurring): string =>
     frequencyLabel(t, frequencyOf(rule), rule.interval);
 
-  const sections = sectionRecurrings(filterRecurrings(recurrings, filter));
-  const totals = sectionRecurrings(recurrings.filter((rule) => rule.active));
   const totalCurrency = recurrings[0]?.currency ?? 'INR';
   const moneyText = (amount: bigint) =>
     format(money(amount, totalCurrency), { locale, trimZeros: true });
@@ -83,8 +91,52 @@ function RecurringScreenBody() {
     sourceLabel(rule.category) ||
     (rule.txnKind === 'income' ? t.personal.incomeKind : t.personal.expense);
 
+  const view = recurringTab(recurrings, tab);
+  const totals = sectionRecurrings(recurrings.filter((rule) => rule.active));
+  const addRule = (): void =>
+    router.push({
+      pathname: '/personal/entry',
+      params: { repeats: '1', addRecurring: '1', kind: tab },
+    });
+  const stat = (label: string, value: bigint, first = false): React.JSX.Element => (
+    <View
+      style={{
+        flex: 1,
+        gap: 2,
+        paddingStart: theme.spacing.sm,
+        borderStartWidth: first ? 0 : 1,
+        borderStartColor: theme.color.border,
+      }}
+    >
+      <Text variant="caption" tone="muted">
+        {label}
+      </Text>
+      <Text variant="body" numberOfLines={1} adjustsFontSizeToFit style={{ fontWeight: '700' }}>
+        {moneyText(value)}
+      </Text>
+    </View>
+  );
+
   return (
-    <Screen>
+    <Screen edges={[]}>
+      <PlainHeader
+        title={t.personal.recurring}
+        subtitle={t.personal.recurringSub}
+        trailing={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.personal.addRecurringItem.replace(/^\+\s*/, '')}
+            hitSlop={10}
+            onPress={addRule}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
+          >
+            <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
+            <Text variant="body" style={{ color: theme.color.brand, fontWeight: '700' }}>
+              {t.personal.add}
+            </Text>
+          </Pressable>
+        }
+      />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
@@ -93,108 +145,30 @@ function RecurringScreenBody() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ paddingTop: theme.spacing.sm, minHeight: 104 }}>
-          <Row
-            style={{ alignItems: 'center', gap: theme.spacing.sm, justifyContent: 'space-between' }}
-          >
-            <Text
-              style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: theme.color.text }}
-            >
-              {t.personal.recurring}
-            </Text>
-            {recurrings.length > 0 ? (
-              <IconButton
-                label={t.personal.addRecurringItem.replace(/^\+\s*/, '')}
-                onPress={() =>
-                  router.push({
-                    pathname: '/personal/entry',
-                    params: { repeats: '1', addRecurring: '1' },
-                  })
-                }
-              >
-                <Ionicons name="add" size={iconSize.xl} color={theme.color.brand} />
-              </IconButton>
-            ) : null}
-          </Row>
-          <Text
-            style={{
-              marginTop: 2,
-              maxWidth: '56%',
-              fontSize: 13,
-              lineHeight: 18,
-              color: theme.color.textMuted,
-            }}
-          >
-            {t.personal.recurringSub}
-          </Text>
-        </View>
-        <ChipRow<'recurring' | 'budgets' | 'loans'>
-          value="recurring"
-          onChange={(v) => {
-            if (v !== 'recurring')
-              router.push(v === 'budgets' ? '/personal/budgets' : '/personal/loans');
-          }}
-          variant="brand"
-          onCard
-          options={[
-            { value: 'recurring', label: t.personal.recurring },
-            { value: 'budgets', label: t.personal.budgets },
-            { value: 'loans', label: t.personal.loans },
-          ]}
-        />
-        <View accessibilityLabel={t.personal.recurringFilterLabel}>
-          <ChipRow<RecurringFilter>
-            value={filter}
-            onChange={setFilter}
-            variant="brand"
-            onCard
-            options={[
-              { value: 'all', label: t.personal.all },
-              { value: 'bills', label: t.personal.recurringBills },
-              { value: 'income', label: t.personal.incomeKind },
-              { value: 'active', label: t.personal.active },
-              { value: 'paused', label: t.personal.paused },
-            ]}
-          />
-        </View>
         {recurrings.length > 0 ? (
-          <Card style={{ padding: theme.spacing.md }}>
-            <Text variant="caption" tone="muted">
-              {t.personal.eachMonth}
-            </Text>
+          <StandardCard style={{ gap: theme.spacing.md }}>
             <Text variant="body" style={{ fontWeight: '700' }}>
-              {t.personal.monthSummary
-                .replace('{in}', moneyText(totals.incomeTotal))
-                .replace('{out}', moneyText(totals.expenseTotal))
-                .replace('{left}', moneyText(totals.incomeTotal - totals.expenseTotal))}
+              {t.personal.monthTitle}
             </Text>
-          </Card>
+            <Row>
+              {stat(t.personal.moneyIn, totals.incomeTotal, true)}
+              {stat(t.personal.moneyOut, totals.expenseTotal)}
+              {stat(t.personal.leftLabel, totals.incomeTotal - totals.expenseTotal)}
+            </Row>
+          </StandardCard>
         ) : null}
-        {[
-          {
-            key: 'income',
-            label: t.personal.moneyIn,
-            rules: sections.income,
-            total: sections.incomeTotal,
-          },
-          {
-            key: 'expense',
-            label: t.personal.moneyOut,
-            rules: sections.expense,
-            total: sections.expenseTotal,
-          },
-        ].map((section) =>
+        <KindPills
+          value={tab}
+          onChange={(next) => {
+            recurringTabMemory.tab = next;
+            setTab(next);
+          }}
+          expenseLabel={`${t.personal.expense} · ${view.counts.expense}`}
+          incomeLabel={`${t.personal.incomeKind} · ${view.counts.income}`}
+        />
+        {[{ key: tab, rules: view.rules }].map((section) =>
           section.rules.length ? (
             <View key={section.key} style={{ gap: theme.spacing.sm }}>
-              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text variant="caption" style={{ fontWeight: '700', color: theme.color.textMuted }}>
-                  {section.label}
-                </Text>
-                <Text variant="micro" tone="muted">
-                  {section.key === 'income' ? '+' : ''}
-                  {moneyText(section.total)} {t.personal.aMonth}
-                </Text>
-              </Row>
               {section.rules.map((rule) => {
                 const due = isRecurringDue(rule, today);
                 const income = rule.txnKind === 'income';
@@ -315,18 +289,13 @@ function RecurringScreenBody() {
             </View>
           ) : null,
         )}
-        {recurrings.length === 0 ? (
+        {view.rules.length === 0 ? (
           <EmptyStateCta
             compact
-            title={recurrings.length ? t.personal.noMoreRecurring : t.personal.noRecurring}
+            title={tab === 'income' ? t.personal.noRecurringIncome : t.personal.noRecurringExpense}
             body={t.personal.recurringEmptyBody}
             action={t.personal.addRecurringItem.replace(/^\+\s*/, '')}
-            onAdd={() =>
-              router.push({
-                pathname: '/personal/entry',
-                params: { repeats: '1', addRecurring: '1' },
-              })
-            }
+            onAdd={addRule}
           />
         ) : null}
       </ScrollView>
