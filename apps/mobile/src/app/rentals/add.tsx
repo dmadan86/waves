@@ -12,7 +12,7 @@ import { AmountField, Button, iconSize, Row, Screen, Sheet, Text, useTheme } fro
 
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { FieldLabel, SelectField } from '@/components/company/EntryForm';
-import { PlainHeader, SegmentedPills } from '@/components/standard';
+import { PlainHeader } from '@/components/standard';
 import { TextAnswer } from '@/components/wealth/parts';
 import type { TenantDraft } from '@/components/wealth/TenantFlow';
 import { dateFrom, showDate } from '@/lib/expenseDay';
@@ -54,8 +54,61 @@ function MoneyBox({
         borderColor: theme.color.border,
       }}
     >
-      <AmountField currency={currency} value={value} onChange={onChange} size="compact" />
+      <AmountField
+        currency={currency}
+        value={value}
+        onChange={onChange}
+        size="compact"
+        align="start"
+      />
     </View>
+  );
+}
+
+/** Two equal pills; the chosen one is filled with the brand colour (owner's mockup). */
+function YesNoPills({
+  value,
+  onChange,
+  options,
+}: {
+  value: 'yes' | 'no';
+  onChange: (v: 'yes' | 'no') => void;
+  options: readonly { value: 'yes' | 'no'; label: string }[];
+}) {
+  const theme = useTheme();
+  return (
+    <Row accessibilityRole="radiogroup" style={{ gap: theme.spacing.sm }}>
+      {options.map((o) => {
+        const selected = o.value === value;
+        return (
+          <Pressable
+            key={o.value}
+            accessibilityRole="radio"
+            accessibilityState={{ selected }}
+            accessibilityLabel={o.label}
+            onPress={() => onChange(o.value)}
+            style={{
+              flex: 1,
+              minHeight: 44,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: theme.radius.lg,
+              backgroundColor: selected ? theme.color.brand : theme.color.surfaceMuted,
+            }}
+          >
+            <Text
+              variant="body"
+              style={{
+                fontWeight: '700',
+                color: selected ? theme.color.onBrand : theme.color.textMuted,
+              }}
+            >
+              {o.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </Row>
   );
 }
 
@@ -167,9 +220,10 @@ function AddBody() {
           onChange={setName}
           placeholder={w.propNamePlaceholder}
           label={w.propertyNameLabel}
+          bordered
         />
         <FieldLabel>{w.currentlyRentedQ}</FieldLabel>
-        <SegmentedPills<'yes' | 'no'>
+        <YesNoPills
           value={rented}
           onChange={setRented}
           options={[
@@ -185,6 +239,7 @@ function AddBody() {
               onChange={setTenant}
               placeholder={w.tenantNameLabel}
               label={w.tenantNameLabel}
+              bordered
             />
             <Row style={{ gap: theme.spacing.md }}>
               <View style={{ flex: 1, gap: theme.spacing.xs }}>
@@ -246,7 +301,7 @@ function AddBody() {
           paddingBottom: clearance + theme.spacing.md,
         }}
       >
-        <Button label={w.savePropertyBtn} disabled={!ready} onPress={() => void save()} />
+        <Button label={w.savePropertyBtn} disabled={!ready} fullWidth onPress={() => void save()} />
       </View>
 
       <Sheet

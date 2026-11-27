@@ -76,8 +76,8 @@ export function AmountField({
   /** Draw the currency symbol before the digits. Off where the symbol already
    *  stands on its own beside the field (the personal entry's currency disc). */
   showSymbol?: boolean;
-  /** 'start' sets a display-size amount against the leading edge instead of
-   *  centring it — for a field that sits in a row beside other controls. */
+  /** 'start' sets the amount against the leading edge instead of centring it
+   *  (display) or right-aligning it (compact), e.g. in a bordered form box. */
   align?: 'default' | 'start';
 }) {
   const theme = useTheme();
@@ -191,7 +191,12 @@ export function AmountField({
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: compact ? 'flex-end' : hero || align === 'start' ? 'flex-start' : 'center',
+        justifyContent:
+          compact && align !== 'start'
+            ? 'flex-end'
+            : hero || align === 'start'
+              ? 'flex-start'
+              : 'center',
         gap: theme.spacing.xs,
         // The hero takes every point its line does not owe to something else and
         // gives them back when the amount is long: it grows into the gap between
@@ -252,7 +257,7 @@ export function AmountField({
           // Physical, not logical, on purpose: React Native flips `textAlign`
           // itself in an RTL layout, so 'left' is already "the side the digits
           // start on" in Arabic.
-          textAlign: compact ? 'right' : 'left',
+          textAlign: compact && align !== 'start' ? 'right' : 'left',
           // The input fills whatever the well grew to, so the whole well raises
           // the keyboard. Sized to its text it would leave most of a wide hero
           // field as dead space that looks like a tap target and is not one.
