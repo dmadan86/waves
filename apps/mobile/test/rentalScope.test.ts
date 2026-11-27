@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { encodeProperty, encodeTxn, recurringOccurrenceId } from '@waves/core';
 
 import { incomeTotal } from '../../../packages/core/src/group/household';
-import { orphanFolders } from '@/lib/propertyDocsPure';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   decodeWealth,
   groupRentalsSummary,
-  liveDocPropertyIds,
   ownActiveProperties,
   rentEntryId,
   selectRentalRecords,
@@ -83,15 +83,10 @@ describe('paid in full dedupes between partners', () => {
   });
 });
 
-describe('document sweep keeps every space', () => {
-  it('passes the union of Personal and group property ids', () => {
-    const live = liveDocPropertyIds(
-      [prop('personal-1')],
-      [prop('group-1'), rent('t', '2026-12-05', 1n)],
-    );
-    expect([...live].sort()).toEqual(['group-1', 'personal-1']);
-    // Folders on this phone: a group property's documents are not orphans.
-    expect(orphanFolders(['personal-1', 'group-1', 'deleted'], live)).toEqual(['deleted']);
+describe('document sweep', () => {
+  it('is gone: folders are deleted only by an explicit property delete', () => {
+    const src = readFileSync(join(process.cwd(), 'src/app/rentals/[id].tsx'), 'utf8');
+    expect(src).not.toContain('sweepOrphanDocs');
   });
 });
 

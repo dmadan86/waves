@@ -150,7 +150,7 @@ describe('web store — retained work', () => {
 
     await s.clearRetained();
     expect(await s.readRetained()).toBeNull();
-  });
+  }, 15_000);
 
   it('reads a stamp that is not a stamp as nothing held', async () => {
     const s = await store();

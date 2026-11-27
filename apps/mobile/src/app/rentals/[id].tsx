@@ -37,12 +37,7 @@ import { PropertyArt } from '@/components/wealth/PropertyArt';
 import { DetailsCard, DocumentsCard } from '@/components/wealth/RentalExtras';
 import { RaiseCard, useRaisePrompts } from '@/components/wealth/RaiseCard';
 import { AmountSheet, RenameSheet, StatusPill, useWealthMoney } from '@/components/wealth/parts';
-import {
-  todayIso,
-  useAllGroupRecords,
-  usePersonalLedger,
-  usePersonalRecords,
-} from '@/data/personal';
+import { todayIso, usePersonalLedger } from '@/data/personal';
 import {
   usePersonalWealth,
   useRentalStore,
@@ -52,7 +47,7 @@ import {
 import { useBlockedUsers } from '@/data/blocked';
 import { memberLookup, useGroup } from '@/data/hooks';
 import { memberNameById } from '@/lib/memberName';
-import { fullPaymentOf, liveDocPropertyIds, outstandingRent, spaceParams } from '@/lib/rentalScope';
+import { fullPaymentOf, outstandingRent, spaceParams } from '@/lib/rentalScope';
 import { fill, useStrings } from '@/i18n';
 import { DetailEnter, EASE_OUT, popEntering, PressableScale, settleEntering } from '@/lib/anim';
 import { hapticSuccess } from '@/lib/assistantHaptics';
@@ -63,7 +58,7 @@ import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { useDialog } from '@/lib/dialog';
 import { router } from '@/lib/navigation';
-import { deleteAllDocs, sweepOrphanDocs } from '@/lib/propertyDocs';
+import { deleteAllDocs } from '@/lib/propertyDocs';
 import { useEntitlement } from '@/lib/useEntitlement';
 import {
   depositTerm,
@@ -219,8 +214,6 @@ function DetailBody() {
   const writes = useWealthWrites(space);
   const store = useRentalStore(space);
   const del = { mutateAsync: store.del };
-  const personalRecords = usePersonalRecords();
-  const groupRecords = useAllGroupRecords();
   const { everyone } = useGroup(space ?? '');
   const viewerId = useViewerId();
   const { blockedIds } = useBlockedUsers();
@@ -234,12 +227,8 @@ function DetailBody() {
   const raise = useRaisePrompts(today, space).find((p) => p.propertyId === id) ?? null;
 
   const prop = properties.find((p) => p.id === id);
-  // Only once this property has loaded, so a still-empty list never looks like "all deleted".
-  const loaded = prop !== undefined;
-  // Keep every document whose property exists in Personal or in any group the person is in.
-  useEffect(() => {
-    if (loaded) void sweepOrphanDocs(liveDocPropertyIds(personalRecords, groupRecords));
-  }, [loaded, personalRecords, groupRecords]);
+  // No orphan sweep: records hydrate store by store and skip rows that cannot be read, so an
+  // incomplete list is indistinguishable from "deleted". Folders go only on an explicit delete.
   if (!prop) {
     return (
       <Screen edges={[]}>

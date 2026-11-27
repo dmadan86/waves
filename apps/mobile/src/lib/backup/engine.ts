@@ -31,6 +31,7 @@
  */
 
 import * as Network from 'expo-network';
+import { coupleStructure, losesCoupleData, type CoupleStructure } from './coupleStructure';
 import { beginBackground, finishBackground, publishBackup, cancelBackup } from './background';
 import { waitForConnection } from './reconnect';
 import { uploadPercent } from './progress';
@@ -117,6 +118,8 @@ export type BackupRefusal =
   /** Another run is already going. */
   | 'cancelled'
   | 'busy'
+  /** E2EE account data is still hydrating for this sign-in. */
+  | 'e2ee-loading'
   /** This build has no OAuth client id for the provider. */
   | 'not-configured'
   /** No Drive account linked. */
@@ -177,6 +180,8 @@ export interface BackupRunInput {
   readonly knownBackupAt?: number | null;
   /** The person saw the "Drive has more" choice and picked Replace. */
   readonly replaceExisting?: boolean;
+  /** Session guard for callers whose backup work spans auth changes. */
+  readonly isCurrent?: () => boolean;
 }
 
 // One run at a time, process-wide. The automatic check and a button press can
@@ -452,11 +457,23 @@ async function peekExisting(
   key: Uint8Array,
   ownerId: string,
   signal?: AbortSignal,
-): Promise<{ createdAt: string; ids: readonly string[] } | 'unreadable'> {
+): Promise<
+  { createdAt: string; ids: readonly string[]; couple: CoupleStructure | null } | 'unreadable'
+> {
   const envelope = parseFile(await provider.read(tokens, blob.remoteId, signal));
   try {
     const body = parseBody(openBackup(key, envelope.sealed, backupAad(ownerId)), ownerId);
-    return { createdAt: envelope.createdAt || body.createdAt, ids: body.records.map((r) => r.id) };
+    let couple: CoupleStructure | null = null;
+    try {
+      couple = coupleStructure(body.couple ?? []);
+    } catch {
+      // Opens, but its shared rentals cannot be inspected: never treat that as "nothing to lose".
+    }
+    return {
+      createdAt: envelope.createdAt || body.createdAt,
+      ids: body.records.map((r) => r.id),
+      couple,
+    };
   } catch {
     return 'unreadable';
   }
@@ -468,17 +485,37 @@ async function peekExisting(
  * rows this phone lacks (or more of them), or when it has shrunk by half.
  */
 function wouldLose(
-  existing: { createdAt: string; ids: readonly string[] },
+  existing: {
+    createdAt: string;
+    ids: readonly string[];
+    couple?: CoupleStructure | null;
+    coupleCount?: number;
+  },
   local: readonly SourceRecord[],
   knownBackupAt: number | null,
+  localCouple: readonly BackupCouple[] = [],
 ): boolean {
-  if (existing.ids.length === 0) return false;
-  if (local.length === 0) return true;
+  if (existing.couple === null) return true;
+  const oldCouple = existing.couple ?? {
+    groups: 0,
+    records: existing.coupleCount ?? 0,
+    tombstones: 0,
+    byGroup: {},
+  };
+  const newCouple = coupleStructure(localCouple);
+  const existingCount = existing.ids.length + oldCouple.records;
+  const localCount = local.length + newCouple.records;
+  if (existingCount === 0) return false;
+  if (localCount === 0) return true;
+  // Personal rows are protected on their own: couple rows must not hide an emptied ledger.
+  if (existing.ids.length > 0 && local.length === 0) return true;
+  if (existing.ids.length >= 10 && local.length < existing.ids.length / 2) return true;
   const have = new Set(local.map((r) => r.id));
   const missing = existing.ids.some((id) => !have.has(id));
   const foreign = Date.parse(existing.createdAt) > (knownBackupAt ?? 0);
-  if (foreign && (missing || existing.ids.length > local.length)) return true;
-  return existing.ids.length >= 10 && local.length < existing.ids.length / 2;
+  const groupLoss = losesCoupleData(oldCouple, newCouple);
+  if (foreign && (missing || existingCount > localCount || groupLoss)) return true;
+  return existingCount >= 10 && localCount < existingCount / 2;
 }
 
 /**
@@ -501,6 +538,7 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
   let terminal: 'complete' | 'failed' | 'cancelled' = 'failed';
   const checkCancelled = () => {
     if (controller.signal.aborted) throw new Error('Backup cancelled');
+    if (input.isCurrent && !input.isCurrent()) throw new Error('Backup account changed');
   };
   try {
     dispose = await beginBackground(
@@ -571,7 +609,7 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
           if (input.tier === BackupTier.Extra) return { ok: false, refusal: 'needs-key' };
         } else if (
           !input.replaceExisting &&
-          wouldLose(existing, input.records, input.knownBackupAt ?? null)
+          wouldLose(existing, input.records, input.knownBackupAt ?? null, input.couple ?? [])
         ) {
           return {
             ok: false,
@@ -599,6 +637,7 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
       checkCancelled();
       publishBackup({ status: 'uploading', percent: null });
       const stagingName = `${backupFileName(input.ownerId)}.pending`;
+      checkCancelled();
       // A previous process may have died after creating the private staging file.
       const abandoned = await provider.find(tokens, stagingName);
       if (abandoned) await provider.remove(tokens, abandoned.remoteId);
@@ -607,6 +646,7 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
       let stored: CloudFile;
       try {
         for (let attempt = 0; attempt < 2; attempt += 1) {
+          checkCancelled();
           try {
             staged = await provider.put(tokens, stagingName, content, null, {
               signal: controller.signal,
@@ -892,6 +932,7 @@ export interface UpgradeInput {
   readonly couple?: readonly BackupCouple[];
   /** The key just minted and shown to the person. Not yet stored anywhere. */
   readonly key: Uint8Array;
+  readonly isCurrent?: () => boolean;
 }
 
 export type UpgradeResult =
@@ -937,12 +978,15 @@ export async function upgradeToExtra(input: UpgradeInput): Promise<UpgradeResult
   const provider = providerFor(PRIMARY_PROVIDER);
 
   try {
+    if (input.isCurrent && !input.isCurrent()) return stop('auth');
     if (!provider.isConfigured()) return stop('not-configured');
 
     const net = await connection();
+    if (input.isCurrent && !input.isCurrent()) return stop('auth');
     if (!net.online) return stop('offline');
 
     const lookup = await freshTokens(PRIMARY_PROVIDER, input.ownerId);
+    if (input.isCurrent && !input.isCurrent()) return stop('auth');
     if (lookup.kind !== 'ok') return stop(lookup.kind === 'auth' ? 'auth' : 'not-connected');
     const tokens = lookup.tokens;
 

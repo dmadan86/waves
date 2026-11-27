@@ -8,7 +8,7 @@
  * payment a second time.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   dueInMonth,
@@ -31,6 +31,20 @@ import {
 } from '../src/personal/index.js';
 
 const RULE_ID = 'rule-rent';
+
+describe('shared rent occurrence restart classification', () => {
+  it('uses the due date when payment date differs after a process restart', async () => {
+    const id = recurringOccurrenceId('rent-rule', '2026-11-01');
+    const fields = {
+      recurringId: ['rent-rule', '1:0:A'],
+      occurrenceDate: ['2026-11-01', '1:0:A'],
+      date: ['2026-11-04', '2:0:A'],
+    } as const;
+    vi.resetModules();
+    const fresh = await import('../src/personal/compute');
+    expect(fresh.isSharedOccurrenceId(id, fields)).toBe(true);
+  });
+});
 
 const rule = (over: Partial<PersonalRecurring> = {}): PersonalRecurring => ({
   id: over.id ?? RULE_ID,

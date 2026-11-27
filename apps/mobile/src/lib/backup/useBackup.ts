@@ -18,6 +18,7 @@
  */
 
 import { coupleBridge } from './coupleBridge';
+import { useE2eeReady } from '@/e2ee/runtime';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { MutationKind, personalScope } from '@waves/core';
@@ -160,6 +161,7 @@ export function useBackup(): BackupState & BackupActions {
   const { session } = useAuth();
   const { mutate, flush } = useSync();
   const ownerId = session?.user?.id ?? '';
+  const e2eeReady = useE2eeReady(ownerId);
   const records = usePersonalRecords();
   const localIds = usePersonalRecordIds();
 
@@ -343,15 +345,25 @@ export function useBackup(): BackupState & BackupActions {
   const backupNow = useCallback(
     async (allowMobileData = false, replaceExisting = false): Promise<BackupOutcome> => {
       setOutcome(null);
+      if (!e2eeReady) {
+        const refused: BackupOutcome = { kind: 'refused', refusal: 'e2ee-loading' };
+        setOutcome(refused);
+        return refused;
+      }
       try {
+        const isCurrent = coupleBridge.captureOwner(ownerId);
+        if (!isCurrent()) throw new Error('Backup account changed');
         // No key is loaded here any more. Where it comes from depends on the tier
         // and on what is in the Drive folder, and the engine is the only place
         // that can see both — on Standard it will mint and escrow one rather than
         // refuse, which is the whole of the default tier's setup.
+        if (!isCurrent()) throw new Error('Backup account changed');
+        const couple = coupleBridge.backup();
+        if (!isCurrent()) throw new Error('Backup account changed');
         const result = await runBackup({
           ownerId,
           records,
-          couple: coupleBridge.backup(),
+          couple,
           tier,
           network: settings.network,
           manual: true,
@@ -359,6 +371,7 @@ export function useBackup(): BackupState & BackupActions {
           knownBackupAt: settings.last?.at ?? null,
           replaceExisting,
           onPhase: setPhase,
+          isCurrent,
         });
         if (!result.ok) {
           const refused: BackupOutcome = {
@@ -387,7 +400,16 @@ export function useBackup(): BackupState & BackupActions {
         setPhase(null);
       }
     },
-    [ownerId, records, tier, settings.network, settings.last?.at, refreshLink, startFresh],
+    [
+      ownerId,
+      records,
+      tier,
+      settings.network,
+      settings.last?.at,
+      refreshLink,
+      startFresh,
+      e2eeReady,
+    ],
   );
 
   const setFrequencyAction = useCallback(
@@ -461,7 +483,12 @@ export function useBackup(): BackupState & BackupActions {
       // Only reachable if the hex we minted came back mangled, which would mean
       // the screen handed us something other than what it was given.
       if (!key || !ownerId) return { kind: 'refused', refusal: 'no-key' };
-      const result = await upgradeToExtra({ ownerId, records, couple: coupleBridge.backup(), key });
+      if (!e2eeReady) return { kind: 'refused', refusal: 'e2ee-loading' };
+      const isCurrent = coupleBridge.captureOwner(ownerId);
+      if (!isCurrent()) return { kind: 'refused', refusal: 'auth' };
+      const couple = coupleBridge.backup();
+      if (!isCurrent()) return { kind: 'refused', refusal: 'auth' };
+      const result = await upgradeToExtra({ ownerId, records, couple, key, isCurrent });
       if (!result.ok) {
         const refused: BackupOutcome = { kind: 'refused', refusal: result.refusal };
         setOutcome(refused);
@@ -484,7 +511,7 @@ export function useBackup(): BackupState & BackupActions {
       setOutcome(done);
       return done;
     },
-    [ownerId, records, refreshLink],
+    [ownerId, records, refreshLink, e2eeReady],
   );
 
   const scan = useCallback(async (): Promise<RestoreScan> => {
@@ -497,17 +524,23 @@ export function useBackup(): BackupState & BackupActions {
   const applyRestore = useCallback(
     async (result: Extract<RestoreScan, { ok: true }>): Promise<number> => {
       if (!ownerId) return 0;
+      // A scan kept across an account switch must not restore the other account's data.
+      if (result.body && result.body.ownerId !== ownerId) return 0;
+      const isCurrent = coupleBridge.captureOwner(ownerId);
       const scope = personalScope(ownerId);
       for (const record of result.plan.restore) {
+        if (!isCurrent()) return 0;
         await mutate(MutationKind.PersonalUpsert, scope, {
           recordId: record.id,
           recordKind: record.kind,
           data: record.data,
         });
       }
+      if (!isCurrent()) return 0;
       // Shared rentals go straight into the phone's couple tables, never the server queue,
       // then the partner's phone fills in what changed since the backup.
-      if (result.body?.couple?.length) await coupleBridge.restore(result.body.couple);
+      if (result.body?.couple?.length) await coupleBridge.restore(result.body.couple, isCurrent);
+      if (!isCurrent()) return 0;
       // Durable on disk already; this only asks the queue to leave sooner.
       void flush([scope]);
       await startFresh();

@@ -164,6 +164,65 @@ describe('new phone notice', () => {
 });
 
 describe('backup of couple data', () => {
+  it('restoring an older snapshot cannot erase a newer tombstone in a former copy', async () => {
+    const { server } = await setup();
+    const c = phone(server, 'pA', 'mA', 21, { t: 1_700_000_000_000 }, []);
+    await c.space.applyIncoming([
+      {
+        groupId: 'former:' + G,
+        senderMemberId: 'mA',
+        trusted: true,
+        ops: [
+          {
+            op: 'put',
+            id: 'x',
+            kind: 'property',
+            createdBy: 'mA',
+            create: true,
+            fields: { name: ['Old', '1:0:A'] },
+          },
+        ],
+      },
+    ]);
+    const old = c.space.backupCouple(() => 'Home');
+    await c.space.applyIncoming([
+      {
+        groupId: 'former:' + G,
+        senderMemberId: 'mA',
+        trusted: true,
+        ops: [{ op: 'del', id: 'x', hlc: '5:0:A' }],
+      },
+    ]);
+    await c.space.restoreCouple(old, []);
+    expect(c.space.records('former:' + G)).toHaveLength(0);
+  });
+
+  it('merges former-only backup history after rejoining an empty live store', async () => {
+    const { server } = await setup();
+    const oldPhone = phone(server, 'pA', 'mA', 22, { t: 1_700_000_000_000 }, []);
+    await oldPhone.space.applyIncoming([
+      {
+        groupId: 'former:' + G,
+        senderMemberId: 'mA',
+        trusted: true,
+        ops: [
+          {
+            op: 'put',
+            id: 'history',
+            kind: 'property',
+            createdBy: 'mA',
+            create: true,
+            fields: { name: ['History', '1:0:A'] },
+          },
+        ],
+      },
+    ]);
+    const former = oldPhone.space.backupCouple(() => 'Home');
+    const rejoined = phone(server, 'pA', 'mA', 23, { t: 1_700_000_000_000 }, []);
+    await rejoined.space.restoreCouple(former, [G]);
+    expect(rejoined.space.records(G).map((r) => r.id)).toContain('history');
+  });
+
   it('round-trips through the backup body and restores into the e2ee tables only', async () => {
     const { server, a } = await setup();
     const couple = a.space.backupCouple(() => 'Home');
@@ -193,13 +252,57 @@ describe('sign-out back-up prompt', () => {
   const now = 1_700_000_000_000;
   it('asks only with couple data and no recent backup', () => {
     expect(shouldPromptCoupleBackup({ coupleRecords: 0, lastBackupAt: null, now })).toBe(false);
+    expect(
+      shouldPromptCoupleBackup({ coupleRecords: 0, lastBackupAt: now, now, outboxCount: 1 }),
+    ).toBe(true);
+    expect(
+      shouldPromptCoupleBackup({ coupleRecords: 0, lastBackupAt: null, now, formerRecords: 1 }),
+    ).toBe(true);
+    expect(
+      shouldPromptCoupleBackup({ coupleRecords: 0, lastBackupAt: now, now, formerRecords: 1 }),
+    ).toBe(false);
     expect(shouldPromptCoupleBackup({ coupleRecords: 3, lastBackupAt: null, now })).toBe(true);
     expect(shouldPromptCoupleBackup({ coupleRecords: 3, lastBackupAt: now - 2 * DAY, now })).toBe(
       false,
     );
+    expect(
+      shouldPromptCoupleBackup({
+        coupleRecords: 3,
+        lastBackupAt: now - 2 * DAY,
+        now,
+        outboxCount: 1,
+      }),
+    ).toBe(true);
+    expect(
+      shouldPromptCoupleBackup({
+        coupleRecords: 3,
+        lastBackupAt: now - 2 * DAY,
+        now,
+        lastLocalChangeAt: now - DAY,
+      }),
+    ).toBe(true);
+    expect(
+      shouldPromptCoupleBackup({
+        coupleRecords: 3,
+        lastBackupAt: now - 2 * DAY,
+        now,
+        lastLocalChangeAt: now - 3 * DAY,
+      }),
+    ).toBe(false);
     expect(shouldPromptCoupleBackup({ coupleRecords: 3, lastBackupAt: now - 10 * DAY, now })).toBe(
       true,
     );
+  });
+
+  it('warns when the last live record was deleted after backup', () => {
+    expect(
+      shouldPromptCoupleBackup({
+        coupleRecords: 0,
+        lastBackupAt: now - DAY,
+        now,
+        lastLocalChangeAt: now,
+      }),
+    ).toBe(true);
   });
 });
 
@@ -249,5 +352,36 @@ describe('snapshot trust', () => {
       { groupId: G, ops: snapshotOps([early]), senderMemberId: 'mB', trusted: true },
     ]);
     expect(a.space.records(G).find((r) => r.id === 'p1')!.created_by).toBe('mA');
+  });
+});
+
+describe('former restore merge', () => {
+  it('merges a newer backup into an existing former copy, keeping both histories', async () => {
+    const { server, a } = await setup();
+    const older = a.space.backupCouple(() => 'Home');
+    await a.set(G, 'p3', 'property', { ...prop, name: 'Garage' });
+    const newer = a.space.backupCouple(() => 'Home');
+    const c = phone(server, 'pA', 'mA', 9, { t: 1_700_000_000_000 }, []);
+    await c.space.restoreCouple(older, []);
+    expect(c.space.records('former:' + G).map((r) => r.id)).toEqual(['p1', 'p2']);
+    await c.space.restoreCouple(newer, []);
+    expect(c.space.records('former:' + G).map((r) => r.id)).toEqual(['p1', 'p2', 'p3']);
+  });
+});
+
+describe('snapshot creation clocks', () => {
+  it('preserves createdHlc on snapshot puts', async () => {
+    const rec = {
+      id: 'x',
+      kind: 'property',
+      createdBy: 'mA',
+      createdHlc: '1700000000000:0:ckA',
+      fields: { name: ['Flat', '1700000000000:0:ckA'] },
+    };
+    expect(snapshotOps([rec as never])[0]).toMatchObject({
+      op: 'put',
+      create: true,
+      createdHlc: rec.createdHlc,
+    });
   });
 });

@@ -24,12 +24,7 @@ import { PlainHeader, SectionHeader, StandardCard } from '@/components/standard'
 import { StatusPill, RenameSheet, useWealthMoney } from '@/components/wealth/parts';
 import { DocumentsCard } from '@/components/wealth/RentalExtras';
 import { ExpenseSheet, FieldsSheet, RenewalSheet } from '@/components/wealth/VehicleSheets';
-import {
-  todayIso,
-  useAllGroupRecords,
-  usePersonalLedger,
-  usePersonalRecords,
-} from '@/data/personal';
+import { todayIso, usePersonalLedger } from '@/data/personal';
 import { useGroups } from '@/data/hooks';
 import { useRentalStore, useSpaceName, type RentalStore } from '@/data/personalWealth';
 import { moveVehicle, usePersonalVehicles, useVehicleWrites } from '@/data/vehicles';
@@ -42,8 +37,8 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { useDialog } from '@/lib/dialog';
 import { showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
-import { deleteAllDocs, sweepOrphanDocs } from '@/lib/propertyDocs';
-import { hasGroupRentals, liveDocPropertyIds } from '@/lib/rentalScope';
+import { deleteAllDocs } from '@/lib/propertyDocs';
+import { hasGroupRentals } from '@/lib/rentalScope';
 import { distanceUnit, dueSoon, monthSpend, spendStrip, vehicleTxns } from '@/lib/vehiclePlan';
 import { dueText, kindName } from '@/lib/vehicleText';
 import { regionOf } from '@/lib/wealthPlan';
@@ -151,8 +146,6 @@ function DetailBody() {
   const { vehicles } = usePersonalVehicles(space);
   const writes = useVehicleWrites(space);
   const store = useRentalStore(space);
-  const personalRecords = usePersonalRecords();
-  const groupRecords = useAllGroupRecords();
   const groups = useGroups().data;
   const [sheet, setSheet] = useState<Sheet>(null);
   const [menu, setMenu] = useState(false);
@@ -168,10 +161,8 @@ function DetailBody() {
     scroll.current?.scrollTo({ y: docsY.get(), animated: true });
   }, [jumpDocs, docsY]);
   const veh = vehicles.find((x) => x.id === id);
-  const loaded = veh !== undefined;
-  useEffect(() => {
-    if (loaded) void sweepOrphanDocs(liveDocPropertyIds(personalRecords, groupRecords));
-  }, [loaded, personalRecords, groupRecords]);
+  // No orphan sweep: records hydrate store by store and skip rows that cannot be read, so an
+  // incomplete list is indistinguishable from "deleted". Folders go only on an explicit delete.
   if (!veh) {
     return (
       <Screen edges={[]}>

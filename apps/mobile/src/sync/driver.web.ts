@@ -40,13 +40,40 @@ const WEB_KEYS = {
   retained: 'waves:retained',
 } as const;
 
-/** The couple e2ee tables. Kept out of WEB_KEYS: `reset` removes every WEB_KEYS entry. */
-const WEB_E2EE_KEYS = { records: 'waves:e2ee:records', outbox: 'waves:e2ee:outbox' } as const;
+/** The couple e2ee state is one value so a record and its delivery row commit together. */
+const WEB_E2EE_KEY = 'waves:e2ee:store';
+const WEB_E2EE_LEGACY_KEYS = {
+  records: 'waves:e2ee:records',
+  outbox: 'waves:e2ee:outbox',
+  pending: 'waves:e2ee:pending',
+} as const;
+type WebE2eeStore = {
+  records: E2eeRecordRow[];
+  outbox: E2eeOutboxRow[];
+  pending: [string, e2ee.PendingOp[]][];
+};
+const emptyE2eeStore = (): WebE2eeStore => ({ records: [], outbox: [], pending: [] });
+
+/**
+ * `Serial` plus a Web Lock, so another tab over the same browser storage can't commit between
+ * this instance's read and write of the combined e2ee value. Without Web Locks (old browsers)
+ * it degrades to in-instance ordering.
+ */
+class CrossTabSerial extends Serial {
+  override run<T>(task: () => Promise<T>): Promise<T> {
+    const locks = (
+      globalThis as {
+        navigator?: { locks?: { request: <R>(n: string, f: () => Promise<R>) => Promise<R> } };
+      }
+    ).navigator?.locks;
+    return super.run(() => (locks ? locks.request('waves:web-store', task) : task()));
+  }
+}
 
 class AsyncStorageStore implements LocalStore {
   // Every entry point below is read-modify-write, so two overlapping callers
   // lose one of the two writes. Same lock as native, for a plainer reason.
-  private readonly serial = new Serial();
+  private readonly serial = new CrossTabSerial();
 
   async ready(): Promise<void> {
     await legacyKeysMigrated;
@@ -62,6 +89,37 @@ class AsyncStorageStore implements LocalStore {
     } catch {
       return fallback;
     }
+  }
+
+  /** Reads the combined value, migrating the former three-key representation once. */
+  private async e2eeStore(): Promise<WebE2eeStore> {
+    const raw = await AsyncStorage.getItem(WEB_E2EE_KEY);
+    if (raw) {
+      try {
+        const parsed = e2ee.decodeJson(raw) as Partial<WebE2eeStore>;
+        return {
+          records: Array.isArray(parsed.records) ? parsed.records : [],
+          outbox: Array.isArray(parsed.outbox) ? parsed.outbox : [],
+          pending: Array.isArray(parsed.pending) ? parsed.pending : [],
+        };
+      } catch {
+        // Never let the next write replace a value we could not read: set it aside first.
+        await AsyncStorage.setItem(`${WEB_E2EE_KEY}.unreadable`, raw);
+        return emptyE2eeStore();
+      }
+    }
+    const legacy = {
+      records: await this.readJson<E2eeRecordRow[]>(WEB_E2EE_LEGACY_KEYS.records, []),
+      outbox: await this.readJson<E2eeOutboxRow[]>(WEB_E2EE_LEGACY_KEYS.outbox, []),
+      pending: await this.readJson<[string, e2ee.PendingOp[]][]>(WEB_E2EE_LEGACY_KEYS.pending, []),
+    };
+    await AsyncStorage.setItem(WEB_E2EE_KEY, e2ee.encodeJson(legacy));
+    await AsyncStorage.removeMany(Object.values(WEB_E2EE_LEGACY_KEYS));
+    return legacy;
+  }
+
+  private writeE2eeStore(store: WebE2eeStore): Promise<void> {
+    return AsyncStorage.setItem(WEB_E2EE_KEY, e2ee.encodeJson(store));
   }
 
   private async read<T>(key: string, fallback: T): Promise<T> {
@@ -216,61 +274,78 @@ class AsyncStorageStore implements LocalStore {
     outbox: readonly E2eeOutboxRow[] = [],
   ): Promise<void> {
     return this.serial.run(async () => {
-      if (rows.length > 0) {
-        const byKey = new Map(
-          (await this.readJson<E2eeRecordRow[]>(WEB_E2EE_KEYS.records, [])).map((r) => [
-            `${r.groupId}:${r.id}`,
-            r,
-          ]),
-        );
-        for (const r of rows) byKey.set(`${r.groupId}:${r.id}`, r);
-        await AsyncStorage.setItem(WEB_E2EE_KEYS.records, e2ee.encodeJson([...byKey.values()]));
-      }
-      if (outbox.length > 0) {
-        const held = await this.readJson<E2eeOutboxRow[]>(WEB_E2EE_KEYS.outbox, []);
-        const ids = new Set(held.map((o) => o.id));
-        await AsyncStorage.setItem(
-          WEB_E2EE_KEYS.outbox,
-          e2ee.encodeJson([...held, ...outbox.filter((o) => !ids.has(o.id))]),
-        );
-      }
+      const state = await this.e2eeStore();
+      const byKey = new Map(state.records.map((r) => [`${r.groupId}:${r.id}`, r]));
+      for (const r of rows) byKey.set(`${r.groupId}:${r.id}`, r);
+      const ids = new Set(state.outbox.map((o) => o.id));
+      await this.writeE2eeStore({
+        ...state,
+        records: [...byKey.values()],
+        outbox: [...state.outbox, ...outbox.filter((o) => !ids.has(o.id))],
+      });
     });
   }
 
   replaceE2eeGroup(groupId: string, rows: readonly E2eeRecordRow[]): Promise<void> {
     return this.serial.run(async () => {
-      const recs = (await this.readJson<E2eeRecordRow[]>(WEB_E2EE_KEYS.records, [])).filter(
-        (r) => r.groupId !== groupId,
-      );
-      const out = (await this.readJson<E2eeOutboxRow[]>(WEB_E2EE_KEYS.outbox, [])).filter(
-        (o) => o.groupId !== groupId,
-      );
-      await AsyncStorage.setItem(WEB_E2EE_KEYS.records, e2ee.encodeJson([...recs, ...rows]));
-      await AsyncStorage.setItem(WEB_E2EE_KEYS.outbox, e2ee.encodeJson(out));
+      const state = await this.e2eeStore();
+      const recs = state.records.filter((r) => r.groupId !== groupId);
+      const out = state.outbox.filter((o) => o.groupId !== groupId);
+      await this.writeE2eeStore({
+        records: [...recs, ...rows],
+        outbox: out,
+        pending: state.pending.filter(([g]) => g !== groupId),
+      });
     });
   }
 
   readE2eeRecords(): Promise<E2eeRecordRow[]> {
-    return this.serial.run(() => this.readJson<E2eeRecordRow[]>(WEB_E2EE_KEYS.records, []));
+    return this.serial.run(async () => (await this.e2eeStore()).records);
+  }
+
+  readE2eePending(): Promise<[string, e2ee.PendingOp[]][]> {
+    return this.serial.run(async () => (await this.e2eeStore()).pending);
+  }
+
+  writeE2eePending(groupId: string, rows: readonly e2ee.PendingOp[]): Promise<void> {
+    return this.serial.run(async () => {
+      const state = await this.e2eeStore();
+      const next = state.pending.filter(([g]) => g !== groupId);
+      if (rows.length > 0) next.push([groupId, [...rows]]);
+      await this.writeE2eeStore({ ...state, pending: next });
+    });
   }
 
   readE2eeOutbox(): Promise<E2eeOutboxRow[]> {
-    return this.serial.run(() => this.readJson<E2eeOutboxRow[]>(WEB_E2EE_KEYS.outbox, []));
+    return this.serial.run(async () => (await this.e2eeStore()).outbox);
   }
 
   deleteE2eeOutbox(ids: readonly string[]): Promise<void> {
     return this.serial.run(async () => {
       const gone = new Set(ids);
-      const held = await this.readJson<E2eeOutboxRow[]>(WEB_E2EE_KEYS.outbox, []);
-      await AsyncStorage.setItem(
-        WEB_E2EE_KEYS.outbox,
-        e2ee.encodeJson(held.filter((o) => !gone.has(o.id))),
-      );
+      const state = await this.e2eeStore();
+      await this.writeE2eeStore({ ...state, outbox: state.outbox.filter((o) => !gone.has(o.id)) });
+    });
+  }
+
+  updateE2eeOutbox(row: E2eeOutboxRow): Promise<void> {
+    return this.serial.run(async () => {
+      const state = await this.e2eeStore();
+      await this.writeE2eeStore({
+        ...state,
+        outbox: state.outbox.map((item) => (item.id === row.id ? row : item)),
+      });
     });
   }
 
   wipeE2ee(): Promise<void> {
-    return this.serial.run(() => AsyncStorage.removeMany(Object.values(WEB_E2EE_KEYS)));
+    return this.serial.run(() =>
+      AsyncStorage.removeMany([
+        WEB_E2EE_KEY,
+        `${WEB_E2EE_KEY}.unreadable`,
+        ...Object.values(WEB_E2EE_LEGACY_KEYS),
+      ]),
+    );
   }
 }
 

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import { decodeTxn, encodeTxn, type PersonalLicence, type PersonalVehicle } from '@waves/core';
 
-import { liveDocPropertyIds } from '@/lib/rentalScope';
 import { slotsOf } from '@/lib/propertyDocsPure';
 import {
   atVehicleLimit,
@@ -191,12 +190,7 @@ describe('spend', () => {
 });
 
 describe('documents', () => {
-  it('vehicle ids are kept by the orphan sweep and use their own slots', () => {
-    const ids = liveDocPropertyIds([
-      { id: 'v1', record_kind: 'vehicle', data: {} },
-      { id: 'l1', record_kind: 'licence', data: {} },
-    ]);
-    expect(ids.has('v1') && ids.has('l1')).toBe(true);
+  it('vehicle documents use their own slots (there is no orphan sweep to keep them)', () => {
     expect(slotsOf([], 'IN', ['rc', 'insurance']).map((s) => s.id)).toEqual(['rc', 'insurance']);
   });
 });

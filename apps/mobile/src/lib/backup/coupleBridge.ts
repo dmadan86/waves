@@ -4,6 +4,14 @@ import type { BackupCouple } from './payload';
 
 export const coupleBridge = {
   backup: (): BackupCouple[] => [],
-  restore: (_entries: readonly BackupCouple[]): Promise<void> => Promise.resolve(),
+  restore: (_entries: readonly BackupCouple[], _isCurrent?: () => boolean): Promise<void> =>
+    Promise.resolve(),
+  captureOwner:
+    (_ownerId: string): (() => boolean) =>
+    () =>
+      true,
   count: (): number => 0,
+  formerCount: (): number => 0,
+  risk: (): Promise<{ outboxCount: number; lastLocalChangeAt: number | null }> =>
+    Promise.resolve({ outboxCount: 0, lastLocalChangeAt: null }),
 };

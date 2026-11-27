@@ -320,6 +320,28 @@ describe('runFlush on a fresh install', () => {
 });
 
 describe('runFlush once groups are already known', () => {
+  it('waits for the E2EE drain before wiping sign-out state', async () => {
+    const engine = new SyncEngine();
+    let release!: () => void;
+    engine.beforeE2eeWipe = () =>
+      new Promise<void>((resolve) => {
+        release = resolve;
+      });
+    h.disk.rows.set('groups:kept-until-drain', {
+      table: 'groups',
+      id: 'kept-until-drain',
+      groupId: 'kept-until-drain',
+      seq: 1,
+      row: {},
+    });
+    const clearing = engine.clear();
+    await vi.waitFor(() => expect(release).toBeTypeOf('function'));
+    expect(h.disk.rows.has('groups:kept-until-drain')).toBe(true);
+    release();
+    await clearing;
+    expect(h.disk.rows.has('groups:kept-until-drain')).toBe(false);
+  });
+
   it('still pulls, carrying the cursors it has, so it is not a first-run special case', async () => {
     online();
     // A phone that already synced Goa once: the group and its cursor are on disk.

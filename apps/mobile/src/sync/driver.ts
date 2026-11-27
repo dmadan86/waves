@@ -40,7 +40,7 @@ import type { E2eeOutboxRow, E2eeRecordRow, LocalStore, StoredRow } from './stor
 //   3 — the couple e2ee tables (`e2ee_records`, `e2ee_outbox`). They are created by
 //       SCHEMA below, so there is nothing to backfill; the bump records that this
 //       file now has them.
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 // Associated data bound into each sealed payload: the table plus the row's
 // identity. It is authenticated, not encrypted, so a ciphertext copied to a
@@ -55,6 +55,7 @@ const queueAad = (clientMutationId: string, seq: number): string =>
 const draftAad = (key: string): string => ['drafts', key].join(AAD_SEP);
 const e2eeRecordAad = (groupId: string, id: string): string =>
   ['e2ee_records', groupId, id].join(AAD_SEP);
+const e2eePendingAad = (groupId: string): string => ['e2ee_pending', groupId].join(AAD_SEP);
 const e2eeOutboxAad = (id: string, groupId: string): string =>
   ['e2ee_outbox', id, groupId].join(AAD_SEP);
 
@@ -78,6 +79,8 @@ const e2eeOutboxAad = (id: string, groupId: string): string =>
  * Reported once per table per process: a cold start walks thousands of rows and
  * one lost key would otherwise be thousands of identical Sentry events.
  */
+/** Prefix of an `e2ee_pending` row that could not be read and was set aside. */
+const CORRUPT_PENDING = 'corrupt:';
 const quarantineReported = new Set<string>();
 function reportQuarantine(table: string, skipped: number, total: number, cause: unknown): void {
   if (skipped === 0 || quarantineReported.has(table)) return;
@@ -159,6 +162,11 @@ CREATE TABLE IF NOT EXISTS e2ee_outbox (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS e2ee_pending (
+  group_id TEXT PRIMARY KEY,
+  json     TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS retained_work (
   id          INTEGER PRIMARY KEY CHECK (id = 1),
   owner_id    TEXT NOT NULL,
@@ -228,6 +236,11 @@ class SqliteStore implements LocalStore {
       // pull now asks for, and each one overwrites its older copy by id. Only
       // the cursors — nothing unsent (queue, drafts) is touched.
       await database.runAsync(`DELETE FROM sync_cursors WHERE 1 = 1`);
+    }
+    if (from < 4) {
+      // Version 3 stored pending ops as synthetic rows. Their sender was lost,
+      // so discard them rather than replaying them under a later sender.
+      await database.runAsync(`DELETE FROM e2ee_records WHERE substr(id, 1, 7) = '__meta:'`);
     }
     // `user_version` takes a literal, not a bound parameter.
     // from < 3: nothing to do, SCHEMA created the e2ee tables.
@@ -694,6 +707,7 @@ class SqliteStore implements LocalStore {
       await database.withTransactionAsync(async () => {
         await database.runAsync(`DELETE FROM e2ee_records WHERE group_id = ?`, [groupId]);
         await database.runAsync(`DELETE FROM e2ee_outbox WHERE group_id = ?`, [groupId]);
+        await database.runAsync(`DELETE FROM e2ee_pending WHERE group_id = ?`, [groupId]);
         for (const row of rows)
           await database.runAsync(
             `INSERT INTO e2ee_records (group_id, id, kind, json) VALUES (?, ?, ?, ?)
@@ -775,6 +789,61 @@ class SqliteStore implements LocalStore {
     });
   }
 
+  readE2eePending(): Promise<[string, e2ee.PendingOp[]][]> {
+    return this.serial.run(async () => {
+      const database = await this.db();
+      const key = await loadE2eeKey();
+      const rows = await database.getAllAsync<{ group_id: string; json: string }>(
+        `SELECT group_id, json FROM e2ee_pending`,
+      );
+      const out: [string, e2ee.PendingOp[]][] = [];
+      let skipped = 0;
+      for (const row of rows) {
+        if (row.group_id.startsWith(CORRUPT_PENDING)) continue; // kept aside by writeE2eePending
+        try {
+          const value = e2ee.decodeJson(decryptWith(key, row.json, e2eePendingAad(row.group_id)));
+          if (Array.isArray(value)) out.push([row.group_id, value as e2ee.PendingOp[]]);
+        } catch {
+          skipped += 1;
+        }
+      }
+      // Fixed text only: the real error could quote decrypted record content.
+      reportQuarantine('e2ee_pending', skipped, rows.length, new Error('E2EE_DECODE_FAILED'));
+      return out;
+    });
+  }
+
+  writeE2eePending(groupId: string, pending: readonly e2ee.PendingOp[]): Promise<void> {
+    return this.serial.run(async () => {
+      const database = await this.db();
+      const key = await loadE2eeKey();
+      // An unreadable row is set aside, not overwritten, so its operations are not silently lost.
+      const old = await database.getFirstAsync<{ json: string }>(
+        `SELECT json FROM e2ee_pending WHERE group_id = ?`,
+        [groupId],
+      );
+      if (old) {
+        try {
+          decryptWith(key, old.json, e2eePendingAad(groupId));
+        } catch {
+          await database.runAsync(
+            `INSERT OR IGNORE INTO e2ee_pending (group_id, json) VALUES (?, ?)`,
+            [`${CORRUPT_PENDING}${groupId}`, old.json],
+          );
+        }
+      }
+      if (pending.length === 0) {
+        await database.runAsync(`DELETE FROM e2ee_pending WHERE group_id = ?`, [groupId]);
+        return;
+      }
+      await database.runAsync(
+        `INSERT INTO e2ee_pending (group_id, json) VALUES (?, ?)
+         ON CONFLICT (group_id) DO UPDATE SET json = excluded.json`,
+        [groupId, encryptWith(key, e2ee.encodeJson(pending), e2eePendingAad(groupId))],
+      );
+    });
+  }
+
   deleteE2eeOutbox(ids: readonly string[]): Promise<void> {
     if (ids.length === 0) return Promise.resolve();
     return this.serial.run(async () => {
@@ -785,6 +854,17 @@ class SqliteStore implements LocalStore {
     });
   }
 
+  updateE2eeOutbox(row: E2eeOutboxRow): Promise<void> {
+    return this.serial.run(async () => {
+      const database = await this.db();
+      const key = await loadE2eeKey();
+      await database.runAsync(`UPDATE e2ee_outbox SET msg_json = ? WHERE id = ?`, [
+        encryptWith(key, e2ee.encodeJson(row.msg), e2eeOutboxAad(row.id, row.groupId)),
+        row.id,
+      ]);
+    });
+  }
+
   /** Sign-out only. TODO(slice 5): the "back up first" prompt runs before this. */
   wipeE2ee(): Promise<void> {
     return this.serial.run(async () => {
@@ -792,6 +872,7 @@ class SqliteStore implements LocalStore {
       await database.withTransactionAsync(async () => {
         await database.runAsync(`DELETE FROM e2ee_records WHERE 1 = 1`);
         await database.runAsync(`DELETE FROM e2ee_outbox WHERE 1 = 1`);
+        await database.runAsync(`DELETE FROM e2ee_pending WHERE 1 = 1`);
       });
       await destroyE2eeKey();
     });

@@ -16,7 +16,8 @@ export interface DeviceKeyPair {
   readonly privateKey: Uint8Array;
 }
 
-const INFO = new TextEncoder().encode('waves-e2ee-v1');
+const INFO_V1 = new TextEncoder().encode('waves-e2ee-v1');
+const INFO_V2 = new TextEncoder().encode('waves/e2ee/pair/v2');
 
 export function generateDeviceKeyPair(randomBytes: RandomBytes): DeviceKeyPair {
   const privateKey = randomBytes(32);
@@ -38,5 +39,10 @@ export function sharedSecret(myPrivate: Uint8Array, theirPublic: Uint8Array): Ui
 
 /** 32-byte symmetric key for one device pair: HKDF-SHA256(X25519, empty salt, "waves-e2ee-v1"). */
 export function pairKey(myPrivate: Uint8Array, theirPublic: Uint8Array): Uint8Array {
-  return hkdf(sha256, sharedSecret(myPrivate, theirPublic), new Uint8Array(0), INFO, 32);
+  return hkdf(sha256, sharedSecret(myPrivate, theirPublic), new Uint8Array(0), INFO_V2, 32);
+}
+
+/** Legacy pair key for opening existing v1 envelopes. */
+export function pairKeyV1(myPrivate: Uint8Array, theirPublic: Uint8Array): Uint8Array {
+  return hkdf(sha256, sharedSecret(myPrivate, theirPublic), new Uint8Array(0), INFO_V1, 32);
 }

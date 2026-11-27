@@ -20,6 +20,7 @@
  */
 
 import { compareHlc } from './hlc';
+import { parseHlc } from './hlc';
 
 export type Field = readonly [value: unknown, hlc: string];
 
@@ -39,6 +40,10 @@ export interface PutOp {
   readonly kind: string;
   readonly createdBy: string;
   readonly fields: Readonly<Record<string, Field>>;
+  /** Set only for the immutable first creation, authenticated by sender identity. */
+  readonly create?: true;
+  /** Original creation clock, carried by snapshots. */
+  readonly createdHlc?: string;
 }
 export interface DelOp {
   readonly op: 'del';
@@ -46,8 +51,352 @@ export interface DelOp {
   readonly hlc: string;
 }
 export type MergeOp = PutOp | DelOp;
+export interface PendingOp {
+  readonly op: MergeOp;
+  readonly sender: string;
+  readonly receivedAt: number;
+}
 
 export type Store = Readonly<Record<string, RecordState>>;
+
+export type MergeResult = Store;
+export interface DetailedMergeResult {
+  readonly store: Store;
+  readonly rejected: readonly { op: unknown; reason: string }[];
+  readonly pending: readonly MergeOp[];
+}
+
+/** Typed diagnostics API; applyOps remains source compatible with Store callers. */
+export function mergeOps(
+  store: Store,
+  ops: readonly unknown[],
+  senderMemberId: string,
+  opts: MergeOpts = {},
+): DetailedMergeResult {
+  const merged = applyOps(store, ops as readonly MergeOp[], senderMemberId, opts);
+  const meta = diagnostics.get(merged as object) ?? { rejected: [], pending: [] };
+  return { store: merged, rejected: meta.rejected, pending: meta.pending as readonly MergeOp[] };
+}
+
+const diagnostics = new WeakMap<
+  object,
+  { rejected: readonly { op: unknown; reason: string }[]; pending: readonly unknown[] }
+>();
+export function getMergeDiagnostics(store: Store): {
+  rejected: readonly { op: unknown; reason: string }[];
+  pending: readonly unknown[];
+} {
+  return diagnostics.get(store as object) ?? { rejected: [], pending: [] };
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const OBJECT_PROTOTYPE_KEYS = new Set([
+  ...Object.getOwnPropertyNames(Object.prototype),
+  'prototype',
+]);
+const FIELDS: Record<string, ReadonlySet<string>> = {
+  txn: new Set([
+    'kind',
+    'category',
+    'amount',
+    'currency',
+    'date',
+    'note',
+    'description',
+    'paid_by',
+    'paidBy',
+    'split',
+    'splits',
+    'updated_at',
+    'created_at',
+    'property_id',
+    'kind',
+    'loanId',
+    'recurringId',
+    'occurrenceDate',
+    'paymentMethod',
+    'place',
+    'reimbursable',
+    'receiptKey',
+    'investmentId',
+    'propertyId',
+    'tenancy_id',
+    'receipt',
+    'title',
+    'extra',
+    'x',
+    'y',
+    'a',
+    'b',
+    'n',
+    'amt',
+    'title',
+    'extra',
+  ]),
+  rent: new Set([
+    'kind',
+    'loanId',
+    'recurringId',
+    'occurrenceDate',
+    'paymentMethod',
+    'place',
+    'reimbursable',
+    'receiptKey',
+    'investmentId',
+    'propertyId',
+    'amount',
+    'currency',
+    'date',
+    'due_date',
+    'paid_date',
+    'note',
+    'description',
+    'status',
+    'property_id',
+    'tenancy_id',
+    'tenant',
+    'title',
+    'extra',
+    'created_at',
+    'updated_at',
+    'x',
+    'y',
+    'a',
+    'b',
+    'n',
+    'amt',
+  ]),
+  property: new Set([
+    'type',
+    'name',
+    'address',
+    'locality',
+    'address',
+    'rent',
+    'currency',
+    'status',
+    'bedrooms',
+    'bathrooms',
+    'notes',
+    'created_at',
+    'updated_at',
+    'note',
+  ]),
+  settlement: new Set([
+    'amount',
+    'currency',
+    'date',
+    'note',
+    'from',
+    'to',
+    'from_member_id',
+    'to_member_id',
+    'created_at',
+    'updated_at',
+  ]),
+  tenancy: new Set([
+    'propertyId',
+    'unit',
+    'rentFrequency',
+    'escalationPct',
+    'endedOn',
+    'depositReturned',
+    'depositKept',
+    'endDate',
+    'unit',
+    'depositHeld',
+    'rentFrequency',
+    'startDate',
+    'endDate',
+    'escalationPct',
+    'status',
+    'endedOn',
+    'depositReturned',
+    'depositKept',
+    'name',
+    'tenantName',
+    'tenantPhone',
+    'note',
+    'start_date',
+    'end_date',
+    'rent',
+    'currency',
+    'tenant',
+    'property_id',
+    'notes',
+    'created_at',
+    'updated_at',
+  ]),
+  _former: new Set(['name']),
+  // Every field of these kinds is read through the app's own tolerant decoders; none is trusted for authorization.
+  vehicle: new Set<string>(),
+  licence: new Set<string>(),
+  recurring: new Set([
+    'txnKind',
+    'amount',
+    'currency',
+    'category',
+    'note',
+    'cadence',
+    'interval',
+    'secondDay',
+    'anchorDate',
+    'nextDate',
+    'endDate',
+    'autoPost',
+    'active',
+    'investmentId',
+    'tenancyId',
+  ]),
+  loan: new Set([
+    'direction',
+    'counterpart',
+    'principal',
+    'currency',
+    'note',
+    'startDate',
+    'status',
+    'synced',
+    'shareSeq',
+  ]),
+  budget: new Set(['category', 'limit', 'currency']),
+  date: new Set(['label', 'name', 'day', 'month', 'year']),
+  investment: new Set([
+    'type',
+    'name',
+    'currency',
+    'openingInvested',
+    'openingAsOf',
+    'currentValue',
+    'valueAsOf',
+    'taxWrapper',
+    'openingAsOf',
+    'currentValue',
+    'valueAsOf',
+    'maturityDate',
+    'taxWrapper',
+    'status',
+    'note',
+  ]),
+};
+
+export function validateOp(
+  input: unknown,
+): { ok: true; op: MergeOp } | { ok: false; reason: string } {
+  try {
+    if (!input || typeof input !== 'object') return { ok: false, reason: 'shape' };
+    const op = input as Record<string, unknown>;
+    if (typeof op.id !== 'string' || op.id.length < 1 || op.id.length > 128)
+      return { ok: false, reason: 'id' };
+    if (op.id.startsWith('__meta:')) return { ok: false, reason: 'id' };
+    if (UUID.test(op.id) === false && !/^[A-Za-z0-9_:-]{1,128}$/.test(op.id))
+      return { ok: false, reason: 'id' };
+    if (op.op === 'del') {
+      if (typeof op.hlc !== 'string') return { ok: false, reason: 'hlc' };
+      validateHlc(op.hlc);
+      return { ok: true, op: input as DelOp };
+    }
+    if (
+      op.op !== 'put' ||
+      typeof op.kind !== 'string' ||
+      !FIELDS[op.kind] ||
+      typeof op.createdBy !== 'string' ||
+      !op.createdBy ||
+      op.createdBy.length > 128 ||
+      !op.fields ||
+      typeof op.fields !== 'object' ||
+      Array.isArray(op.fields)
+    )
+      return { ok: false, reason: 'shape' };
+    if (op.createdHlc !== undefined) {
+      if (op.create !== true || typeof op.createdHlc !== 'string')
+        return { ok: false, reason: 'createdHlc' };
+      validateHlc(op.createdHlc);
+    }
+    const entries = Object.entries(op.fields as Record<string, unknown>);
+    if (!entries.length || entries.length > 128) return { ok: false, reason: 'fields' };
+    for (const [name, raw] of entries) {
+      if (
+        !/^[A-Za-z_][A-Za-z0-9_]{0,127}$/.test(name) ||
+        OBJECT_PROTOTYPE_KEYS.has(name) ||
+        !Array.isArray(raw) ||
+        raw.length !== 2 ||
+        typeof raw[1] !== 'string'
+      )
+        return { ok: false, reason: 'field' };
+      validateHlc(raw[1]);
+      const value = raw[0];
+      if (
+        name === 'occurrenceDate' &&
+        typeof value === 'string' &&
+        !/^\d{4}-\d{2}-\d{2}$/.test(value)
+      )
+        return { ok: false, reason: 'field' };
+      // Objects and arrays (contacts, custom fields, carried future fields) are JSON-safe, size-bounded below.
+      const isEncodedObject = value !== null && typeof value === 'object';
+      if (!(
+        value === null ||
+        value === undefined || // an encoder's unset optional field; it serialises as null
+        (typeof value === 'string' && value.length <= 30000) ||
+        typeof value === 'boolean' ||
+        (typeof value === 'number' && Number.isFinite(value)) ||
+        (typeof value === 'bigint' && value.toString().length <= 40) ||
+        isEncodedObject
+      ))
+        return { ok: false, reason: 'value' };
+      if (isEncodedObject) {
+        const json = JSON.stringify(value);
+        if (!json || json.length > 30000) return { ok: false, reason: 'value' };
+      }
+      if (
+        (JSON.stringify(value, (_k, v) => (typeof v === 'bigint' ? String(v) : v))?.length ?? 0) >
+        32768
+      )
+        return { ok: false, reason: 'value' };
+    }
+    return { ok: true, op: input as MergeOp };
+  } catch {
+    return { ok: false, reason: 'invalid' };
+  }
+}
+
+function validateHlc(s: string): void {
+  const h = parseHlc(s);
+  if (
+    h.wall < 0 ||
+    h.wall > Date.now() + 86_400_000 ||
+    h.counter < 0 ||
+    h.counter > 1_000_000 ||
+    !h.device ||
+    h.device.length > 128
+  )
+    throw new Error('invalid');
+}
+
+export function validateMessage(
+  msg: unknown,
+):
+  | { ok: true; ops: readonly MergeOp[]; rejected: readonly { op: unknown; reason: string }[] }
+  | { ok: false; reason: string } {
+  if (
+    !msg ||
+    typeof msg !== 'object' ||
+    typeof (msg as { msgId?: unknown }).msgId !== 'string' ||
+    (msg as { msgId: string }).msgId.length < 1 ||
+    (msg as { msgId: string }).msgId.length > 128 ||
+    !Array.isArray((msg as { ops?: unknown }).ops) ||
+    (msg as { ops: unknown[] }).ops.length > 4096
+  )
+    return { ok: false, reason: 'shape' };
+  const ops: MergeOp[] = [],
+    rejected: { op: unknown; reason: string }[] = [];
+  for (const raw of (msg as { ops: unknown[] }).ops) {
+    const r = validateOp(raw);
+    if (r.ok) ops.push(r.op);
+    else rejected.push({ op: raw, reason: r.reason });
+  }
+  return { ok: true, ops, rejected };
+}
 
 const minHlc = (fields: Readonly<Record<string, Field>>): string | undefined =>
   Object.values(fields).reduce<string | undefined>(
@@ -58,15 +407,29 @@ const minHlc = (fields: Readonly<Record<string, Field>>): string | undefined =>
 const newer = (a: string, b: string | undefined): boolean =>
   b === undefined || compareHlc(a, b) > 0;
 
+export interface MergeOpts {
+  trusted?: boolean;
+  /** `fields` are the record's merged fields, so a restarted phone can recognise a shared id. */
+  isSharedId?: (id: string, fields: Readonly<Record<string, Field>>) => boolean;
+}
+
 export function applyOps(
   store: Store,
   ops: readonly MergeOp[],
   senderMemberId: string,
-  opts: { trusted?: boolean } = {},
-): Store {
-  const out: Record<string, RecordState> = { ...store };
-  for (const op of ops) {
-    const cur = out[op.id];
+  opts: MergeOpts = {},
+): MergeResult {
+  const out: Record<string, RecordState> = Object.assign(Object.create(null), store);
+  const rejected: { op: unknown; reason: string }[] = [];
+  const pending: MergeOp[] = [];
+  for (const raw of ops as readonly unknown[]) {
+    const valid = validateOp(raw);
+    if (!valid.ok) {
+      rejected.push({ op: raw, reason: valid.reason });
+      continue;
+    }
+    const op = valid.op;
+    const cur = Object.hasOwn(out, op.id) ? out[op.id] : undefined;
     if (op.op === 'del') {
       if (!cur) out[op.id] = { id: op.id, kind: '', createdBy: '', fields: {}, deleted: op.hlc };
       else if (newer(op.hlc, cur.deleted)) out[op.id] = { ...cur, deleted: op.hlc };
@@ -75,23 +438,46 @@ export function applyOps(
     if (op.op !== 'put') continue;
     const known = cur && cur.createdBy !== '';
     if (known && op.kind !== cur.kind) continue;
+    if (!opts.trusted && !known && op.createdBy !== senderMemberId && op.create !== true) {
+      pending.push(op);
+      continue;
+    }
+    // Untrusted: an explicit create must be the sender's own.
+    if (!opts.trusted && op.create === true && op.createdBy !== senderMemberId) {
+      rejected.push({ op: raw, reason: 'create-author' });
+      continue;
+    }
+    // Classify with the fields field-LWW will keep, not the raw incoming overlay.
+    const kept: Record<string, Field> = Object.assign(Object.create(null), cur?.fields);
+    for (const [k, f] of Object.entries(op.fields))
+      if (!Object.hasOwn(kept, k) || newer(f[1], kept[k]![1])) kept[k] = f;
+    const shared = opts.isSharedId?.(op.id, kept) ?? false;
     if (
       !opts.trusted &&
-      op.createdBy !== senderMemberId &&
-      (!known || op.createdBy !== cur.createdBy)
+      ((!known && op.createdBy !== senderMemberId) ||
+        (known &&
+          op.createdBy !== cur.createdBy &&
+          !(shared && op.create === true && op.createdBy === senderMemberId) &&
+          // A shared-id edit names the creator its author saw; the creator itself never moves.
+          !(shared && op.create !== true)))
     )
       continue;
-    const fields: Record<string, Field> = { ...cur?.fields };
+    const fields: Record<string, Field> = Object.assign(Object.create(null), cur?.fields);
     for (const [k, f] of Object.entries(op.fields))
-      if (!fields[k] || newer(f[1], fields[k]![1])) fields[k] = f;
+      if (!Object.hasOwn(fields, k) || newer(f[1], fields[k]![1])) fields[k] = f;
     let createdBy = op.createdBy;
-    let createdHlc = minHlc(op.fields);
+    // Only authenticated creates set the creation clock; an edit never lowers it.
+    let createdHlc = op.create === true ? (op.createdHlc ?? minHlc(op.fields)) : undefined;
     if (known) {
-      const was = cur.createdHlc ?? minHlc(cur.fields);
-      const c = createdHlc === undefined ? 1 : was === undefined ? -1 : compareHlc(createdHlc, was);
-      if (c > 0 || (c === 0 && op.createdBy >= cur.createdBy)) {
+      if (op.create !== true) {
         createdBy = cur.createdBy;
-        createdHlc = was;
+        createdHlc = cur.createdHlc;
+      } else if (cur.createdHlc !== undefined) {
+        const c = createdHlc === undefined ? 1 : compareHlc(createdHlc, cur.createdHlc);
+        if (c > 0 || (c === 0 && op.createdBy >= cur.createdBy)) {
+          createdBy = cur.createdBy;
+          createdHlc = cur.createdHlc;
+        }
       }
     }
     out[op.id] = {
@@ -103,14 +489,35 @@ export function applyOps(
       fields,
     };
   }
-  return out;
+  diagnostics.set(out, { rejected, pending });
+  return out as MergeResult;
+}
+
+/** Replays locally persisted pre-creation edits after their authenticated create arrives. */
+export function mergePending(
+  store: Store,
+  pending: readonly PendingOp[],
+  opts: MergeOpts = {},
+): MergeResult {
+  let result: MergeResult = store;
+  const wait: PendingOp[] = [];
+  for (const item of pending) {
+    if (!Object.hasOwn(store, item.op.id) || !store[item.op.id]?.createdBy) {
+      wait.push(item);
+      continue;
+    }
+    result = applyOps(result, [item.op], item.sender, opts);
+  }
+  diagnostics.set(result as object, { rejected: [], pending: wait });
+  return result;
 }
 
 /** Plain record for the UI, or null when tombstoned. Hlcs are stripped. */
 export function materialise(rec: RecordState): Record<string, unknown> | null {
-  const data: Record<string, unknown> = {};
+  const data: Record<string, unknown> = Object.create(null);
   let alive = false;
   for (const [k, [v, h]] of Object.entries(rec.fields)) {
+    // Carried (unknown) fields travel along; id, kind and createdBy below always win over them.
     if (newer(h, rec.deleted)) {
       data[k] = v;
       alive = true;

@@ -20,11 +20,22 @@ export interface EnvelopeAad {
 /** What is inside an envelope. `ops` are merge ops or snapshot parts. */
 export interface Plaintext {
   readonly v: 1;
+  /** Key agreement version; omitted means legacy v1 when reading. */
+  readonly kv?: 1 | 2;
   readonly msgId: string;
   readonly ops: readonly unknown[];
 }
 
 const BIG = '$big';
+
+export class E2eeError extends Error {
+  readonly code: 'E2EE_DECODE_FAILED' | 'E2EE_BAD_SHAPE';
+  constructor(code: 'E2EE_DECODE_FAILED' | 'E2EE_BAD_SHAPE') {
+    super(code);
+    this.name = 'E2eeError';
+    this.code = code;
+  }
+}
 
 /** JSON with bigints as `{"$big":"123"}` so they round-trip exactly. */
 export function encodeJson(value: unknown): string {
@@ -58,7 +69,7 @@ export function seal(
 ): Uint8Array {
   if (nonce.length !== NONCE_BYTES) throw new Error('e2ee: nonce must be 24 bytes');
   const ct = xchacha20poly1305(key, nonce, aadBytes(aad)).encrypt(
-    enc.encode(encodeJson(plaintext)),
+    enc.encode(encodeJson({ ...plaintext, kv: plaintext.kv ?? 2 })),
   );
   const out = new Uint8Array(NONCE_BYTES + ct.length);
   out.set(nonce);
@@ -70,12 +81,22 @@ export function seal(
 export function open(key: Uint8Array, sealed: Uint8Array, aad: EnvelopeAad): Plaintext {
   if (sealed.length < NONCE_BYTES + 16) throw new Error('e2ee: message too short');
   const nonce = sealed.subarray(0, NONCE_BYTES);
-  const text = dec.decode(
-    xchacha20poly1305(key, nonce, aadBytes(aad)).decrypt(sealed.subarray(NONCE_BYTES)),
-  );
-  const p = decodeJson(text) as Plaintext;
-  if (!p || p.v !== 1 || typeof p.msgId !== 'string' || !Array.isArray(p.ops)) {
-    throw new Error('e2ee: unsupported payload');
+  try {
+    const text = dec.decode(
+      xchacha20poly1305(key, nonce, aadBytes(aad)).decrypt(sealed.subarray(NONCE_BYTES)),
+    );
+    const p = decodeJson(text) as Plaintext;
+    if (
+      !p ||
+      p.v !== 1 ||
+      typeof p.msgId !== 'string' ||
+      !Array.isArray(p.ops) ||
+      (p.kv !== undefined && p.kv !== 1 && p.kv !== 2)
+    )
+      throw new E2eeError('E2EE_BAD_SHAPE');
+    return { ...p, kv: p.kv ?? 1 };
+  } catch (error) {
+    if (error instanceof E2eeError) throw error;
+    throw new E2eeError('E2EE_DECODE_FAILED');
   }
-  return p;
 }

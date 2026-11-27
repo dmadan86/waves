@@ -57,13 +57,15 @@ async function send(
   sender: string,
   items: unknown[],
   hint: string | null = null,
+  eventId: string | null = null,
 ) {
   return as(profileId, () =>
-    client.query(`SELECT waves_mailbox_send($1, $2, $3::jsonb, $4) AS n`, [
+    client.query(`SELECT waves_mailbox_send($1, $2, $3::jsonb, $4, $5) AS n`, [
       groupId,
       sender,
       JSON.stringify(items),
       hint,
+      eventId,
     ]),
   );
 }
@@ -83,6 +85,18 @@ describe('devices', () => {
     expect(await n(`SELECT count(*) n FROM e2ee_devices WHERE id = $1`, [a])).toBe(0);
   });
 
+  it('keeps a removed device key revoked for its profile only', async () => {
+    const profile = couple.profileIds[alice]!;
+    const otherProfile = couple.profileIds[bob]!;
+    const removedKey = randomBytes(32);
+    const removedId = await register(profile, removedKey);
+    await as(profile, () => client.query(`SELECT waves_remove_device($1)`, [removedId]));
+
+    await expect(register(profile, removedKey)).rejects.toThrow('DEVICE_REVOKED');
+    expect(await register(profile, randomBytes(32))).toBeTruthy();
+    expect(await register(otherProfile, removedKey)).toBeTruthy();
+  });
+
   it('rejects a key that is not 32 bytes and direct writes', async () => {
     await expect(register(couple.profileIds[alice]!, randomBytes(31))).rejects.toThrow();
     await expectDenied(
@@ -93,6 +107,15 @@ describe('devices', () => {
         ]),
       ),
     );
+  });
+
+  it('caps registered devices at ten while allowing idempotent re-registration', async () => {
+    const profile = couple.profileIds[alice]!;
+    const firstKey = randomBytes(32);
+    const first = await register(profile, firstKey);
+    expect(await register(profile, firstKey)).toBe(first);
+    for (let i = 1; i < 10; i++) await register(profile);
+    await expect(register(profile)).rejects.toThrow('DEVICE_LIMIT_REACHED');
   });
 
   it('removing a device cascades its mailbox rows', async () => {
@@ -129,7 +152,84 @@ describe('devices', () => {
   });
 });
 
+describe('mailbox membership locking', () => {
+  it('rejects sends from a sender whose membership has already been removed', async () => {
+    const profile = couple.profileIds[alice]!;
+    const sender = await register(profile);
+    await client.query(`UPDATE group_members SET removed_at = now() WHERE id = $1`, [
+      couple.memberIds[alice],
+    ]);
+    await expect(send(profile, couple.groupId, sender, [])).rejects.toThrow();
+  });
+
+  it('waits for a concurrent member removal, then rejects the departed recipient', async () => {
+    const other = await connect();
+    const senderProfile = couple.profileIds[alice]!;
+    const recipientProfile = couple.profileIds[bob]!;
+    const sender = await register(senderProfile);
+    const recipient = await register(recipientProfile);
+    try {
+      await client.query('BEGIN');
+      await client.query(`UPDATE group_members SET removed_at = now() WHERE id = $1`, [
+        couple.memberIds[bob],
+      ]);
+      await other.query('BEGIN');
+      await other.query(`SELECT set_config('request.jwt.claims', $1, true)`, [
+        JSON.stringify({ sub: senderProfile, role: 'authenticated' }),
+      ]);
+      await other.query('SET LOCAL ROLE authenticated');
+      let settled = false;
+      const sending = other
+        .query(`SELECT waves_mailbox_send($1, $2, $3::jsonb, NULL, NULL)`, [
+          couple.groupId,
+          sender,
+          JSON.stringify([
+            { recipient_device: recipient, ciphertext: ct(), delivery_id: randomUUID() },
+          ]),
+        ])
+        .finally(() => {
+          settled = true;
+        });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(settled).toBe(false);
+      await client.query('COMMIT');
+      await expect(sending).rejects.toThrow('A recipient is not in this group');
+      await other.query('ROLLBACK').catch(() => undefined);
+    } finally {
+      await client.query('ROLLBACK').catch(() => undefined);
+      await other.end();
+    }
+  });
+});
+
 describe('send validation', () => {
+  it('does not reinsert a delivery after the receiver acknowledged it', async () => {
+    const a = await register(couple.profileIds[alice]!);
+    const b = await register(couple.profileIds[bob]!);
+    const deliveryId = randomUUID();
+    const item = { recipient_device: b, ciphertext: ct(), delivery_id: deliveryId };
+    expect((await send(couple.profileIds[alice]!, couple.groupId, a, [item])).rows[0].n).toBe(1);
+    await as(couple.profileIds[bob]!, () => client.query('DELETE FROM group_mailbox'));
+    expect((await send(couple.profileIds[alice]!, couple.groupId, a, [item])).rows[0].n).toBe(0);
+    expect(
+      await n('SELECT count(*) n FROM group_mailbox WHERE recipient_device_id = $1', [b]),
+    ).toBe(0);
+  });
+
+  it('keeps sender profile retained-byte accounting after sender device deletion', async () => {
+    const a = await register(couple.profileIds[alice]!);
+    const b = await register(couple.profileIds[bob]!);
+    await send(couple.profileIds[alice]!, couple.groupId, a, [
+      { recipient_device: b, ciphertext: ct() },
+    ]);
+    await as(couple.profileIds[alice]!, () => client.query('SELECT waves_remove_device($1)', [a]));
+    expect(
+      await n('SELECT count(*) n FROM group_mailbox WHERE sender_profile_id = $1', [
+        couple.profileIds[alice],
+      ]),
+    ).toBe(1);
+  });
+
   it('delivers to partner and to own other device', async () => {
     const a1 = await register(couple.profileIds[alice]!);
     const a2 = await register(couple.profileIds[alice]!);
@@ -181,6 +281,66 @@ describe('send validation', () => {
     await expect(
       send(trip.profileIds[alice]!, couple.groupId, x, [{ recipient_device: b, ciphertext: ct() }]),
     ).rejects.toThrow();
+  });
+
+  it('rejects duplicate recipients and calls over the aggregate ciphertext byte limit', async () => {
+    const a = await register(couple.profileIds[alice]!);
+    const b = await register(couple.profileIds[bob]!);
+    await expect(
+      send(couple.profileIds[alice]!, couple.groupId, a, [
+        { recipient_device: b, ciphertext: ct() },
+        { recipient_device: b, ciphertext: ct() },
+      ]),
+    ).rejects.toThrow('DUPLICATE_RECIPIENT_DEVICE');
+    await expect(
+      send(couple.profileIds[alice]!, couple.groupId, a, [
+        { recipient_device: b, ciphertext: ct(65536) },
+        { recipient_device: a, ciphertext: ct(65536) },
+        { recipient_device: randomUUID(), ciphertext: ct(65536) },
+        { recipient_device: randomUUID(), ciphertext: ct(65536) },
+        { recipient_device: randomUUID(), ciphertext: ct(65536) },
+        { recipient_device: randomUUID(), ciphertext: ct(65536) },
+        { recipient_device: randomUUID(), ciphertext: ct(65536) },
+        { recipient_device: randomUUID(), ciphertext: ct(65536) },
+        { recipient_device: randomUUID(), ciphertext: ct(65536) },
+      ]),
+    ).rejects.toThrow('CALL_BYTES_LIMIT_EXCEEDED');
+  });
+
+  it('rejects sends that would exceed retained bytes per recipient device', async () => {
+    const a = await register(couple.profileIds[alice]!);
+    const b = await register(couple.profileIds[bob]!);
+    // Seed the pending mailbox at the 8 MiB recipient ceiling.
+    await client.query(
+      `INSERT INTO group_mailbox(group_id, sender_device_id, sender_profile_id, recipient_device_id, ciphertext)
+      SELECT $1, $2, $3, $4, decode(repeat('00', 65536), 'hex') FROM generate_series(1, 128)`,
+      [couple.groupId, a, couple.profileIds[alice], b],
+    );
+    await expect(
+      send(couple.profileIds[alice]!, couple.groupId, a, [
+        { recipient_device: b, ciphertext: ct() },
+      ]),
+    ).rejects.toThrow('RECIPIENT_MAILBOX_BYTES_LIMIT_EXCEEDED');
+  });
+
+  it('rejects sends that would exceed retained bytes per sender profile', async () => {
+    const a = await register(couple.profileIds[alice]!);
+    const ownSecondDevice = await register(couple.profileIds[alice]!);
+    const partnerDevices = await Promise.all(
+      Array.from({ length: 4 }, () => register(couple.profileIds[bob]!)),
+    );
+    for (const device of partnerDevices) {
+      await client.query(
+        `INSERT INTO group_mailbox(group_id, sender_device_id, sender_profile_id, recipient_device_id, ciphertext)
+        SELECT $1, $2, $3, $4, decode(repeat('00', 65536), 'hex') FROM generate_series(1, 128)`,
+        [couple.groupId, a, couple.profileIds[alice], device],
+      );
+    }
+    await expect(
+      send(couple.profileIds[alice]!, couple.groupId, a, [
+        { recipient_device: ownSecondDevice, ciphertext: ct() },
+      ]),
+    ).rejects.toThrow('SENDER_PROFILE_MAILBOX_BYTES_LIMIT_EXCEEDED');
   });
 });
 
@@ -258,6 +418,44 @@ describe('rent hint', () => {
     expect(act.rows).toHaveLength(1);
     expect(act.rows[0].payload).toEqual({});
   });
+
+  it('deduplicates stable delivery ids and a logical rent event across resealed retries', async () => {
+    const a = await register(couple.profileIds[alice]!);
+    const b = await register(couple.profileIds[bob]!);
+    const deliveryId = randomUUID();
+    const eventId = randomUUID();
+    await send(
+      couple.profileIds[alice]!,
+      couple.groupId,
+      a,
+      [{ recipient_device: b, ciphertext: ct(), delivery_id: deliveryId }],
+      'rent_recorded',
+      eventId,
+    );
+    await send(
+      couple.profileIds[alice]!,
+      couple.groupId,
+      a,
+      [{ recipient_device: b, ciphertext: ct(), delivery_id: deliveryId }],
+      'rent_recorded',
+      eventId,
+    );
+    expect(
+      await n(`SELECT count(*) n FROM group_mailbox WHERE recipient_device_id = $1`, [b]),
+    ).toBe(1);
+    expect(
+      await n(
+        `SELECT count(*) n FROM notifications WHERE group_id = $1 AND kind = 'rent_recorded'`,
+        [couple.groupId],
+      ),
+    ).toBe(1);
+    expect(
+      await n(
+        `SELECT count(*) n FROM activity_log WHERE group_id = $1 AND verb = 'rent_recorded'`,
+        [couple.groupId],
+      ),
+    ).toBe(1);
+  });
 });
 
 describe('surface', () => {
@@ -266,13 +464,21 @@ describe('surface', () => {
       'waves_register_device(bytea)',
       'waves_remove_device(uuid)',
       'waves_group_devices(uuid)',
-      'waves_mailbox_send(uuid, uuid, jsonb, text)',
+      'waves_mailbox_send(uuid, uuid, jsonb, text, text)',
     ]) {
       const r = await client.query(`SELECT has_function_privilege('anon', $1, 'EXECUTE') AS ok`, [
         `public.${sig}`,
       ]);
       expect(r.rows[0].ok, sig).toBe(false);
     }
+    const oldSend = await client.query(
+      `SELECT to_regprocedure('public.waves_mailbox_send(uuid,uuid,jsonb,text)') AS fn`,
+    );
+    expect(oldSend.rows[0].fn).toBeNull();
+    const authSend = await client.query(
+      `SELECT has_function_privilege('authenticated', 'public.waves_mailbox_send(uuid,uuid,jsonb,text,text)', 'EXECUTE') AS ok`,
+    );
+    expect(authSend.rows[0].ok).toBe(true);
   });
 
   it('group_records is gone', async () => {

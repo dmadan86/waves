@@ -82,9 +82,10 @@ export function useRentalStore(groupId?: string): RentalStore {
   const upsertPersonal = useUpsertPersonalRecord();
   const delPersonal = useDeletePersonalRecord();
   const memberId = useMyMemberId(groupId);
+  const viewerId = useViewerId();
   const me = async () => {
-    if (!groupId || !memberId) throw new Error('This space is not ready yet');
-    return { memberId, clockId: await clockId() };
+    if (!groupId || !memberId || !viewerId) throw new Error('This space is not ready yet');
+    return { memberId, clockId: await clockId(viewerId) };
   };
   const upsertGroup = useMutation({
     mutationFn: async (input: {
@@ -452,6 +453,7 @@ export function useWealthWrites(groupId?: string) {
           // A generic note: the tenant's name never goes into an entry.
           note: `Rent · ${label}`,
           date,
+          ...(fullDue ? { occurrenceDate: fullDue.date } : {}),
           loanId: null,
           recurringId: fullDue?.ruleId ?? rule.id,
           propertyId,

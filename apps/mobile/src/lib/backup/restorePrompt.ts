@@ -106,6 +106,8 @@ export interface RestorePromptInput {
   readonly connected: boolean;
   /** Personal records this phone holds right now. */
   readonly recordCount: number;
+  /** Couple and former-couple records are also restorable data on this phone. */
+  readonly coupleCount?: number;
   /**
    * The mirror has been read off disk *and* this session's first sync has
    * settled (landed, or stopped for want of a network). Until then a zero count
@@ -126,6 +128,7 @@ export function restoreOffer(input: RestorePromptInput): RestoreOffer {
   if (!input.signedIn || input.isGuest) return RestoreOffer.None;
   if (!input.configured) return RestoreOffer.None;
   if (input.dismissed) return RestoreOffer.None;
-  if (input.recordCount > 0 && !input.restorePending) return RestoreOffer.None;
+  if (input.recordCount + (input.coupleCount ?? 0) > 0 && !input.restorePending)
+    return RestoreOffer.None;
   return input.connected ? RestoreOffer.Restore : RestoreOffer.LinkFirst;
 }

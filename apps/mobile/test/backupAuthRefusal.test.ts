@@ -15,6 +15,17 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { backupRefusalText } from '../src/lib/backup/refusalText';
+
+describe('backup refusal text', () => {
+  it('maps E2EE loading to its own message', () => {
+    expect(
+      backupRefusalText('e2ee-loading', {
+        e2eeLoading: 'Preparing encrypted data. Try again shortly.',
+      }),
+    ).toBe('Preparing encrypted data. Try again shortly.');
+  });
+});
 
 const hoisted = vi.hoisted(() => ({
   keystore: new Map<string, string>(),

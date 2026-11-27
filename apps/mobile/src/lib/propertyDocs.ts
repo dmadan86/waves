@@ -8,12 +8,11 @@ import { randomUUID } from 'expo-crypto';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
-import { pendingMoveIds, type MoveRecord } from './vehicleMove';
+import { type MoveRecord } from './vehicleMove';
 import {
   addDoc,
   docFileName,
   docsOf,
-  orphanFolders,
   parseIndex,
   rekeyIndex,
   removeDoc,
@@ -106,24 +105,6 @@ export async function deleteAllDocs(propertyId: string): Promise<void> {
   if (index[propertyId]) {
     const { [propertyId]: _gone, ...rest } = index;
     writeIndex(rest);
-  }
-}
-
-/** Remove folders and index entries of properties that no longer exist. */
-export async function sweepOrphanDocs(liveIds: ReadonlySet<string>): Promise<void> {
-  try {
-    // A half-done vehicle move keeps both its ids alive until it finishes.
-    liveIds = new Set([...liveIds, ...pendingMoveIds(await readMoves())]);
-    if (!root().exists) return;
-    const folders = root()
-      .list()
-      .filter((e) => e instanceof FileSystem.Directory)
-      .map((e) => e.name);
-    for (const name of orphanFolders(folders, liveIds)) await deleteAllDocs(name);
-    for (const pid of orphanFolders(Object.keys(await readIndex()), liveIds))
-      await deleteAllDocs(pid);
-  } catch {
-    // Housekeeping only.
   }
 }
 

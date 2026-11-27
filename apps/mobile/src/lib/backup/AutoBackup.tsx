@@ -20,6 +20,7 @@
  */
 
 import { coupleBridge } from './coupleBridge';
+import { captureE2eeOwner, useE2eeReady } from '@/e2ee/runtime';
 import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
@@ -30,6 +31,7 @@ import { useSync } from '@/sync';
 
 import { recoverBackground } from './background';
 import { runBackup } from './engine';
+import { hasCoupleBackupData } from './autoBackupData';
 import { loadRecoveryKey } from './recoveryKey';
 import { isDue } from './schedule';
 import { loadBackupSettings, saveLastBackup } from './settings';
@@ -41,12 +43,14 @@ const CHECK_THROTTLE_MS = 5 * 60 * 1000;
 export function AutoBackup() {
   const { session } = useAuth();
   const ownerId = session?.user?.id ?? '';
+  const e2eeReady = useE2eeReady(ownerId);
   const records = usePersonalRecords();
   // Until the mirror is off disk and the first sync has landed (or given up),
   // an empty ledger means "not looked yet", and sealing it would replace a good
   // backup with a blank one.
   const { hydrated, status, hasSynced } = useSync();
-  const settled = hydrated && !(!hasSynced && (status === 'idle' || status === 'syncing'));
+  const settled =
+    e2eeReady && hydrated && !(!hasSynced && (status === 'idle' || status === 'syncing'));
 
   // The newest ledger, read at the moment a check fires rather than captured
   // when the effect was set up — the effect must not re-subscribe to AppState
@@ -63,14 +67,17 @@ export function AutoBackup() {
     let alive = true;
 
     const check = async (): Promise<void> => {
+      const isCurrent = captureE2eeOwner(ownerId);
       const now = Date.now();
       if (now - lastCheckRef.current < CHECK_THROTTLE_MS) return;
       lastCheckRef.current = now;
 
       await recoverBackground(ownerId);
+      if (!alive || !isCurrent()) return;
       // Nothing to protect, and an empty seal is the one thing that must never go out.
-      if (recordsRef.current.length === 0 && coupleBridge.count() === 0) return;
+      if (recordsRef.current.length === 0 && !hasCoupleBackupData(coupleBridge.backup())) return;
       const settings = await loadBackupSettings(ownerId);
+      if (!alive || !isCurrent()) return;
       if (!isDue(settings.last?.at ?? null, settings.frequency, now)) return;
 
       // The keystore read is now only here to answer the tier question for an
@@ -81,22 +88,27 @@ export function AutoBackup() {
         (await loadRecoveryKey(ownerId)) !== null,
         settings.keySeen,
       );
+      if (!alive || !isCurrent()) return;
       // On Extra protection nothing goes out until the person has been shown
       // the key and said they have it: a backup they cannot open is worse than
       // none. On Standard there is nothing to have kept, so there is no gate.
       if (!tierAllowsBackup(tier, settings.keySeen)) return;
 
+      if (!alive || !isCurrent()) return;
+      const couple = coupleBridge.backup();
+      if (!alive || !isCurrent()) return;
       const result = await runBackup({
         ownerId,
         records: recordsRef.current,
-        couple: coupleBridge.backup(),
+        couple,
         tier,
         network: settings.network,
         // The whole point of the network preference is to gate *this* run.
         manual: false,
         knownBackupAt: settings.last?.at ?? null,
+        isCurrent,
       });
-      if (!alive || !result.ok) return;
+      if (!alive || !isCurrent() || !result.ok) return;
       await saveLastBackup(ownerId, result.last);
     };
 

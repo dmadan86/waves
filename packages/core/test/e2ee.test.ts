@@ -4,15 +4,30 @@ import { describe, expect, it } from 'vitest';
 import { e2ee } from '../src/index';
 import { decodeProperty, decodeTenancy } from '../src/personal/types';
 import {
+  encodeBudget,
+  encodeDate,
+  encodeInvestment,
+  encodeLoan,
+  encodeProperty,
+  encodeRecurring,
+  encodeTenancy,
+  encodeTxn,
+} from '../src/personal/types';
+import { validateMessage, validateOp } from '../src/e2ee/merge';
+import {
   applyOps,
   chunkSnapshot,
   compareHlc,
   generateDeviceKeyPair,
   materialise,
   materialiseAll,
+  mergePending,
+  mergeOps,
+  getMergeDiagnostics,
   MAX_MESSAGE_BYTES,
   open,
   pairKey,
+  pairKeyV1,
   reassemble,
   receive,
   seal,
@@ -61,6 +76,13 @@ describe('keys', () => {
     expect(pairKey(a.privateKey, b.publicKey)).not.toEqual(pairKey(a.privateKey, c.publicKey));
   });
 
+  it('versions pair key derivation while retaining v1', () => {
+    const a = generateDeviceKeyPair(seq(1));
+    const b = generateDeviceKeyPair(seq(2));
+    expect(pairKeyV1(a.privateKey, b.publicKey)).toEqual(pairKeyV1(b.privateKey, a.publicKey));
+    expect(pairKey(a.privateKey, b.publicKey)).not.toEqual(pairKeyV1(a.privateKey, b.publicKey));
+  });
+
   it('rejects an all-zero (low-order) peer key', () => {
     const a = generateDeviceKeyPair(seq(1));
     expect(() => pairKey(a.privateKey, new Uint8Array(32))).toThrow();
@@ -82,11 +104,11 @@ describe('envelope', () => {
     const sealed = seal(key, pt, aad, nonce);
     expect(sealed.subarray(0, 24)).toEqual(nonce);
     const ref = xchacha20poly1305(key, nonce, new TextEncoder().encode('g1|dA|dB|m1')).encrypt(
-      new TextEncoder().encode(JSON.stringify(pt)),
+      new TextEncoder().encode(JSON.stringify({ ...pt, kv: 2 })),
     );
     expect(toHex(sealed.subarray(24))).toBe(toHex(ref));
     expect(toHex(sealed)).toBe(KAT);
-    expect(open(key, sealed, aad)).toEqual(pt);
+    expect(open(key, sealed, aad)).toEqual({ ...pt, kv: 2 });
   });
 
   it('fresh random nonce each seal', () => {
@@ -113,7 +135,35 @@ describe('envelope', () => {
       msgId: 'm',
       ops: [{ amount: 12345678901234567890123n, list: [-5n, 0n], s: 'ok' }],
     };
-    expect(open(key, seal(key, p, aad), aad)).toEqual(p);
+    expect(open(key, seal(key, p, aad), aad)).toEqual({ ...p, kv: 2 });
+  });
+
+  it('does not expose tenant text from authenticated malformed payloads', () => {
+    const tenant = 'Acme Secret Rentals';
+    const bad = xchacha20poly1305(key, nonce, new TextEncoder().encode('g1|dA|dB|m1')).encrypt(
+      new TextEncoder().encode(`{"v":1,"msgId":"m1","ops":${tenant}`),
+    );
+    const sealed = new Uint8Array(24 + bad.length);
+    sealed.set(nonce);
+    sealed.set(bad, 24);
+    let error: unknown;
+    try {
+      open(key, sealed, aad);
+    } catch (e) {
+      error = e;
+    }
+    expect(String(error)).not.toContain(tenant);
+    expect((error as Error).message).toBe('E2EE_DECODE_FAILED');
+    expect((error as Error).stack).not.toContain(tenant);
+  });
+
+  it('opens a legacy v1 payload with an implicit key version', () => {
+    const raw = new TextEncoder().encode(JSON.stringify(pt));
+    const ct = xchacha20poly1305(key, nonce, new TextEncoder().encode('g1|dA|dB|m1')).encrypt(raw);
+    const sealed = new Uint8Array(24 + ct.length);
+    sealed.set(nonce);
+    sealed.set(ct, 24);
+    expect(open(key, sealed, aad)).toEqual({ ...pt, kv: 1 });
   });
 });
 
@@ -163,6 +213,239 @@ const permutations = <T>(xs: T[]): T[][] =>
       );
 
 describe('merge', () => {
+  it('accepts every real personal encoder payload through op and message validation', () => {
+    const payloads = [
+      [
+        'txn',
+        encodeTxn({
+          id: 't',
+          kind: 'expense',
+          amount: 123n,
+          currency: 'INR',
+          category: 'home',
+          note: 'n',
+          date: '2026-01-01',
+          loanId: 'l',
+          recurringId: 'r',
+          paymentMethod: 'cash',
+          place: 'shop',
+          reimbursable: true,
+          receiptKey: 'receipt',
+          investmentId: 'i',
+          propertyId: 'p',
+        } as never),
+      ],
+      [
+        'recurring',
+        encodeRecurring({
+          id: 'r',
+          txnKind: 'expense',
+          amount: 123n,
+          currency: 'INR',
+          category: 'home',
+          note: 'n',
+          cadence: 'monthly',
+          interval: 2,
+          secondDay: 15,
+          anchorDate: '2026-01-01',
+          nextDate: '2026-02-01',
+          endDate: '2026-12-01',
+          autoPost: true,
+          active: true,
+          investmentId: 'i',
+          tenancyId: 't',
+        } as never),
+      ],
+      [
+        'loan',
+        encodeLoan({
+          id: 'l',
+          direction: 'lent',
+          counterpart: 'Sam',
+          principal: 123n,
+          currency: 'INR',
+          note: 'n',
+          startDate: '2026-01-01',
+          status: 'active',
+          shareSeq: 2,
+          synced: { groupId: 'g', expenseId: 'e', myMemberId: 'm1', otherMemberId: 'm2' },
+          carried: { futureField: { nested: 'kept' } },
+        } as never),
+      ],
+      [
+        'budget',
+        encodeBudget({ id: 'b', category: 'home', limit: 1000n, currency: 'INR' } as never),
+      ],
+      [
+        'date',
+        encodeDate({
+          id: 'd',
+          label: 'anniversary',
+          name: 'Us',
+          day: 1,
+          month: 2,
+          year: 2020,
+        } as never),
+      ],
+      [
+        'investment',
+        encodeInvestment({
+          id: 'i',
+          type: 'fund',
+          name: 'Fund',
+          currency: 'INR',
+          openingInvested: 100n,
+          openingAsOf: '2026-01-01',
+          currentValue: 120n,
+          valueAsOf: '2026-02-01',
+          maturityDate: '2028-01-01',
+          taxWrapper: true,
+          status: 'active',
+          note: 'n',
+        } as never),
+      ],
+      [
+        'property',
+        encodeProperty({
+          id: 'p',
+          type: 'apartment',
+          name: 'Flat',
+          locality: 'City',
+          currency: 'INR',
+          status: 'active',
+          note: 'n',
+          address: 'Road',
+        } as never),
+      ],
+      [
+        'tenancy',
+        encodeTenancy({
+          id: 't',
+          propertyId: 'p',
+          unit: '4',
+          tenantName: 'Tenant',
+          tenantPhone: '123',
+          depositHeld: 100n,
+          rentFrequency: 'monthly',
+          startDate: '2026-01-01',
+          endDate: '2026-12-01',
+          escalationPct: 5,
+          status: 'active',
+          endedOn: null,
+          depositReturned: 10n,
+          depositKept: 20n,
+          note: 'n',
+        } as never),
+      ],
+    ] as const;
+    const msg = validateMessage({
+      msgId: 'encoders',
+      ops: payloads.map(([kind, values], i) => ({
+        op: 'put',
+        id: `record-${i}`,
+        kind,
+        createdBy: 'member',
+        fields: Object.fromEntries(
+          Object.entries(values).map(([field, value]) => [field, [value, '1:0:device']]),
+        ),
+      })),
+    });
+    expect(msg.ok).toBe(true);
+    if (msg.ok) expect(msg.rejected).toEqual([]);
+  });
+
+  it('rejects malformed ops individually while merging valid ops in the same message', () => {
+    const result = mergeOps(
+      {},
+      [
+        { op: 'put', id: 'ok', kind: 'rent', createdBy: 'A', fields: { amount: [1n, '1:0:A'] } },
+        { op: 'put', id: 'bad', kind: 'rent', createdBy: 'A', fields: { amount: [1n] } },
+      ] as unknown as MergeOp[],
+      'A',
+    );
+    expect(result.rejected).toHaveLength(1);
+    expect(materialise(result.store.ok!)).toMatchObject({ amount: 1n });
+  });
+
+  it('rejects prototype-sensitive field names, including own __proto__ JSON keys', () => {
+    const before = (Object.prototype as Record<string, unknown>).polluted;
+    for (const name of [
+      '__proto__',
+      'constructor',
+      'prototype',
+      'toString',
+      'valueOf',
+      'hasOwnProperty',
+      '__defineGetter__',
+    ]) {
+      const fields = JSON.parse(`{"${name}":[{"polluted":true},"1:0:A"]}`);
+      const op = { op: 'put', id: 'safe', kind: 'rent', createdBy: 'A', fields };
+      expect(validateOp(op).ok).toBe(false);
+      expect(applyOps({}, [op as unknown as MergeOp], 'A')).toEqual({});
+      expect((Object.prototype as Record<string, unknown>).polluted).toBe(before);
+    }
+  });
+
+  it('round-trips carried fields without letting them override record metadata', () => {
+    const carried = JSON.parse(
+      '{"amount":["12","1:0:A"],"createdBy":["attacker","2:0:A"],"kind":["loan","3:0:A"],"amounts":["999","4:0:A"],"status":["closed","5:0:A"]}',
+    );
+    const op = {
+      op: 'put',
+      id: 'safe',
+      kind: 'rent',
+      createdBy: 'A',
+      fields: carried,
+    } as unknown as MergeOp;
+    const accepted = validateOp(op);
+    expect(accepted.ok).toBe(true);
+    if (!accepted.ok) return;
+    const merged = applyOps({}, [accepted.op], 'A');
+    const decoded = JSON.parse(JSON.stringify(merged));
+    expect(decoded.safe.fields.status[0]).toBe('closed');
+    // Carried fields are kept, but record metadata always wins over a carried name.
+    expect(materialise(decoded.safe)).toEqual({
+      amount: '12',
+      amounts: '999',
+      status: 'closed',
+      id: 'safe',
+      kind: 'rent',
+      createdBy: 'A',
+    });
+  });
+
+  it('buffers edits before immutable creation and resolves in every three-author delivery order', () => {
+    const create = put('pending-record', 'A', { title: ['created', '10:0:A'] });
+    const editB = put('pending-record', 'A', { note: ['B edit', '11:0:B'] });
+    const editC = put('pending-record', 'A', { extra: ['C edit', '12:0:C'] });
+    const orders = permutations([create, editB, editC]);
+    const states = orders.map((order) => {
+      let state: Store = {};
+      let pending: import('../src/e2ee/merge').PendingOp[] = [];
+      for (const op of order) {
+        const sender = op === create ? 'A' : op === editB ? 'B' : 'C';
+        const res = applyOps(state, [op], sender);
+        state = res;
+        pending = [
+          ...pending,
+          ...getMergeDiagnostics(res).pending.map(
+            (pendingOp): import('../src/e2ee/merge').PendingOp => ({
+              op: pendingOp as MergeOp, // only validated ops are ever buffered
+              sender,
+              receivedAt: 0,
+            }),
+          ),
+        ];
+      }
+      const resolved = mergePending(state, pending);
+      return materialiseAll(resolved);
+    });
+    for (const state of states.slice(1)) expect(state).toEqual(states[0]);
+    expect(states[0]).toEqual([
+      expect.objectContaining({ createdBy: 'A', note: 'B edit', extra: 'C edit' }),
+    ]);
+  });
+
   it('preserves property and tenancy detail shapes as JSON-safe fields', () => {
     const state = run([
       put('t1', 'A', {
@@ -241,9 +524,9 @@ describe('merge', () => {
 
   it('createdBy and kind are fixed once seen', () => {
     const s = applyOps({}, [put('r', 'A', { a: [1, '1:0:A'] })], 'A');
-    // A competing creation by B merges its fields but the earlier author (A) keeps the record.
+    // A put cannot reassign ownership after creation.
     const s2 = applyOps(s, [put('r', 'B', { a: [2, '9:0:B'] })], 'B');
-    expect(materialise(s2.r!)).toMatchObject({ a: 2, createdBy: 'A' });
+    expect(materialise(s2.r!)).toMatchObject({ a: 1, createdBy: 'A' });
     // Nobody may put under someone else's name.
     expect(applyOps(s, [put('r', 'C', { a: [5, '9:0:B'] })], 'B')).toEqual(s);
     expect(applyOps(s, [{ ...put('r', 'A', { a: [2, '9:0:A'] }), kind: 'other' }], 'A')).toEqual(s);
@@ -254,10 +537,19 @@ describe('merge', () => {
 });
 
 describe('double creation of one id', () => {
-  const a = put('r', 'A', { amt: [100n, '5:0:A'], note: ['a', '5:0:A'] });
-  const b = put('r', 'B', { amt: [90n, '3:0:B'], note: ['b', '3:0:B'] });
+  const a = {
+    ...put('r', 'A', { amt: [100n, '5:0:A'], note: ['a', '5:0:A'] }),
+    create: true as const,
+  };
+  const b = {
+    ...put('r', 'B', { amt: [90n, '3:0:B'], note: ['b', '3:0:B'] }),
+    create: true as const,
+  };
   const apply = (order: [MergeOp, MergeOp]) =>
-    order.reduce<Store>((s, op) => applyOps(s, [op], (op as PutOp).createdBy), {});
+    order.reduce<Store>(
+      (s, op) => applyOps(s, [op], (op as PutOp).createdBy, { isSharedId: () => true }),
+      {},
+    );
 
   it('settles on the earliest author in either order, with merged fields', () => {
     const x = apply([a, b]);
@@ -273,10 +565,27 @@ describe('double creation of one id', () => {
   });
 
   it('ties on the hlc go to the smaller author id, in either order', () => {
-    const a2 = put('r', 'A', { n: [1, '3:0:Z'] });
-    const b2 = put('r', 'B', { n: [1, '3:0:Z'] });
+    const a2 = { ...put('r', 'A', { n: [1, '3:0:Z'] }), create: true as const };
+    const b2 = { ...put('r', 'B', { n: [1, '3:0:Z'] }), create: true as const };
     expect(apply([a2, b2])).toEqual(apply([b2, a2]));
     expect(apply([a2, b2]).r!.createdBy).toBe('A');
+  });
+
+  it('never lets competing random-id creates replace the established creator', () => {
+    const first = { ...put('random-id', 'B', { n: [1, '8:0:B'] }), create: true as const };
+    const laterButEarlierClock = {
+      ...put('random-id', 'A', { n: [2, '1:0:A'] }),
+      create: true as const,
+    };
+    const firstState = applyOps({}, [first], 'B');
+    expect(applyOps(firstState, [laterButEarlierClock], 'A')['random-id']!.createdBy).toBe('B');
+  });
+
+  it('keeps diagnostics separate so record ids pending and rejected are ordinary records', () => {
+    const good = put('pending', 'A', { amt: [1, '2:0:A'] });
+    const result = mergeOps({}, [good, put('rejected', 'A', { amt: [2, '2:0:A'] })], 'A');
+    expect(Object.keys(result.store)).toEqual(['pending', 'rejected']);
+    expect(result.pending).toEqual([]);
   });
 
   it('is order independent with an edit by the other partner in the mix', () => {
@@ -284,6 +593,25 @@ describe('double creation of one id', () => {
     const all = [a, b, edit];
     const want = run(all, 'B');
     for (const p of permutations(all)) expect(run(p, 'B')).toEqual(want);
+  });
+
+  it('preserves a partner edit across competing creation orderings', () => {
+    const createA = { ...put('three', 'A', { a: ['A', '5:0:A'] }), create: true as const };
+    const createB = { ...put('three', 'B', { b: ['B', '3:0:B'] }), create: true as const };
+    const editByB = put('three', 'A', { partner: ['edit', '9:0:B'] });
+    const runThree = (ops: MergeOp[]) =>
+      ops.reduce<Store>(
+        (s, op) =>
+          applyOps(s, [op], op === editByB ? 'B' : (op as PutOp).createdBy, {
+            isSharedId: () => true,
+          }),
+        {},
+      );
+    const x = runThree([createA, editByB, createB]);
+    const y = runThree([createB, createA, editByB]);
+    expect(y).toEqual(x);
+    expect(y.three!.fields.partner?.[0]).toBe('edit');
+    expect(materialise(y.three!)).toMatchObject({ partner: 'edit' });
   });
 });
 
@@ -316,6 +644,24 @@ describe('chunk', () => {
     expect(reassemble(shuffled)).toEqual(records);
   });
 
+  it('sizes snapshot chunks with the recipient field included', () => {
+    const to = 'device-id-that-adds-bytes-to-every-snapshot-part';
+    const records = Array.from({ length: 40 }, (_, i) => rec(i, 1400));
+    const parts = chunkSnapshot(records, 'm-1', to);
+    for (const part of parts) {
+      expect(
+        seal(
+          key,
+          { v: 1, msgId: 'm-1', ops: [{ ...part, to }] },
+          {
+            ...aad,
+            recipientDevice: to,
+          },
+        ).length,
+      ).toBeLessThan(MAX_MESSAGE_BYTES);
+    }
+  });
+
   it('is incomplete until every part is present', () => {
     const parts = chunkSnapshot(
       Array.from({ length: 80 }, (_, i) => rec(i, 1000)),
@@ -332,4 +678,75 @@ describe('chunk', () => {
 });
 
 const KAT =
-  '6465666768696a6b6c6d6e6f707172737475767778797a7b07518f92c51fa5a0ea43fa76c24d87eb368a705dc643bac3ae6f3fdc093108329124271b4094dbe583624726762e2a7d4c8dbc7cbd881697f53f312cbaaac3312b022b291e2eb48c34bff008b610161083';
+  '6465666768696a6b6c6d6e6f707172737475767778797a7b07518f92c51fa5a0ea43fa76c24d87eb368a705dc643bac3ae6f3fdc093108329124271b4094dbe583624726762e2a7d4c8dbc7cbd881697f53f312cbaaac3317af1af93f254965083d60d2b38d2cf785741ea39c884b5c0';
+
+describe('creation floor and shared ids (review round)', () => {
+  const create = (id: string, by: string, hlc: string): PutOp => ({
+    ...put(id, by, { a: [by, hlc] }),
+    create: true as const,
+  });
+  const shared = { isSharedId: () => true };
+  const run = (ops: MergeOp[], senders: string[]) =>
+    ops.reduce<Store>((s, op, i) => applyOps(s, [op], senders[i]!, shared), {});
+
+  it('an early edit never lowers the creation floor, whatever the delivery order', () => {
+    const a = create('x', 'A', '5:0:A');
+    const b = create('x', 'B', '3:0:B');
+    const edit = put('x', 'A', { n: [1, '1:0:B'] });
+    const orders: [MergeOp[], string[]][] = [
+      [
+        [a, edit, b],
+        ['A', 'B', 'B'],
+      ],
+      [
+        [b, a, edit],
+        ['B', 'A', 'B'],
+      ],
+      [
+        [edit, a, b],
+        ['B', 'A', 'B'],
+      ],
+      [
+        [b, edit, a],
+        ['B', 'B', 'A'],
+      ],
+    ];
+    const who = orders.map(([ops, by]) => run(ops, by).x!.createdBy);
+    expect(new Set(who).size).toBe(1);
+    expect(who[0]).toBe('B');
+  });
+
+  it('replaying a pending edit keeps the shared-id rule', () => {
+    const edit = put('x', 'A', { n: [1, '9:0:B'] });
+    const store = run([create('x', 'B', '3:0:B')], ['B']);
+    const out = e2ee.mergePending(store, [{ op: edit, sender: 'B', receivedAt: 0 }], shared);
+    expect(materialise(out.x!)).toMatchObject({ n: 1 });
+    const strict = e2ee.mergePending(store, [{ op: edit, sender: 'B', receivedAt: 0 }]);
+    expect(materialise(strict.x!)).not.toMatchObject({ n: 1 });
+  });
+
+  it('recognises a shared occurrence id after a restart from its rule and date', async () => {
+    const { deterministicId } = await import('../src/ids');
+    const id = deterministicId('rule-1:2026-12-05');
+    const { isSharedOccurrenceId } = await import('../src/index');
+    expect(
+      isSharedOccurrenceId(id, { recurringId: ['rule-1', '1:0:A'], date: ['2026-12-05', '1:0:A'] }),
+    ).toBe(true);
+    expect(isSharedOccurrenceId('other', { recurringId: ['rule-1', '1:0:A'] })).toBe(false);
+  });
+});
+
+describe('authenticated creates and long values (review round)', () => {
+  it('rejects an explicit create that names someone other than the sender', () => {
+    const store = applyOps({}, [{ ...put('x', 'A', { a: [1, '1:0:A'] }), create: true }], 'A');
+    const forged = { ...put('x', 'A', { a: [2, '9:0:B'] }), create: true as const };
+    const out = mergeOps(store, [forged], 'B');
+    expect(out.rejected.map((r) => r.reason)).toEqual(['create-author']);
+    expect(out.store.x!.createdHlc).toBe('1:0:A');
+  });
+
+  it('accepts a note longer than 8192 characters', () => {
+    const op = put('n', 'A', { note: ['x'.repeat(9000), '1:0:A'] });
+    expect(validateOp(op).ok).toBe(true);
+  });
+});

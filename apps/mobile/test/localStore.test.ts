@@ -64,7 +64,7 @@ class FakeDatabase {
   // Defaults to the current schema version so the one-time migrations
   // (driver.migrate) are a no-op for these tests; each step is exercised on its
   // own below by seeding an older version.
-  userVersion = 3;
+  userVersion = 4;
 
   private async enter<T>(run: () => Promise<T>): Promise<T> {
     this.live += 1;
@@ -733,7 +733,7 @@ describe('at-rest encryption', () => {
     // Migrated in place: now sealed, version bumped, WAL flushed.
     expect(database.mirrorRows.get('expenses:e1')?.json.startsWith('v1:')).toBe(true);
     expect(database.drafts.get('d1')?.json.startsWith('v1:')).toBe(true);
-    expect(database.userVersion).toBe(3);
+    expect(database.userVersion).toBe(4);
     expect(database.statements).toContain('PRAGMA wal_checkpoint(TRUNCATE)');
 
     // And the seeded plaintext still reads correctly through the decrypt path.
@@ -770,7 +770,7 @@ describe('at-rest encryption', () => {
     const store = createLocalStore();
     await store.ready();
 
-    expect(database.userVersion).toBe(3);
+    expect(database.userVersion).toBe(4);
     // Cursors gone, so the next pull starts from the beginning of every group...
     expect(await store.readCursors()).toEqual({});
     // ...but the screens keep their rows meanwhile, and nothing unsent moves.

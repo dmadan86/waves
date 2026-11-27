@@ -5834,6 +5834,7 @@ export interface UiStrings {
     refusedAuth: string;
     refusedNoBackup: string;
     refusedBusy: string;
+    refusedE2eeLoading: string;
 
     /** Extra protection: the opt-in tier, last on the screen and set apart. */
     extraSection: string;
@@ -14434,6 +14435,7 @@ const en: UiStrings = {
     refusedAuth: 'Google asked for the link again. Reconnect the account.',
     refusedNoBackup: 'There is no backup on this Drive account yet.',
     refusedBusy: 'A backup is already running.',
+    refusedE2eeLoading: 'Encrypted data is still loading. Try again shortly.',
 
     extraSection: 'Extra protection',
     extraOn: 'On',
@@ -22819,6 +22821,8 @@ const ta: UiStrings = {
     refusedAuth: 'Google மீண்டும் அனுமதி கேட்கிறது. கணக்கை மீண்டும் இணையுங்கள்.',
     refusedNoBackup: 'இந்த Drive கணக்கில் இன்னும் காப்புப்பிரதி இல்லை.',
     refusedBusy: 'ஒரு காப்பு ஏற்கனவே இயங்குகிறது.',
+    refusedE2eeLoading:
+      'மறைகுறியாக்கப்பட்ட தரவு இன்னும் ஏற்றப்படுகிறது. சிறிது நேரம் கழித்து மீண்டும் முயற்சிக்கவும்.',
 
     extraSection: 'கூடுதல் பாதுகாப்பு',
     extraOn: 'இயக்கத்தில்',
@@ -31184,6 +31188,7 @@ const hi: UiStrings = {
     refusedAuth: 'Google ने फिर से अनुमति माँगी है। खाता दोबारा जोड़ें।',
     refusedNoBackup: 'इस Drive खाते पर अभी कोई बैकअप नहीं है।',
     refusedBusy: 'एक बैकअप पहले से चल रहा है।',
+    refusedE2eeLoading: 'एन्क्रिप्ट किया गया डेटा अभी लोड हो रहा है। कृपया थोड़ी देर बाद फिर कोशिश करें।',
 
     extraSection: 'अतिरिक्त सुरक्षा',
     extraOn: 'चालू',
@@ -39803,6 +39808,7 @@ const ar: UiStrings = {
     refusedAuth: 'طلب Google الإذن من جديد. أعد ربط الحساب.',
     refusedNoBackup: 'لا توجد نسخة على حساب Drive هذا بعد.',
     refusedBusy: 'هناك نسخ جارٍ بالفعل.',
+    refusedE2eeLoading: 'لا تزال البيانات المشفرة قيد التحميل. حاول مرة أخرى بعد قليل.',
 
     extraSection: 'حماية إضافية',
     extraOn: 'مُفعّلة',

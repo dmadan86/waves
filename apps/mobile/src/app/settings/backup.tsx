@@ -144,12 +144,14 @@ import { useDialog } from '@/lib/dialog';
 import { formatBytes } from '@/lib/bytes';
 import { useBackup, type BackupOutcome } from '@/lib/backup/useBackup';
 import { backupFailure } from '@/lib/backup/failure';
+import { backupRefusalText } from '@/lib/backup/refusalText';
 import { BackupFrequency } from '@/lib/backup/schedule';
 import { copySensitive } from '@/lib/sensitiveClipboard';
 import { usePreventCapture } from '@/lib/secretScreen';
 import { formatRecoveryKey } from '@/lib/backup/recoveryKey';
 import { backupSetup, BackupStep } from '@/lib/backup/setup';
 import { BackupTier } from '@/lib/backup/tier';
+import { coupleBridge } from '@/lib/backup/coupleBridge';
 import type { RestoreScan } from '@/lib/backup/engine';
 import { CloudAuthError } from '@/lib/cloud/oauth';
 import { friendlyError } from '@/lib/errors';
@@ -326,6 +328,10 @@ export default function BackupSettingsScreen() {
   /** The one sentence for a refusal — each has a different way out. */
   const refusalLine = (outcome: BackupOutcome): string => {
     if (outcome.kind === 'ok') return plural(locale, outcome.records, t.backup.backedUp);
+    const e2eeLoading = backupRefusalText(outcome.refusal, {
+      e2eeLoading: t.backup.refusedE2eeLoading,
+    });
+    if (e2eeLoading) return e2eeLoading;
     switch (outcome.refusal) {
       case 'cancelled':
         return t.common.cancel;
@@ -800,6 +806,7 @@ export default function BackupSettingsScreen() {
    */
   const checklist = setup.total > 1;
   const last = backup.settings.last;
+  const restorableCount = backup.recordCount + coupleBridge.count() + coupleBridge.formerCount();
 
   /**
    * A linked phone with nothing on it is a new phone, and the one thing it
@@ -814,12 +821,12 @@ export default function BackupSettingsScreen() {
    * single row further down for the rare case of wanting it anyway.
    */
   const restoreFirst =
-    settled && setup.complete && (backup.recordCount === 0 || (backup.restorePending && !last));
+    settled && setup.complete && (restorableCount === 0 || (backup.restorePending && !last));
 
   // An empty, settled phone may have a backup waiting. Remember it, so the
   // first new entry does not turn this card into "Back up now".
   const armRestore = backup.armRestore;
-  const emptyAndSettled = settled && backup.recordCount === 0;
+  const emptyAndSettled = settled && restorableCount === 0;
   useEffect(() => {
     if (emptyAndSettled) void armRestore();
   }, [emptyAndSettled, armRestore]);
@@ -1749,7 +1756,7 @@ export default function BackupSettingsScreen() {
                   ? t.backup.restoreNothingNew
                   : plural(locale, found.plan.restore.length, t.backup.restoreFound)}
               </Text>
-              {found.plan.restore.length > 0 ? (
+              {found.plan.restore.length > 0 || (found.body?.couple?.length ?? 0) > 0 ? (
                 <Button
                   label={t.backup.restoreConfirm}
                   onPress={() => void onRestore()}

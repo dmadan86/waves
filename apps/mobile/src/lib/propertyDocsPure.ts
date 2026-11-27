@@ -69,11 +69,6 @@ export function renameDoc(index: DocIndex, propertyId: string, id: string, name:
   };
 }
 
-/** Folders on disk whose property no longer exists. */
-export function orphanFolders(folders: readonly string[], liveIds: ReadonlySet<string>): string[] {
-  return folders.filter((f) => !liveIds.has(f));
-}
-
 /** Tolerant read of the stored index: anything malformed is dropped, never thrown. */
 export function parseIndex(text: string | null): DocIndex {
   try {

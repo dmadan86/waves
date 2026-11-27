@@ -75,6 +75,8 @@ export interface PersonalTxn {
   readonly loanId: string | null;
   /** Set when a recurring rule minted this txn (idempotency: rule id + date). */
   readonly recurringId: string | null;
+  /** Due date used to derive a shared recurring occurrence id. */
+  readonly occurrenceDate?: string | null;
   /** How it was paid or received — 'cash', 'instant_transfer' (or the older 'upi'), 'card', 'bank', 'wallet' or
    *  'other'. Absent on entries written before the field existed, and on ones
    *  where nobody said; the ledger's arithmetic never reads it. */
@@ -367,6 +369,7 @@ const KNOWN_TXN = [
   'date',
   'loanId',
   'recurringId',
+  'occurrenceDate',
   'paymentMethod',
   'place',
   'reimbursable',
@@ -541,6 +544,7 @@ export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTx
   const receiptKey = str(data.receiptKey);
   const investmentId = str(data.investmentId);
   const propertyId = str(data.propertyId);
+  const occurrenceDate = str(data.occurrenceDate);
   const vehicleId = str(data.vehicleId);
   const vehicleKind = vehicleId ? oneOf(data.vehicleKind, VEHICLE_EXPENSE_KINDS, 'other') : null;
   const vehicleName = vehicleId ? str(data.vehicleName) : null;
@@ -554,6 +558,7 @@ export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTx
     date: str(data.date) ?? '',
     loanId: str(data.loanId),
     recurringId: str(data.recurringId),
+    ...(occurrenceDate !== null ? { occurrenceDate } : {}),
     // Only when the blob has one, so an entry without it decodes exactly as it
     // did before the field existed.
     ...(paymentMethod !== null ? { paymentMethod } : {}),
@@ -756,6 +761,7 @@ export function encodeTxn(txn: Omit<PersonalTxn, 'id'>): Record<string, unknown>
       date: txn.date,
       loanId: txn.loanId,
       recurringId: txn.recurringId,
+      ...(txn.occurrenceDate ? { occurrenceDate: txn.occurrenceDate } : {}),
       // Written only when set, so an entry that never had one stays byte-for-byte
       // the blob it always was.
       paymentMethod: txn.paymentMethod ?? null,

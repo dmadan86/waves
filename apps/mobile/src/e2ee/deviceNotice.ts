@@ -45,6 +45,17 @@ export interface Meta {
   set(key: string, value: string): Promise<void>;
 }
 
+/** Optional account-directory check supplied by runtime before re-enrollment. */
+export type DeviceStatus = (deviceId: string) => Promise<boolean>;
+
+export async function isDeviceRevoked(meta: Meta, deviceId: string): Promise<boolean> {
+  return (await meta.get(`device-revoked:${deviceId}`)) === '1';
+}
+
+export async function markDeviceRevoked(meta: Meta, deviceId: string): Promise<void> {
+  await meta.set(`device-revoked:${deviceId}`, '1');
+}
+
 export const memoryMeta = (): Meta => {
   const m = new Map<string, string>();
   return { get: async (k) => m.get(k) ?? null, set: async (k, v) => void m.set(k, v) };
