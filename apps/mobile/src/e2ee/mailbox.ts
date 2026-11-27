@@ -171,6 +171,8 @@ export function createMailbox(deps: MailboxDeps) {
   const answered = new Map<string, number>();
   const parts = new Map<string, Set<number>>();
   const probedAt = new Map<string, number>();
+  const directoryFresh = new Set<string>();
+  let housekeepingStreak = 0;
   const devicesCache = new Map<string, { at: number; list: GroupDevice[] }>();
   const pairKeys = new Map<string, Uint8Array>();
   const attempts = new Map<string, { n: number; next: number }>();
@@ -375,7 +377,10 @@ export function createMailbox(deps: MailboxDeps) {
     const msg = row.msg as OutboxMsg;
     const me = await keys.deviceId();
     if (!isCurrent()) return 'wait';
-    const recipients = (await groupDevices(row.groupId, false, isCurrent)).filter(
+    // Always seal to the partner's CURRENT devices: refresh once per flush, not on the 60s cache.
+    const refresh = !directoryFresh.has(row.groupId);
+    directoryFresh.add(row.groupId);
+    const recipients = (await groupDevices(row.groupId, refresh, isCurrent)).filter(
       (d) => d.deviceId !== me && (msg.to === undefined || d.deviceId === msg.to),
     );
     if (!isCurrent()) return 'wait';
@@ -488,6 +493,7 @@ export function createMailbox(deps: MailboxDeps) {
 
   async function runOutbox(): Promise<void> {
     const isCurrent = captureCurrent();
+    directoryFresh.clear();
     const rows = await outbox.readE2eeOutbox();
     if (!isCurrent() || (await revoked(isCurrent)) || !isCurrent()) return;
     const blockedGroups = new Set<string>();
@@ -916,6 +922,16 @@ export function createMailbox(deps: MailboxDeps) {
     const current = captureCurrent();
     const wasStale = await heartbeat(current);
     if (wasStale) devicesCache.clear();
+    // A new device id (reinstall, new key) has missed everything sent to the old one.
+    let me0: string | null = null;
+    let idChanged = false;
+    try {
+      me0 = await keys.deviceId();
+      idChanged = (await meta.get('deviceId')) !== me0;
+    } catch {
+      /* the loop below fails the same way and is retried */
+    }
+    let failed: unknown = null;
     const fetchedAt = Number((await meta.get('fetchedAt')) ?? NaN);
     if (!current()) return;
     const now = deps.now();
@@ -927,7 +943,8 @@ export function createMailbox(deps: MailboxDeps) {
           space.snapshot(groupId).length === 0 ||
           Number.isNaN(fetchedAt) ||
           now - fetchedAt > STALE_MS;
-        if (wasStale || (due && now - asked >= RESYNC_GAP_MS)) await requestResync(groupId);
+        if (wasStale || idChanged || (due && now - asked >= RESYNC_GAP_MS))
+          await requestResync(groupId);
         if (!current()) return;
 
         const currentDevices: KnownDevice[] = (await groupDevices(groupId, false, current)).map(
@@ -961,10 +978,19 @@ export function createMailbox(deps: MailboxDeps) {
         await meta.set(`devices:${groupId}`, JSON.stringify(currentDevices));
         if (!current()) return;
       } catch (error) {
-        reportOnce(error, 'e2ee.housekeeping');
+        failed = error;
       }
     }
     if (!current()) return;
+    // A failure is usually the network or a session still starting: retried by the next round,
+    // and only reported when it keeps happening.
+    if (failed) {
+      housekeepingStreak += 1;
+      if (housekeepingStreak === 3) reportOnce(failed, 'e2ee.housekeeping');
+      return;
+    }
+    housekeepingStreak = 0;
+    if (me0) await meta.set('deviceId', me0);
     await meta.set('fetchedAt', String(now));
   }
 

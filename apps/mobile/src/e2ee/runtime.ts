@@ -49,6 +49,12 @@ export function captureE2eeOwner(ownerId: string): () => boolean {
   return () => ownerId === activeProfileId && generations.matches(generation);
 }
 
+/** An empty device lookup only means "revoked" if the request was signed in. */
+async function requireSession(): Promise<void> {
+  const { data } = await backend.auth.getSession();
+  if (!data.session) throw new Error('E2EE session not ready');
+}
+
 /** This phone's device id on the server, registering it first if need be. */
 export async function ensureDeviceId(profileId = activeProfileId): Promise<string> {
   if (!profileId) return Promise.reject(new Error('E2EE requires a verified profile id'));
@@ -88,6 +94,8 @@ export async function ensureDeviceId(profileId = activeProfileId): Promise<strin
         : Promise.reject(new Error('E2EE session changed'));
     if (error) throw error;
     if (data === null) {
+      // No row can also mean the request went out without a session (refreshing after offline).
+      await requireSession();
       // A profile switch during the directory request must not record this
       // account's revocation against a different active session.
       if (!current()) throw new Error('E2EE session changed');
@@ -193,6 +201,7 @@ const mailbox = createMailbox({
       .maybeSingle();
     if (!current()) throw new Error('E2EE session changed');
     if (error) throw error;
+    if (data === null) await requireSession(); // never mark revoked on an anonymous read
     return data !== null;
   },
   isCurrent: () => activeProfileId !== null && isSessionCurrent(),
