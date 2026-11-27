@@ -21,7 +21,6 @@ import {
   type RentFrequency,
 } from '@waves/core';
 
-import { isViewer } from '@/data/types';
 import { useGroup } from '@/data/hooks';
 import {
   useDeletePersonalRecord,
@@ -30,9 +29,10 @@ import {
   useUpsertPersonalRecord,
   todayIso,
 } from '@/data/personal';
-import { useAuth } from '@/lib/auth';
+import { useViewerId } from '@/lib/auth';
 import {
   decodeWealth,
+  myMemberIdFrom,
   ownActiveProperties,
   rentEntryId,
   type PersonalWealth,
@@ -118,12 +118,12 @@ export function useRentalStore(groupId?: string): RentalStore {
 
 /** The signed-in person's member id in a group (null for Personal, or before the group has synced). */
 export function useMyMemberId(groupId?: string): string | null {
-  const { session } = useAuth();
+  const viewerId = useViewerId();
   const { members: membersRead } = useGroup(groupId ?? '');
   const rows = membersRead.data;
   return useMemo(
-    () => (groupId ? (rows?.find((m) => isViewer(m, session?.user?.id))?.id ?? null) : null),
-    [groupId, rows, session?.user?.id],
+    () => (groupId ? myMemberIdFrom(rows, viewerId) : null),
+    [groupId, rows, viewerId],
   );
 }
 

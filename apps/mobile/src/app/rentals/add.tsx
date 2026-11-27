@@ -30,6 +30,7 @@ import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { router } from '@/lib/navigation';
+import { reportHandled } from '@/lib/observability';
 import { PROPERTY_ICON } from '@/lib/wizardIcons';
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -174,7 +175,9 @@ function AddBody() {
         router.push('/paywall');
         return;
       }
-      // Local-first: the queue retries; nothing is shown as a refusal.
+      // Local-first: the queue retries; nothing is shown as a refusal, but a write
+      // that never reached the phone must not vanish unseen.
+      reportHandled(error, 'rentals.add.save');
     }
     router.back();
   };

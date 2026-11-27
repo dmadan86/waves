@@ -1,5 +1,6 @@
 /** Pure rules for rentals kept inside a couple/home group (no native imports, so tests can load it). */
 
+import { isViewer } from '@/data/types';
 import {
   decodeInvestment,
   decodeProperty,
@@ -136,4 +137,13 @@ export function decodeWealth(records: readonly RentalRecord[]): PersonalWealth {
   investments.sort((a, b) => a.name.localeCompare(b.name));
   properties.sort((a, b) => a.name.localeCompare(b.name));
   return { investments, properties, tenancies };
+}
+
+/** My member row in a group space. Member rows carry the profile id, never the sign-in account id. */
+export function myMemberIdFrom(
+  rows: readonly { id: string; profile_id: string | null }[] | undefined,
+  profileId: string | null | undefined,
+): string | null {
+  if (!rows || !profileId) return null;
+  return rows.find((m) => isViewer(m, profileId))?.id ?? null;
 }
