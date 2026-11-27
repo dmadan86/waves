@@ -18,7 +18,10 @@ import { RaiseCard, useRaisePrompts } from '@/components/wealth/RaiseCard';
 import { useDateOccurrences } from '@/data/personalDates';
 import { usePersonalWealth } from '@/data/personalWealth';
 import { fill, plural, useStrings } from '@/i18n';
+import { usePersonalVehicles } from '@/data/vehicles';
 import { PressableScale } from '@/lib/anim';
+import { dueText } from '@/lib/vehicleText';
+import { regionOf } from '@/lib/wealthPlan';
 import { badgeLabel } from '@/lib/countBadge';
 import { useAuth } from '@/lib/auth';
 import { actionFor } from '@/lib/dateReminders/actions';
@@ -30,6 +33,7 @@ import {
   billRows,
   dateRows,
   mergeUpcoming,
+  vehicleRows,
   wealthRows,
   type UpcomingRow,
 } from '@/lib/personalUpcoming';
@@ -62,6 +66,20 @@ export function useWealthRows(
   });
 }
 
+/** Vehicle renewals and licence expiry inside their reminder window. */
+function useVehicleRows(today: string): UpcomingRow[] {
+  const { vehicles, licences } = usePersonalVehicles();
+  const { t } = useStrings();
+  const { profile } = useAuth();
+  const region = regionOf(profile?.country_code);
+  return vehicleRows({
+    vehicles,
+    licences,
+    today,
+    title: (name, item) => `${name} · ${dueText(t.vehicles, item, region)}`,
+  });
+}
+
 /** The merged rows: bills, dates and the setup to-do. `limit` 0 lists them all. */
 export function usePersonalUpcoming(
   ledger: {
@@ -76,6 +94,7 @@ export function usePersonalUpcoming(
   const occurrences = useDateOccurrences();
   const dates = session && !isGuest ? pickUpcoming(occurrences, limit > 0 ? limit : 50) : [];
   const wealth = useWealthRows(ledger, limit > 0 ? HOME_HORIZON_DAYS : LIST_HORIZON_DAYS);
+  const vehicles = useVehicleRows(ledger.today);
   const bills = billRows(
     ledger.txns,
     ledger.recurrings,
@@ -83,7 +102,7 @@ export function usePersonalUpcoming(
     ledger.today,
     limit > 0 ? HOME_HORIZON_DAYS : LIST_HORIZON_DAYS,
   );
-  return mergeUpcoming([...bills, ...wealth, ...dateRows(dates)], limit);
+  return mergeUpcoming([...bills, ...wealth, ...vehicles, ...dateRows(dates)], limit);
 }
 
 export const ICON_FOR: Record<string, keyof typeof Ionicons.glyphMap> = {

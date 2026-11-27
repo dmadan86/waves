@@ -130,8 +130,13 @@ export interface DocSlot {
 }
 
 /** Built-in slots (always shown), then custom ones in first-added order. Legacy docs land in 'other'. */
-export function slotsOf(docs: readonly LocalDoc[], region: string): DocSlot[] {
-  const builtin = builtinSlots(region) as string[];
+export function slotsOf(
+  docs: readonly LocalDoc[],
+  region: string,
+  /** Other owners (vehicles, licences) bring their own fixed slots. */
+  builtinIds?: readonly string[],
+): DocSlot[] {
+  const builtin = [...(builtinIds ?? builtinSlots(region))];
   const out: DocSlot[] = builtin.map((id) => ({
     id,
     builtin: true,
@@ -170,4 +175,12 @@ export function renameSlot(
       (d.slot ?? OTHER_SLOT) === slot ? { ...d, slotLabel: clean } : d,
     ),
   };
+}
+
+/** The documents of one owner filed under another id (a vehicle that moved space). */
+export function rekeyIndex(index: DocIndex, from: string, to: string): DocIndex {
+  const mine = index[from];
+  if (!mine || from === to) return index;
+  const { [from]: _gone, ...rest } = index;
+  return { ...rest, [to]: [...(rest[to] ?? []), ...mine] };
 }

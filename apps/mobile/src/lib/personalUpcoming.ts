@@ -12,6 +12,8 @@ import {
   rentDues,
   monthRange,
   type PersonalInvestment,
+  type PersonalLicence,
+  type PersonalVehicle,
   type PersonalProperty,
   type PersonalRecurring,
   type PersonalTenancy,
@@ -26,6 +28,7 @@ import {
   rulesOfTenancy,
   type RaisePrompt,
 } from '@/lib/wealthPlan';
+import { dueSoon, licenceDue, type DueItem } from '@/lib/vehiclePlan';
 
 export type RowTone = 'brand' | 'positive' | 'negative' | 'warning';
 
@@ -148,6 +151,36 @@ export function wealthRows(input: {
       title: titles.maturity(inv.name),
       href: `/investments/${inv.id}`,
     });
+  }
+  return out;
+}
+
+/** Vehicle renewals and the licence expiry inside their reminder window, as Upcoming rows. */
+export function vehicleRows(input: {
+  vehicles: readonly PersonalVehicle[];
+  licences: readonly PersonalLicence[];
+  today: string;
+  title: (name: string, item: DueItem) => string;
+}): UpcomingRow[] {
+  const out: UpcomingRow[] = [];
+  const row = (item: DueItem, name: string, href: string): void => {
+    out.push({
+      key: `veh:${item.key}:${item.date}`,
+      kind: 'bill',
+      tone: item.inDays < 0 ? 'negative' : 'warning',
+      inDays: item.inDays,
+      date: item.date,
+      title: input.title(name, item),
+      href,
+    });
+  };
+  for (const v of input.vehicles) {
+    if (v.status !== 'active') continue;
+    for (const d of dueSoon(v, input.today)) row(d, v.name, `/vehicles/${v.id}`);
+  }
+  for (const l of input.licences) {
+    const d = licenceDue(l, input.today);
+    if (d) row(d, l.holderName, '/vehicles');
   }
   return out;
 }

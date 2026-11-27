@@ -54,6 +54,7 @@ import { MonthPill, QuickActions } from '@/components/personal/PersonalHomeParts
 import { useBlockedUsers } from '@/data/blocked';
 import { useGroupIncome } from '@/data/groupIncome';
 import { RentalsRow } from '@/components/household/RentalsRow';
+import { VehiclesRow } from '@/components/household/VehiclesRow';
 import { groupRentalsSummary, hasGroupRentals } from '@/lib/rentalScope';
 import { occurrenceIds, useGroupRecurring, useMarkBillPaid } from '@/data/groupRecurring';
 import {
@@ -675,6 +676,7 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                   amountText={fmt(rentals.received)}
                 />
               ) : null}
+              {hasGroupRentals(group.data.type) ? <VehiclesRow groupId={groupId} /> : null}
 
               <OverviewTab data={data} />
             </>
