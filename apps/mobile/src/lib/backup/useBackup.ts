@@ -497,6 +497,8 @@ export function useBackup(): BackupState & BackupActions {
   const applyRestore = useCallback(
     async (result: Extract<RestoreScan, { ok: true }>): Promise<number> => {
       if (!ownerId) return 0;
+      // A scan kept across an account switch must not restore the other account's data.
+      if (result.body && result.body.ownerId !== ownerId) return 0;
       const isCurrent = coupleBridge.captureOwner(ownerId);
       const scope = personalScope(ownerId);
       for (const record of result.plan.restore) {

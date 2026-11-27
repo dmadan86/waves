@@ -1751,7 +1751,7 @@ export default function BackupSettingsScreen() {
                   ? t.backup.restoreNothingNew
                   : plural(locale, found.plan.restore.length, t.backup.restoreFound)}
               </Text>
-              {found.plan.restore.length > 0 ? (
+              {found.plan.restore.length > 0 || (found.body?.couple?.length ?? 0) > 0 ? (
                 <Button
                   label={t.backup.restoreConfirm}
                   onPress={() => void onRestore()}

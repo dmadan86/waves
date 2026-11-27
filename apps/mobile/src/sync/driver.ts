@@ -816,10 +816,6 @@ class SqliteStore implements LocalStore {
   writeE2eePending(groupId: string, pending: readonly e2ee.PendingOp[]): Promise<void> {
     return this.serial.run(async () => {
       const database = await this.db();
-      if (pending.length === 0) {
-        await database.runAsync(`DELETE FROM e2ee_pending WHERE group_id = ?`, [groupId]);
-        return;
-      }
       const key = await loadE2eeKey();
       // An unreadable row is set aside, not overwritten, so its operations are not silently lost.
       const old = await database.getFirstAsync<{ json: string }>(
@@ -835,6 +831,10 @@ class SqliteStore implements LocalStore {
             [`${CORRUPT_PENDING}${groupId}`, old.json],
           );
         }
+      }
+      if (pending.length === 0) {
+        await database.runAsync(`DELETE FROM e2ee_pending WHERE group_id = ?`, [groupId]);
+        return;
       }
       await database.runAsync(
         `INSERT INTO e2ee_pending (group_id, json) VALUES (?, ?)

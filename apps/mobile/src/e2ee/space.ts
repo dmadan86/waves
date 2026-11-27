@@ -309,8 +309,8 @@ export class E2eeSpace {
       )
         return;
       if (!isCurrent()) return;
-      if (group.some((c) => c.former) || !liveGroupIds.includes(groupId))
-        await this.retire(groupId, group[0]!.name, isCurrent);
+      // Never retire a group this account is in: that would turn live records read-only.
+      if (!liveGroupIds.includes(groupId)) await this.retire(groupId, group[0]!.name, isCurrent);
     }
   }
 
