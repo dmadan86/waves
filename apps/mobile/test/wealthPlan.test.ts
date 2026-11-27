@@ -16,6 +16,8 @@ import {
   cadenceFor,
   depositTerm,
   monthRent,
+  monthTotals,
+  stripMark,
   planWealthReminders,
   currentRentRule,
   liveRules,
@@ -304,5 +306,21 @@ describe('yearly rent increase prompt', () => {
     expect(a).toBe(raiseRuleId('7f3a9c1e-1111-4222-8333-444455556666', '2026-12-05'));
     expect(a).not.toBe(raiseRuleId('7f3a9c1e-1111-4222-8333-444455556666', '2026-12-06'));
     expect(a).toHaveLength(36);
+  });
+});
+
+describe('rentals month card and strip', () => {
+  it('works out what is due and the percent received', () => {
+    expect(monthTotals(0n, 30500n)).toEqual({ due: 30500n, percent: 0 });
+    expect(monthTotals(10000n, 30000n)).toEqual({ due: 20000n, percent: 33 });
+    expect(monthTotals(40000n, 30000n)).toEqual({ due: 0n, percent: 100 });
+    expect(monthTotals(0n, 0n)).toEqual({ due: 0n, percent: 0 });
+  });
+  it('marks each month of the strip', () => {
+    expect(stripMark('none')).toBe('dash');
+    expect(stripMark('paid')).toBe('check');
+    expect(stripMark('part')).toBe('warn');
+    expect(stripMark('due')).toBe('alert');
+    expect(stripMark('overdue')).toBe('alert');
   });
 });

@@ -10,6 +10,7 @@ import { AmountField, Button, Card, useTheme } from '@waves/ui';
 import { DayStepper } from '@/components/RepeatPicker';
 import { DateAnswer, FlowShell, Pick, TextAnswer } from '@/components/wealth/parts';
 import type { RentalDraft } from '@/data/personalWealth';
+import { ESCALATION_ICON, STEP_ICON } from '@/lib/wizardIcons';
 import { fill, useStrings } from '@/i18n';
 import { depositTerm, type Region } from '@/lib/wealthPlan';
 
@@ -76,7 +77,7 @@ export function TenantFlow({
   switch (step) {
     case 'tenant':
       return (
-        <FlowShell title={w.tenantNameQ} {...base} onSkip={onSkip}>
+        <FlowShell title={w.tenantNameQ} icon={STEP_ICON.tenant} {...base} onSkip={onSkip}>
           <TextAnswer
             value={name}
             onChange={setName}
@@ -95,7 +96,7 @@ export function TenantFlow({
       );
     case 'rent':
       return (
-        <FlowShell title={w.rentQ} {...base} onSkip={onSkip}>
+        <FlowShell title={w.rentQ} icon={STEP_ICON.rent} {...base} onSkip={onSkip}>
           <Card style={{ gap: theme.spacing.md }}>
             <AmountField currency={currency} value={rent} onChange={setRent} />
             <Pick<RentFrequency>
@@ -109,7 +110,12 @@ export function TenantFlow({
       );
     case 'day':
       return (
-        <FlowShell title={weekly ? w.invStartQ : w.invDayQ} {...base} onSkip={next}>
+        <FlowShell
+          title={weekly ? w.invStartQ : w.invDayQ}
+          icon={STEP_ICON.day}
+          {...base}
+          onSkip={next}
+        >
           <Card>
             {weekly ? (
               <DateAnswer label={w.invStartQ} value={start} onChange={setStart} />
@@ -130,6 +136,7 @@ export function TenantFlow({
       return (
         <FlowShell
           title={fill(w.depositQ, { term: noun })}
+          icon={STEP_ICON.deposit}
           {...base}
           onSkip={() => {
             setDeposit(0n);
@@ -144,7 +151,7 @@ export function TenantFlow({
       );
     case 'dates':
       return (
-        <FlowShell title={w.startEndQ} {...base} onSkip={next}>
+        <FlowShell title={w.startEndQ} icon={STEP_ICON.dates} {...base} onSkip={next}>
           <Card style={{ gap: theme.spacing.md }}>
             <DateAnswer label={w.startDate} value={start} onChange={setStart} />
             <DateAnswer label={w.endDate} value={end} onChange={setEnd} clearLabel={w.openEnded} />
@@ -154,11 +161,20 @@ export function TenantFlow({
       );
     default:
       return (
-        <FlowShell title={w.escalationQ} {...base} onSkip={() => finish(null)}>
+        <FlowShell
+          title={w.escalationQ}
+          icon={STEP_ICON.escalation}
+          {...base}
+          onSkip={() => finish(null)}
+        >
           <Pick<string>
             options={[
-              { value: 'none', label: w.escalationNone },
-              ...PCTS.map((p) => ({ value: String(p), label: fill(w.escalationPct, { pct: p }) })),
+              { value: 'none', label: w.escalationNone, icon: 'remove-circle-outline' as const },
+              ...PCTS.map((p) => ({
+                value: String(p),
+                label: fill(w.escalationPct, { pct: p }),
+                icon: ESCALATION_ICON,
+              })),
             ]}
             onPick={(v) => finish(v === 'none' ? null : Number(v))}
           />
