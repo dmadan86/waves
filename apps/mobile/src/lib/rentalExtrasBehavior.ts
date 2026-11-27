@@ -15,8 +15,11 @@ export async function attachRentalDocs<T, O>(
     if (saved > 0) await reload().catch(() => undefined);
     throw error;
   }
-  for (const doc of oldDocs) await removeOld(doc);
-  await reload();
+  try {
+    for (const doc of oldDocs) await removeOld(doc);
+  } finally {
+    await reload();
+  }
 }
 
 export function shouldShowPreviousBalance(value: string, previous: string, mask: string): boolean {

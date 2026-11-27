@@ -749,9 +749,9 @@ function DetailBody() {
           setOpen(null);
         }}
       />
-      {tn ? (
+      {tn && open === 'deposit' ? (
         <AmountSheet
-          visible={open === 'deposit'}
+          visible
           title={fill(w.depositQ, { term: noun })}
           currency={cur}
           initial={tn.depositHeld}

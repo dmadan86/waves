@@ -453,7 +453,7 @@ export function useWealthWrites(groupId?: string) {
           note: `Rent · ${label}`,
           date,
           loanId: null,
-          recurringId: rule.id,
+          recurringId: fullDue?.ruleId ?? rule.id,
           propertyId,
         }),
       ),

@@ -59,6 +59,7 @@ describe('encryption notice', () => {
     for (const w of [wealthEn, wealthTa, wealthHi, wealthAr]) {
       expect(e2eeNoteFor(w, 'couple')).toBe(w.e2eeNote);
       expect(e2eeNoteFor(w, 'home')).toBe(w.e2eeNoteHome);
+      expect(e2eeNoteFor(w, undefined)).toBe(w.e2eeNoteHome);
       expect(w.e2eeNoteHome).not.toBe(w.e2eeNote);
       expect(w.e2eeNoteHome.length).toBeGreaterThan(10);
     }
@@ -105,5 +106,26 @@ describe('animation guards', () => {
   it('the first wizard step does not animate in', () => {
     expect(shouldAnimateFlowStep(0)).toBe(false);
     expect(shouldAnimateFlowStep(2)).toBe(true);
+  });
+});
+
+describe('document replacement', () => {
+  it('reloads even when removing an old file fails', async () => {
+    const { attachRentalDocs } = await import('../src/lib/rentalExtrasBehavior');
+    let reloads = 0;
+    await expect(
+      attachRentalDocs(
+        ['a'],
+        ['old'],
+        async () => {},
+        async () => {
+          throw new Error('x');
+        },
+        async () => {
+          reloads += 1;
+        },
+      ),
+    ).rejects.toThrow('x');
+    expect(reloads).toBe(1);
   });
 });

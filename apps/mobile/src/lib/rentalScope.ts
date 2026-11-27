@@ -87,11 +87,11 @@ export function fullPaymentOf(
 export const writesReady = (groupId: string | undefined, memberId: string | null): boolean =>
   !groupId || !!memberId;
 
-/** The privacy line: a couple is two people, a home can be more. */
+/** The privacy line: a couple is two people; anything else (or not yet known) says members of the group. */
 export const e2eeNoteFor = (
   w: { e2eeNote: string; e2eeNoteHome: string },
   type: string | null | undefined,
-): string => (type === 'home' ? w.e2eeNoteHome : w.e2eeNote);
+): string => (type === 'couple' ? w.e2eeNote : w.e2eeNoteHome);
 
 /** Rent received in `month` (YYYY-MM) in one currency: what the household Income figure adds. */
 export function rentReceivedInMonth(
