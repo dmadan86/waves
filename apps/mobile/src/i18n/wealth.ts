@@ -136,6 +136,8 @@ export interface WealthStrings {
   tenants: string;
   unit: string;
   recordRent: string;
+  rentDueCap: string;
+  dueThisMonthCap: string;
   addExpense: string;
   expenseNote: string;
   yearlyIncome: string;
@@ -338,6 +340,8 @@ export const wealthEn: WealthStrings = {
   tenants: 'Tenants',
   unit: 'Unit (optional)',
   recordRent: 'Record rent',
+  rentDueCap: 'Rent due',
+  dueThisMonthCap: 'Due this month',
   addExpense: 'Add expense',
   expenseNote: 'Repair or tax',
   yearlyIncome: 'Rent received this year',
@@ -530,6 +534,8 @@ export const wealthTa: WealthStrings = {
   tenants: 'குத்தகைதாரர்கள்',
   unit: 'யூனிட் (விருப்பமானால்)',
   recordRent: 'வாடகையைப் பதிவுசெய்',
+  rentDueCap: 'வாடகை நிலுவை',
+  dueThisMonthCap: 'இந்த மாதம் வர வேண்டியது',
   addExpense: 'செலவு சேர்',
   expenseNote: 'பழுது அல்லது வரி',
   yearlyIncome: 'இந்த ஆண்டு வந்த வாடகை',
@@ -722,6 +728,8 @@ export const wealthHi: WealthStrings = {
   tenants: 'किरायेदार',
   unit: 'यूनिट (वैकल्पिक)',
   recordRent: 'किराया दर्ज करें',
+  rentDueCap: 'किराया बाकी',
+  dueThisMonthCap: 'इस महीने बाकी',
   addExpense: 'खर्च जोड़ें',
   expenseNote: 'मरम्मत या टैक्स',
   yearlyIncome: 'इस साल मिला किराया',
@@ -914,6 +922,8 @@ export const wealthAr: WealthStrings = {
   tenants: 'المستأجرون',
   unit: 'الوحدة (اختياري)',
   recordRent: 'سجّل الإيجار',
+  rentDueCap: 'الإيجار المستحق',
+  dueThisMonthCap: 'مستحق هذا الشهر',
   addExpense: 'أضف مصروفًا',
   expenseNote: 'صيانة أو ضريبة',
   yearlyIncome: 'الإيجار المحصّل هذا العام',

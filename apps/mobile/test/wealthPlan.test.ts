@@ -324,3 +324,25 @@ describe('rentals month card and strip', () => {
     expect(stripMark('overdue')).toBe('alert');
   });
 });
+
+describe('rental detail hero', () => {
+  it('gives every property type an illustration', async () => {
+    const { PROPERTY_TYPES } = await import('@waves/core');
+    const { artKind } = await import('../src/lib/wealthPlan');
+    expect(PROPERTY_TYPES.map((t) => artKind(t))).toEqual([
+      'house',
+      'building',
+      'room',
+      'shop',
+      'shop',
+      'land',
+      'house',
+    ]);
+  });
+  it('words the hero by status', async () => {
+    const { heroCaptionKey } = await import('../src/lib/wealthPlan');
+    expect(heroCaptionKey('due')).toBe('dueThisMonthCap');
+    expect(heroCaptionKey('overdue')).toBe('statusOverdue');
+    expect(heroCaptionKey('vacant')).toBe('statusVacant');
+  });
+});
