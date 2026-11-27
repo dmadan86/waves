@@ -111,13 +111,15 @@ export function rentReceivedInMonth(
   return total;
 }
 
-/** Property ids from Personal plus every group the person is in: what the orphan sweep must keep. */
+/** Owner ids (properties, vehicles, licences) from Personal plus every group the person is in: what the orphan sweep must keep. */
 export function liveDocPropertyIds(
   ...stores: readonly (readonly RentalRecord[])[]
 ): ReadonlySet<string> {
   const ids = new Set<string>();
   for (const records of stores)
-    for (const r of records) if (r.record_kind === 'property') ids.add(r.id);
+    for (const r of records)
+      if (r.record_kind === 'property' || r.record_kind === 'vehicle' || r.record_kind === 'licence')
+        ids.add(r.id);
   return ids;
 }
 

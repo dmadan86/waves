@@ -130,8 +130,13 @@ export interface DocSlot {
 }
 
 /** Built-in slots (always shown), then custom ones in first-added order. Legacy docs land in 'other'. */
-export function slotsOf(docs: readonly LocalDoc[], region: string): DocSlot[] {
-  const builtin = builtinSlots(region) as string[];
+export function slotsOf(
+  docs: readonly LocalDoc[],
+  region: string,
+  /** Other owners (vehicles, licences) bring their own fixed slots. */
+  builtinIds?: readonly string[],
+): DocSlot[] {
+  const builtin = [...(builtinIds ?? builtinSlots(region))];
   const out: DocSlot[] = builtin.map((id) => ({
     id,
     builtin: true,
