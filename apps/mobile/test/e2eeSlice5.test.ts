@@ -193,6 +193,15 @@ describe('sign-out back-up prompt', () => {
   const now = 1_700_000_000_000;
   it('asks only with couple data and no recent backup', () => {
     expect(shouldPromptCoupleBackup({ coupleRecords: 0, lastBackupAt: null, now })).toBe(false);
+    expect(
+      shouldPromptCoupleBackup({ coupleRecords: 0, lastBackupAt: now, now, outboxCount: 1 }),
+    ).toBe(true);
+    expect(
+      shouldPromptCoupleBackup({ coupleRecords: 0, lastBackupAt: null, now, formerRecords: 1 }),
+    ).toBe(true);
+    expect(
+      shouldPromptCoupleBackup({ coupleRecords: 0, lastBackupAt: now, now, formerRecords: 1 }),
+    ).toBe(false);
     expect(shouldPromptCoupleBackup({ coupleRecords: 3, lastBackupAt: null, now })).toBe(true);
     expect(shouldPromptCoupleBackup({ coupleRecords: 3, lastBackupAt: now - 2 * DAY, now })).toBe(
       false,

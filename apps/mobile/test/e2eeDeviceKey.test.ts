@@ -69,4 +69,25 @@ describe('device key', () => {
     expect(Array.from(second.publicKey)).not.toEqual(Array.from(first.publicKey));
     expect(secure.items.get('waves.e2ee.device.v1.migrated')).toBe('account-a');
   });
+
+  it('serializes concurrent legacy migration and gives the key to only one account', async () => {
+    const m = await import('../src/e2ee/deviceKey');
+    const privateKey = (await m.loadDeviceKey('seed')).privateKey;
+    const legacy = btoa(String.fromCharCode(...privateKey));
+    secure.items.set('waves.e2ee.device.v1', legacy);
+    secure.items.delete('waves.e2ee.device.v1.migrated');
+    secure.items.delete('waves.e2ee.device.v2.seed');
+    vi.resetModules();
+    const keys = await import('../src/e2ee/deviceKey');
+    const [a, b] = await Promise.all([
+      keys.loadDeviceKey('account-a'),
+      keys.loadDeviceKey('account-b'),
+    ]);
+    expect(secure.items.get('waves.e2ee.device.v1.migrated')).toMatch(/^account-[ab]$/);
+    expect(
+      [a, b].filter((pair) =>
+        Array.from(pair.privateKey).every((value, i) => value === privateKey[i]),
+      ),
+    ).toHaveLength(1);
+  });
 });

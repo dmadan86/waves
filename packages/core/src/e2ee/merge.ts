@@ -302,7 +302,7 @@ export function validateOp(
     if (!entries.length || entries.length > 128) return { ok: false, reason: 'fields' };
     for (const [name, raw] of entries) {
       if (
-        !allowedFields.has(name) ||
+        !/^[A-Za-z_][A-Za-z0-9_]{0,127}$/.test(name) ||
         !Array.isArray(raw) ||
         raw.length !== 2 ||
         typeof raw[1] !== 'string'
@@ -310,14 +310,22 @@ export function validateOp(
         return { ok: false, reason: 'field' };
       validateHlc(raw[1]);
       const value = raw[0];
+      const isObject = value !== null && typeof value === 'object' && !Array.isArray(value);
+      const isCarried = !allowedFields.has(name);
+      const isEncodedObject = isObject && (isCarried || (op.kind === 'loan' && name === 'synced'));
       if (!(
         value === null ||
         (typeof value === 'string' && value.length <= 8192) ||
         typeof value === 'boolean' ||
         (typeof value === 'number' && Number.isFinite(value)) ||
-        (typeof value === 'bigint' && value.toString().length <= 40)
+        (typeof value === 'bigint' && value.toString().length <= 40) ||
+        isEncodedObject
       ))
         return { ok: false, reason: 'value' };
+      if (isEncodedObject) {
+        const json = JSON.stringify(value);
+        if (!json || json.length > 8192) return { ok: false, reason: 'value' };
+      }
       if (
         (JSON.stringify(value, (_k, v) => (typeof v === 'bigint' ? String(v) : v))?.length ?? 0) >
         16384

@@ -20,6 +20,7 @@
  */
 
 import { coupleBridge } from './coupleBridge';
+import { useE2eeReady } from '@/e2ee/runtime';
 import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
@@ -41,12 +42,14 @@ const CHECK_THROTTLE_MS = 5 * 60 * 1000;
 export function AutoBackup() {
   const { session } = useAuth();
   const ownerId = session?.user?.id ?? '';
+  const e2eeReady = useE2eeReady(ownerId);
   const records = usePersonalRecords();
   // Until the mirror is off disk and the first sync has landed (or given up),
   // an empty ledger means "not looked yet", and sealing it would replace a good
   // backup with a blank one.
   const { hydrated, status, hasSynced } = useSync();
-  const settled = hydrated && !(!hasSynced && (status === 'idle' || status === 'syncing'));
+  const settled =
+    e2eeReady && hydrated && !(!hasSynced && (status === 'idle' || status === 'syncing'));
 
   // The newest ledger, read at the moment a check fires rather than captured
   // when the effect was set up — the effect must not re-subscribe to AppState

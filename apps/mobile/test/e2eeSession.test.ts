@@ -4,7 +4,7 @@ import { ownerMismatch, SessionGeneration } from '../src/e2ee/session';
 
 describe('E2EE account/session guards', () => {
   it('requires a wipe when stored ownership differs from the verified profile', () => {
-    expect(ownerMismatch(null, 'profile-a')).toBe(true);
+    expect(ownerMismatch(null, 'profile-a')).toBe(false);
     expect(ownerMismatch('profile-a', 'profile-a')).toBe(false);
     expect(ownerMismatch('profile-a', 'profile-b')).toBe(true);
   });

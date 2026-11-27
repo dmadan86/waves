@@ -37,6 +37,7 @@ const h = vi.hoisted(() => ({
   runBackup: vi.fn(),
   reportHandled: vi.fn(),
   sync: { hydrated: true, hasSynced: true, status: 'idle' },
+  e2eeReady: true,
 }));
 
 vi.mock('react-native', () => ({
@@ -60,6 +61,7 @@ vi.mock('expo-crypto', () => ({
 vi.mock('expo-network', () => ({ NetworkStateType: { WIFI: 'wifi', CELLULAR: 'cellular' } }));
 vi.mock('@/lib/auth', () => ({ useAuth: () => ({ session: h.session }) }));
 vi.mock('@/sync', () => ({ useSync: () => h.sync }));
+vi.mock('@/e2ee/runtime', () => ({ useE2eeReady: () => h.e2eeReady }));
 vi.mock('@/data/personal', () => ({ usePersonalRecords: () => h.records }));
 vi.mock('@/lib/observability', () => ({ reportHandled: h.reportHandled }));
 vi.mock('@/lib/backup/engine', () => ({ runBackup: h.runBackup }));
@@ -81,6 +83,7 @@ beforeEach(async () => {
   h.session = { user: { id: 'alice' } };
   h.records = [{ id: 'r1' }];
   h.sync = { hydrated: true, hasSynced: true, status: 'idle' };
+  h.e2eeReady = true;
   h.runBackup.mockResolvedValue({ ok: true, last: { at: NOW, size: 20, records: 1 } });
   await AsyncStorage.clear();
 });
@@ -117,6 +120,18 @@ describe('AutoBackup', () => {
     await settle();
     expect(h.runBackup).not.toHaveBeenCalled();
     h.sync = { hydrated: true, hasSynced: true, status: 'idle' };
+    first.rerender();
+    await settle();
+    expect(h.runBackup).toHaveBeenCalledTimes(1);
+  });
+
+  it('waits for E2EE hydration before backing up couple data', async () => {
+    await saveFrequency('alice', BackupFrequency.Daily);
+    h.e2eeReady = false;
+    const first = renderHook(() => AutoBackup());
+    await settle();
+    expect(h.runBackup).not.toHaveBeenCalled();
+    h.e2eeReady = true;
     first.rerender();
     await settle();
     expect(h.runBackup).toHaveBeenCalledTimes(1);

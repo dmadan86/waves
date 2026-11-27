@@ -68,6 +68,8 @@ const MAX_CALL_BYTES = 480 * 1024;
 const FETCH_PAGE = 200;
 /** The server purges unfetched mail after 30 days, so a phone away that long must ask for a snapshot. */
 const STALE_MS = 30 * 24 * 3_600_000;
+/** Leave five days for clock skew and network recovery before SQL receipt cleanup. */
+const OUTBOX_MAX_AGE_MS = 25 * 24 * 3_600_000;
 /** One snapshot per requester per hour, and one request per group per hour. */
 const RESYNC_GAP_MS = 3_600_000;
 /** Pads the msgId while chunking: room for the real id and the `to` field the answer adds. */
@@ -78,6 +80,8 @@ const wireSize = (pt: e2ee.Plaintext): number =>
 const fits = (pt: e2ee.Plaintext): boolean => wireSize(pt) <= e2ee.MAX_MESSAGE_BYTES;
 
 const utf8 = new TextEncoder();
+export const pairCacheKey = (ownDeviceId: string, peerDeviceId: string, kv: string): string =>
+  `${kv}:${ownDeviceId}:${peerDeviceId}`;
 class TransientMailboxError extends Error {
   constructor(readonly cause: unknown) {
     super('e2ee: transient mailbox dependency failure');
@@ -249,7 +253,14 @@ export function createMailbox(deps: MailboxDeps) {
   }
 
   async function keyFor(peer: GroupDevice): Promise<Uint8Array> {
-    const cached = pairKeys.get(peer.deviceId);
+    let ownId: string;
+    try {
+      ownId = await keys.deviceId();
+    } catch (error) {
+      throw new TransientMailboxError(error);
+    }
+    const cacheKey = pairCacheKey(ownId, peer.deviceId, 'v2');
+    const cached = pairKeys.get(cacheKey);
     if (cached) return cached;
     let device: e2ee.DeviceKeyPair;
     try {
@@ -258,7 +269,7 @@ export function createMailbox(deps: MailboxDeps) {
       throw new TransientMailboxError(error);
     }
     const key = e2ee.pairKey(device.privateKey, peer.publicKey);
-    pairKeys.set(peer.deviceId, key);
+    pairKeys.set(cacheKey, key);
     return key;
   }
 
@@ -443,6 +454,15 @@ export function createMailbox(deps: MailboxDeps) {
     const blockedGroups = new Set<string>();
     for (const row of rows) {
       if (blockedGroups.has(row.groupId)) continue;
+      if (deps.now() - Date.parse(row.createdAt) >= OUTBOX_MAX_AGE_MS) {
+        if (!isCurrent()) return;
+        await meta.set(
+          `outbox-failed:${row.groupId}`,
+          JSON.stringify({ at: deps.now(), reason: 'expired' }),
+        );
+        blockedGroups.add(row.groupId);
+        continue;
+      }
       if (await meta.get(`outbox-failed:${row.groupId}`)) {
         blockedGroups.add(row.groupId);
         continue;
@@ -877,13 +897,25 @@ export function createMailbox(deps: MailboxDeps) {
     sync,
     requestResync,
     notices,
-    forgetDevices: () => devicesCache.clear(),
-    async failedOutboxGroups(): Promise<string[]> {
+    forgetDevices: () => {
+      devicesCache.clear();
+      pairKeys.clear();
+    },
+    async failedOutboxGroups(): Promise<{ groupId: string; reason: string }[]> {
       const rows = await outbox.readE2eeOutbox();
       const groups = [...new Set(rows.map((row) => row.groupId))];
-      const failed: string[] = [];
-      for (const groupId of groups)
-        if (await meta.get(`outbox-failed:${groupId}`)) failed.push(groupId);
+      const failed: { groupId: string; reason: string }[] = [];
+      for (const groupId of groups) {
+        const raw = await meta.get(`outbox-failed:${groupId}`);
+        if (!raw) continue;
+        let reason = 'unknown';
+        try {
+          reason = String((JSON.parse(raw) as { reason?: unknown }).reason ?? reason);
+        } catch {
+          // Older failure markers carried no structured reason.
+        }
+        failed.push({ groupId, reason });
+      }
       return failed;
     },
   };

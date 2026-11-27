@@ -8,12 +8,14 @@ export function shouldPromptCoupleBackup(input: {
   lastBackupAt: number | null;
   /** Pending encrypted changes not yet delivered to every device. */
   outboxCount?: number;
+  /** Records retained after leaving a group. */
+  formerRecords?: number;
   /** Latest local record edit time derived from the stored HLCs. */
   lastLocalChangeAt?: number | null;
   now: number;
 }): boolean {
-  if (input.coupleRecords === 0) return false;
   if ((input.outboxCount ?? 0) > 0) return true;
+  if (input.coupleRecords + (input.formerRecords ?? 0) === 0) return false;
   if (input.lastBackupAt !== null && (input.lastLocalChangeAt ?? 0) > input.lastBackupAt)
     return true;
   return input.lastBackupAt === null || input.now - input.lastBackupAt > RECENT_MS;

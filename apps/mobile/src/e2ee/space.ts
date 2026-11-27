@@ -136,10 +136,13 @@ export class E2eeSpace {
     private readonly clock: { now: () => number; newId: () => string },
   ) {}
 
-  async load(): Promise<void> {
+  async load(canCommit: () => boolean = () => true): Promise<void> {
+    if (!canCommit()) return;
     const rows = await this.io.readE2eeRecords();
+    if (!canCommit()) return;
     const stores = new Map<string, Record<string, e2ee.RecordState>>();
     const pendingByGroup = new Map(await this.io.readE2eePending());
+    if (!canCommit()) return;
     for (const r of rows) {
       const s = stores.get(r.groupId) ?? {};
       s[r.id] = r.state;
@@ -422,6 +425,7 @@ export class E2eeSpace {
   ): Promise<boolean> {
     if (entries.length === 0) return Promise.resolve(true);
     return this.run(async () => {
+      if (!canCommit()) return false;
       const pendingUpdates = new Map<string, e2ee.PendingOp[]>();
       const byGroup = new Map<string, { next: Store; touched: Set<string> }>();
       for (const e of entries) {
@@ -475,11 +479,18 @@ export class E2eeSpace {
           if (g.next[id]) rows.push({ groupId, id, kind: g.next[id]!.kind, state: g.next[id]! });
       if (!canCommit()) return false;
       await this.io.writeE2eeRecords(rows);
+      if (!canCommit()) return false;
       for (const [groupId, pending] of pendingUpdates) {
+        if (!canCommit()) return false;
         await this.io.writeE2eePending(groupId, pending);
+        if (!canCommit()) return false;
         this.pendingByGroup.set(groupId, pending);
       }
-      for (const [groupId, g] of byGroup) this.stores.set(groupId, g.next);
+      for (const [groupId, g] of byGroup) {
+        if (!canCommit()) return false;
+        this.stores.set(groupId, g.next);
+      }
+      if (!canCommit()) return false;
       this.notify();
       return true;
     });

@@ -11,6 +11,23 @@ const MIGRATED_SLOT = `${DEVICE_KEY_SLOT}.migrated`;
 const slot = (profileId: string) => `waves.e2ee.device.v2.${encodeURIComponent(profileId)}`;
 const pairs = new Map<string, Promise<e2ee.DeviceKeyPair>>();
 const deviceIds = new Map<string, string>();
+let legacyMigration: Promise<{ owner: string; key: string | null }> | null = null;
+
+async function claimLegacyKey(profileId: string): Promise<string | null> {
+  if (!legacyMigration) {
+    legacyMigration = (async () => {
+      const migrated = await SecureStore.getItemAsync(MIGRATED_SLOT);
+      if (migrated !== null) return { owner: migrated, key: null };
+      const legacy = await SecureStore.getItemAsync(DEVICE_KEY_SLOT);
+      await SecureStore.setItemAsync(MIGRATED_SLOT, profileId);
+      return { owner: profileId, key: legacy };
+    })().finally(() => {
+      legacyMigration = null;
+    });
+  }
+  const claim = await legacyMigration;
+  return claim.owner === profileId ? claim.key : null;
+}
 
 async function loadOrCreate(profileId: string): Promise<e2ee.DeviceKeyPair> {
   const keySlot = slot(profileId);
@@ -18,18 +35,12 @@ async function loadOrCreate(profileId: string): Promise<e2ee.DeviceKeyPair> {
   if (!stored) {
     // The v1 identity can be adopted by only the first profile that signs in
     // after this upgrade. Persist the marker before writing the scoped slot.
-    const migrated = await SecureStore.getItemAsync(MIGRATED_SLOT);
-    if (migrated === null) {
-      const legacy = await SecureStore.getItemAsync(DEVICE_KEY_SLOT);
-      if (legacy) {
-        await SecureStore.setItemAsync(MIGRATED_SLOT, profileId);
-        stored = legacy;
-        await SecureStore.setItemAsync(keySlot, legacy, {
-          keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
-        });
-      } else {
-        await SecureStore.setItemAsync(MIGRATED_SLOT, profileId);
-      }
+    const legacy = await claimLegacyKey(profileId);
+    if (legacy) {
+      stored = legacy;
+      await SecureStore.setItemAsync(keySlot, legacy, {
+        keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
+      });
     }
   }
   if (stored) {

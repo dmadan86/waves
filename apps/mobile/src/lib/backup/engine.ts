@@ -31,6 +31,7 @@
  */
 
 import * as Network from 'expo-network';
+import { coupleStructure, losesCoupleData, type CoupleStructure } from './coupleStructure';
 import { beginBackground, finishBackground, publishBackup, cancelBackup } from './background';
 import { waitForConnection } from './reconnect';
 import { uploadPercent } from './progress';
@@ -452,14 +453,14 @@ async function peekExisting(
   key: Uint8Array,
   ownerId: string,
   signal?: AbortSignal,
-): Promise<{ createdAt: string; ids: readonly string[]; coupleCount: number } | 'unreadable'> {
+): Promise<{ createdAt: string; ids: readonly string[]; couple: CoupleStructure } | 'unreadable'> {
   const envelope = parseFile(await provider.read(tokens, blob.remoteId, signal));
   try {
     const body = parseBody(openBackup(key, envelope.sealed, backupAad(ownerId)), ownerId);
     return {
       createdAt: envelope.createdAt || body.createdAt,
       ids: body.records.map((r) => r.id),
-      coupleCount: body.couple?.reduce((n, c) => n + c.records.length, 0) ?? 0,
+      couple: coupleStructure(body.couple ?? []),
     };
   } catch {
     return 'unreadable';
@@ -472,19 +473,32 @@ async function peekExisting(
  * rows this phone lacks (or more of them), or when it has shrunk by half.
  */
 function wouldLose(
-  existing: { createdAt: string; ids: readonly string[]; coupleCount?: number },
+  existing: {
+    createdAt: string;
+    ids: readonly string[];
+    couple?: CoupleStructure;
+    coupleCount?: number;
+  },
   local: readonly SourceRecord[],
   knownBackupAt: number | null,
-  localCoupleCount = 0,
+  localCouple: readonly BackupCouple[] = [],
 ): boolean {
-  const existingCount = existing.ids.length + (existing.coupleCount ?? 0);
-  const localCount = local.length + localCoupleCount;
+  const oldCouple = existing.couple ?? {
+    groups: 0,
+    records: existing.coupleCount ?? 0,
+    tombstones: 0,
+    byGroup: {},
+  };
+  const newCouple = coupleStructure(localCouple);
+  const existingCount = existing.ids.length + oldCouple.records;
+  const localCount = local.length + newCouple.records;
   if (existingCount === 0) return false;
   if (localCount === 0) return true;
   const have = new Set(local.map((r) => r.id));
   const missing = existing.ids.some((id) => !have.has(id));
   const foreign = Date.parse(existing.createdAt) > (knownBackupAt ?? 0);
-  if (foreign && (missing || existingCount > localCount)) return true;
+  const groupLoss = losesCoupleData(oldCouple, newCouple);
+  if (foreign && (missing || existingCount > localCount || groupLoss)) return true;
   return existingCount >= 10 && localCount < existingCount / 2;
 }
 
@@ -578,12 +592,7 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
           if (input.tier === BackupTier.Extra) return { ok: false, refusal: 'needs-key' };
         } else if (
           !input.replaceExisting &&
-          wouldLose(
-            existing,
-            input.records,
-            input.knownBackupAt ?? null,
-            input.couple?.reduce((n, c) => n + c.records.length, 0) ?? 0,
-          )
+          wouldLose(existing, input.records, input.knownBackupAt ?? null, input.couple ?? [])
         ) {
           return {
             ok: false,

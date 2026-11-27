@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { fromBytea, toBytea } from '../src/e2ee/deviceKey';
 import { base64ToBytes } from '../src/sync/rowCipher';
+import { pairCacheKey } from '../src/e2ee/mailbox';
 import { FakeServer, phone } from './e2eeFake';
 
 vi.mock('expo-secure-store', () => ({}));
@@ -22,6 +23,11 @@ function world() {
 const prop = { name: 'Flat 4', currency: 'INR', status: 'active' };
 
 describe('mailbox send', () => {
+  it('isolates cached pair keys when two accounts share the same peer device', () => {
+    expect(pairCacheKey('account-a-device', 'shared-peer', 'v2')).not.toBe(
+      pairCacheKey('account-b-device', 'shared-peer', 'v2'),
+    );
+  });
   it('retains a partially sealed message and retries the failed recipient', async () => {
     const server = world();
     const a = phone(server, 'pA', 'mA', 1);
@@ -81,7 +87,22 @@ describe('mailbox send', () => {
     await a.mailbox.flushOutbox();
     expect(a.store.outbox.size).toBe(1);
     expect(server.mailbox).toHaveLength(1);
-    expect(await a.mailbox.failedOutboxGroups()).toEqual(['group-lost']);
+    expect(await a.mailbox.failedOutboxGroups()).toEqual([
+      { groupId: 'group-lost', reason: 'membership-lost' },
+    ]);
+  });
+
+  it('expires an outbox item before receipt cleanup and reports the permanent reason', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1);
+    const b = phone(server, 'pB', 'mB', 2);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await a.set(G, 'p1', 'property', prop);
+    const row = [...a.store.outbox.values()][0]!;
+    row.createdAt = new Date(a.clock.t - 26 * 24 * 60 * 60 * 1000).toISOString();
+    await a.mailbox.flushOutbox();
+    expect(server.mailbox).toHaveLength(0);
+    expect(await a.mailbox.failedOutboxGroups()).toEqual([{ groupId: G, reason: 'expired' }]);
   });
 
   it('rejects an oversized local edit before it is committed', async () => {

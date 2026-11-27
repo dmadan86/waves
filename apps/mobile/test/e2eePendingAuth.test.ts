@@ -6,10 +6,12 @@ import { e2ee } from '@waves/core';
 class PendingStore {
   records: import('../src/sync/store').E2eeRecordRow[] = [];
   pending = new Map<string, e2ee.PendingOp[]>();
+  writeGate: Promise<void> | null = null;
   async readE2eeRecords() {
     return this.records;
   }
   async writeE2eeRecords(rows: readonly import('../src/sync/store').E2eeRecordRow[]) {
+    if (this.writeGate) await this.writeGate;
     for (const row of rows)
       this.records = [
         ...this.records.filter((r) => r.groupId !== row.groupId || r.id !== row.id),
@@ -32,6 +34,86 @@ class PendingStore {
 }
 
 describe('E2EE buffered operation authorization', () => {
+  it('does not publish a load completed by a stale session', async () => {
+    const store = new PendingStore();
+    const old = new E2eeSpace(store, { now: () => 1_700_000_000_000, newId: () => 'id' });
+    await old.applyIncoming([
+      {
+        groupId: 'g',
+        senderMemberId: 'm',
+        ops: [
+          {
+            op: 'put',
+            id: 'r',
+            kind: 'property',
+            createdBy: 'm',
+            create: true,
+            fields: { name: ['Flat', '1:0:A'] },
+          },
+        ],
+      },
+    ]);
+    const space = new E2eeSpace(store, { now: () => 1_700_000_000_000, newId: () => 'id' });
+    let current = true;
+    const originalRead = store.readE2eePending.bind(store);
+    let finish!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    store.readE2eePending = async () => {
+      await gate;
+      return originalRead();
+    };
+    const loading = space.load(() => current);
+    current = false;
+    finish();
+    await loading;
+    expect(space.groupIds()).toEqual([]);
+  });
+
+  it('rechecks the session after a records write before persisting pending ops', async () => {
+    const store = new PendingStore();
+    const space = new E2eeSpace(store, { now: () => 1_700_000_000_000, newId: () => 'id' });
+    let current = true;
+    let release!: () => void;
+    let started!: () => void;
+    store.writeGate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const begun = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const write = store.writeE2eeRecords.bind(store);
+    store.writeE2eeRecords = async (rows) => {
+      started();
+      await write(rows);
+    };
+    const incoming = space.applyIncoming(
+      [
+        {
+          groupId: 'g',
+          senderMemberId: 'm',
+          ops: [
+            {
+              op: 'put',
+              id: 'r',
+              kind: 'property',
+              createdBy: 'm',
+              fields: { name: ['pending', '1:0:A'] },
+            },
+          ],
+        },
+      ],
+      () => current,
+    );
+    await begun;
+    current = false;
+    release();
+    expect(await incoming).toBe(false);
+    expect(store.pending.size).toBe(0);
+    expect(space.groupIds()).toEqual([]);
+  });
+
   it('replays a buffered edit using its original sender permissions', async () => {
     const store = new PendingStore();
     const space = new E2eeSpace(store, { now: () => 1_700_000_000_000, newId: () => 'id' });

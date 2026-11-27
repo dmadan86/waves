@@ -175,7 +175,7 @@ export function syncE2ee(): Promise<void> {
 }
 
 /** Groups whose queued mailbox messages were quarantined after permanent membership loss. */
-export function getE2eeOutboxFailures(): Promise<string[]> {
+export function getE2eeOutboxFailures(): Promise<{ groupId: string; reason: string }[]> {
   return mailbox.failedOutboxGroups();
 }
 
@@ -194,9 +194,12 @@ export async function startE2ee(profileId: string): Promise<void> {
     await AsyncStorage.removeMany([...keys.filter((k) => k.startsWith(META_PREFIX)), OWNER_KEY]);
     if (!isCurrent()) return;
     await AsyncStorage.setItem(OWNER_KEY, profileId);
+  } else if (storedOwner === null) {
+    if (!isCurrent()) return;
+    await AsyncStorage.setItem(OWNER_KEY, profileId);
   }
   if (!isCurrent()) return;
-  await e2eeSpace.load();
+  await e2eeSpace.load(isCurrent);
   if (!isCurrent()) return;
   hydratedOwnerId = profileId;
   notifyHydration();

@@ -267,6 +267,8 @@ describe('merge', () => {
           startDate: '2026-01-01',
           status: 'active',
           shareSeq: 2,
+          synced: { groupId: 'g', expenseId: 'e', myMemberId: 'm1', otherMemberId: 'm2' },
+          carried: { futureField: { nested: 'kept' } },
         } as never),
       ],
       [
