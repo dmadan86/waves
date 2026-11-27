@@ -63,14 +63,7 @@ export interface RentalStore {
   readonly records: readonly RentalRecord[];
   readonly upsert: (
     recordId: string,
-    recordKind:
-      | 'investment'
-      | 'property'
-      | 'tenancy'
-      | 'recurring'
-      | 'txn'
-      | 'vehicle'
-      | 'licence',
+    recordKind: 'investment' | 'property' | 'tenancy' | 'recurring' | 'txn' | 'vehicle' | 'licence',
     data: Record<string, unknown>,
   ) => Promise<unknown>;
   readonly del: (recordId: string) => Promise<unknown>;

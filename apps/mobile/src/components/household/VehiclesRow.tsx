@@ -36,7 +36,11 @@ export function VehiclesRow({ groupId }: { groupId: string }) {
             {sub}
           </Text>
         </View>
-        <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={theme.color.textMuted} />
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={iconSize.sm}
+          color={theme.color.textMuted}
+        />
       </Pressable>
     </Card>
   );
