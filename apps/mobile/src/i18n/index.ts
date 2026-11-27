@@ -8531,6 +8531,7 @@ export interface UiStrings {
     investNone: string;
     rentalsLine: PluralForms;
     rentalsNone: string;
+    moreCurrencies: string;
     reportsSub: string;
     addBill: string;
     emptyUpcomingTitle: string;
@@ -16830,6 +16831,7 @@ const en: UiStrings = {
     investNone: 'Add your first investment',
     rentalsLine: { one: '{n} property · {amount} due', other: '{n} properties · {amount} due' },
     rentalsNone: 'Add a property',
+    moreCurrencies: '{n} more',
     reportsSub: 'Where your money went',
     addBill: 'Add a bill',
     emptyUpcomingTitle: 'Nothing due soon',
@@ -25208,6 +25210,7 @@ const ta: UiStrings = {
       other: '{n} சொத்துகள் · {amount} செலுத்த வேண்டியது',
     },
     rentalsNone: 'ஒரு சொத்தைச் சேர்க்கவும்',
+    moreCurrencies: 'மேலும் {n}',
     reportsSub: 'உங்கள் பணம் எங்கே போனது',
     addBill: 'பில் சேர்க்கவும்',
     emptyUpcomingTitle: 'விரைவில் செலுத்த எதுவும் இல்லை',
@@ -33399,6 +33402,7 @@ const hi: UiStrings = {
     investNone: 'अपना पहला निवेश जोड़ें',
     rentalsLine: { one: '{n} संपत्ति · {amount} देय', other: '{n} संपत्तियाँ · {amount} देय' },
     rentalsNone: 'संपत्ति जोड़ें',
+    moreCurrencies: '{n} और',
     reportsSub: 'आपका पैसा कहाँ गया',
     addBill: 'बिल जोड़ें',
     emptyUpcomingTitle: 'जल्द कुछ देय नहीं',
@@ -42456,6 +42460,7 @@ const ar: UiStrings = {
     investNone: 'أضف أول استثمار',
     rentalsLine: { one: '{n} عقار · {amount} مستحق', other: '{n} عقارات · {amount} مستحق' },
     rentalsNone: 'أضف عقارًا',
+    moreCurrencies: '{n} أخرى',
     reportsSub: 'أين ذهبت أموالك',
     addBill: 'إضافة فاتورة',
     emptyUpcomingTitle: 'لا شيء مستحق قريبًا',
