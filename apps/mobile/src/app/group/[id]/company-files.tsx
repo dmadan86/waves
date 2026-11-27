@@ -360,7 +360,7 @@ export default function CompanyFilesScreen() {
           </Row>
         ) : null}
         <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-          <SearchToggle value={query} onChange={setQuery} placeholder={s.search} />
+          <SearchToggle value={query} onChange={setQuery} placeholder={s.search} containerStyle={{ flex: 1 }} />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={grid ? s.listView : s.gridView}

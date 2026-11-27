@@ -263,7 +263,15 @@ export function CompanyPeople({
           ))}
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40 }}>
-          <SearchToggle value={query} onChange={setQuery} placeholder={t.company.searchEmployees} />
+          <SearchToggle
+            value={query}
+            onChange={(value) => {
+              setQuery(value);
+              if (value) setTree(false);
+            }}
+            placeholder={t.company.searchEmployees}
+            containerStyle={{ flex: 1 }}
+          />
           {view.isOwner
             ? round('git-network-outline', t.company.hierTitle, () => setTree((v) => !v), tree)
             : null}

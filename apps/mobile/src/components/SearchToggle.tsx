@@ -72,23 +72,26 @@ export function SearchToggle(props: {
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
+  containerStyle?: import('react-native').StyleProp<import('react-native').ViewStyle>;
 }) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   if (open || props.value)
     return (
-      <SearchField
-        value={props.value}
-        placeholder={props.placeholder}
-        onChange={props.onChange}
-        onCancel={() => {
-          props.onChange('');
-          setOpen(false);
-        }}
-      />
+      <View style={props.containerStyle}>
+        <SearchField
+          value={props.value}
+          placeholder={props.placeholder}
+          onChange={props.onChange}
+          onCancel={() => {
+            props.onChange('');
+            setOpen(false);
+          }}
+        />
+      </View>
     );
   return (
-    <View style={{ alignItems: 'flex-end' }}>
+    <View style={[{ alignItems: 'flex-end' }, props.containerStyle]}>
       <IconButton label={props.placeholder} onPress={() => setOpen(true)}>
         <Ionicons name="search" size={iconSize.lg} color={theme.color.brand} />
       </IconButton>
