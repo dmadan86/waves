@@ -330,7 +330,7 @@ function EntryRow({
           <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
             <Row style={{ alignItems: 'baseline', gap: theme.spacing.sm }}>
               <Text
-                numberOfLines={1}
+                numberOfLines={2}
                 style={{ flex: 1, fontSize: 14, fontWeight: '700', color: ink }}
               >
                 {title}
@@ -338,7 +338,7 @@ function EntryRow({
               <SplitAmount text={amount} color={ink} />
             </Row>
             <Row style={{ alignItems: 'baseline', gap: theme.spacing.sm }}>
-              <Text numberOfLines={1} style={{ flex: 1, fontSize: 12, color: muted }}>
+              <Text numberOfLines={2} style={{ flex: 1, fontSize: 12, color: muted }}>
                 {people}
               </Text>
               {entry.myNet !== 0n ? (

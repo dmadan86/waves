@@ -254,61 +254,66 @@ export function ContactPicker({
 
   const cancelled = useRef(false);
 
-  const load = useCallback(async (): Promise<void> => {
-    let granted: boolean;
-    try {
-      let answered = await getPermissionsAsync();
-      // Blocked for good: the picker's own denied view carries the Settings
-      // button, so only ask (explainer, then system dialog) while we still can.
-      if (!answered.granted && answered.canAskAgain) {
-        await ensurePermission('contacts', {
-          check: async () => answered,
-          request: async () => {
-            answered = await requestPermissionsAsync();
-            return answered;
-          },
-        });
+  const load = useCallback(
+    async (reask = true): Promise<void> => {
+      let granted: boolean;
+      try {
+        let answered = await getPermissionsAsync();
+        // Blocked for good: the picker's own denied view carries the Settings
+        // button, so only ask (explainer, then system dialog) while we still can.
+        // Coming back to the app never re-asks: the screen can be sitting under another
+        // task, and "Not now" was an answer. Opening the picker (or Try again) asks.
+        if (!answered.granted && answered.canAskAgain && reask) {
+          await ensurePermission('contacts', {
+            check: async () => answered,
+            request: async () => {
+              answered = await requestPermissionsAsync();
+              return answered;
+            },
+          });
+        }
+        granted = answered.granted;
+        // Absent on Android and on older iOS, where the grant is all-or-nothing —
+        // so the default is "not limited" rather than a guess.
+        if (!cancelled.current) setLimited(answered.accessPrivileges === 'limited');
+      } catch {
+        // Permission itself could not be asked: no contacts module on this
+        // platform (web) or an OS that refused the question.
+        if (!cancelled.current) setAccess(Access.Unavailable);
+        return;
       }
-      granted = answered.granted;
-      // Absent on Android and on older iOS, where the grant is all-or-nothing —
-      // so the default is "not limited" rather than a guess.
-      if (!cancelled.current) setLimited(answered.accessPrivileges === 'limited');
-    } catch {
-      // Permission itself could not be asked: no contacts module on this
-      // platform (web) or an OS that refused the question.
-      if (!cancelled.current) setAccess(Access.Unavailable);
-      return;
-    }
-    if (cancelled.current) return;
-    if (!granted) {
-      setAccess(Access.Denied);
-      return;
-    }
+      if (cancelled.current) return;
+      if (!granted) {
+        setAccess(Access.Denied);
+        return;
+      }
 
-    let rows: Awaited<ReturnType<typeof Contact.getAllDetails<typeof FIELDS>>>;
-    try {
-      rows = await Contact.getAllDetails(FIELDS);
-    } catch {
-      if (!cancelled.current) setAccess(Access.Unavailable);
-      return;
-    }
-    if (cancelled.current) return;
+      let rows: Awaited<ReturnType<typeof Contact.getAllDetails<typeof FIELDS>>>;
+      try {
+        rows = await Contact.getAllDetails(FIELDS);
+      } catch {
+        if (!cancelled.current) setAccess(Access.Unavailable);
+        return;
+      }
+      if (cancelled.current) return;
 
-    const unique = new Map<string, PickedContact>();
-    for (const contact of rows
-      .map((row) => ({
-        name: (row.fullName ?? [row.givenName, row.familyName].filter(Boolean).join(' ')).trim(),
-        email: row.emails?.[0]?.address?.trim().toLowerCase() ?? null,
-        phone: normalisePhone(row.phones?.[0]?.number ?? null, accountCountry),
-      }))
-      // Somebody with neither an email nor a number cannot be invited, so
-      // showing them would only be an invitation to tap and be refused.
-      .filter((contact) => contact.name && (contact.email || contact.phone))) {
-      unique.set(keyOf(contact), contact);
-    }
-    setContacts([...unique.values()].sort((a, b) => a.name.localeCompare(b.name)));
-    setAccess(Access.Granted);
-  }, [accountCountry]);
+      const unique = new Map<string, PickedContact>();
+      for (const contact of rows
+        .map((row) => ({
+          name: (row.fullName ?? [row.givenName, row.familyName].filter(Boolean).join(' ')).trim(),
+          email: row.emails?.[0]?.address?.trim().toLowerCase() ?? null,
+          phone: normalisePhone(row.phones?.[0]?.number ?? null, accountCountry),
+        }))
+        // Somebody with neither an email nor a number cannot be invited, so
+        // showing them would only be an invitation to tap and be refused.
+        .filter((contact) => contact.name && (contact.email || contact.phone))) {
+        unique.set(keyOf(contact), contact);
+      }
+      setContacts([...unique.values()].sort((a, b) => a.name.localeCompare(b.name)));
+      setAccess(Access.Granted);
+    },
+    [accountCountry],
+  );
 
   // Read on a tick rather than in the effect body: the React Compiler counts a
   // synchronous call that can setState as a cascading render, and reading an
@@ -329,7 +334,7 @@ export function ContactPicker({
    */
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && access === Access.Denied) void load();
+      if (state === 'active' && access === Access.Denied) void load(false);
     });
     return () => subscription.remove();
   }, [access, load]);

@@ -12,6 +12,7 @@ import {
   FUND_CATEGORY,
   fundSoFar,
   filterItems,
+  gridRows,
   monthGrid,
   summarizeDue,
   vehicleSources,
@@ -271,5 +272,19 @@ describe('vehicle renewals', () => {
     const items = expandDue(sources, TODAY, '2027-03-01');
     expect(summarizeDue(items, 'INR').total).toBe(0n);
     expect(bigBills(sources, TODAY, 'INR', 0n).total).toBe(0n);
+  });
+});
+
+describe('gridRows', () => {
+  it('lays every month out in rows of exactly seven, first day under the right weekday', () => {
+    for (const month of ['2026-11', '2026-02', '2026-03', '2027-02']) {
+      const rows = gridRows(monthGrid(month, []));
+      expect(rows.every((r) => r.length === 7)).toBe(true);
+      const first = new Date(`${month}-01T00:00:00Z`).getUTCDay();
+      const col = rows[0]!.findIndex((c) => c?.day === 1);
+      expect(col).toBe((first + 6) % 7); // Monday-first, matching the header
+    }
+    // Nov 1 2026 is a Sunday: the last column.
+    expect(gridRows(monthGrid('2026-11', []))[0]![6]?.day).toBe(1);
   });
 });

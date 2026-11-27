@@ -259,6 +259,7 @@ export default function AddPersonScreen() {
           gap: theme.spacing.xl,
         }}
         keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={false}
       >
         {/* The person is the subject of this screen, so the card leads with

@@ -689,7 +689,16 @@ function DetailBody() {
                               <Text
                                 variant="micro"
                                 numberOfLines={1}
-                                style={{ fontSize: 9, color }}
+                                adjustsFontSizeToFit
+                                minimumFontScale={0.7}
+                                // Wider than its 1/12 cell, into the card's padding, so the word fits.
+                                style={{
+                                  fontSize: 9,
+                                  color,
+                                  width: 44,
+                                  marginHorizontal: -8,
+                                  textAlign: 'center',
+                                }}
                               >
                                 {statusText[m.state] ?? ''}
                               </Text>

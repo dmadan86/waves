@@ -905,6 +905,7 @@ function NewGroupScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: theme.spacing.xl }}
         keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={false}
       >
         {headerHeight > 0 ? (
