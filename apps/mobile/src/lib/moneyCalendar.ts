@@ -259,5 +259,5 @@ export function fundSoFar(
   return sum;
 }
 
-/** The fund rule's marker: its category, so it is found again and never listed as a bill. */
-export const FUND_CATEGORY = 'savings.bigbills';
+/** The fund rule's marker. An `inv.` category: money moved to your own fund, so Spent, Reports and Budgets skip it. */
+export const FUND_CATEGORY = 'inv.bigbills';

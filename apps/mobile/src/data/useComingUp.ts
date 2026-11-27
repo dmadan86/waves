@@ -8,6 +8,7 @@ import { useMemo } from 'react';
 import { frequencyOf, type GroupRecurringRule, type PersonalRecurring } from '@waves/core';
 
 import { todayIso, usePersonalLedger } from '@/data/personal';
+import { usePersonalWealth } from '@/data/personalWealth';
 import { useGroupRecurring } from '@/data/groupRecurring';
 import { useStrings, type UiStrings } from '@/i18n';
 import { useDefaultCurrency } from '@/lib/currency';
@@ -19,7 +20,12 @@ const EMPTY_LEDGER = { recurrings: [], txns: [] } as const;
 const catLabel = (t: UiStrings, id: string | null): string =>
   id ? ((t.categories as Record<string, string>)[id] ?? '') : '';
 
-export function personalSource(rule: PersonalRecurring, t: UiStrings): DueSource {
+export function personalSource(
+  rule: PersonalRecurring,
+  t: UiStrings,
+  /** Rent rules open their property, where Record rent already lives. */
+  rentHref?: string,
+): DueSource {
   const income = rule.txnKind === 'income';
   const label = catLabel(t, rule.category);
   return {
@@ -38,7 +44,7 @@ export function personalSource(rule: PersonalRecurring, t: UiStrings): DueSource
     autoPay: rule.autoPost,
     income,
     reserved: rule.category === FUND_CATEGORY,
-    href: `/personal/entry?recurringId=${rule.id}`,
+    href: rentHref ?? `/personal/entry?recurringId=${rule.id}`,
   };
 }
 
@@ -73,11 +79,18 @@ export function useComingUp(opts: { groupId?: string; ledgerGroupId?: string; cu
   // A space without shared records has none of its own: never fall back to Personal's ledger.
   const ledger = opts.groupId && !opts.ledgerGroupId ? EMPTY_LEDGER : own;
   const { rules } = useGroupRecurring(opts.groupId ?? '');
+  const { tenancies } = usePersonalWealth(opts.ledgerGroupId);
   const today = todayIso();
   return useMemo(() => {
     const live = ledger.recurrings.filter((r) => r.active);
     const sources: DueSource[] = [
-      ...live.map((r) => personalSource(r, t)),
+      ...live.map((r) => {
+        const property = r.tenancyId
+          ? tenancies.find((x) => x.id === r.tenancyId)?.propertyId
+          : undefined;
+        const space = opts.ledgerGroupId ? `?space=${opts.ledgerGroupId}` : '';
+        return personalSource(r, t, property ? `/rentals/${property}${space}` : undefined);
+      }),
       ...(opts.groupId
         ? rules.filter((r) => r.status === 'active').map((r) => groupSource(r, t))
         : []),
@@ -93,5 +106,15 @@ export function useComingUp(opts: { groupId?: string; ledgerGroupId?: string; cu
       fundRules,
       fund: fundSoFar(ledger.txns, fundRules, dc),
     };
-  }, [ledger.recurrings, ledger.txns, rules, opts.groupId, t, dc, today]);
+  }, [
+    ledger.recurrings,
+    ledger.txns,
+    rules,
+    tenancies,
+    opts.groupId,
+    opts.ledgerGroupId,
+    t,
+    dc,
+    today,
+  ]);
 }

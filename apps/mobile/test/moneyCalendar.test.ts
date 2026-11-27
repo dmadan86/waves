@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { monthlySummary, personalHomeSpent, type PersonalTxn } from '@waves/core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -7,6 +8,8 @@ import {
   classifyKind,
   dueTag,
   expandDue,
+  FUND_CATEGORY,
+  fundSoFar,
   filterItems,
   monthGrid,
   summarizeDue,
@@ -168,5 +171,29 @@ describe('Home v2 wiring', () => {
   });
   it('shows no floating button on the calendar screens', () => {
     expect(read('src/components/home/MoneyCalendar.tsx')).not.toMatch(/position: 'absolute'/);
+  });
+});
+
+describe('set aside for big bills', () => {
+  const txn = (over: Partial<PersonalTxn>): PersonalTxn =>
+    ({
+      id: 't',
+      kind: 'expense',
+      amount: 100n,
+      currency: 'INR',
+      category: 'food',
+      note: null,
+      date: '2026-11-10',
+      loanId: null,
+      recurringId: null,
+      ...over,
+    }) as PersonalTxn;
+  const spend = txn({ id: 'a', amount: 41800n });
+  const aside = txn({ id: 'b', amount: 2050000n, category: FUND_CATEGORY, recurringId: 'fund' });
+  it('is not spending, but moves the big bills fund', () => {
+    expect(personalHomeSpent([spend, aside], '2026-11', 'INR')).toBe(41800n);
+    expect(monthlySummary([spend, aside], '2026-11', 'INR').invested).toBe(2050000n);
+    expect(fundSoFar([spend], new Set(['fund']), 'INR')).toBe(0n);
+    expect(fundSoFar([spend, aside], new Set(['fund']), 'INR')).toBe(2050000n);
   });
 });
