@@ -110,20 +110,30 @@ describe('device key', () => {
     ).toHaveLength(1);
   });
 
-  it('writes the migrated scoped key before the marker so interrupted migration retries', async () => {
+  it('reserves the migration owner before copying, so only that owner resumes an interrupted copy', async () => {
     const m = await import('../src/e2ee/deviceKey');
     const old = (await m.loadDeviceKey('seed')).privateKey;
     const legacy = btoa(String.fromCharCode(...old));
     secure.items.set('waves.e2ee.device.v1', legacy);
     secure.items.delete('waves.e2ee.device.v1.migrated');
     secure.items.delete('waves.e2ee.device.v2.account-a');
+    secure.items.delete('waves.e2ee.device.v2.account-b');
     secure.sets.length = 0;
     vi.resetModules();
     const keys = await import('../src/e2ee/deviceKey');
     await keys.loadDeviceKey('account-a');
     const scopedIndex = secure.sets.findIndex(([key]) => key === 'waves.e2ee.device.v2.account-a');
     const markerIndex = secure.sets.findIndex(([key]) => key === 'waves.e2ee.device.v1.migrated');
-    expect(scopedIndex).toBeGreaterThanOrEqual(0);
-    expect(markerIndex).toBeGreaterThan(scopedIndex);
+    expect(markerIndex).toBeGreaterThanOrEqual(0);
+    expect(scopedIndex).toBeGreaterThan(markerIndex);
+
+    // Interrupted copy: marker names A, A's slot is empty. B must not take the legacy key; A resumes.
+    secure.items.delete('waves.e2ee.device.v2.account-a');
+    vi.resetModules();
+    const again = await import('../src/e2ee/deviceKey');
+    const b = await again.loadDeviceKey('account-b');
+    const a = await again.loadDeviceKey('account-a');
+    expect(Array.from(b.privateKey)).not.toEqual(Array.from(old));
+    expect(Array.from(a.privateKey)).toEqual(Array.from(old));
   });
 });

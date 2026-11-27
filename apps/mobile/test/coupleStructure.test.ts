@@ -26,6 +26,19 @@ describe('couple backup structure', () => {
     });
   });
 
+  it('keeps a live and a former copy of one group apart', () => {
+    const live = { groupId: 'g', name: 'H', records: JSON.stringify([{ id: 'a', fields: {} }]) };
+    const former = {
+      groupId: 'g',
+      name: 'H',
+      former: true,
+      records: JSON.stringify([{ id: 'b', fields: {} }]),
+    };
+    const both = coupleStructure([live, former]);
+    expect(Object.keys(both.byGroup).sort()).toEqual(['former:g', 'g']);
+    expect(losesCoupleData(both, coupleStructure([live]))).toBe(true);
+  });
+
   it('detects a missing group, fewer records, or lost tombstones by structure', () => {
     const existing = coupleStructure([
       {

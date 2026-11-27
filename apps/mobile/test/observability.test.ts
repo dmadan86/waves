@@ -143,6 +143,16 @@ describe('with a DSN', () => {
     warn.mockRestore();
   });
 
+  it('only prints approved error categories on sensitive paths', async () => {
+    const obs = await load('dsn');
+    const leaky = Object.assign(new Error('x'), { code: 'tenant-ravi-4b' });
+    expect(obs.safeCode(leaky)).toBe('Error');
+    expect(obs.safeCode(Object.assign(new Error('x'), { code: 'E2EE_DECODE_FAILED' }))).toBe(
+      'E2EE_DECODE_FAILED',
+    );
+    expect(obs.safeCode(new SyntaxError('Ravi'))).toBe('SyntaxError');
+  });
+
   it('wraps the root with Sentry’s boundary', async () => {
     const obs = await load('dsn');
     expect(obs.withObservability).toBe(h.wrap);
