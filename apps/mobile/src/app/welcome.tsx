@@ -22,7 +22,7 @@
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image, Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -78,6 +78,7 @@ const WORDMARK = require('../../assets/images/wordmark-script.webp') as number;
 
 export default function WelcomeScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { t, language, locale } = useStrings();
   const { withGoogle, withApple } = useAuth();
   const { height: screenHeight, width: windowWidth } = useWindowDimensions();
@@ -98,7 +99,7 @@ export default function WelcomeScreen() {
   // than climb over the words.
   const [stage, setStage] = useState(0);
   // Short phones shrink the picture, then drop it; the sheet never moves.
-  const { friendsH, friendsW, headlineW, showFriends, needsScroll } = welcomeFit({
+  const { friendsH, headlineW, showFriends, needsScroll } = welcomeFit({
     stage,
     windowWidth,
     windowHeight: screenHeight,
@@ -107,7 +108,8 @@ export default function WelcomeScreen() {
   // screen's height above the sheet's edge (the stage's foot). Held inside the
   // stage, so a short phone never pushes one up over the words.
   const chipAt = (aboveSheet: number): number =>
-    Math.max(0, Math.min(screenHeight * aboveSheet, stage) - 46);
+    // 12pt of air under the tagline, so a short phone never lets a card touch it.
+    Math.max(0, Math.min(screenHeight * aboveSheet, stage - 12) - 46);
   // Three chips need ~430pt of width; narrower phones get two, apart, at the edges.
   const narrow = windowWidth < 428;
   const canGoBack = router.canGoBack();
@@ -211,7 +213,9 @@ export default function WelcomeScreen() {
         />
       </View>
 
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+      {/* Top only: the white sheet runs to the screen's bottom edge, under the
+          home indicator, and pads itself clear of it (no strip of photo below). */}
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {/* Last resort for tiny screens or huge text: scroll rather than clip. */}
         <ScrollView
           bounces={false}
@@ -363,10 +367,12 @@ export default function WelcomeScreen() {
           >
             {showFriends ? (
               <>
+                {/* Always the full width: a shrunk picture showed hard straight edges on
+                    small phones. It is trimmed to the fitted height instead. */}
                 <Image
                   source={FRIENDS}
-                  resizeMode="contain"
-                  style={{ width: friendsW, height: friendsH, marginBottom: -22 }}
+                  resizeMode="cover"
+                  style={{ width: windowWidth, height: friendsH, marginBottom: -22 }}
                 />
                 <SplitChip
                   icon="home-outline"
@@ -395,7 +401,9 @@ export default function WelcomeScreen() {
                   faces={[3, 1, 2]}
                   style={{
                     position: 'absolute',
-                    ...(narrow ? { end: 12 } : { left: windowWidth * 0.727 }),
+                    // Held to the right edge on every width: a share of the width ran
+                    // the card off the screen on the largest phones.
+                    end: 12,
                     bottom: chipAt(0.254),
                     transform: [{ rotate: '4deg' }],
                   }}
@@ -413,7 +421,7 @@ export default function WelcomeScreen() {
                 borderTopRightRadius: 32,
                 paddingHorizontal: theme.spacing.xl,
                 paddingTop: 16,
-                paddingBottom: theme.spacing.sm,
+                paddingBottom: theme.spacing.sm + insets.bottom,
                 gap: 9,
               },
               waysStyle,
