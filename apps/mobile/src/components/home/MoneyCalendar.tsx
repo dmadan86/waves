@@ -102,7 +102,7 @@ export function MoneyCalendar({
     if (action === 'markPaid') {
       const rule = ledgerRules.find((r) => r.id === item.sourceId);
       const groupRule = groupRules.find((r) => r.id === item.sourceId);
-      if (rule && !ledgerGroupId) void post(rule, item.date);
+      if (rule && !groupId) void post(rule, item.date);
       else if (groupRule) void markGroupPaid(groupRule, item.date);
       else router.push(item.href as never);
       return;

@@ -14,6 +14,8 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { frequencyLabel } from '@/lib/frequencyLabel';
 import { classifyKind, FUND_CATEGORY, fundSoFar, type DueSource } from '@/lib/moneyCalendar';
 
+const EMPTY_LEDGER = { recurrings: [], txns: [] } as const;
+
 const catLabel = (t: UiStrings, id: string | null): string =>
   id ? ((t.categories as Record<string, string>)[id] ?? '') : '';
 
@@ -67,7 +69,9 @@ export function useComingUp(opts: { groupId?: string; ledgerGroupId?: string; cu
   const { t } = useStrings();
   const personalCurrency = useDefaultCurrency();
   const dc = opts.currency ?? personalCurrency;
-  const ledger = usePersonalLedger(opts.ledgerGroupId);
+  const own = usePersonalLedger(opts.ledgerGroupId);
+  // A space without shared records has none of its own: never fall back to Personal's ledger.
+  const ledger = opts.groupId && !opts.ledgerGroupId ? EMPTY_LEDGER : own;
   const { rules } = useGroupRecurring(opts.groupId ?? '');
   const today = todayIso();
   return useMemo(() => {
