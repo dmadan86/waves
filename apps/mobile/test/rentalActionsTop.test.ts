@@ -17,3 +17,21 @@ describe('rental property actions', () => {
     expect(src).toContain('paddingBottom: clearance + theme.spacing.lg');
   });
 });
+
+describe('rental property read-only copy (former couple)', () => {
+  it('hides every write action when readOnly', () => {
+    expect(src).toContain("const readOnly = isFormer(space ?? '')");
+    expect(src).toMatch(/readOnly \? null : \(\s*<TintButton\s+label=\{w\.addExpense\}/);
+    expect(src).toMatch(/readOnly \? null : \(\s*<View[^>]*>\s*<Button\s+label=\{w\.recordRent\}/);
+    expect(src).toMatch(/readOnly \? null : \(\s*<View[^>]*>\s*<Button\s+label=\{w\.addTenant\}/);
+    expect(src).toContain('asked && !readOnly');
+    expect(src).toContain('raise && !readOnly');
+    expect(src).toContain("readOnly ? undefined : () => setOpen('deposit')");
+    expect(src).toMatch(/readOnly \? undefined : \(\s*<IconButton/);
+    expect(src).toContain('readOnly={readOnly}');
+  });
+
+  it('shows the read-only note', () => {
+    expect(src).toContain('{w.readOnlyCopy}');
+  });
+});
