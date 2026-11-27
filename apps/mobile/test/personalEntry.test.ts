@@ -339,9 +339,7 @@ describe('the rooms of the private ledger', () => {
     expect(source('personal/recurring.tsx')).toContain('recurringId: menuRule.id');
     expect(source('personal/recurring.tsx')).not.toContain('AmountField');
 
-    // And the Me tab's Add Expense / Add Income tiles open that same form, on
-    // its own switch — never a second screen.
+    // And Personal Home's header + opens that same form, on its own switch: never a second screen.
     expect(source('(tabs)/me.tsx')).toContain("params: { kind: 'expense' }");
-    expect(source('(tabs)/me.tsx')).toContain("params: { kind: 'income' }");
   });
 });

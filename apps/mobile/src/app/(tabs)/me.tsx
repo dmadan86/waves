@@ -29,22 +29,14 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
-  cashflowTrend,
-  budgetDailyPace,
   personalHomeSpent,
   format,
   formatParts,
   incomeSource,
   money,
   monthOutlook,
-  personalBudgetProgress,
-  recentMonths,
-  resolveCategory,
-  spendDelta,
-  worstOverBudget,
   type PersonalTxn,
 } from '@waves/core';
-import { monthlySummariesByCurrency } from '../../../../../packages/core/src/personal/compute';
 import {
   Button,
   Card,
@@ -59,35 +51,24 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { CategoryBadge, useLabelledCategoryCatalog } from '@/components/Category';
+import { CategoryBadge } from '@/components/Category';
 import { ResumeVehicleMoves } from '@/components/wealth/ResumeVehicleMoves';
 import { useVehicleReminders } from '@/lib/vehicleReminders';
 import { useWealthReminders } from '@/lib/wealthReminders';
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
-import {
-  BudgetSummary,
-  ChangePill,
-  FlowTile,
-  SpendHistoryChart,
-} from '@/components/home/MonthParts';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
-import { measureAnchor } from '@/lib/measureAnchor';
 import { TabHeader, TabIconButton } from '@/components/home/TabHeader';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { EmptyCard } from '@/components/standard';
+import { ComingUpHome } from '@/components/home/ComingUpHome';
 import { PersonalIntro } from '@/components/PersonalIntro';
-import { PersonalPlanCards } from '@/components/PersonalPlanCards';
 import {
   CardTitle,
-  PersonalUpcomingCard,
   PrivacyPill,
-  MonthPill,
-  QuickActions,
   usePersonalUpcoming,
 } from '@/components/personal/PersonalHomeParts';
-import { monthLabel, monthShort, monthShortYear, monthsBetween, shiftMonth } from '@/lib/monthNav';
+import { monthLabel } from '@/lib/monthNav';
 import { hasDue } from '@/lib/personalUpcoming';
-import { monthBreakdown, type MonthBreakdown } from '@/lib/personalMonthBreakdown';
 import {
   onPersonalIntroDismissed,
   personalIntroSeen,
@@ -113,9 +94,7 @@ import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
-import { fill, plural, useStrings } from '@/i18n';
-
-type MenuAnchorBox = { x: number; y: number; width: number; height: number };
+import { fill, useStrings } from '@/i18n';
 
 // The first run's saturated wash, deep enough to hold white ink on every corner.
 const SAVED_WASH = ['#1E5A8C', '#0C2E4A'] as const;
@@ -158,25 +137,13 @@ function MeLedger() {
   const upsert = useUpsertPersonalRecord();
   // The eye on the summary card: masks every figure on it (and the three
   // tiles beneath it), the same privacy the dashboard's own eye gives Home.
-  const { hidden: amountsHidden, toggle: toggleAmountsHidden } = usePersonalAmountsHidden();
+  const { hidden: amountsHidden } = usePersonalAmountsHidden();
 
   // Read the clock once, off render (the React Compiler forbids it inline).
   const [today] = useState(() => todayIso());
   const currentMonth = today.slice(0, 7);
 
-  // Which month the hero and the sections are showing. 0 is the current month;
-  // each step back subtracts a month. You cannot step past the current month,
-  // nor back before the first month you have any entry in — wandering into
-  // unbounded empty past months is not browsing a record. The ledger comes
-  // newest-first, so the last txn's month is the earliest represented.
-  const [monthsBack, setMonthsBack] = useState(0);
-  const [monthMenuOpen, setMonthMenuOpen] = useState(false);
-  // The month list drops from the pill that opened it, not the screen's corner.
-  const [monthAnchor, setMonthAnchor] = useState<MenuAnchorBox | null>(null);
-  const earliestMonth =
-    ledger.txns.length > 0 ? ledger.txns[ledger.txns.length - 1]!.date.slice(0, 7) : currentMonth;
-  const maxBack = Math.max(0, monthsBetween(earliestMonth, currentMonth));
-  const month = monthsBack === 0 ? currentMonth : shiftMonth(currentMonth, -monthsBack);
+  const month = currentMonth;
 
   const [gearOpen, setGearOpen] = useState(false);
 
@@ -218,63 +185,13 @@ function MeLedger() {
   };
   const catLabel = labelForCategory(t);
 
-  const breakdown = monthBreakdown(ledger.txns, ledger.recurrings, ledger.loans, month, dc, today);
-  // Every figure on the two cards below honours the eye on the hero.
-  const shown = (amount: bigint): string => (amountsHidden ? BALANCE_MASK : fmt(amount));
-
-  // Spend against the month before, as a percentage — null when there is no
-  // earlier month to hold it against.
-  const delta = spendDelta(ledger.txns, month, dc);
-  const change =
-    delta && delta.prevExpense > 0n ? Number((delta.delta * 1000n) / delta.prevExpense) / 10 : null;
-
-  // The last few months' spend, ending at the browsed month — the faint bars
-  // behind the headline figure. Short on history (a fresh ledger), it is just
-  // shorter; the chart never invents months that never happened.
-  const spendHistory = cashflowTrend(
-    ledger.txns,
-    recentMonths(month, SPEND_HISTORY_MONTHS),
-    dc,
-  ).map((entry) => entry.expense - entry.invested);
-  const historyLabels = recentMonths(month, SPEND_HISTORY_MONTHS).map((m) => monthShort(m, locale));
-
-  // The overall monthly cap, when one is set, and how far into it the month is.
-  const overallBudget = ledger.budgets.find(
-    (budget) => budget.category === null && budget.currency === dc,
-  );
-  const budgetProgress = overallBudget
-    ? personalBudgetProgress(overallBudget, ledger.txns, month)
-    : null;
-  // With no overall cap, the category budgets still have something to say: how
-  // many there are, and the one that has run furthest past its cap.
-  const categoryBudgetCount = ledger.budgets.filter((budget) => budget.category !== null).length;
-  const worstOver = worstOverBudget(ledger.budgets, ledger.txns, month, dc);
-  const worstOverLine = worstOver
-    ? fill(t.personal.dash.overBy, {
-        name: worstOver.budget.category
-          ? (catLabel(worstOver.budget.category) ?? t.categories.other)
-          : t.personal.overall,
-        amount: fmt(worstOver.over),
-      })
-    : null;
+  // Every figure below honours the eye on the hero.
 
   // The latest three entries, newest first (the ledger comes newest-first).
   const recentTxns = selectRecentTxns(ledger.txns, today);
 
   const h = t.personalHome;
-  const plan = {
-    txns: ledger.txns,
-    recurrings: ledger.recurrings,
-    budgets: ledger.budgets,
-    currency: dc,
-    today,
-  };
-  const perDay =
-    monthsBack === 0 ? (budgetDailyPace(budgetProgress?.remaining ?? null, today) ?? 0n) : 0n;
   const homeSpent = personalHomeSpent(ledger.txns, month, dc);
-  const otherCurrencySummaries = monthlySummariesByCurrency(ledger.txns, month).filter(
-    (item) => item.currency !== dc,
-  );
   const upcomingRows = usePersonalUpcoming(
     { txns: ledger.txns, recurrings: ledger.recurrings, currency: dc, today },
     3,
@@ -289,8 +206,6 @@ function MeLedger() {
     family: h.groupFamily,
   });
   const [moreOpen, setMoreOpen] = useState(false);
-  const moreRef = useRef<View>(null);
-  const [moreAnchor, setMoreAnchor] = useState<MenuAnchorBox | null>(null);
   useWealthReminders();
   useVehicleReminders();
   const firstName = identity.name.trim().split(/\s+/)[0];
@@ -367,17 +282,6 @@ function MeLedger() {
       </>
     );
   }
-
-  const canBrowse = maxBack > 0;
-  const monthItems: OverflowMenuItem[] = Array.from(
-    // Every month back to the first one with an entry; the menu scrolls.
-    { length: maxBack + 1 },
-    (_, back) => ({
-      icon: back === monthsBack ? 'checkmark' : 'calendar-outline',
-      label: monthLabel(shiftMonth(currentMonth, -back), locale),
-      onPress: () => setMonthsBack(back),
-    }),
-  );
 
   return (
     <Screen edges={[]}>
@@ -458,276 +362,46 @@ function MeLedger() {
             gap: theme.spacing.md,
           }}
         >
-          <Card
-            style={{
-              gap: theme.spacing.md,
-              padding: theme.spacing.lg,
-              backgroundColor: theme.color.brandSoft,
-            }}
-          >
-            <Row style={{ alignItems: 'flex-start', gap: theme.spacing.md }}>
-              <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.xs }}>
-                <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-                  <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-                    {monthsBack === 0
-                      ? t.personal.dash.totalSpentThisMonth
-                      : fill(t.personal.dash.totalSpentIn, { month: monthLabel(month, locale) })}
-                  </Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      amountsHidden ? t.dashHero.showBalance : t.dashHero.hideBalance
-                    }
-                    onPress={toggleAmountsHidden}
-                    hitSlop={10}
-                    style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-                  >
-                    <Ionicons
-                      name={amountsHidden ? 'eye-off-outline' : 'eye-outline'}
-                      size={iconSize.md}
-                      color={theme.color.textMuted}
-                    />
-                  </Pressable>
-                </Row>
-                <Text
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.6}
-                  style={HEADLINE_STYLE}
-                >
-                  {amountsHidden ? BALANCE_MASK : fmt(homeSpent)}
-                </Text>
-                {change !== null && !amountsHidden ? (
-                  <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
-                    <ChangePill change={change} />
-                    <Text variant="caption" tone="muted" numberOfLines={1}>
-                      {fill(t.personal.dash.vsMonth, {
-                        month: monthShortYear(shiftMonth(month, -1), locale),
-                      })}
-                    </Text>
-                  </Row>
-                ) : null}
-              </View>
-              {!amountsHidden ? (
-                <SpendHistoryChart values={spendHistory} labels={historyLabels} />
-              ) : null}
-            </Row>
-
-            <Row style={{ gap: theme.spacing.sm }}>
-              <FlowTile
-                icon="wallet-outline"
-                tone="income"
-                label={t.personal.income}
-                value={fmt(summary.income)}
-                hidden={amountsHidden}
-                // The month's income, entry by entry.
-                onPress={() =>
-                  router.push({
-                    pathname: '/personal/transactions',
-                    params: { kind: 'income', month, currency: dc, returnTo: '/(tabs)/me' },
-                  })
-                }
-              />
-              <FlowTile
-                icon="arrow-up"
-                tone="negative"
-                label={t.personal.spent}
-                value={fmt(homeSpent)}
-                hidden={amountsHidden}
-                // The month's spends, entry by entry.
-                onPress={() =>
-                  router.push({
-                    pathname: '/personal/transactions',
-                    params: { kind: 'expense', month, returnTo: '/(tabs)/me' },
-                  })
-                }
-              />
-              <FlowTile
-                icon="wallet"
-                tone="brand"
-                label={t.personal.dash.available}
-                value={`${summary.net < 0n ? '−' : ''}${fmt(summary.net < 0n ? -summary.net : summary.net)}`}
-                negative={summary.net < 0n}
-                hidden={amountsHidden}
-                // What is left and where the rest went: the Spending screen's own subject.
-                onPress={() => router.push('/personal/spending')}
-              />
-            </Row>
-            {otherCurrencySummaries.map(({ currency, summary: other }) => (
-              <Row key={currency} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text variant="caption" tone="muted">
-                  {currency} activity
-                </Text>
-                <Text variant="caption" style={{ fontWeight: '600' }}>
-                  {amountsHidden
-                    ? BALANCE_MASK
-                    : format(money(other.expense, currency), { locale, trimZeros: true })}
-                </Text>
-              </Row>
-            ))}
-            {summary.invested !== 0n ? (
-              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text variant="caption" tone="muted">
-                  {t.wealth.investedNotSpending}
-                </Text>
-                <Text variant="caption" style={{ fontWeight: '600' }}>
-                  {amountsHidden
-                    ? BALANCE_MASK
-                    : `${summary.invested < 0n ? '−' : ''}${fmt(summary.invested < 0n ? -summary.invested : summary.invested)}`}
-                </Text>
-              </Row>
-            ) : null}
-          </Card>
-
-          <MonthMoneyCard
-            b={breakdown}
-            month={month}
-            currency={dc}
-            shown={shown}
-            t={t}
-            locale={locale}
-          />
-          <ByCategoryCard
-            b={breakdown}
-            month={month}
-            currency={dc}
-            shown={shown}
-            t={t}
-            locale={locale}
-            catLabel={catLabel}
-          />
-
-          {monthsBack === 0 ? (
-            <PersonalPlanCards plan={plan} ownerId={ownerId} hidden={amountsHidden} only="recap" />
-          ) : null}
-
-          <QuickActions
+          <ComingUpHome
             tiles={[
               {
-                key: 'expense',
-                tone: 'brand',
-                icon: 'add',
-                label: t.personal.addExpense,
-                onPress: () =>
-                  router.push({ pathname: '/personal/entry', params: { kind: 'expense' } }),
-              },
-              {
-                key: 'income',
-                tone: 'positive',
-                icon: 'arrow-down',
-                label: t.personal.addIncome,
-                onPress: () =>
-                  router.push({ pathname: '/personal/entry', params: { kind: 'income' } }),
-              },
-              {
-                key: 'recurring',
-                tone: 'brand',
-                icon: 'repeat',
-                label: t.personal.recurring,
-                onPress: () => router.push('/personal/recurring'),
-              },
-              {
-                key: 'loan',
-                tone: 'brand',
-                icon: 'layers-outline',
-                label: h.loan,
-                onPress: () => router.push('/personal/loans'),
-              },
-              {
-                key: 'budgets',
-                tone: 'brand',
-                icon: 'speedometer-outline',
-                label: t.personal.dash.toolBudgets,
-                onPress: () => router.push('/personal/budgets'),
-              },
-              {
-                key: 'investments',
-                tone: 'brand',
-                icon: 'trending-up-outline',
-                label: t.homeToday.toolInvestments,
-                onPress: () => router.push('/investments'),
-              },
-              {
                 key: 'rentals',
-                tone: 'brand',
-                icon: 'business-outline',
-                label: t.homeToday.toolRentals,
+                icon: 'home-outline',
+                label: t.comingUp.tileRentals,
                 onPress: () => router.push('/rentals'),
               },
               {
                 key: 'vehicles',
-                tone: 'brand',
                 icon: 'car-outline',
                 label: t.vehicles.vehicles,
                 onPress: () => router.push('/vehicles'),
               },
               {
+                key: 'budgets',
+                icon: 'speedometer-outline',
+                label: t.comingUp.tileBudgets,
+                onPress: () => router.push('/personal/budgets'),
+              },
+              {
                 key: 'more',
-                tone: 'brand',
                 icon: 'ellipsis-horizontal',
-                label: h.toolMore,
-                onPress: () => {
-                  measureAnchor(moreRef, setMoreAnchor);
-                  setMoreOpen(true);
-                },
-                ref: moreRef,
+                label: t.personalHome.toolMore,
+                onPress: () => setMoreOpen(true),
               },
             ]}
-          />
-
-          <Card style={{ gap: theme.spacing.md, padding: theme.spacing.lg }}>
-            <CardTitle title={t.personal.thisMonth}>
-              <MonthPill
-                label={monthLabel(month, locale)}
-                spokenLabel={t.personal.dash.pickMonth}
-                onPress={
-                  canBrowse
-                    ? (anchor) => {
-                        setMonthAnchor(anchor);
-                        setMonthMenuOpen(true);
-                      }
-                    : undefined
-                }
-              />
-            </CardTitle>
-            {budgetProgress ? (
-              <BudgetSummary
-                progress={budgetProgress}
-                perDay={perDay}
-                hidden={amountsHidden}
-                fmt={fmt}
-                t={t}
-                onPress={() => router.push('/personal/budgets')}
-              />
-            ) : (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.personal.dash.setBudget}
-                onPress={() => router.push('/personal/budgets')}
-                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, gap: 2 })}
-              >
-                <Text variant="body" tone="brand" style={{ fontWeight: '700' }}>
-                  {t.personal.dash.setBudget}
-                </Text>
-                <Text variant="caption" tone="muted">
-                  {categoryBudgetCount > 0
-                    ? `${plural(locale, categoryBudgetCount, t.personal.dash.categoryBudgets)}. ${worstOverLine ?? t.personal.dash.allWithin}`
-                    : t.personal.dash.setBudgetHint}
-                </Text>
-              </Pressable>
-            )}
-            {monthsBack === 0 ? (
-              <PersonalPlanCards plan={plan} ownerId={ownerId} hidden={amountsHidden} only="tip" />
-            ) : null}
-          </Card>
-
-          <PersonalUpcomingCard
-            rows={upcomingRows}
-            fmt={(amount, currency) =>
-              amountsHidden
+            month={{
+              label: monthLabel(month, locale),
+              income: amountsHidden ? BALANCE_MASK : fmt(summary.income),
+              spent: amountsHidden ? BALANCE_MASK : fmt(homeSpent),
+              left: amountsHidden
                 ? BALANCE_MASK
-                : format(money(amount, currency), { locale, trimZeros: true })
-            }
+                : fmt(
+                    summary.income > homeSpent
+                      ? summary.income - homeSpent
+                      : homeSpent - summary.income,
+                  ),
+              leftNegative: homeSpent > summary.income,
+            }}
           />
 
           <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
@@ -765,18 +439,7 @@ function MeLedger() {
         </View>
       </ScrollView>
       <OverflowMenu visible={switchOpen} onClose={() => setSwitchOpen(false)} items={switchItems} />
-      <OverflowMenu
-        visible={moreOpen}
-        onClose={() => setMoreOpen(false)}
-        items={moreItems}
-        anchor={moreAnchor}
-      />
-      <OverflowMenu
-        visible={monthMenuOpen}
-        onClose={() => setMonthMenuOpen(false)}
-        items={monthItems}
-        anchor={monthAnchor}
-      />
+      <OverflowMenu visible={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} />
       <OverflowMenu
         visible={gearOpen}
         onClose={() => setGearOpen(false)}
@@ -809,17 +472,6 @@ function MeLedger() {
     </Screen>
   );
 }
-
-// ─────────────────────────────────────────────────────────────── month ──
-
-// ─────────────────────────────────────────────────────────────── hero ──
-
-/** The big headline figure's text style, shared between the live amount and
- *  its mask so neither drifts from the other's size. */
-const HEADLINE_STYLE = { fontSize: 30, lineHeight: 36, fontWeight: '700' } as const;
-
-/** How many months the faint bar chart behind the headline covers. */
-const SPEND_HISTORY_MONTHS = 6;
 
 // ──────────────────────────────────────────────────────────────── body ──
 
@@ -1113,285 +765,4 @@ function labelForCategory(t: ReturnType<typeof useStrings>['t']) {
     if (id.startsWith('inv.')) return id === 'inv.deposit' ? 'Investment deposit' : 'Investment';
     return null;
   };
-}
-
-type Strings = ReturnType<typeof useStrings>['t'];
-
-/** One tappable line: icon, label over a sub line, amount at the end. */
-function MoneyRow({
-  icon,
-  tint,
-  label,
-  sub,
-  amount,
-  onPress,
-}: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  tint: { bg: string; ink: string };
-  label: string;
-  sub: string | null;
-  amount: string;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${label}, ${sub ? `${sub}, ` : ''}${amount}`}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.md,
-        minHeight: 48,
-        paddingVertical: theme.spacing.xs,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <View
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 18,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: tint.bg,
-        }}
-      >
-        <Ionicons name={icon} size={iconSize.md} color={tint.ink} />
-      </View>
-      <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
-        <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
-          {label}
-        </Text>
-        {sub ? (
-          <Text variant="caption" tone="muted" numberOfLines={1}>
-            {sub}
-          </Text>
-        ) : null}
-      </View>
-      <Text variant="body" numberOfLines={1} style={{ fontWeight: '700' }}>
-        {amount}
-      </Text>
-    </Pressable>
-  );
-}
-
-/** Recurring bills, loan repayments and credit-card spend for the browsed month. */
-function MonthMoneyCard({
-  b,
-  month,
-  currency,
-  shown,
-  t,
-  locale,
-}: {
-  b: MonthBreakdown;
-  month: string;
-  currency: string;
-  shown: (amount: bigint) => string;
-  t: Strings;
-  locale: string;
-}) {
-  const theme = useTheme();
-  const h = t.personalHome;
-  const showRecurring = b.recurring.expected !== 0n || b.recurring.count > 0;
-  const showLoans = b.loans.repaid !== 0n || b.loans.outstanding !== 0n;
-  const showCard = b.creditCard.total !== 0n || b.creditCard.count > 0;
-  if (!showRecurring && !showLoans && !showCard) return null;
-  const rows: { key: string; node: ReactNode }[] = [];
-  if (showRecurring) {
-    const due =
-      b.recurring.due > 0n ? fill(h.stillDue, { amount: shown(b.recurring.due) }) : h.allPaid;
-    rows.push({
-      key: 'recurring',
-      node: (
-        <MoneyRow
-          icon="repeat"
-          tint={theme.tint.lilac}
-          label={h.recurringBills}
-          sub={`${plural(locale, b.recurring.count, h.billCount)} · ${due}`}
-          amount={shown(b.recurring.expected)}
-          onPress={() => router.push('/personal/recurring')}
-        />
-      ),
-    });
-  }
-  if (showLoans) {
-    rows.push({
-      key: 'loans',
-      node: (
-        <MoneyRow
-          icon="layers-outline"
-          tint={theme.tint.sky}
-          label={h.loansEmis}
-          sub={
-            b.loans.outstanding > 0n
-              ? fill(h.stillOwe, { amount: shown(b.loans.outstanding) })
-              : null
-          }
-          amount={shown(b.loans.repaid)}
-          onPress={() => router.push('/personal/loans')}
-        />
-      ),
-    });
-  }
-  if (showCard) {
-    rows.push({
-      key: 'card',
-      node: (
-        <MoneyRow
-          icon="card-outline"
-          tint={theme.tint.coral}
-          label={h.creditCard}
-          sub={plural(locale, b.creditCard.count, h.cardCount)}
-          amount={shown(b.creditCard.total)}
-          onPress={() =>
-            router.push({
-              pathname: '/personal/transactions',
-              params: {
-                kind: 'expense',
-                month,
-                method: 'credit',
-                currency,
-                returnTo: '/(tabs)/me',
-              },
-            })
-          }
-        />
-      ),
-    });
-  }
-  return (
-    <Card style={{ gap: theme.spacing.xs, padding: theme.spacing.lg }}>
-      <CardTitle title={h.monthMoney} />
-      {rows.map((row, index) => (
-        <View key={row.key}>
-          {index > 0 ? <Divider /> : null}
-          {row.node}
-        </View>
-      ))}
-    </Card>
-  );
-}
-
-/** The month's biggest categories with their share, and what still needs one. */
-function ByCategoryCard({
-  b,
-  month,
-  currency,
-  shown,
-  t,
-  locale,
-  catLabel,
-}: {
-  b: MonthBreakdown;
-  month: string;
-  currency: string;
-  shown: (amount: bigint) => string;
-  t: Strings;
-  locale: string;
-  catLabel: (id: string | null) => string | null;
-}) {
-  const theme = useTheme();
-  const h = t.personalHome;
-  const catalog = useLabelledCategoryCatalog().all;
-  const { rows, uncategorizedCount } = b.categories;
-  // Uncategorised spend has its own line below, so it is not ranked here.
-  const top = rows.filter((row) => row.category !== null).slice(0, 5);
-  if (top.length === 0 && uncategorizedCount === 0) return null;
-  return (
-    <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
-      <CardTitle
-        title={h.byCategory}
-        action={t.personal.dash.viewAll}
-        onAction={() => router.push({ pathname: '/personal/spending', params: { month } })}
-      />
-      {top.map((row) => {
-        // A custom tag has no translated label; its catalog entry carries name and tint.
-        const entry = catalog.find((e) => e.key === row.category);
-        const resolved = entry ?? resolveCategory(row.category, null);
-        const name = entry?.label ?? catLabel(row.category) ?? t.categories.other;
-        const amount = shown(row.spent);
-        const percent = Math.round(row.share * 100);
-        return (
-          <Pressable
-            key={row.category}
-            accessibilityRole="button"
-            accessibilityLabel={`${name}, ${percent}%, ${amount}`}
-            onPress={() =>
-              router.push({
-                pathname: '/personal/transactions',
-                params: {
-                  kind: 'expense',
-                  month,
-                  category: row.category!,
-                  currency,
-                  returnTo: '/(tabs)/me',
-                },
-              })
-            }
-            style={({ pressed }) => ({ gap: 4, minHeight: 40, opacity: pressed ? 0.6 : 1 })}
-          >
-            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-              <Text variant="body" numberOfLines={1} style={{ flex: 1, fontWeight: '600' }}>
-                {name}
-              </Text>
-              <Text variant="body" numberOfLines={1} style={{ fontWeight: '700' }}>
-                {amount}
-              </Text>
-            </Row>
-            <View
-              style={{
-                height: 4,
-                borderRadius: 2,
-                overflow: 'hidden',
-                backgroundColor: theme.color.border,
-                flexDirection: 'row',
-              }}
-            >
-              <View
-                style={{
-                  width: `${Math.max(percent, 2)}%`,
-                  backgroundColor: theme.tint[resolved.tint].ink,
-                }}
-              />
-            </View>
-          </Pressable>
-        );
-      })}
-      {uncategorizedCount > 0 ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${plural(locale, uncategorizedCount, h.uncategorizedCount)}, ${h.categorize}`}
-          onPress={() =>
-            router.push({
-              pathname: '/personal/transactions',
-              params: {
-                kind: 'expense',
-                month,
-                uncategorized: '1',
-                currency,
-                returnTo: '/(tabs)/me',
-              },
-            })
-          }
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: theme.spacing.xs,
-            minHeight: 36,
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-            {plural(locale, uncategorizedCount, h.uncategorizedCount)} ·
-          </Text>
-          <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
-            {h.categorize}
-          </Text>
-        </Pressable>
-      ) : null}
-    </Card>
-  );
 }
