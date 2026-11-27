@@ -297,13 +297,16 @@ describe('snapshot trust', () => {
 });
 
 describe('former restore merge', () => {
-  it('merges backup records into an existing former copy', async () => {
+  it('merges a newer backup into an existing former copy, keeping both histories', async () => {
     const { server, a } = await setup();
-    const entries = a.space.backupCouple(() => 'Home');
+    const older = a.space.backupCouple(() => 'Home');
+    await a.set(G, 'p3', 'property', { ...prop, name: 'Garage' });
+    const newer = a.space.backupCouple(() => 'Home');
     const c = phone(server, 'pA', 'mA', 9, { t: 1_700_000_000_000 }, []);
-    await c.space.restoreCouple(entries.slice(0, 1), []);
-    await c.space.restoreCouple(entries, []);
+    await c.space.restoreCouple(older, []);
     expect(c.space.records('former:' + G).map((r) => r.id)).toEqual(['p1', 'p2']);
+    await c.space.restoreCouple(newer, []);
+    expect(c.space.records('former:' + G).map((r) => r.id)).toEqual(['p1', 'p2', 'p3']);
   });
 });
 

@@ -167,4 +167,20 @@ describe('E2EE buffered operation authorization', () => {
     await reloaded.applyIncoming([{ groupId: 'g', senderMemberId: 'mB', ops: [create] }]);
     expect(reloaded.records('g')[0]?.data).toEqual({ name: 'Flat' });
   });
+
+  it('does not pile up copies of the same buffered edit when mail is redelivered', async () => {
+    const store = new PendingStore();
+    let t = 1_700_000_000_000;
+    const space = new E2eeSpace(store, { now: () => (t += 1000), newId: () => 'id' });
+    const edit: e2ee.PutOp = {
+      op: 'put',
+      id: 'r',
+      kind: 'property',
+      createdBy: 'mC',
+      fields: { address: ['A', '2:0:A'] },
+    };
+    for (let i = 0; i < 3; i++)
+      await space.applyIncoming([{ groupId: 'g', senderMemberId: 'mA', ops: [edit] }]);
+    expect(store.pending.get('g')).toHaveLength(1);
+  });
 });
