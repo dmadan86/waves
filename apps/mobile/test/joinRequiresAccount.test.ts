@@ -166,5 +166,10 @@ describe('removed from the group', () => {
     );
     expect(texts.every(Boolean)).toBe(true);
     expect(new Set(texts).size).toBe(4);
+    const left = (['en', 'ta', 'hi', 'ar'] as const).map(
+      (language) => STRINGS_BY_LANGUAGE[language].misc.joinLeft,
+    );
+    expect(left.every(Boolean)).toBe(true);
+    expect(new Set(left).size).toBe(4);
   });
 });

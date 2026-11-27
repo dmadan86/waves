@@ -208,20 +208,91 @@ describe('removed by an admin', () => {
 });
 
 describe('left by themselves', () => {
-  it('rejoins with an invite from before they left, spending one use', async () => {
-    const g = await seedGroup(client, { memberCount: 1, name: 'Goa' });
-    const invite = await inviteFor(g.groupId, 120);
+  /** A group with one leaver who joined 3h ago and left 1h ago. */
+  async function leaverSetup() {
+    const g = await seedGroup(client, { memberCount: 1, ghostCount: 1, name: 'Goa' });
+    const oldInvite = await inviteFor(g.groupId, 180);
     const leaver = await person('Leaver');
-    const first = await join(invite, leaver);
-    await client.query(`UPDATE group_members SET left_at = now() WHERE id = $1`, [first.member_id]);
+    const first = await join(oldInvite, leaver);
+    await client.query(
+      `UPDATE group_members SET left_at = now() - interval '60 minutes' WHERE id = $1`,
+      [first.member_id],
+    );
+    return { g, oldInvite, leaver, memberId: first.member_id as string };
+  }
 
-    const before = await useCount(invite);
-    const verdict = await join(invite, leaver);
-    expect(verdict).toMatchObject({ ok: true, member_id: first.member_id });
-    expect(await useCount(invite)).toBe(before + 1);
-    expect(await memberRow(g.groupId, leaver)).toMatchObject({
-      left_at: null,
-      removed_at: null,
-    });
+  it('is refused with an invite from before they left, and no use is spent', async () => {
+    const { g, oldInvite, leaver } = await leaverSetup();
+    const used = await useCount(oldInvite);
+    expect(await join(oldInvite, leaver)).toMatchObject({ ok: false, reason: 'LEFT' });
+    expect(await useCount(oldInvite)).toBe(used);
+    expect(await memberRow(g.groupId, leaver)).toMatchObject({ removed_at: null });
+    expect((await memberRow(g.groupId, leaver)).left_at).not.toBeNull();
+  });
+
+  it('is refused with the group durable link (join_token) minted before they left', async () => {
+    const { g, leaver } = await leaverSetup();
+    // The durable link is an ordinary invites row, minted by the group's admin.
+    await as(g.profileIds[0] as string, () =>
+      client.query(`SELECT waves_ensure_group_join_token($1)`, [g.groupId]),
+    );
+    const linkInvite = (
+      await client.query(
+        `SELECT id FROM invites WHERE group_id = $1 ORDER BY created_at DESC LIMIT 1`,
+        [g.groupId],
+      )
+    ).rows[0].id as string;
+    await client.query(
+      `UPDATE invites SET created_at = now() - interval '150 minutes' WHERE id = $1`,
+      [linkInvite],
+    );
+    expect(await join(linkInvite, leaver)).toMatchObject({ ok: false, reason: 'LEFT' });
+  });
+
+  it('is refused a ghost claim through an old invite, and none through no invite', async () => {
+    const { g, oldInvite, leaver } = await leaverSetup();
+    const used = await useCount(oldInvite);
+    const claim = (invite: string | null) =>
+      client
+        .query(`SELECT waves_request_member_claim($1, $2, $3, NULL, $4) AS verdict`, [
+          g.groupId,
+          g.memberIds[1],
+          leaver,
+          invite,
+        ])
+        .then((r) => r.rows[0].verdict);
+    expect(await claim(oldInvite)).toMatchObject({ ok: false, reason: 'LEFT' });
+    expect(await claim(null)).toMatchObject({ ok: false, reason: 'LEFT' });
+    expect(await useCount(oldInvite)).toBe(used);
+    const claims = await client.query(`SELECT 1 FROM member_claims WHERE requester_id = $1`, [
+      leaver,
+    ]);
+    expect(claims.rowCount).toBe(0);
+  });
+
+  it('rejoins with an invite minted after they left, spending one use', async () => {
+    const { g, leaver, memberId } = await leaverSetup();
+    const fresh = await inviteFor(g.groupId, 30);
+    expect(await join(fresh, leaver)).toMatchObject({ ok: true, member_id: memberId });
+    expect(await useCount(fresh)).toBe(1);
+    expect(await memberRow(g.groupId, leaver)).toMatchObject({ left_at: null, removed_at: null });
+  });
+
+  it('files a ghost claim through an invite minted after they left', async () => {
+    const { g, leaver } = await leaverSetup();
+    const fresh = await inviteFor(g.groupId, 30);
+    const { rows } = await client.query(
+      `SELECT waves_request_member_claim($1, $2, $3, NULL, $4) AS verdict`,
+      [g.groupId, g.memberIds[1], leaver, fresh],
+    );
+    expect(rows[0].verdict).toMatchObject({ ok: true, already_pending: false });
+  });
+
+  it('does not touch somebody who never was a member: an old invite still joins', async () => {
+    const g = await seedGroup(client, { memberCount: 1, name: 'Goa' });
+    const old = await inviteFor(g.groupId, 600);
+    const newcomer = await person('Newcomer');
+    expect(await join(old, newcomer)).toMatchObject({ ok: true });
+    expect(await useCount(old)).toBe(1);
   });
 });

@@ -42,6 +42,9 @@ const ACCOUNT_REQUIRED_MESSAGE = 'Create a free account (or log in) to join this
  * apps key their message off it.
  */
 export const REMOVED_FROM_GROUP = 'REMOVED_FROM_GROUP';
+/** Somebody who left by themselves and presents an invite from before they left. */
+export const LEFT_GROUP = 'LEFT_GROUP';
+const LEFT_GROUP_MESSAGE = 'You left this group. Ask a member to send you a new invite link.';
 const REMOVED_FROM_GROUP_MESSAGE =
   'You were removed from this group. Ask an admin for a new invite.';
 
@@ -209,6 +212,9 @@ export async function handleInviteAccept(
       if (verdict?.reason === 'REMOVED') {
         throw new HttpError(403, REMOVED_FROM_GROUP, REMOVED_FROM_GROUP_MESSAGE);
       }
+      if (verdict?.reason === 'LEFT') {
+        throw new HttpError(403, LEFT_GROUP, LEFT_GROUP_MESSAGE);
+      }
       if (verdict?.reason === 'INVITE_INVALID') {
         throw new HttpError(404, 'INVITE_INVALID', 'This invite link is no longer valid');
       }
@@ -250,6 +256,9 @@ export async function handleInviteAccept(
       }
       if (joined?.reason === 'REMOVED') {
         throw new HttpError(403, REMOVED_FROM_GROUP, REMOVED_FROM_GROUP_MESSAGE);
+      }
+      if (joined?.reason === 'LEFT') {
+        throw new HttpError(403, LEFT_GROUP, LEFT_GROUP_MESSAGE);
       }
       if (!joined?.ok) {
         throw new HttpError(404, 'INVITE_INVALID', 'This invite link is no longer valid');

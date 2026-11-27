@@ -140,7 +140,11 @@ describe('rejoining after leaving or being removed', () => {
     const real = await person(false);
     const first = await join(invite, real);
     await client.query(`UPDATE group_members SET role = $2 WHERE id = $1`, [first.member_id, role]);
-    await client.query(`UPDATE group_members SET left_at = now() WHERE id = $1`, [first.member_id]);
+    // Left an hour ago, so the invite minted now is newer than the leaving.
+    await client.query(
+      `UPDATE group_members SET left_at = now() - interval '1 hour' WHERE id = $1`,
+      [first.member_id],
+    );
     return { g, invite, real, memberId: first.member_id as string };
   }
 

@@ -6725,6 +6725,7 @@ export interface UiStrings {
     /** The server refused a guest join (an older screen, or a race). */
     joinAccountRequired: string;
     joinRemoved: string;
+    joinLeft: string;
     /** Calm line when an admin removed you and the group left this phone. */
     removedFromGroup: string;
     fromYourContacts: string;
@@ -15059,6 +15060,7 @@ const en: UiStrings = {
     joinAccountRequired:
       'You need an account to join this group. Sign up or log in, then open the link again.',
     joinRemoved: 'You were removed from this group. Ask an admin for a new invite.',
+    joinLeft: 'You left this group. Ask a member to send you a new invite link.',
     removedFromGroup: 'You are no longer in {group}.',
     fromYourContacts: 'From your contacts',
     continueWith: 'Continue with',
@@ -23364,6 +23366,8 @@ const ta: UiStrings = {
     joinAccountRequired:
       'இந்தக் குழுவில் சேர கணக்கு தேவை. பதிவு செய்யுங்கள் அல்லது உள்நுழையுங்கள், பிறகு இணைப்பை மீண்டும் திறக்கவும்.',
     joinRemoved: 'நீங்கள் இந்தக் குழுவிலிருந்து நீக்கப்பட்டீர்கள். புதிய அழைப்பிற்கு நிர்வாகியிடம் கேளுங்கள்.',
+    joinLeft:
+      'நீங்கள் இந்தக் குழுவிலிருந்து வெளியேறிவிட்டீர்கள். புதிய அழைப்பு இணைப்பை அனுப்ப ஒரு உறுப்பினரிடம் கேளுங்கள்.',
     fromYourContacts: 'உங்கள் தொடர்புகளிலிருந்து',
     continueWith: 'இவர்களுடன் தொடர்',
     noAddress: 'முகவரி இல்லை',
@@ -31611,6 +31615,7 @@ const hi: UiStrings = {
       'आप Waves को मेहमान के तौर पर इस्तेमाल कर रहे हैं। {group} से जुड़ने के लिए मुफ़्त खाता बनाएँ। अब तक का सब कुछ आपके साथ रहेगा।',
     joinAccountRequired: 'इस ग्रुप से जुड़ने के लिए खाता चाहिए। साइन अप या लॉग इन करें, फिर लिंक दोबारा खोलें।',
     joinRemoved: 'आपको इस ग्रुप से हटा दिया गया था। नए निमंत्रण के लिए किसी एडमिन से पूछें।',
+    joinLeft: 'आप यह ग्रुप छोड़ चुके हैं। किसी सदस्य से नया निमंत्रण लिंक भेजने को कहें।',
     fromYourContacts: 'आपके संपर्कों से',
     continueWith: 'इनके साथ जारी रखें',
     noAddress: 'कोई पता नहीं',
@@ -40232,6 +40237,7 @@ const ar: UiStrings = {
     joinAccountRequired:
       'تحتاج إلى حساب للانضمام إلى هذه المجموعة. سجّل أو سجّل الدخول ثم افتح الرابط مرة أخرى.',
     joinRemoved: 'تمت إزالتك من هذه المجموعة. اطلب دعوة جديدة من أحد المشرفين.',
+    joinLeft: 'لقد غادرت هذه المجموعة. اطلب من أحد الأعضاء أن يرسل لك رابط دعوة جديدًا.',
     fromYourContacts: 'من جهات اتصالك',
     continueWith: 'المتابعة مع',
     noAddress: 'لا يوجد عنوان',

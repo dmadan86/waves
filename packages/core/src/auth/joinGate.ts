@@ -44,8 +44,8 @@ export function joinGate(viewer: JoinViewer): JoinGate {
  */
 export const REMOVED_FROM_GROUP = 'REMOVED_FROM_GROUP';
 
-/** Whether a failure from the join call is the server asking for an account. */
-export function isAccountRequired(caught: unknown): boolean {
+/** True when a join failure carries `target` as its `code` or inside its message. */
+function failsWith(caught: unknown, target: string): boolean {
   const message =
     typeof caught === 'string'
       ? caught
@@ -56,22 +56,28 @@ export function isAccountRequired(caught: unknown): boolean {
     caught && typeof (caught as { code?: unknown }).code === 'string'
       ? (caught as { code: string }).code
       : '';
-  return code === ACCOUNT_REQUIRED || message.includes(ACCOUNT_REQUIRED);
+  return code === target || message.includes(target);
+}
+
+/** Whether a failure from the join call is the server asking for an account. */
+export function isAccountRequired(caught: unknown): boolean {
+  return failsWith(caught, ACCOUNT_REQUIRED);
 }
 
 /** Whether a failure from the join call is "you were removed; ask for a new invite". */
 export function isRemovedFromGroup(caught: unknown): boolean {
-  const message =
-    typeof caught === 'string'
-      ? caught
-      : caught && typeof (caught as { message?: unknown }).message === 'string'
-        ? (caught as { message: string }).message
-        : '';
-  const code =
-    caught && typeof (caught as { code?: unknown }).code === 'string'
-      ? (caught as { code: string }).code
-      : '';
-  return code === REMOVED_FROM_GROUP || message.includes(REMOVED_FROM_GROUP);
+  return failsWith(caught, REMOVED_FROM_GROUP);
+}
+
+/**
+ * The code the server refuses somebody who left by themselves with, when they
+ * present an invite from before they left. Stable across apps.
+ */
+export const LEFT_GROUP = 'LEFT_GROUP';
+
+/** Whether a failure from the join call is "you left; ask for a new invite". */
+export function isLeftGroup(caught: unknown): boolean {
+  return failsWith(caught, LEFT_GROUP);
 }
 
 /**

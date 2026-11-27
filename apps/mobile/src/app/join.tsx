@@ -27,6 +27,7 @@ import {
 
 import {
   isAccountRequired,
+  isLeftGroup,
   isRemovedFromGroup,
   JoinGate,
   joinGate,
@@ -192,7 +193,9 @@ export default function JoinScreen() {
           ? t.misc.joinAccountRequired
           : isRemovedFromGroup(caught)
             ? t.misc.joinRemoved
-            : friendlyError(caught, t.misc.couldNotJoin, 'join.accept'),
+            : isLeftGroup(caught)
+              ? t.misc.joinLeft
+              : friendlyError(caught, t.misc.couldNotJoin, 'join.accept'),
       );
     } finally {
       setJoining(false);

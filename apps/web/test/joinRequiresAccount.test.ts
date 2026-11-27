@@ -36,6 +36,7 @@ describe('web join: strings', () => {
         'guestUpgrade',
         'accountRequired',
         'removedFromGroup',
+        'leftGroup',
       ] as const) {
         expect(join[key], `${language}.${key}`).toBeTruthy();
       }
