@@ -81,6 +81,24 @@ describe('partner device changes', () => {
     await b.sync();
     expect(Object.keys(b.data(G)).sort()).toEqual(['p1', 'p2']);
   });
+
+  it('does not queue a fresh snapshot request every round while housekeeping keeps failing', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1, undefined, [G]);
+    const b = phone(server, 'pB', 'mB', 2, a.clock, [G]);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await a.set(G, 'p1', 'property', prop);
+    await b.sync();
+    await a.sync();
+    await b.sync();
+    b.rotateDevice(9);
+    server.failDirectory = 1000;
+    for (let i = 0; i < 5; i++) {
+      b.clock.t += 120_000;
+      await b.sync().catch(() => undefined);
+    }
+    expect(b.store.outbox.size).toBeLessThanOrEqual(1);
+  });
 });
 
 describe('housekeeping failures', () => {

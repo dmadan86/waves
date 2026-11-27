@@ -943,8 +943,12 @@ export function createMailbox(deps: MailboxDeps) {
           space.snapshot(groupId).length === 0 ||
           Number.isNaN(fetchedAt) ||
           now - fetchedAt > STALE_MS;
-        if (wasStale || idChanged || (due && now - asked >= RESYNC_GAP_MS))
+        // Once per group per device id, even if a later step fails and the round is retried.
+        const idPending = idChanged && (await meta.get(`idresync:${groupId}`)) !== me0;
+        if (wasStale || idPending || (due && now - asked >= RESYNC_GAP_MS)) {
           await requestResync(groupId);
+          if (me0) await meta.set(`idresync:${groupId}`, me0);
+        }
         if (!current()) return;
 
         const currentDevices: KnownDevice[] = (await groupDevices(groupId, false, current)).map(
