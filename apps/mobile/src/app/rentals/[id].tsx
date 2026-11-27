@@ -28,6 +28,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { isFormer } from '@/e2ee/space';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
@@ -106,7 +107,7 @@ function TintButton({
       onPress={onPress}
       style={{
         flex: 1,
-        minHeight: 48,
+        minHeight: 44,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -211,6 +212,8 @@ function DetailBody() {
   const region = regionOf(profile?.country_code);
   const { id, space } = useLocalSearchParams<{ id: string; space?: string }>();
   const spaceName = useSpaceName(space);
+  // A former couple is a read-only copy: nothing here may write.
+  const readOnly = isFormer(space ?? '');
   const ledger = usePersonalLedger(space);
   const { properties, tenancies } = usePersonalWealth(space);
   const writes = useWealthWrites(space);
@@ -277,7 +280,7 @@ function DetailBody() {
           'cash-outline',
           w.refundableDepositHeld,
           fmt(tn.depositHeld, cur),
-          () => setOpen('deposit'),
+          readOnly ? undefined : () => setOpen('deposit'),
         ],
       ]
     : [];
@@ -414,19 +417,47 @@ function DetailBody() {
           <Ionicons name={PROPERTY_ICON[prop.type]} size={iconSize.sm} color={theme.color.brand} />
         }
         trailing={
-          <IconButton label={t.personalHome.toolMore} onPress={() => setMenu(true)}>
-            <Ionicons name="ellipsis-vertical" size={iconSize.md} color={theme.color.text} />
-          </IconButton>
+          readOnly ? undefined : (
+            <IconButton label={t.personalHome.toolMore} onPress={() => setMenu(true)}>
+              <Ionicons name="ellipsis-vertical" size={iconSize.md} color={theme.color.text} />
+            </IconButton>
+          )
         }
       />
       <DetailEnter>
         <ScrollView
           contentContainerStyle={{
             paddingHorizontal: theme.spacing.lg,
-            paddingBottom: theme.spacing.lg,
+            paddingBottom: clearance + theme.spacing.lg,
             gap: theme.spacing.md,
           }}
         >
+          {readOnly ? (
+            <Text variant="caption" tone="muted">
+              {w.readOnlyCopy}
+            </Text>
+          ) : null}
+          <Row style={{ gap: theme.spacing.sm }}>
+            {readOnly ? null : (
+              <TintButton
+                label={w.addExpense}
+                icon="document-text-outline"
+                bg={theme.color.brandSoft}
+                fg={theme.color.brand}
+                onPress={() => setOpen('expense')}
+              />
+            )}
+            {tn ? (
+              <TintButton
+                label={w.receiptsBtn}
+                icon="receipt-outline"
+                bg={theme.color.surfaceMuted}
+                fg={theme.color.text}
+                disabled={!lastPayment}
+                onPress={() => void share()}
+              />
+            ) : null}
+          </Row>
           <Animated.View layout={glide}>
             <StandardCard
               style={{ backgroundColor: theme.color.brandSoft, borderColor: theme.color.brandSoft }}
@@ -471,36 +502,40 @@ function DetailBody() {
                           })}
                         </Text>
                       ) : null}
-                      <View style={{ marginTop: theme.spacing.sm }}>
-                        <Button
-                          label={w.recordRent}
-                          icon={
-                            <Ionicons
-                              name="wallet-outline"
-                              size={iconSize.md}
-                              color={theme.color.onButtonPrimary}
-                            />
-                          }
-                          onPress={() => setOpen('rent')}
-                        />
-                      </View>
+                      {readOnly ? null : (
+                        <View style={{ marginTop: theme.spacing.sm }}>
+                          <Button
+                            label={w.recordRent}
+                            icon={
+                              <Ionicons
+                                name="wallet-outline"
+                                size={iconSize.md}
+                                color={theme.color.onButtonPrimary}
+                              />
+                            }
+                            onPress={() => setOpen('rent')}
+                          />
+                        </View>
+                      )}
                     </>
                   ) : (
                     <>
                       <Text variant="caption" tone="muted">
                         {w.vacantNote}
                       </Text>
-                      <View style={{ marginTop: theme.spacing.sm }}>
-                        <Button
-                          label={w.addTenant}
-                          onPress={() =>
-                            router.push({
-                              pathname: '/rentals/tenant',
-                              params: { id: prop.id, ...spaceParams(space) },
-                            })
-                          }
-                        />
-                      </View>
+                      {readOnly ? null : (
+                        <View style={{ marginTop: theme.spacing.sm }}>
+                          <Button
+                            label={w.addTenant}
+                            onPress={() =>
+                              router.push({
+                                pathname: '/rentals/tenant',
+                                params: { id: prop.id, ...spaceParams(space) },
+                              })
+                            }
+                          />
+                        </View>
+                      )}
                     </>
                   )}
                 </View>
@@ -511,13 +546,13 @@ function DetailBody() {
             </StandardCard>
           </Animated.View>
 
-          {raise ? (
+          {raise && !readOnly ? (
             <Animated.View layout={glide}>
               <RaiseCard prompt={raise} groupId={space} />
             </Animated.View>
           ) : null}
 
-          {tn && unpaid && asked ? (
+          {tn && unpaid && asked && !readOnly ? (
             <Animated.View exiting={FadeOut.duration(160)}>
               <StandardCard style={{ gap: theme.spacing.md }}>
                 <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
@@ -606,10 +641,15 @@ function DetailBody() {
           ) : null}
 
           <Animated.View layout={glide}>
-            <DocumentsCard propertyId={prop.id} region={region} groupId={space} />
+            <DocumentsCard
+              propertyId={prop.id}
+              region={region}
+              groupId={space}
+              readOnly={readOnly}
+            />
           </Animated.View>
           <Animated.View layout={glide}>
-            <DetailsCard prop={prop} tenancy={tn} groupId={space} />
+            <DetailsCard prop={prop} tenancy={tn} groupId={space} readOnly={readOnly} />
           </Animated.View>
 
           {tn ? (
@@ -683,32 +723,6 @@ function DetailBody() {
             </Animated.View>
           ) : null}
         </ScrollView>
-        <Row
-          style={{
-            gap: theme.spacing.sm,
-            paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.sm,
-            paddingBottom: clearance + theme.spacing.sm,
-          }}
-        >
-          <TintButton
-            label={w.addExpense}
-            icon="document-text-outline"
-            bg={theme.color.brandSoft}
-            fg={theme.color.brand}
-            onPress={() => setOpen('expense')}
-          />
-          {tn ? (
-            <TintButton
-              label={w.receiptsBtn}
-              icon="receipt-outline"
-              bg={theme.color.surfaceMuted}
-              fg={theme.color.text}
-              disabled={!lastPayment}
-              onPress={() => void share()}
-            />
-          ) : null}
-        </Row>
       </DetailEnter>
 
       <AmountSheet

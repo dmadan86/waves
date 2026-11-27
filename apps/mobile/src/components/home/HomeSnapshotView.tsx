@@ -138,11 +138,7 @@ export function HomeSnapshotView({
     <View style={{ paddingTop: theme.spacing.sm, gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.sm }}>
         {snapshot.needs.length ? (
-          <CardTitle title={h.needsYou}>
-            <Text variant="caption" tone="muted" style={{ fontWeight: '700' }}>
-              {snapshot.needsTotal}
-            </Text>
-          </CardTitle>
+          <CardTitle title={h.needsYou} count={snapshot.needsTotal} />
         ) : null}
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           {snapshot.needs.length ? (

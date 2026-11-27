@@ -135,10 +135,13 @@ export function DetailsCard({
   prop,
   tenancy,
   groupId,
+  readOnly = false,
 }: {
   prop: PersonalProperty;
   tenancy: PersonalTenancy | null;
   groupId?: string;
+  /** A former couple's copy: values show, nothing edits. */
+  readOnly?: boolean;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -155,7 +158,7 @@ export function DetailsCard({
   const note = prop.note ?? '';
   const noteLong = note.length > 120 || note.split('\n').length > 3;
   const open = (url: string): void => void Linking.openURL(url).catch(() => {});
-  const edit = (f: Field) => () => setField(f);
+  const edit = (f: Field) => (readOnly ? undefined : () => setField(f));
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
@@ -228,15 +231,15 @@ export function DetailsCard({
               icon="calendar-outline"
               label={w.agreementStart}
               value={tenancy.startDate ? showDate(tenancy.startDate, locale) : none}
-              onPress={() => setPicking('start')}
+              onPress={readOnly ? undefined : () => setPicking('start')}
             />
             <Line
               icon="calendar-number-outline"
               label={w.agreementEnd}
               value={tenancy.endDate ? showDate(tenancy.endDate, locale) : w.openEnded}
-              onPress={() => setPicking('end')}
+              onPress={readOnly ? undefined : () => setPicking('end')}
               trailing={
-                tenancy.endDate ? (
+                tenancy.endDate && !readOnly ? (
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={w.openEnded}
@@ -433,10 +436,13 @@ export function DocumentsCard({
   propertyId,
   region,
   groupId,
+  readOnly = false,
 }: {
   propertyId: string;
   region: string;
   groupId?: string;
+  /** A former couple's copy: documents open, nothing adds or changes. */
+  readOnly?: boolean;
 }) {
   const theme = useTheme();
   const reduce = useReducedMotion();
@@ -611,31 +617,36 @@ export function DocumentsCard({
   };
   const viewingSlot = slots.find((s) => s.id === viewing) ?? null;
 
-  const emptyTile = (name: string, label: string, onPress: () => void) => (
-    <PressableScale
-      pressedScale={0.98}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      disabled={busy}
-      onPress={onPress}
-      style={{
-        ...tileBase,
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: theme.spacing.xs,
-        padding: theme.spacing.sm,
-        borderWidth: 1.5,
-        borderStyle: 'dashed',
-        borderColor: theme.color.border,
-        backgroundColor: theme.color.brandSoft,
-      }}
-    >
-      <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
-      <Text variant="caption" numberOfLines={2} style={{ fontWeight: '600', textAlign: 'center' }}>
-        {name}
-      </Text>
-    </PressableScale>
-  );
+  const emptyTile = (name: string, label: string, onPress: () => void) =>
+    readOnly ? null : (
+      <PressableScale
+        pressedScale={0.98}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        disabled={busy}
+        onPress={onPress}
+        style={{
+          ...tileBase,
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: theme.spacing.xs,
+          padding: theme.spacing.sm,
+          borderWidth: 1.5,
+          borderStyle: 'dashed',
+          borderColor: theme.color.border,
+          backgroundColor: theme.color.brandSoft,
+        }}
+      >
+        <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
+        <Text
+          variant="caption"
+          numberOfLines={2}
+          style={{ fontWeight: '600', textAlign: 'center' }}
+        >
+          {name}
+        </Text>
+      </PressableScale>
+    );
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
@@ -669,6 +680,7 @@ export function DocumentsCard({
             const layout = reduce
               ? undefined
               : LinearTransition.springify().damping(24).stiffness(220);
+            if (!isFilled && readOnly) return null;
             if (!isFilled)
               return (
                 <Animated.View
@@ -695,7 +707,7 @@ export function DocumentsCard({
                   accessibilityRole="button"
                   accessibilityLabel={`${name}, ${kindOf(s)}${when ? `, ${w.docAdded.replace('{date}', when)}` : ''}`}
                   onPress={() => tap(s)}
-                  onLongPress={() => setMenu(s)}
+                  onLongPress={readOnly ? undefined : () => setMenu(s)}
                   style={{
                     ...tileBase,
                     borderWidth: 1,
@@ -740,47 +752,51 @@ export function DocumentsCard({
                       </Text>
                     ) : null}
                   </View>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t.personalHome.toolMore}
-                    hitSlop={8}
-                    onPress={() => setMenu(s)}
-                    style={{
-                      position: 'absolute',
-                      top: 4,
-                      end: 4,
-                      width: 28,
-                      height: 28,
-                      borderRadius: 14,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: theme.color.surface,
-                    }}
-                  >
-                    <Ionicons
-                      name="ellipsis-vertical"
-                      size={iconSize.sm}
-                      color={theme.color.textMuted}
-                    />
-                  </Pressable>
+                  {readOnly ? null : (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t.personalHome.toolMore}
+                      hitSlop={8}
+                      onPress={() => setMenu(s)}
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        end: 4,
+                        width: 28,
+                        height: 28,
+                        borderRadius: 14,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: theme.color.surface,
+                      }}
+                    >
+                      <Ionicons
+                        name="ellipsis-vertical"
+                        size={iconSize.sm}
+                        color={theme.color.textMuted}
+                      />
+                    </Pressable>
+                  )}
                 </PressableScale>
               </Animated.View>
             );
           })}
-          <Animated.View
-            key="other-add"
-            layout={reduce ? undefined : LinearTransition.springify().damping(24).stiffness(220)}
-            entering={
-              loaded && !reduce && !didEnterInitialTiles
-                ? firstLoadTileEntering(slots.length, isRtlLayout() ? -1 : 1)
-                : undefined
-            }
-            style={{ width: tileW }}
-          >
-            {emptyTile(w.docSlotOther, w.docAddTo.replace('{name}', w.docSlotOther), () =>
-              setNaming(true),
-            )}
-          </Animated.View>
+          {readOnly ? null : (
+            <Animated.View
+              key="other-add"
+              layout={reduce ? undefined : LinearTransition.springify().damping(24).stiffness(220)}
+              entering={
+                loaded && !reduce && !didEnterInitialTiles
+                  ? firstLoadTileEntering(slots.length, isRtlLayout() ? -1 : 1)
+                  : undefined
+              }
+              style={{ width: tileW }}
+            >
+              {emptyTile(w.docSlotOther, w.docAddTo.replace('{name}', w.docSlotOther), () =>
+                setNaming(true),
+              )}
+            </Animated.View>
+          )}
         </Animated.ScrollView>
         <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
           <Ionicons name="lock-closed-outline" size={iconSize.sm} color={theme.color.textMuted} />

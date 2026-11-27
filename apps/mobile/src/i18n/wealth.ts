@@ -143,6 +143,7 @@ export interface WealthStrings {
   attachPhoto: string;
   attachFile: string;
   docsLocalNote: string;
+  readOnlyCopy: string;
   docsEmpty: string;
   renameDoc: string;
   docSlotAgreement: string;
@@ -430,6 +431,7 @@ export const wealthEn: WealthStrings = {
   attachPhoto: 'Photo',
   attachFile: 'File (PDF)',
   docsLocalNote: 'Kept only on this phone, never uploaded.',
+  readOnlyCopy: 'Read-only copy from a couple you left.',
   docsEmpty: 'Add the rental agreement or other papers.',
   renameDoc: 'Rename',
   docSlotAgreement: 'Agreement',
@@ -707,6 +709,7 @@ export const wealthTa: WealthStrings = {
   attachPhoto: 'புகைப்படம்',
   attachFile: 'கோப்பு (PDF)',
   docsLocalNote: 'இந்த போனில் மட்டும் வைக்கப்படும்; பதிவேற்றப்படாது.',
+  readOnlyCopy: 'நீங்கள் விலகிய ஜோடியின் படிக்க மட்டும் நகல்.',
   docsEmpty: 'வாடகை ஒப்பந்தம் அல்லது பிற ஆவணங்களை சேர்க்கவும்.',
   renameDoc: 'பெயர் மாற்று',
   docSlotAgreement: 'ஒப்பந்தம்',
@@ -985,6 +988,7 @@ export const wealthHi: WealthStrings = {
   attachPhoto: 'फ़ोटो',
   attachFile: 'फ़ाइल (PDF)',
   docsLocalNote: 'सिर्फ़ इसी फ़ोन में रहता है, अपलोड नहीं होता।',
+  readOnlyCopy: 'आपके छोड़े हुए जोड़े की केवल-पढ़ने वाली प्रति।',
   docsEmpty: 'किरायानामा या दूसरे काग़ज़ जोड़ें।',
   renameDoc: 'नाम बदलें',
   docSlotAgreement: 'किरायानामा',
@@ -1261,6 +1265,7 @@ export const wealthAr: WealthStrings = {
   attachPhoto: 'صورة',
   attachFile: 'ملف (PDF)',
   docsLocalNote: 'تبقى على هذا الهاتف فقط ولا يتم رفعها.',
+  readOnlyCopy: 'نسخة للقراءة فقط من زوج غادرته.',
   docsEmpty: 'أضف عقد الإيجار أو أوراقًا أخرى.',
   renameDoc: 'إعادة تسمية',
   docSlotAgreement: 'عقد الإيجار',
