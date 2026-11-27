@@ -22,7 +22,7 @@
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image, Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -78,6 +78,7 @@ const WORDMARK = require('../../assets/images/wordmark-script.webp') as number;
 
 export default function WelcomeScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { t, language, locale } = useStrings();
   const { withGoogle, withApple } = useAuth();
   const { height: screenHeight, width: windowWidth } = useWindowDimensions();
@@ -211,7 +212,9 @@ export default function WelcomeScreen() {
         />
       </View>
 
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+      {/* Top only: the white sheet runs to the screen's bottom edge, under the
+          home indicator, and pads itself clear of it (no strip of photo below). */}
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {/* Last resort for tiny screens or huge text: scroll rather than clip. */}
         <ScrollView
           bounces={false}
@@ -413,7 +416,7 @@ export default function WelcomeScreen() {
                 borderTopRightRadius: 32,
                 paddingHorizontal: theme.spacing.xl,
                 paddingTop: 16,
-                paddingBottom: theme.spacing.sm,
+                paddingBottom: theme.spacing.sm + insets.bottom,
                 gap: 9,
               },
               waysStyle,
