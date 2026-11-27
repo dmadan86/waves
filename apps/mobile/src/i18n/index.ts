@@ -8712,6 +8712,7 @@ export interface UiStrings {
     expandDay: string;
     searchTransactions: string;
     askByVoice: string;
+    filterLabel: string;
     addTransaction: string;
     filterCategory: string;
     clearFilter: string;
@@ -17015,6 +17016,7 @@ const en: UiStrings = {
     expandDay: 'Expand day',
     searchTransactions: 'Search transactions…',
     askByVoice: 'Ask or add by voice',
+    filterLabel: 'Filter',
     addTransaction: 'Add transaction',
     filterCategory: 'Filter by category',
     clearFilter: 'Clear filter',
@@ -25373,6 +25375,7 @@ const ta: UiStrings = {
     expandDay: 'நாளை விரி',
     searchTransactions: 'பரிவர்த்தனைகளைத் தேடுங்கள்…',
     askByVoice: 'குரலில் கேளுங்கள் அல்லது சேர்க்கவும்',
+    filterLabel: 'வடிகட்டு',
     addTransaction: 'பரிவர்த்தனையைச் சேர்',
     filterCategory: 'வகைப்படி வடிகட்டு',
     clearFilter: 'வடிகட்டியை அழி',
@@ -33547,6 +33550,7 @@ const hi: UiStrings = {
     expandDay: 'दिन का विवरण खोलें',
     searchTransactions: 'लेन-देन खोजें…',
     askByVoice: 'आवाज़ से पूछें या जोड़ें',
+    filterLabel: 'फ़िल्टर',
     addTransaction: 'लेन-देन जोड़ें',
     filterCategory: 'श्रेणी से छाँटें',
     clearFilter: 'फ़िल्टर हटाएँ',
@@ -42634,6 +42638,7 @@ const ar: UiStrings = {
     expandDay: 'عرض تفاصيل اليوم',
     searchTransactions: 'ابحث في المعاملات…',
     askByVoice: 'اسأل أو أضف بالصوت',
+    filterLabel: 'تصفية',
     addTransaction: 'إضافة معاملة',
     filterCategory: 'التصفية حسب الفئة',
     clearFilter: 'مسح التصفية',

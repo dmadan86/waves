@@ -36,4 +36,9 @@ describe('Transactions screen', () => {
     expect(src).not.toContain('sparkles');
     expect(src).not.toContain('<TextInput');
   });
+  it('renders the filter control outside search mode', () => {
+    const src = readFileSync('src/app/personal/transactions.tsx', 'utf8');
+    expect(src).toMatch(/\{filterChip\}/);
+    expect(src).toContain('t.personal.filterLabel');
+  });
 });
