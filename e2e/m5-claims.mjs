@@ -36,7 +36,11 @@ import { createClient } from '@supabase/supabase-js';
 
 import { computeShares, toItemizedParams } from '../supabase/functions/_shared/core.js';
 
-const URL = process.env.SUPABASE_URL ?? 'https://ywojpnfyxxltvihqmcni.supabase.co';
+const URL = process.env.SUPABASE_URL ?? missingUrl();
+// Never default to the production project: a run with no env must stop.
+function missingUrl() {
+  throw new Error('Set SUPABASE_URL to a test project; e2e scripts never default to production.');
+}
 const ANON = process.env.ANON_KEY;
 const SERVICE = process.env.SERVICE_KEY;
 
