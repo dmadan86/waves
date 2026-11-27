@@ -113,7 +113,9 @@ function AddBody() {
         <Text variant="body" style={{ flex: 1, fontWeight: x === value ? '700' : '400' }}>
           {label(x)}
         </Text>
-        {x === value ? <Ionicons name="checkmark" size={iconSize.md} color={theme.color.brand} /> : null}
+        {x === value ? (
+          <Ionicons name="checkmark" size={iconSize.md} color={theme.color.brand} />
+        ) : null}
       </Pressable>
     ));
 
@@ -136,29 +138,98 @@ function AddBody() {
           onPress={() => setSheet('type')}
         />
         <FieldLabel>{v.nameLabel}</FieldLabel>
-        <TextAnswer value={name} onChange={setName} placeholder={v.namePlaceholder} label={v.nameLabel} bordered />
+        <TextAnswer
+          value={name}
+          onChange={setName}
+          placeholder={v.namePlaceholder}
+          label={v.nameLabel}
+          bordered
+        />
         <FieldLabel>{v.registrationLabel}</FieldLabel>
-        <TextAnswer value={reg} onChange={setReg} placeholder={v.registrationLabel} label={v.registrationLabel} bordered />
+        <TextAnswer
+          value={reg}
+          onChange={setReg}
+          placeholder={v.registrationLabel}
+          label={v.registrationLabel}
+          bordered
+        />
         <FieldLabel>{v.makeModelLabel}</FieldLabel>
-        <TextAnswer value={makeModel} onChange={setMakeModel} placeholder={v.makeModelLabel} label={v.makeModelLabel} bordered />
+        <TextAnswer
+          value={makeModel}
+          onChange={setMakeModel}
+          placeholder={v.makeModelLabel}
+          label={v.makeModelLabel}
+          bordered
+        />
         <FieldLabel>{v.yearLabel}</FieldLabel>
-        <TextAnswer value={year} onChange={(x) => setYear(x.replace(/\D/g, '').slice(0, 4))} placeholder={v.yearLabel} label={v.yearLabel} keyboardType="numeric" bordered />
+        <TextAnswer
+          value={year}
+          onChange={(x) => setYear(x.replace(/\D/g, '').slice(0, 4))}
+          placeholder={v.yearLabel}
+          label={v.yearLabel}
+          keyboardType="numeric"
+          bordered
+        />
         <FieldLabel>{v.fuelLabel}</FieldLabel>
-        <SelectField label={v.fuelLabel} icon="flame-outline" text={v.fuels[fuel]} onPress={() => setSheet('fuel')} />
-        <DateAnswer label={v.insuranceExpiry} value={insurance} onChange={setInsurance} clearLabel={v.notSet} />
-        <DateAnswer label={v.emissionExpiry} value={emission} onChange={setEmission} clearLabel={v.notSet} />
+        <SelectField
+          label={v.fuelLabel}
+          icon="flame-outline"
+          text={v.fuels[fuel]}
+          onPress={() => setSheet('fuel')}
+        />
+        <DateAnswer
+          label={v.insuranceExpiry}
+          value={insurance}
+          onChange={setInsurance}
+          clearLabel={v.notSet}
+        />
+        <DateAnswer
+          label={v.emissionExpiry}
+          value={emission}
+          onChange={setEmission}
+          clearLabel={v.notSet}
+        />
       </ScrollView>
-      <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: clearance + theme.spacing.md, gap: theme.spacing.sm }}>
+      <View
+        style={{
+          paddingHorizontal: theme.spacing.lg,
+          paddingBottom: clearance + theme.spacing.md,
+          gap: theme.spacing.sm,
+        }}
+      >
         {error ? <Callout tone="negative">{error}</Callout> : null}
-        <Button label={loaded ? v.saveVehicle : t.common.loading} disabled={!loaded} fullWidth onPress={() => void save()} />
+        <Button
+          label={loaded ? v.saveVehicle : t.common.loading}
+          disabled={!loaded}
+          fullWidth
+          onPress={() => void save()}
+        />
       </View>
-      <Sheet visible={sheet === 'type'} onClose={() => setSheet(null)} title={v.typeLabel} closeLabel={t.common.close}>
+      <Sheet
+        visible={sheet === 'type'}
+        onClose={() => setSheet(null)}
+        title={v.typeLabel}
+        closeLabel={t.common.close}
+      >
         <ScrollView style={{ maxHeight: 360 }}>
-          {pick(VEHICLE_TYPES, type, (x) => v.types[x], setType, (x) => VEHICLE_ICON[x])}
+          {pick(
+            VEHICLE_TYPES,
+            type,
+            (x) => v.types[x],
+            setType,
+            (x) => VEHICLE_ICON[x],
+          )}
         </ScrollView>
       </Sheet>
-      <Sheet visible={sheet === 'fuel'} onClose={() => setSheet(null)} title={v.fuelLabel} closeLabel={t.common.close}>
-        <ScrollView style={{ maxHeight: 360 }}>{pick(FUEL_TYPES, fuel, (x) => v.fuels[x], setFuel)}</ScrollView>
+      <Sheet
+        visible={sheet === 'fuel'}
+        onClose={() => setSheet(null)}
+        title={v.fuelLabel}
+        closeLabel={t.common.close}
+      >
+        <ScrollView style={{ maxHeight: 360 }}>
+          {pick(FUEL_TYPES, fuel, (x) => v.fuels[x], setFuel)}
+        </ScrollView>
       </Sheet>
     </Screen>
   );

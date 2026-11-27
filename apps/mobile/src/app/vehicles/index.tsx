@@ -75,7 +75,11 @@ function VehiclesBody() {
     <PressableScale
       pressedScale={0.98}
       accessibilityRole="button"
-      accessibilityLabel={licence?.expiry ? fill(v.licenceExpires, { date: showDate(licence.expiry, locale) }) : v.addLicence}
+      accessibilityLabel={
+        licence?.expiry
+          ? fill(v.licenceExpires, { date: showDate(licence.expiry, locale) })
+          : v.addLicence
+      }
       onPress={openLicence}
     >
       <StandardCard>
@@ -110,7 +114,9 @@ function VehiclesBody() {
           }}
         >
           {licenceRow}
-          <View style={{ alignItems: 'center', gap: theme.spacing.md, paddingTop: theme.spacing.xl }}>
+          <View
+            style={{ alignItems: 'center', gap: theme.spacing.md, paddingTop: theme.spacing.xl }}
+          >
             <Ionicons name="car-outline" size={88} color={theme.color.brand} />
             <Text variant="title" style={{ fontWeight: '800', textAlign: 'center' }}>
               {v.trackTitle}
@@ -177,7 +183,11 @@ function VehiclesBody() {
                         backgroundColor: theme.color.brandSoft,
                       }}
                     >
-                      <Ionicons name={VEHICLE_ICON[x.type]} size={iconSize.lg} color={theme.color.brand} />
+                      <Ionicons
+                        name={VEHICLE_ICON[x.type]}
+                        size={iconSize.lg}
+                        color={theme.color.brand}
+                      />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text variant="body" numberOfLines={1} style={{ fontWeight: '700' }}>

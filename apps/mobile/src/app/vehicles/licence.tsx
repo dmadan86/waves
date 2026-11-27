@@ -67,12 +67,35 @@ function LicenceBody() {
         }}
       >
         <FieldLabel>{v.holderName}</FieldLabel>
-        <TextAnswer value={holder} onChange={setHolder} placeholder={profile?.display_name ?? v.holderName} label={v.holderName} bordered />
+        <TextAnswer
+          value={holder}
+          onChange={setHolder}
+          placeholder={profile?.display_name ?? v.holderName}
+          label={v.holderName}
+          bordered
+        />
         <FieldLabel>{v.licenceNumber}</FieldLabel>
-        <TextAnswer value={number} onChange={setNumber} placeholder={v.licenceNumber} label={v.licenceNumber} bordered />
+        <TextAnswer
+          value={number}
+          onChange={setNumber}
+          placeholder={v.licenceNumber}
+          label={v.licenceNumber}
+          bordered
+        />
         <FieldLabel>{v.licenceClass}</FieldLabel>
-        <TextAnswer value={cls} onChange={setCls} placeholder={v.licenceClass} label={v.licenceClass} bordered />
-        <DateAnswer label={v.licenceExpiry} value={expiry} onChange={setExpiry} clearLabel={v.notSet} />
+        <TextAnswer
+          value={cls}
+          onChange={setCls}
+          placeholder={v.licenceClass}
+          label={v.licenceClass}
+          bordered
+        />
+        <DateAnswer
+          label={v.licenceExpiry}
+          value={expiry}
+          onChange={setExpiry}
+          clearLabel={v.notSet}
+        />
         {active.length > 0 ? (
           <StandardCard style={{ gap: theme.spacing.sm }}>
             <Text variant="body" style={{ fontWeight: '700' }}>
@@ -86,10 +109,21 @@ function LicenceBody() {
                   accessibilityRole="checkbox"
                   accessibilityLabel={x.name}
                   accessibilityState={{ checked: on }}
-                  onPress={() => setLinked(on ? linked.filter((i) => i !== x.id) : [...linked, x.id])}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md, minHeight: 44 }}
+                  onPress={() =>
+                    setLinked(on ? linked.filter((i) => i !== x.id) : [...linked, x.id])
+                  }
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: theme.spacing.md,
+                    minHeight: 44,
+                  }}
                 >
-                  <Ionicons name={on ? 'checkbox' : 'square-outline'} size={iconSize.md} color={theme.color.brand} />
+                  <Ionicons
+                    name={on ? 'checkbox' : 'square-outline'}
+                    size={iconSize.md}
+                    color={theme.color.brand}
+                  />
                   <Text variant="body" style={{ flex: 1 }}>
                     {x.name}
                   </Text>
@@ -107,7 +141,13 @@ function LicenceBody() {
           />
         ) : null}
       </ScrollView>
-      <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: clearance + theme.spacing.md, gap: theme.spacing.sm }}>
+      <View
+        style={{
+          paddingHorizontal: theme.spacing.lg,
+          paddingBottom: clearance + theme.spacing.md,
+          gap: theme.spacing.sm,
+        }}
+      >
         {existing ? (
           <Button
             fullWidth
@@ -121,7 +161,12 @@ function LicenceBody() {
             }
           />
         ) : null}
-        <Button fullWidth label={t.common.save} disabled={!holder.trim()} onPress={() => void save()} />
+        <Button
+          fullWidth
+          label={t.common.save}
+          disabled={!holder.trim()}
+          onPress={() => void save()}
+        />
       </View>
     </Screen>
   );

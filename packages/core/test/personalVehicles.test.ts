@@ -60,9 +60,12 @@ describe('vehicle codec', () => {
   it('caps and trims custom fields', () => {
     const many = Array.from({ length: 50 }, (_, i) => ({ key: ` k${i} `, value: 'v' }));
     expect(cleanCustomFields(many)).toHaveLength(MAX_CUSTOM_FIELDS);
-    expect(cleanCustomFields([{ key: '  ', value: 'x' }, { key: 'a'.repeat(99), value: 'b' }])).toEqual([
-      { key: 'a'.repeat(40), value: 'b' },
-    ]);
+    expect(
+      cleanCustomFields([
+        { key: '  ', value: 'x' },
+        { key: 'a'.repeat(99), value: 'b' },
+      ]),
+    ).toEqual([{ key: 'a'.repeat(40), value: 'b' }]);
   });
 });
 
@@ -101,5 +104,32 @@ describe('vehicle expense tagging', () => {
   it('leaves untagged entries byte-identical', () => {
     expect(encodeTxn(txn)).not.toHaveProperty('vehicleId');
     expect(decodeTxn('t', encodeTxn(txn))).not.toHaveProperty('vehicleId');
+  });
+});
+
+describe('moved vehicles and expense snapshots', () => {
+  it('keeps where a vehicle came from', () => {
+    const d = decodeVehicle('v', encodeVehicle({ ...base, movedFrom: 'Personal' }));
+    expect(d.movedFrom).toBe('Personal');
+    expect(encodeVehicle(decodeVehicle('v', encodeVehicle(base)))).not.toHaveProperty('movedFrom');
+  });
+  it('snapshots the vehicle name on the expense', () => {
+    const t = decodeTxn(
+      't',
+      encodeTxn({
+        kind: 'expense',
+        amount: 1n,
+        currency: 'INR',
+        category: 'travel',
+        note: null,
+        date: '2026-11-01',
+        loanId: null,
+        recurringId: null,
+        vehicleId: 'v1',
+        vehicleKind: 'fuel',
+        vehicleName: 'Swift',
+      }),
+    );
+    expect(t.vehicleName).toBe('Swift');
   });
 });

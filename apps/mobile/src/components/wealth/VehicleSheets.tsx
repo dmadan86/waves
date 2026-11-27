@@ -53,7 +53,12 @@ export function ExpenseSheet({
         />
         <AmountField currency={currency} value={amount} onChange={setAmount} />
         <DateAnswer label={t.wealth.today} value={date} onChange={(d) => d && setDate(d)} />
-        <TextAnswer value={note} onChange={setNote} placeholder={v.expenseNote} label={v.expenseNote} />
+        <TextAnswer
+          value={note}
+          onChange={setNote}
+          placeholder={v.expenseNote}
+          label={v.expenseNote}
+        />
         <Button
           fullWidth
           label={t.common.save}
@@ -101,7 +106,12 @@ export function RenewalSheet({
           onChange={setKind}
         />
         {kind === 'other' ? (
-          <TextAnswer value={label} onChange={setLabel} placeholder={v.renewalLabel} label={v.renewalLabel} />
+          <TextAnswer
+            value={label}
+            onChange={setLabel}
+            placeholder={v.renewalLabel}
+            label={v.renewalLabel}
+          />
         ) : null}
         <DateAnswer label={v.dueDate} value={due} onChange={setDue} clearLabel={v.notSet} />
         <Text variant="caption" tone="muted">
@@ -110,12 +120,25 @@ export function RenewalSheet({
         <ChipRow
           wrap
           variant="brand"
-          options={choices.map((n) => ({ value: String(n), label: fill(v.remindDaysValue, { n }) }))}
+          options={choices.map((n) => ({
+            value: String(n),
+            label: fill(v.remindDaysValue, { n }),
+          }))}
           value={String(days)}
           onChange={(x) => setDays(Number(x))}
         />
-        <TextAnswer value={policy} onChange={setPolicy} placeholder={v.policyNumber} label={v.policyNumber} />
-        <TextAnswer value={provider} onChange={setProvider} placeholder={v.provider} label={v.provider} />
+        <TextAnswer
+          value={policy}
+          onChange={setPolicy}
+          placeholder={v.policyNumber}
+          label={v.policyNumber}
+        />
+        <TextAnswer
+          value={provider}
+          onChange={setProvider}
+          placeholder={v.provider}
+          label={v.provider}
+        />
         <Button
           fullWidth
           label={t.common.save}

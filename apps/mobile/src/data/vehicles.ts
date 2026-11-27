@@ -21,8 +21,8 @@ import {
 import { useMyMemberId, useRentalStore, type RentalStore } from '@/data/personalWealth';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { expenseNote, FREE_VEHICLES, ownActiveVehicles, VEHICLE_CATEGORY } from '@/lib/vehiclePlan';
-import { moveVehicle as moveRecord } from '@/lib/vehicleMove';
-import { rekeyDocs } from '@/lib/propertyDocs';
+import { runMove, startMove, type MoveRecord } from '@/lib/vehicleMove';
+import { readMoves, rekeyDocs, saveMove } from '@/lib/propertyDocs';
 
 export const FREE_VEHICLE_CAP_ERROR = 'FREE_VEHICLE_CAP';
 let pendingVehicles = 0;
@@ -107,6 +107,8 @@ export function useVehicleWrites(groupId?: string) {
       amount: bigint,
       date: string,
       note: string,
+      /** The kind's word in the person's language, used when no note was typed. */
+      kindLabel: string,
     ) =>
       store.upsert(
         randomUUID(),
@@ -116,28 +118,65 @@ export function useVehicleWrites(groupId?: string) {
           amount,
           currency: v.currency,
           category: VEHICLE_CATEGORY,
-          note: expenseNote(kind, v.name, note),
+          note: expenseNote(kindLabel, v.name, note),
           date,
           loanId: null,
           recurringId: null,
           vehicleId: v.id,
           vehicleKind: kind,
+          vehicleName: v.name,
         }),
       ),
   };
 }
 
-/** Move a vehicle to another store under a fresh id (see lib/vehicleMove). Returns the new id. */
-export const moveVehicle = (
+/**
+ * Move a vehicle to another store (resumable, see lib/vehicleMove): the record is saved first, the same
+ * target id is reused on a retry, and the source is removed last.
+ */
+export async function moveVehicle(
   vehicle: PersonalVehicle,
+  where: {
+    source: RentalStore;
+    target: RentalStore;
+    targetSpace: string | null;
+    sourceSpace: string | null;
+    from: string;
+  },
+): Promise<void> {
+  const first = startMove(
+    await readMoves(),
+    vehicle.id,
+    where.targetSpace,
+    randomUUID(),
+    where.sourceSpace,
+  );
+  const rec = first.from ? first : { ...first, from: where.from };
+  await runMove(rec, {
+    put: (r) => putVehicle(where.target, { ...vehicle, id: r.targetId, movedFrom: where.from }),
+    rekey: rekeyDocs,
+    delSource: () => where.source.del(vehicle.id),
+    save: saveMove,
+  });
+}
+
+/** Finish a move that stopped half way (app killed, offline). The vehicle is read back from the source store. */
+export async function resumeMove(
+  rec: MoveRecord,
   source: RentalStore,
   target: RentalStore,
-): Promise<string> =>
-  moveRecord(
-    vehicle,
-    source,
-    target,
-    randomUUID(),
-    (a, b) => putVehicle(target, { ...vehicle, id: b }),
-    rekeyDocs,
-  );
+): Promise<void> {
+  const from = rec.from ?? '';
+  const row = source.records.find((r) => r.id === rec.sourceId && r.record_kind === 'vehicle');
+  if (rec.step === 'start' && !row) return void (await saveMove(rec, true));
+  const vehicle = row ? decodeVehicle(row.id, row.data) : null;
+  await runMove(rec, {
+    put: (r) =>
+      vehicle
+        ? putVehicle(target, { ...vehicle, id: r.targetId, movedFrom: from || null })
+        : Promise.resolve(),
+    rekey: rekeyDocs,
+    delSource: () => source.del(rec.sourceId),
+    save: saveMove,
+  });
+}

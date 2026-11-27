@@ -1,13 +1,16 @@
 /** Local reminders for vehicle renewals and the licence: one notification each, N days ahead at 10:00. Never asks permission. */
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import * as Notifications from 'expo-notifications';
 
 import { fill, useStrings } from '@/i18n';
-import { usePersonalVehicles } from '@/data/vehicles';
+import { decodeLicence, decodeVehicle } from '@waves/core';
+
+import { useAllGroupRecords, usePersonalRecords } from '@/data/personal';
+import { isFormer } from '@/e2ee/space';
 import { useAuth } from '@/lib/auth';
 import { ensureAndroidChannel, localNotificationsAllowed, pushSupported } from '@/lib/push';
-import { planVehicleReminders, type VehicleReminder } from '@/lib/vehiclePlan';
+import { planVehicleReminders, type InSpace, type VehicleReminder } from '@/lib/vehiclePlan';
 import { kindName } from '@/lib/vehicleText';
 import { regionOf } from '@/lib/wealthPlan';
 
@@ -28,7 +31,8 @@ async function replaceAll(
       if ((n.content.data as { key?: unknown } | undefined)?.key === KEY)
         await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
     }
-    if (items.length === 0 || !(await localNotificationsAllowed()) || version !== generation) return;
+    if (items.length === 0 || !(await localNotificationsAllowed()) || version !== generation)
+      return;
     await ensureAndroidChannel();
     for (const { r, title, body } of items) {
       if (version !== generation) return;
@@ -51,7 +55,25 @@ export function useVehicleReminders(): void {
   const { t } = useStrings();
   const { profile } = useAuth();
   const region = regionOf(profile?.country_code);
-  const { vehicles, licences } = usePersonalVehicles();
+  const personal = usePersonalRecords();
+  const groups = useAllGroupRecords();
+  // Every space the person is in, so a couple or family vehicle reminds too; a deleted or moved record
+  // drops out of the plan and its old notification is cancelled by the full replace below.
+  const { vehicles, licences } = useMemo(() => {
+    const vehicles: InSpace<ReturnType<typeof decodeVehicle>>[] = [];
+    const licences: InSpace<ReturnType<typeof decodeLicence>>[] = [];
+    const add = (
+      r: { id: string; record_kind: string; data: Record<string, unknown> },
+      space?: string,
+    ) => {
+      if (r.record_kind === 'vehicle') vehicles.push({ ...decodeVehicle(r.id, r.data), space });
+      else if (r.record_kind === 'licence')
+        licences.push({ ...decodeLicence(r.id, r.data), space });
+    };
+    for (const r of personal) add(r);
+    for (const r of groups) if (!isFormer(r.group_id)) add(r, r.group_id);
+    return { vehicles, licences };
+  }, [personal, groups]);
   useEffect(() => {
     const v = t.vehicles;
     const version = ++generation;

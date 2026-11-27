@@ -118,7 +118,11 @@ export function liveDocPropertyIds(
   const ids = new Set<string>();
   for (const records of stores)
     for (const r of records)
-      if (r.record_kind === 'property' || r.record_kind === 'vehicle' || r.record_kind === 'licence')
+      if (
+        r.record_kind === 'property' ||
+        r.record_kind === 'vehicle' ||
+        r.record_kind === 'licence'
+      )
         ids.add(r.id);
   return ids;
 }

@@ -85,6 +85,8 @@ export interface VehicleStrings {
   /** {where} */
   moveBody: string;
   moveFailed: string;
+  /** {where} */
+  earlierExpenses: string;
   noSpaces: string;
   deleteBody: string;
   /** Notification titles/bodies. {name} {kind} {n} */
@@ -200,7 +202,8 @@ export const vehiclesEn: VehicleStrings = {
   moveConfirm: 'Move to {name}?',
   moveBody:
     'The vehicle, its renewals and details move. Documents stay on this phone. Past expenses stay in {where}.',
-  moveFailed: 'Could not move it. Nothing changed.',
+  moveFailed: 'Could not move it. It will finish when you are back online.',
+  earlierExpenses: 'Earlier expenses stay in {where}.',
   noSpaces: 'You are not in a couple or home space yet.',
   deleteBody:
     'Delete this vehicle? Its documents on this phone are removed. Past expenses stay in your transactions.',

@@ -60,6 +60,7 @@ import {
 } from '@waves/ui';
 
 import { CategoryBadge, useLabelledCategoryCatalog } from '@/components/Category';
+import { ResumeVehicleMoves } from '@/components/wealth/ResumeVehicleMoves';
 import { useVehicleReminders } from '@/lib/vehicleReminders';
 import { useWealthReminders } from '@/lib/wealthReminders';
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
@@ -379,6 +380,7 @@ function MeLedger() {
 
   return (
     <Screen edges={[]}>
+      <ResumeVehicleMoves />
       {/* The scene runs up under the status bar, so the clock goes white — but
           only here, where the scene is drawn: the lock shield and the first run
           are plain pages, and keep the theme's own dark icons. */}

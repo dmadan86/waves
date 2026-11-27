@@ -98,6 +98,8 @@ export interface PersonalTxn {
   readonly vehicleId?: string | null;
   /** What sort of vehicle cost it is (fuel, service, ...). Only meaningful with `vehicleId`. */
   readonly vehicleKind?: VehicleExpenseKind | null;
+  /** The vehicle's name when this was recorded, so the entry still reads right after the vehicle moves away. */
+  readonly vehicleName?: string | null;
   /** Fields from the stored blob this version of the app did not recognise,
    *  kept so that editing a record here never deletes something a newer
    *  version wrote. Re-emitted by the encoder; see the note at the top. */
@@ -361,6 +363,7 @@ const KNOWN_TXN = [
   'propertyId',
   'vehicleId',
   'vehicleKind',
+  'vehicleName',
 ];
 const KNOWN_RECURRING = [
   'txnKind',
@@ -472,6 +475,7 @@ export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTx
   const propertyId = str(data.propertyId);
   const vehicleId = str(data.vehicleId);
   const vehicleKind = vehicleId ? oneOf(data.vehicleKind, VEHICLE_EXPENSE_KINDS, 'other') : null;
+  const vehicleName = vehicleId ? str(data.vehicleName) : null;
   return {
     id,
     kind: oneOf(data.kind, ['expense', 'income'] as const, 'expense'),
@@ -490,7 +494,9 @@ export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTx
     ...(receiptKey !== null ? { receiptKey } : {}),
     ...(investmentId !== null ? { investmentId } : {}),
     ...(propertyId !== null ? { propertyId } : {}),
-    ...(vehicleId !== null ? { vehicleId, vehicleKind } : {}),
+    ...(vehicleId !== null
+      ? { vehicleId, vehicleKind, ...(vehicleName ? { vehicleName } : {}) }
+      : {}),
     carried: carry(data, KNOWN_TXN),
   };
 }
@@ -680,7 +686,11 @@ export function encodeTxn(txn: Omit<PersonalTxn, 'id'>): Record<string, unknown>
       ...(txn.investmentId ? { investmentId: txn.investmentId } : {}),
       ...(txn.propertyId ? { propertyId: txn.propertyId } : {}),
       ...(txn.vehicleId
-        ? { vehicleId: txn.vehicleId, vehicleKind: txn.vehicleKind ?? 'other' }
+        ? {
+            vehicleId: txn.vehicleId,
+            vehicleKind: txn.vehicleKind ?? 'other',
+            ...(txn.vehicleName ? { vehicleName: txn.vehicleName } : {}),
+          }
         : {}),
     },
     txn.carried,
@@ -846,13 +856,7 @@ export const RENEWAL_KINDS: readonly RenewalKind[] = [
   'other',
 ];
 export type VehicleExpenseKind =
-  | 'fuel'
-  | 'service'
-  | 'insurance'
-  | 'tax'
-  | 'toll_parking'
-  | 'repair'
-  | 'other';
+  'fuel' | 'service' | 'insurance' | 'tax' | 'toll_parking' | 'repair' | 'other';
 export const VEHICLE_EXPENSE_KINDS: readonly VehicleExpenseKind[] = [
   'fuel',
   'service',
@@ -940,6 +944,8 @@ export interface PersonalVehicle {
   readonly notes: string | null;
   readonly customFields: readonly CustomField[];
   readonly renewals: readonly VehicleRenewal[];
+  /** Where it was before it moved here ("Personal" or a space name), so the page can say where earlier expenses are. */
+  readonly movedFrom?: string | null;
   readonly carried?: Readonly<Record<string, unknown>>;
 }
 
@@ -969,6 +975,7 @@ const KNOWN_VEHICLE = [
   'notes',
   'customFields',
   'renewals',
+  'movedFrom',
 ];
 const KNOWN_LICENCE = [
   'holderName',
@@ -998,6 +1005,7 @@ export function decodeVehicle(id: string, data: Record<string, unknown>): Person
     notes: str(data.notes),
     customFields: cleanCustomFields(data.customFields),
     renewals: cleanRenewals(data.renewals),
+    ...(str(data.movedFrom) ? { movedFrom: str(data.movedFrom)?.slice(0, 80) } : {}),
     carried: carry(data, KNOWN_VEHICLE),
   };
 }
@@ -1017,6 +1025,7 @@ export function encodeVehicle(v: Omit<PersonalVehicle, 'id'>): Record<string, un
       notes: v.notes,
       customFields: cleanCustomFields(v.customFields),
       renewals: cleanRenewals(v.renewals),
+      ...(v.movedFrom ? { movedFrom: v.movedFrom } : {}),
     },
     v.carried,
   );

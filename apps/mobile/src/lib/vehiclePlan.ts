@@ -11,7 +11,6 @@ import {
   type PersonalTxn,
   type PersonalVehicle,
   type RenewalKind,
-  type VehicleExpenseKind,
   type VehicleRenewal,
 } from '@waves/core';
 
@@ -23,7 +22,12 @@ export const atVehicleLimit = (activeCount: number, isPro: boolean): boolean =>
 
 /** Active vehicles this person added (a row still queued has no author and is theirs). */
 export const ownActiveVehicles = (
-  records: readonly { id: string; record_kind: string; data: Record<string, unknown>; created_by?: string | null }[],
+  records: readonly {
+    id: string;
+    record_kind: string;
+    data: Record<string, unknown>;
+    created_by?: string | null;
+  }[],
   myMemberId: string | null,
 ): number =>
   records.filter(
@@ -65,7 +69,8 @@ const dayNumber = (iso: string): number => {
   const [y, m, d] = iso.split('-').map(Number) as [number, number, number];
   return Math.round(Date.UTC(y, m - 1, d) / 86_400_000);
 };
-export const daysUntil = (today: string, date: string): number => dayNumber(date) - dayNumber(today);
+export const daysUntil = (today: string, date: string): number =>
+  dayNumber(date) - dayNumber(today);
 
 /** Overdue renewals stay visible this many days: past that the record is stale, not urgent. */
 export const OVERDUE_GRACE_DAYS = 60;
@@ -116,8 +121,10 @@ export function licenceDue(l: PersonalLicence, today: string): DueItem | null {
 }
 
 /** The next unexpired renewal date of a kind, for the add form's two quick dates. */
-export const renewalOf = (v: Pick<PersonalVehicle, 'renewals'>, kind: RenewalKind): VehicleRenewal | undefined =>
-  v.renewals.find((r) => r.kind === kind);
+export const renewalOf = (
+  v: Pick<PersonalVehicle, 'renewals'>,
+  kind: RenewalKind,
+): VehicleRenewal | undefined => v.renewals.find((r) => r.kind === kind);
 
 // ────────────────────────────────────────────────────────── reminders ──
 
@@ -131,6 +138,9 @@ export interface VehicleReminder {
   readonly url: string;
 }
 
+/** A record plus the space it lives in (absent = Personal). */
+export type InSpace<T> = T & { readonly space?: string };
+
 const at10 = (date: string): number => {
   const [y, m, d] = date.split('-').map(Number) as [number, number, number];
   return new Date(y, m - 1, d, REMIND_HOUR, 0, 0, 0).getTime();
@@ -141,8 +151,8 @@ const at10 = (date: string): number => {
  * still in the future. A renewal already inside its window is shown in Upcoming, not re-sent.
  */
 export function planVehicleReminders(input: {
-  vehicles: readonly PersonalVehicle[];
-  licences: readonly PersonalLicence[];
+  vehicles: readonly InSpace<PersonalVehicle>[];
+  licences: readonly InSpace<PersonalLicence>[];
   now: number;
   limit?: number;
 }): VehicleReminder[] {
@@ -154,13 +164,13 @@ export function planVehicleReminders(input: {
     if (v.status !== 'active') continue;
     for (const r of v.renewals)
       push({
-        id: `veh:${v.id}:${r.id}:${r.dueDate}`,
+        id: `veh:${v.space ?? ''}:${v.id}:${r.id}:${r.dueDate}`,
         fireAt: at10(addPlanDays(r.dueDate, -r.remindDaysBefore)),
         kind: r.kind,
         label: r.label,
         name: v.name,
         days: r.remindDaysBefore,
-        url: `waves://vehicles/${v.id}`,
+        url: `waves://vehicles/${v.id}${v.space ? `?space=${v.space}` : ''}`,
       });
   }
   for (const l of input.licences)
@@ -172,7 +182,7 @@ export function planVehicleReminders(input: {
         label: null,
         name: l.holderName,
         days: l.remindDaysBefore,
-        url: 'waves://vehicles',
+        url: l.space ? `waves://vehicles?space=${l.space}` : 'waves://vehicles',
       });
   return out.sort((a, b) => a.fireAt - b.fireAt).slice(0, input.limit ?? 20);
 }
@@ -222,16 +232,6 @@ export function spendStrip(
 /** Every vehicle expense is a Travel entry in Reports; the kind keeps the detail. */
 export const VEHICLE_CATEGORY = 'travel';
 
-export const EXPENSE_NOTE: Record<VehicleExpenseKind, string> = {
-  fuel: 'Fuel',
-  service: 'Service',
-  insurance: 'Insurance',
-  tax: 'Tax',
-  toll_parking: 'Toll / parking',
-  repair: 'Repair',
-  other: '',
-};
-
-/** Licence class and number never enter an entry note: only the vehicle's own name does. */
-export const expenseNote = (kind: VehicleExpenseKind, vehicleName: string, typed: string): string =>
-  typed.trim() || [EXPENSE_NOTE[kind], vehicleName].filter(Boolean).join(' · ');
+/** The note of a vehicle expense: what was typed, else "<kind word> · <vehicle name>" in the person's language. */
+export const expenseNote = (kindLabel: string, vehicleName: string, typed: string): string =>
+  typed.trim() || [kindLabel, vehicleName].filter(Boolean).join(' · ');

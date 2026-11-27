@@ -13,6 +13,7 @@ import {
   licenceDue,
   monthSpend,
   ownActiveVehicles,
+  expenseNote,
   planVehicleReminders,
   renewalHint,
   spendStrip,
@@ -200,63 +201,101 @@ describe('documents', () => {
   });
 });
 
-describe('moving a vehicle back into a store with a tombstone', () => {
-  it('uses a fresh id, so the tombstone cannot swallow it', async () => {
-    const { moveVehicle } = await import('@/lib/vehicleMove');
-    const { rekeyIndex } = await import('@/lib/propertyDocsPure');
-    // A store where deleted ids stay dead, like the e2ee space.
-    const store = (dead: Set<string>) => {
-      const live = new Set<string>();
-      return {
-        live,
-        put: (id: string) => (dead.has(id) ? undefined : live.add(id)),
-        del: async (id: string) => {
-          live.delete(id);
-          dead.add(id);
+describe('resumable move', () => {
+  const rec = {
+    sourceId: 'v1',
+    targetId: 'n1',
+    sourceSpace: null,
+    targetSpace: 'g1',
+    step: 'start' as const,
+  };
+  const mk = (failDel = 0) => {
+    const log: string[] = [];
+    let saved: unknown = undefined;
+    let fails = failDel;
+    return {
+      log,
+      saved: () => saved,
+      deps: {
+        put: async () => void log.push('put'),
+        rekey: async () => void log.push('rekey'),
+        delSource: async () => {
+          if (fails-- > 0) throw new Error('offline');
+          log.push('del');
         },
-      };
+        save: async (r: unknown, done?: boolean) => void (saved = done ? null : r),
+      },
     };
-    const personal = store(new Set());
-    const space = store(new Set());
-    personal.live.add('v1');
-    let docs = { v1: [{ id: 'd', name: 'rc', mime: 'application/pdf', size: 1 }] };
-    const rekey = async (a: string, b: string) =>
+  };
+  it('runs the steps in order and clears the record', async () => {
+    const { runMove } = await import('@/lib/vehicleMove');
+    const m = mk();
+    await runMove(rec, m.deps);
+    expect(m.log).toEqual(['put', 'rekey', 'del']);
+    expect(m.saved()).toBeNull();
+  });
+  it('a failed source delete leaves a record that resumes with the SAME target id and keeps the docs', async () => {
+    const { runMove, startMove } = await import('@/lib/vehicleMove');
+    const { rekeyIndex } = await import('@/lib/propertyDocsPure');
+    let docs: Record<string, { id: string; name: string; mime: string; size: number }[]> = {
+      v1: [{ id: 'd', name: 'rc', mime: 'application/pdf', size: 1 }],
+    };
+    const m = mk(1);
+    m.deps.rekey = async (a: string, b: string) =>
       void (docs = rekeyIndex(docs, a, b) as typeof docs);
-    const id2 = await moveVehicle(
-      { id: 'v1' },
-      personal,
-      null,
-      'v2',
-      async (_a, b) => space.put(b),
-      rekey,
-    );
-    const id3 = await moveVehicle(
-      { id: id2 },
-      space,
-      null,
-      'v3',
-      async (_a, b) => personal.put(b),
-      rekey,
-    );
-    expect(space.live.size).toBe(0);
-    expect([...personal.live]).toEqual([id3]);
-    expect(Object.keys(docs)).toEqual(['v3']);
+    await expect(runMove(rec, m.deps)).rejects.toThrow();
+    const left = m.saved() as typeof rec;
+    expect(left.step).toBe('rekeyed');
+    // The retry asks for a new move: it must get the stored one back, not a fresh id.
+    const again = startMove([left], 'v1', 'g1', 'other-id', null);
+    expect(again.targetId).toBe('n1');
+    await runMove(again, m.deps);
+    expect(Object.keys(docs)).toEqual(['n1']);
+    expect(m.saved()).toBeNull();
+  });
+  it('a record already past put does not write the target again', async () => {
+    const { runMove } = await import('@/lib/vehicleMove');
+    const m = mk();
+    await runMove({ ...rec, step: 'rekeyed' }, m.deps);
+    expect(m.log).toEqual(['del']);
   });
   it('never removes the source when the target write fails', async () => {
-    const { moveVehicle } = await import('@/lib/vehicleMove');
-    let removed = false;
-    await expect(
-      moveVehicle(
-        { id: 'v1' },
-        { del: async () => void (removed = true) },
-        null,
-        'n',
-        async () => {
-          throw new Error('x');
-        },
-        async () => {},
-      ),
-    ).rejects.toThrow();
-    expect(removed).toBe(false);
+    const { runMove } = await import('@/lib/vehicleMove');
+    const m = mk();
+    m.deps.put = async () => {
+      throw new Error('x');
+    };
+    await expect(runMove(rec, m.deps)).rejects.toThrow();
+    expect(m.log).toEqual([]);
+  });
+  it('a pending move keeps both ids from the orphan sweep', async () => {
+    const { pendingMoveIds } = await import('@/lib/vehicleMove');
+    expect([...pendingMoveIds([rec])].sort()).toEqual(['n1', 'v1']);
+  });
+});
+
+describe('expense notes are localised at creation', () => {
+  it('uses the given label, the vehicle name, or what was typed', () => {
+    expect(expenseNote('எரிபொருள்', 'Swift', '')).toBe('எரிபொருள் · Swift');
+    expect(expenseNote('Fuel', 'Swift', ' full tank ')).toBe('full tank');
+    expect(expenseNote('', 'Swift', '')).toBe('Swift');
+  });
+});
+
+describe('reminders across spaces', () => {
+  it('carry the space in the link and cover vehicles from any space', () => {
+    const now = new Date(2026, 10, 27, 12).getTime();
+    const out = planVehicleReminders({
+      vehicles: [
+        { ...veh([ren('a', '2027-03-01')]), space: 'g1' },
+        veh([ren('b', '2027-04-01')], { id: 'v2' }),
+      ],
+      licences: [],
+      now,
+    });
+    expect(out.map((r) => r.url).sort()).toEqual([
+      'waves://vehicles/v1?space=g1',
+      'waves://vehicles/v2',
+    ]);
   });
 });

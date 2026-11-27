@@ -57,17 +57,21 @@ type Sheet =
   | { k: 'detail'; i: number | null }
   | null;
 
-/** Runs one move once its target store is mounted: write there first, then remove here. */
+/** Runs one move once its target store is mounted (resumable: see lib/vehicleMove). */
 function MoveRunner({
   vehicle,
   source,
+  sourceSpace,
   space,
+  from,
   onDone,
   onFail,
 }: {
   vehicle: PersonalVehicle;
   source: RentalStore;
+  sourceSpace: string | undefined;
   space: string | undefined;
+  from: string;
   onDone: () => void;
   onFail: () => void;
 }) {
@@ -76,8 +80,14 @@ function MoveRunner({
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    moveVehicle(vehicle, source, target).then(onDone, onFail);
-  }, [vehicle, source, target, onDone, onFail]);
+    moveVehicle(vehicle, {
+      source,
+      target,
+      sourceSpace: sourceSpace ?? null,
+      targetSpace: space ?? null,
+      from,
+    }).then(onDone, onFail);
+  }, [vehicle, source, target, sourceSpace, space, from, onDone, onFail]);
   return null;
 }
 
@@ -501,6 +511,11 @@ function DetailBody() {
 
         <SectionHeader title={v.recentExpenses} />
         <StandardCard style={card}>
+          {veh.movedFrom ? (
+            <Text variant="caption" tone="muted">
+              {fill(v.earlierExpenses, { where: veh.movedFrom })}
+            </Text>
+          ) : null}
           {txns.length === 0 ? (
             <Text variant="caption" tone="muted">
               {v.noExpenses}
@@ -530,7 +545,7 @@ function DetailBody() {
           currency={cur}
           onClose={() => setSheet(null)}
           onSave={(kind, amount, date, note) => {
-            void writes.addExpense(veh, kind, amount, date, note);
+            void writes.addExpense(veh, kind, amount, date, note, v.expenseKinds[kind]);
             setSheet(null);
           }}
         />
@@ -636,7 +651,9 @@ function DetailBody() {
         <MoveRunner
           vehicle={veh}
           source={store}
+          sourceSpace={space}
           space={moveTo.space}
+          from={space ? (spaceName ?? '') : v.personal}
           onDone={() => router.back()}
           onFail={() => {
             setMoveTo(null);
