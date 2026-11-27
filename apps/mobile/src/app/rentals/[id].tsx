@@ -21,7 +21,6 @@ import {
   directionalIcon,
   IconButton,
   iconSize,
-  isRtlLayout,
   Row,
   Screen,
   Sheet,
@@ -31,6 +30,7 @@ import {
 
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonalGuard } from '@/components/PersonalGuard';
+import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { PlainHeader, SectionHeader, StandardCard } from '@/components/standard';
 import { PropertyArt } from '@/components/wealth/PropertyArt';
 import { DetailsCard, DocumentsCard } from '@/components/wealth/RentalExtras';
@@ -131,8 +131,14 @@ function SwapText({ value }: { value: string }) {
   const shown = useRef(value);
   useEffect(() => {
     if (shown.current === value) return;
+    const masked = value === BALANCE_MASK || shown.current === BALANCE_MASK;
     setPrev(shown.current);
     shown.current = value;
+    // Hiding or revealing amounts is a hard cut: never show the old figure while masking.
+    if (masked) {
+      mix.set(1);
+      return;
+    }
     mix.set(reduce ? 1 : 0);
     if (!reduce) mix.set(withTiming(1, { duration: 180 }));
   }, [value, reduce, mix]);
@@ -272,8 +278,7 @@ function DetailBody() {
     // A full payment of an untouched due date keeps one fixed id (see recordRent).
     const full = unpaid && unpaid.paid === 0n && amount === unpaid.amount ? unpaid.date : null;
     if (!v.rule) return;
-    void writes.recordRent(v.rule, prop.id, amount, date, unit, full);
-    hapticSuccess();
+    void writes.recordRent(v.rule, prop.id, amount, date, unit, full).then(hapticSuccess, () => {});
   };
   const lastBy = lastPayment
     ? store.records.find((r) => r.id === lastPayment.id)?.created_by
@@ -620,7 +625,7 @@ function DetailBody() {
                             ? undefined
                             : FadeInDown.duration(220)
                                 .easing(EASE_OUT)
-                                .delay(160 + (isRtlLayout() ? strip.length - 1 - i : i) * 30)
+                                .delay(160 + i * 30)
                         }
                         accessible
                         accessibilityLabel={`${month(m.month)} ${statusText[m.state] ?? ''}`}

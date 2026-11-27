@@ -322,11 +322,11 @@ const tileEntering: EntryExitAnimationFunction = () => {
   };
 };
 
-const firstLoadTileEntering =
-  (index: number, direction: number): EntryExitAnimationFunction =>
-  () => {
+const firstLoadTileEntering = (index: number, direction: number): EntryExitAnimationFunction => {
+  // staggerDelay is plain JS, so it is resolved here, not inside the UI-thread worklet.
+  const delay = staggerDelay(index);
+  return () => {
     'worklet';
-    const delay = staggerDelay(index);
     return {
       initialValues: { opacity: 0, transform: [{ translateX: 12 * direction }] },
       animations: {
@@ -335,6 +335,7 @@ const firstLoadTileEntering =
       },
     };
   };
+};
 
 /** Labelled slots for a rental's papers. Files never leave the phone and are never read. */
 export function DocumentsCard({
@@ -510,7 +511,7 @@ export function DocumentsCard({
   const cardGutter = theme.spacing.md + 2;
   const tileBase = {
     width: '100%' as const,
-    height: 176,
+    minHeight: 176,
     borderRadius: theme.radius.lg,
     overflow: 'hidden' as const,
   };

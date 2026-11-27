@@ -805,7 +805,7 @@ export function AppTabBar() {
         // Same button and the same hold-to-talk as the raised mic, floated
         // bottom-right (bottom-left in RTL) above the Personal bar.
         <Animated.View
-          pointerEvents={alt ? 'auto' : 'none'}
+          pointerEvents={alt ? 'box-none' : 'none'}
           accessibilityElementsHidden={!alt}
           importantForAccessibility={alt ? 'auto' : 'no-hide-descendants'}
           style={[
