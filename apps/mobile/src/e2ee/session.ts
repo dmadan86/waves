@@ -5,6 +5,13 @@ export const ownerMismatch = (storedOwner: string | null, profileId: string): bo
 export class SessionGeneration {
   private value = 0;
 
+  snapshot(): number {
+    return this.value;
+  }
+  matches(captured: number): boolean {
+    return captured === this.value;
+  }
+
   bump(): () => boolean {
     const captured = ++this.value;
     return () => captured === this.value;

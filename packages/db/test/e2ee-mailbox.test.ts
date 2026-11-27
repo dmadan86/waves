@@ -141,6 +141,33 @@ describe('devices', () => {
 });
 
 describe('send validation', () => {
+  it('does not reinsert a delivery after the receiver acknowledged it', async () => {
+    const a = await register(couple.profileIds[alice]!);
+    const b = await register(couple.profileIds[bob]!);
+    const deliveryId = randomUUID();
+    const item = { recipient_device: b, ciphertext: ct(), delivery_id: deliveryId };
+    expect((await send(couple.profileIds[alice]!, couple.groupId, a, [item])).rows[0].n).toBe(1);
+    await as(couple.profileIds[bob]!, () => client.query('DELETE FROM group_mailbox'));
+    expect((await send(couple.profileIds[alice]!, couple.groupId, a, [item])).rows[0].n).toBe(0);
+    expect(
+      await n('SELECT count(*) n FROM group_mailbox WHERE recipient_device_id = $1', [b]),
+    ).toBe(0);
+  });
+
+  it('keeps sender profile retained-byte accounting after sender device deletion', async () => {
+    const a = await register(couple.profileIds[alice]!);
+    const b = await register(couple.profileIds[bob]!);
+    await send(couple.profileIds[alice]!, couple.groupId, a, [
+      { recipient_device: b, ciphertext: ct() },
+    ]);
+    await as(couple.profileIds[alice]!, () => client.query('SELECT waves_remove_device($1)', [a]));
+    expect(
+      await n('SELECT count(*) n FROM group_mailbox WHERE sender_profile_id = $1', [
+        couple.profileIds[alice],
+      ]),
+    ).toBe(1);
+  });
+
   it('delivers to partner and to own other device', async () => {
     const a1 = await register(couple.profileIds[alice]!);
     const a2 = await register(couple.profileIds[alice]!);

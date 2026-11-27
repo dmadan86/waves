@@ -7,6 +7,7 @@
  */
 
 import { e2ee } from '@waves/core';
+import { isSharedOccurrenceId } from '@waves/core';
 
 import type { BackupCouple } from '@/lib/backup/payload';
 import type { E2eeOutboxRow, E2eeRecordRow } from '@/sync/store';
@@ -268,10 +269,15 @@ export class E2eeSpace {
     liveGroupIds: readonly string[],
   ): Promise<void> {
     for (const c of entries) {
+      if (c.former && liveGroupIds.includes(c.groupId)) continue;
       if (this.stores.has(FORMER + c.groupId)) continue;
+      const records = e2ee.decodeJson(c.records) as e2ee.RecordState[];
+      if (!Array.isArray(records)) throw new Error('e2ee: invalid couple backup records');
+      const validation = e2ee.validateMessage({ msgId: 'restore', ops: snapshotOps(records) });
+      if (!validation.ok || validation.rejected.length)
+        throw new Error('e2ee: invalid couple backup records');
       await this.io.writeE2eePending(c.groupId, []);
       this.pendingByGroup.delete(c.groupId);
-      const records = e2ee.decodeJson(c.records) as e2ee.RecordState[];
       await this.applyIncoming([
         { groupId: c.groupId, ops: snapshotOps(records), senderMemberId: '', trusted: true },
       ]);
@@ -394,6 +400,8 @@ export class E2eeSpace {
   ): Promise<void> {
     validateOpsSize(ops);
     const next = e2ee.applyOps(store, ops, me.memberId);
+    if (e2ee.getMergeDiagnostics(next).rejected.length)
+      throw new Error('e2ee: local record validation failed');
     const msgId = this.clock.newId();
     const msg: OutboxMsg = { plaintext: { v: 1, msgId, ops }, hint };
     await this.commit(groupId, next, touched, [
@@ -434,7 +442,10 @@ export class E2eeSpace {
         }
         let merged: e2ee.DetailedMergeResult;
         try {
-          merged = e2ee.mergeOps(g.next, ops, e.senderMemberId, { trusted: e.trusted });
+          merged = e2ee.mergeOps(g.next, ops, e.senderMemberId, {
+            trusted: e.trusted,
+            isSharedId: (id) => isSharedOccurrenceId(id),
+          });
         } catch {
           throw new e2ee.E2eeError('E2EE_DECODE_FAILED');
         }
@@ -449,7 +460,7 @@ export class E2eeSpace {
         } catch {
           throw new e2ee.E2eeError('E2EE_DECODE_FAILED');
         }
-        const remaining = (replayed as unknown as { pending: readonly e2ee.PendingOp[] }).pending;
+        const remaining = e2ee.getMergeDiagnostics(replayed).pending as readonly e2ee.PendingOp[];
         const unique = [
           ...new Map(remaining.map((item) => [e2ee.encodeJson(item), item])).values(),
         ];

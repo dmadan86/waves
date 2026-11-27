@@ -5,7 +5,7 @@ import { e2ee } from '@waves/core';
 
 class PendingStore {
   records: import('../src/sync/store').E2eeRecordRow[] = [];
-  pending = new Map<string, import('../src/e2ee/space').PendingOp[]>();
+  pending = new Map<string, e2ee.PendingOp[]>();
   async readE2eeRecords() {
     return this.records;
   }
@@ -19,7 +19,7 @@ class PendingStore {
   async readE2eePending() {
     return [...this.pending.entries()];
   }
-  async writeE2eePending(groupId: string, rows: readonly import('../src/e2ee/space').PendingOp[]) {
+  async writeE2eePending(groupId: string, rows: readonly e2ee.PendingOp[]) {
     this.pending.set(groupId, [...rows]);
   }
   async replaceE2eeGroup(

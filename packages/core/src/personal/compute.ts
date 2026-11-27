@@ -282,11 +282,18 @@ export function latestDueOccurrence(rule: PersonalRecurring, today: string): str
  * 32 hex string; Postgres's `uuid` accepts the grouping and a per-user ledger
  * makes a collision vanishingly unlikely.
  */
+const sharedOccurrenceIds = new Set<string>();
+export function isSharedOccurrenceId(id: string): boolean {
+  return sharedOccurrenceIds.has(id);
+}
+
 export function recurringOccurrenceId(ruleId: string, date: string): string {
   // The seed is unchanged from when this hashed inline: every occurrence already
   // written carries an id derived from exactly this string, and a different seed
   // here would orphan all of them.
-  return deterministicId(`${ruleId}:${date}`);
+  const id = deterministicId(`${ruleId}:${date}`);
+  sharedOccurrenceIds.add(id);
+  return id;
 }
 
 // ──────────────────────────────────────────────────────── occurrences ──

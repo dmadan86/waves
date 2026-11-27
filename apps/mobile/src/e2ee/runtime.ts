@@ -30,6 +30,9 @@ export const e2eeSpace = new E2eeSpace(syncEngine.localStore, {
 
 const registering = new Map<string, Promise<string>>();
 let activeProfileId: string | null = null;
+let hydratedOwnerId: string | null = null;
+const hydrationListeners = new Set<() => void>();
+const notifyHydration = () => hydrationListeners.forEach((listener) => listener());
 const generations = new SessionGeneration();
 const OWNER_KEY = 'waves.e2ee.owner';
 let pendingMetaCleanup: Promise<void> = Promise.resolve();
@@ -47,6 +50,19 @@ export async function ensureDeviceId(profileId = activeProfileId): Promise<strin
     (await AsyncStorage.getItem(`${META_PREFIX}device-revoked:${storedDeviceId}`)) === '1'
   )
     throw new Error('E2EE device was revoked');
+  if (storedDeviceId) {
+    const { data, error } = await backend
+      .from('e2ee_devices')
+      .select('id')
+      .eq('id', storedDeviceId)
+      .maybeSingle();
+    if (error) throw error;
+    if (data === null) {
+      await markDeviceRevoked(profileId);
+      await AsyncStorage.setItem(`${META_PREFIX}device-revoked:${storedDeviceId}`, '1');
+      throw new Error('E2EE device was revoked');
+    }
+  }
   const known = registeredDeviceId(profileId);
   if (known) return known;
   let pending = registering.get(profileId);
@@ -128,6 +144,11 @@ const mailbox = createMailbox({
     return data !== null;
   },
   isCurrent: () => activeProfileId !== null && isSessionCurrent(),
+  captureCurrent: () => {
+    const owner = activeProfileId;
+    const generation = generations.snapshot();
+    return () => owner !== null && owner === activeProfileId && generations.matches(generation);
+  },
   randomBytes: (n) => Crypto.getRandomBytes(n),
   now: () => Date.now(),
   report: reportHandled,
@@ -164,17 +185,21 @@ export async function startE2ee(profileId: string): Promise<void> {
   const isCurrent = generations.bump();
   isSessionCurrent = isCurrent;
   activeProfileId = profileId;
+  hydratedOwnerId = null;
+  notifyHydration();
   const storedOwner = await AsyncStorage.getItem(OWNER_KEY);
   if (ownerMismatch(storedOwner, profileId)) {
     await syncEngine.localStore.wipeE2ee();
     const keys = await AsyncStorage.getAllKeys();
-    await AsyncStorage.multiRemove([...keys.filter((k) => k.startsWith(META_PREFIX)), OWNER_KEY]);
+    await AsyncStorage.removeMany([...keys.filter((k) => k.startsWith(META_PREFIX)), OWNER_KEY]);
     if (!isCurrent()) return;
     await AsyncStorage.setItem(OWNER_KEY, profileId);
   }
   if (!isCurrent()) return;
   await e2eeSpace.load();
   if (!isCurrent()) return;
+  hydratedOwnerId = profileId;
+  notifyHydration();
   await mailbox.notices.load();
   if (!isCurrent()) return;
   forgetDeviceId(profileId);
@@ -188,6 +213,8 @@ export async function startE2ee(profileId: string): Promise<void> {
 export function stopE2ee(): void {
   generations.invalidate();
   activeProfileId = null;
+  hydratedOwnerId = null;
+  notifyHydration();
   e2eeSpace.clear();
   mailbox.notices.clear();
   // Last fetch, known devices and notices belong to the account that just left.
@@ -200,6 +227,18 @@ export function stopE2ee(): void {
     .catch(() => undefined);
   forgetDeviceId();
   mailbox.forgetDevices();
+}
+
+export function useE2eeReady(profileId: string): boolean {
+  const ready = useSyncExternalStore(
+    (listener) => {
+      hydrationListeners.add(listener);
+      return () => hydrationListeners.delete(listener);
+    },
+    () => hydratedOwnerId === profileId,
+    () => false,
+  );
+  return ready;
 }
 
 /** This phone's clock id for stamping edits (see `deviceKey.clockId`). */

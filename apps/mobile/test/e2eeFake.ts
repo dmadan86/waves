@@ -301,9 +301,9 @@ export function phone(
     meta,
     groups: () => groups,
     keys: { pair: async () => key, deviceId },
-    randomBytes: (len) => new Uint8Array(len).fill(7),
+    randomBytes: (len: number) => new Uint8Array(len).fill(7),
     now: () => clock.t,
-    report: (error, where) => reports.push({ error, where }),
+    report: (error: unknown, where: string) => reports.push({ error, where }),
     isCurrent: () => current,
     deviceStatus: async () => deviceActive,
   };

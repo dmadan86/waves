@@ -69,14 +69,22 @@ export function mergeOps(
   store: Store,
   ops: readonly unknown[],
   senderMemberId: string,
-  opts: { trusted?: boolean } = {},
+  opts: { trusted?: boolean; isSharedId?: (id: string) => boolean } = {},
 ): DetailedMergeResult {
   const merged = applyOps(store, ops as readonly MergeOp[], senderMemberId, opts);
-  const meta = merged as unknown as {
-    rejected: readonly { op: unknown; reason: string }[];
-    pending: readonly MergeOp[];
-  };
-  return { store: merged, rejected: meta.rejected, pending: meta.pending };
+  const meta = diagnostics.get(merged as object) ?? { rejected: [], pending: [] };
+  return { store: merged, rejected: meta.rejected, pending: meta.pending as readonly MergeOp[] };
+}
+
+const diagnostics = new WeakMap<
+  object,
+  { rejected: readonly { op: unknown; reason: string }[]; pending: readonly unknown[] }
+>();
+export function getMergeDiagnostics(store: Store): {
+  rejected: readonly { op: unknown; reason: string }[];
+  pending: readonly unknown[];
+} {
+  return diagnostics.get(store as object) ?? { rejected: [], pending: [] };
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -96,6 +104,15 @@ const FIELDS: Record<string, ReadonlySet<string>> = {
     'updated_at',
     'created_at',
     'property_id',
+    'kind',
+    'loanId',
+    'recurringId',
+    'paymentMethod',
+    'place',
+    'reimbursable',
+    'receiptKey',
+    'investmentId',
+    'propertyId',
     'tenancy_id',
     'receipt',
     'title',
@@ -110,6 +127,15 @@ const FIELDS: Record<string, ReadonlySet<string>> = {
     'extra',
   ]),
   rent: new Set([
+    'kind',
+    'loanId',
+    'recurringId',
+    'paymentMethod',
+    'place',
+    'reimbursable',
+    'receiptKey',
+    'investmentId',
+    'propertyId',
     'amount',
     'currency',
     'date',
@@ -133,7 +159,9 @@ const FIELDS: Record<string, ReadonlySet<string>> = {
     'amt',
   ]),
   property: new Set([
+    'type',
     'name',
+    'locality',
     'address',
     'rent',
     'currency',
@@ -143,6 +171,7 @@ const FIELDS: Record<string, ReadonlySet<string>> = {
     'notes',
     'created_at',
     'updated_at',
+    'note',
   ]),
   settlement: new Set([
     'amount',
@@ -157,6 +186,17 @@ const FIELDS: Record<string, ReadonlySet<string>> = {
     'updated_at',
   ]),
   tenancy: new Set([
+    'propertyId',
+    'unit',
+    'depositHeld',
+    'rentFrequency',
+    'startDate',
+    'endDate',
+    'escalationPct',
+    'status',
+    'endedOn',
+    'depositReturned',
+    'depositKept',
     'name',
     'tenantName',
     'tenantPhone',
@@ -172,6 +212,49 @@ const FIELDS: Record<string, ReadonlySet<string>> = {
     'updated_at',
   ]),
   _former: new Set(['name']),
+  recurring: new Set([
+    'txnKind',
+    'amount',
+    'currency',
+    'category',
+    'note',
+    'cadence',
+    'interval',
+    'secondDay',
+    'anchorDate',
+    'nextDate',
+    'endDate',
+    'autoPost',
+    'active',
+    'investmentId',
+    'tenancyId',
+  ]),
+  loan: new Set([
+    'direction',
+    'counterpart',
+    'principal',
+    'currency',
+    'note',
+    'startDate',
+    'status',
+    'synced',
+    'shareSeq',
+  ]),
+  budget: new Set(['category', 'limit', 'currency']),
+  date: new Set(['label', 'name', 'day', 'month', 'year']),
+  investment: new Set([
+    'type',
+    'name',
+    'currency',
+    'openingInvested',
+    'openingAsOf',
+    'currentValue',
+    'valueAsOf',
+    'maturityDate',
+    'taxWrapper',
+    'status',
+    'note',
+  ]),
 };
 
 export function validateOp(
@@ -220,9 +303,7 @@ export function validateOp(
         (typeof value === 'string' && value.length <= 8192) ||
         typeof value === 'boolean' ||
         (typeof value === 'number' && Number.isFinite(value)) ||
-        (typeof value === 'bigint' && value.toString().length <= 40) ||
-        (Array.isArray(value) && value.length <= 256) ||
-        (typeof value === 'object' && value !== null)
+        (typeof value === 'bigint' && value.toString().length <= 40)
       ))
         return { ok: false, reason: 'value' };
       if (
@@ -288,7 +369,7 @@ export function applyOps(
   store: Store,
   ops: readonly MergeOp[],
   senderMemberId: string,
-  opts: { trusted?: boolean } = {},
+  opts: { trusted?: boolean; isSharedId?: (id: string) => boolean } = {},
 ): MergeResult {
   const out: Record<string, RecordState> = { ...store };
   const rejected: { op: unknown; reason: string }[] = [];
@@ -313,12 +394,13 @@ export function applyOps(
       pending.push(op);
       continue;
     }
+    const shared = opts.isSharedId?.(op.id) ?? false;
     if (
       !opts.trusted &&
       ((!known && op.createdBy !== senderMemberId) ||
         (known &&
           op.createdBy !== cur.createdBy &&
-          !(op.create === true && op.createdBy === senderMemberId)))
+          !(shared && op.create === true && op.createdBy === senderMemberId)))
     )
       continue;
     const fields: Record<string, Field> = { ...cur?.fields };
@@ -350,10 +432,7 @@ export function applyOps(
       fields,
     };
   }
-  Object.defineProperties(out, {
-    rejected: { value: rejected, enumerable: false },
-    pending: { value: pending, enumerable: false, configurable: true },
-  });
+  diagnostics.set(out, { rejected, pending });
   return out as MergeResult;
 }
 
@@ -368,7 +447,7 @@ export function mergePending(store: Store, pending: readonly PendingOp[]): Merge
     }
     result = applyOps(result, [item.op], item.sender);
   }
-  Object.defineProperty(result, 'pending', { value: wait, enumerable: false, configurable: true });
+  diagnostics.set(result as object, { rejected: [], pending: wait });
   return result;
 }
 

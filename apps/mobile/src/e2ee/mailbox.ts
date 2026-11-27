@@ -52,6 +52,8 @@ export interface MailboxDeps {
   deviceStatus?: DeviceStatus;
   /** Session/generation guard supplied by runtime. */
   isCurrent?: () => boolean;
+  /** Stable operation scope; unlike isCurrent this must not follow a later session. */
+  captureCurrent?: () => () => boolean;
 }
 
 interface GroupDevice {
@@ -62,6 +64,7 @@ interface GroupDevice {
 
 const DEVICES_TTL_MS = 60_000;
 const MAX_ITEMS_PER_CALL = 200;
+const MAX_CALL_BYTES = 480 * 1024;
 const FETCH_PAGE = 200;
 /** The server purges unfetched mail after 30 days, so a phone away that long must ask for a snapshot. */
 const STALE_MS = 30 * 24 * 3_600_000;
@@ -78,6 +81,29 @@ const utf8 = new TextEncoder();
 class TransientMailboxError extends Error {
   constructor(readonly cause: unknown) {
     super('e2ee: transient mailbox dependency failure');
+  }
+}
+
+async function metaRead(meta: Meta, key: string): Promise<string | null> {
+  try {
+    return await meta.get(key);
+  } catch (error) {
+    throw new TransientMailboxError(error);
+  }
+}
+async function metaWrite(meta: Meta, key: string, value: string): Promise<void> {
+  try {
+    await meta.set(key, value);
+  } catch (error) {
+    throw new TransientMailboxError(error);
+  }
+}
+
+async function transient<T>(work: () => Promise<T>): Promise<T> {
+  try {
+    return await work();
+  } catch (error) {
+    throw new TransientMailboxError(error);
   }
 }
 
@@ -122,6 +148,7 @@ export function createMailbox(deps: MailboxDeps) {
   let flushAgain = false;
   const reported = new Set<string>();
   const isCurrent = (): boolean => deps.isCurrent?.() ?? true;
+  const captureCurrent = (): (() => boolean) => deps.captureCurrent?.() ?? isCurrent;
   const fixedPayloadError = (): e2ee.E2eeError => new e2ee.E2eeError('E2EE_DECODE_FAILED');
 
   async function revoked(): Promise<boolean> {
@@ -197,9 +224,15 @@ export function createMailbox(deps: MailboxDeps) {
     return key;
   }
 
+  async function legacyKeyFor(peer: GroupDevice): Promise<Uint8Array> {
+    const device = await keys.pair();
+    return e2ee.pairKeyV1(device.privateKey, peer.publicKey);
+  }
+
   async function rememberSender(groupId: string, device: GroupDevice): Promise<void> {
     if (!isCurrent()) return;
-    await meta.set(
+    await metaWrite(
+      meta,
       `sender:${groupId}:${device.deviceId}`,
       JSON.stringify({
         memberId: device.memberId,
@@ -212,7 +245,7 @@ export function createMailbox(deps: MailboxDeps) {
     groupId: string,
     deviceId: string,
   ): Promise<GroupDevice | undefined> {
-    const raw = await meta.get(`sender:${groupId}:${deviceId}`);
+    const raw = await metaRead(meta, `sender:${groupId}:${deviceId}`);
     if (!raw) return undefined;
     const value = JSON.parse(raw) as { memberId: string; publicKey: string };
     return { deviceId, memberId: value.memberId, publicKey: fromBytea(value.publicKey) };
@@ -244,7 +277,8 @@ export function createMailbox(deps: MailboxDeps) {
   type SendResult = 'sent' | 'wait';
 
   /** Seal one outbox message for every other device in the group and hand it to the server. */
-  async function sendOne(row: E2eeOutboxRow): Promise<SendResult> {
+  async function sendOne(row: E2eeOutboxRow, current = isCurrent): Promise<SendResult> {
+    const isCurrent = current;
     if (!isCurrent() || (await revoked()) || !isCurrent()) return 'wait';
     const msg = row.msg as OutboxMsg;
     const me = await keys.deviceId();
@@ -307,20 +341,42 @@ export function createMailbox(deps: MailboxDeps) {
           reportOnce(error, 'e2ee.send.seal');
         }
       }
-      if (items.length === 0) return 'wait';
-      for (let i = 0; i < items.length; i += MAX_ITEMS_PER_CALL) {
+      if (items.length === 0) continue;
+      const batches: (typeof items)[] = [];
+      let batch: typeof items = [];
+      let bytes = 0;
+      for (const item of items) {
+        const size = Math.floor((item.ciphertext.length * 3) / 4);
+        if (size > MAX_CALL_BYTES) {
+          await meta.set(
+            `outbox-failed:${row.groupId}`,
+            JSON.stringify({ at: deps.now(), reason: 'item-too-large' }),
+          );
+          await outbox.deleteE2eeOutbox([row.id]);
+          reportOnce(new Error('e2ee: item exceeds mailbox call limit'), 'e2ee.send.tooLarge');
+          return 'sent';
+        }
+        if (batch.length >= MAX_ITEMS_PER_CALL || bytes + size > MAX_CALL_BYTES) {
+          batches.push(batch);
+          batch = [];
+          bytes = 0;
+        }
+        batch.push(item);
+        bytes += size;
+      }
+      if (batch.length) batches.push(batch);
+      for (const chunk of batches) {
         const { error } = await client.rpc('waves_mailbox_send', {
           p_group_id: row.groupId,
           p_sender_device: me,
-          p_items: items.slice(i, i + MAX_ITEMS_PER_CALL),
+          p_items: chunk,
           p_event_id: msg.plaintext.msgId,
           // Only the first call of a message may notify, or one rent entry pings twice.
           p_hint: first ? msg.hint : null,
         });
         if (!isCurrent()) return 'wait';
         if (error) throw error;
-        for (const item of items.slice(i, i + MAX_ITEMS_PER_CALL))
-          delivered.add(`${item.recipient_device}:${partIndex}`);
+        for (const item of chunk) delivered.add(`${item.recipient_device}:${partIndex}`);
         if (!isCurrent()) return 'wait';
         await outbox.updateE2eeOutbox({
           ...row,
@@ -338,6 +394,7 @@ export function createMailbox(deps: MailboxDeps) {
   }
 
   async function runOutbox(): Promise<void> {
+    const isCurrent = captureCurrent();
     const rows = await outbox.readE2eeOutbox();
     if (!isCurrent() || (await revoked()) || !isCurrent()) return;
     const blockedGroups = new Set<string>();
@@ -349,9 +406,12 @@ export function createMailbox(deps: MailboxDeps) {
       }
       if (!isCurrent()) return;
       const state = attempts.get(row.id);
-      if (state && deps.now() < state.next) continue;
+      if (state && deps.now() < state.next) {
+        blockedGroups.add(row.groupId);
+        continue;
+      }
       try {
-        const result = await sendOne(row);
+        const result = await sendOne(row, isCurrent);
         if (!isCurrent()) return;
         if (result === 'wait') {
           blockedGroups.add(row.groupId);
@@ -410,10 +470,12 @@ export function createMailbox(deps: MailboxDeps) {
     group_id: string;
     sender_device_id: string | null;
     ciphertext: string;
+    created_at: string;
   }
 
   /** Fetch my mail, merge it, then delete it from the server. */
   async function fetch(): Promise<number> {
+    const isCurrent = captureCurrent();
     const me = await keys.deviceId();
     if (!isCurrent() || (await revoked()) || !isCurrent()) return 0;
     let applied = 0;
@@ -471,7 +533,10 @@ export function createMailbox(deps: MailboxDeps) {
             if (!isCurrent()) return applied;
             if (sender && directoryChecked) {
               const removedAt = Number(
-                (await meta.get(`sender:${row.group_id}:${row.sender_device_id}:removedAt`)) ?? NaN,
+                (await metaRead(
+                  meta,
+                  `sender:${row.group_id}:${row.sender_device_id}:removedAt`,
+                )) ?? NaN,
               );
               if (!isCurrent()) return applied;
               const createdAt = Date.parse(row.created_at);
@@ -498,12 +563,20 @@ export function createMailbox(deps: MailboxDeps) {
           const { msgId, sealed } = unframe(fromBytea(row.ciphertext));
           const key = await keyFor(sender);
           if (!isCurrent()) return applied;
-          const pt = e2ee.open(key, sealed, {
+          const aad = {
             groupId: row.group_id,
             senderDevice: sender.deviceId,
             recipientDevice: me,
             msgId,
-          });
+          };
+          let pt: e2ee.Plaintext;
+          try {
+            pt = e2ee.open(key, sealed, aad);
+          } catch (error) {
+            if (!(error instanceof e2ee.E2eeError) || error.code !== 'E2EE_DECODE_FAILED')
+              throw error;
+            pt = e2ee.open(await legacyKeyFor(sender), sealed, aad);
+          }
           if (!isCurrent()) return applied;
           if (pt.msgId !== msgId) throw new Error('e2ee: msgId mismatch');
           if (!Array.isArray(pt.ops) || typeof pt.msgId !== 'string') throw fixedPayloadError();
@@ -522,7 +595,7 @@ export function createMailbox(deps: MailboxDeps) {
           for (const op of rawOps as ({ op: string } | e2ee.SnapshotOp)[]) {
             if (op.op === 'put' || op.op === 'del') merge.push(op as e2ee.MergeOp);
             else if (op.op === 'snapshot') {
-              const so = op as e2ee.SnapshotOp;
+              const so = op as e2ee.SnapshotOp & { to?: unknown };
               const snapshotValidation = e2ee.validateMessage({
                 msgId: pt.msgId,
                 ops: Array.isArray(so.records) ? snapshotOps(so.records) : [],

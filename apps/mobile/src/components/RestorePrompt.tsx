@@ -65,6 +65,7 @@ import {
   markRestorePromptDismissed,
 } from '@/lib/backup/settings';
 import { restoreOffer, RestoreOffer } from '@/lib/backup/restorePrompt';
+import { coupleBridge } from '@/lib/backup/coupleBridge';
 import { PRIMARY_PROVIDER } from '@/lib/backup/engine';
 import { providerFor } from '@/lib/cloud/providers';
 import { loadTokens } from '@/lib/cloud/tokens';
@@ -72,6 +73,7 @@ import { router } from '@/lib/navigation';
 import { usePromptSlot } from '@/lib/promptQueue';
 import { usePersonalRecords } from '@/data/personal';
 import { useSync } from '@/sync';
+import { useE2eeReady } from '@/e2ee/runtime';
 
 /**
  * Where this sits among the things that want the first screen: under the tour
@@ -163,6 +165,7 @@ export function RestorePrompt(): React.JSX.Element | null {
 
   const records = usePersonalRecords();
   const { hydrated, status, hasSynced } = useSync();
+  const e2eeReady = useE2eeReady(ownerId);
   const { reads, dismiss, arm } = useAccountReads(ownerId);
 
   // A build with no OAuth client id can neither back up nor restore, so there is
@@ -183,7 +186,7 @@ export function RestorePrompt(): React.JSX.Element | null {
    * the local snapshot is the best there is and the question becomes fair again.
    */
   const firstSyncPending = hydrated && !hasSynced && (status === 'idle' || status === 'syncing');
-  const settled = reads?.owner === ownerId && hydrated && !firstSyncPending;
+  const settled = reads?.owner === ownerId && hydrated && e2eeReady && !firstSyncPending;
 
   const offer = restoreOffer({
     signedIn: Boolean(session),

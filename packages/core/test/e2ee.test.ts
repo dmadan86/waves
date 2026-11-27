@@ -11,6 +11,7 @@ import {
   materialiseAll,
   mergePending,
   mergeOps,
+  getMergeDiagnostics,
   MAX_MESSAGE_BYTES,
   open,
   pairKey,
@@ -227,7 +228,7 @@ describe('merge', () => {
         state = res;
         pending = [
           ...pending,
-          ...(res as unknown as { pending: MergeOp[] }).pending.map((pendingOp) => ({
+          ...getMergeDiagnostics(res).pending.map((pendingOp) => ({
             op: pendingOp,
             sender,
             receivedAt: 0,
@@ -324,7 +325,10 @@ describe('double creation of one id', () => {
     create: true as const,
   };
   const apply = (order: [MergeOp, MergeOp]) =>
-    order.reduce<Store>((s, op) => applyOps(s, [op], (op as PutOp).createdBy), {});
+    order.reduce<Store>(
+      (s, op) => applyOps(s, [op], (op as PutOp).createdBy, { isSharedId: () => true }),
+      {},
+    );
 
   it('settles on the earliest author in either order, with merged fields', () => {
     const x = apply([a, b]);
@@ -344,6 +348,23 @@ describe('double creation of one id', () => {
     const b2 = { ...put('r', 'B', { n: [1, '3:0:Z'] }), create: true as const };
     expect(apply([a2, b2])).toEqual(apply([b2, a2]));
     expect(apply([a2, b2]).r!.createdBy).toBe('A');
+  });
+
+  it('never lets competing random-id creates replace the established creator', () => {
+    const first = { ...put('random-id', 'B', { n: [1, '8:0:B'] }), create: true as const };
+    const laterButEarlierClock = {
+      ...put('random-id', 'A', { n: [2, '1:0:A'] }),
+      create: true as const,
+    };
+    const firstState = applyOps({}, [first], 'B');
+    expect(applyOps(firstState, [laterButEarlierClock], 'A')['random-id']!.createdBy).toBe('B');
+  });
+
+  it('keeps diagnostics separate so record ids pending and rejected are ordinary records', () => {
+    const good = put('pending', 'A', { amt: [1, '2:0:A'] });
+    const result = mergeOps({}, [good, put('rejected', 'A', { amt: [2, '2:0:A'] })], 'A');
+    expect(Object.keys(result.store)).toEqual(['pending', 'rejected']);
+    expect(result.pending).toEqual([]);
   });
 
   it('is order independent with an edit by the other partner in the mix', () => {
