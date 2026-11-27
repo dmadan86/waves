@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { SearchToggle } from '@/components/SearchToggle';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { docNumberLabel } from '@waves/core';
 import { Button, iconSize, Row, Screen, Sheet, Text, useTheme } from '@waves/ui';
@@ -257,28 +258,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
             ]}
           />
           <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <View
-              style={{
-                flex: 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: theme.spacing.sm,
-                minHeight: 44,
-                paddingHorizontal: theme.spacing.md,
-                borderRadius: theme.radius.md,
-                backgroundColor: theme.color.surface,
-              }}
-            >
-              <Ionicons name="search" size={iconSize.md} color={theme.color.textMuted} />
-              <TextInput
-                accessibilityLabel={s.search}
-                value={query}
-                onChangeText={setQuery}
-                placeholder={s.search}
-                placeholderTextColor={theme.color.textMuted}
-                style={{ flex: 1, color: theme.color.text, fontSize: 16 }}
-              />
-            </View>
+            <SearchToggle value={query} onChange={setQuery} placeholder={s.search} />
             <Pressable
               ref={sortRef}
               accessibilityRole="button"

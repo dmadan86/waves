@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { TextInput, View } from 'react-native';
+import { SearchToggle } from '@/components/SearchToggle';
+import { View } from 'react-native';
 
 import { filterVendorRows, vendorDashboard, type VendorFilter, type VendorRow } from '@waves/core';
 import { Button, Text, useTheme } from '@waves/ui';
@@ -79,29 +80,7 @@ export function VendorsTab({ groupId }: { groupId: string }) {
         ]}
       />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
-        <View
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: theme.spacing.sm,
-            minHeight: 44,
-            paddingHorizontal: theme.spacing.md,
-            borderRadius: theme.radius.md,
-            backgroundColor: theme.color.surface,
-          }}
-        >
-          <Ionicons name="search" size={18} color={theme.color.textMuted} />
-          <TextInput
-            accessibilityLabel={s.search}
-            placeholder={s.search}
-            placeholderTextColor={theme.color.textMuted}
-            value={query}
-            onChangeText={setQuery}
-            returnKeyType="search"
-            style={{ flex: 1, color: theme.color.text, fontSize: 16, padding: 0 }}
-          />
-        </View>
+        <SearchToggle value={query} onChange={setQuery} placeholder={s.search} />
         <RowMenu
           icon="filter"
           label={`${c.filterTitle}: ${filterLabel[filter]}`}

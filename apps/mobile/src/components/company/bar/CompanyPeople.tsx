@@ -6,9 +6,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { SearchToggle } from '@/components/SearchToggle';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
 import { Text, iconSize, useTheme } from '@waves/ui';
@@ -262,36 +263,7 @@ export function CompanyPeople({
           ))}
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40 }}>
-          <View
-            style={{
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              height: 40,
-              paddingHorizontal: 14,
-              gap: 8,
-              borderRadius: theme.radius.md,
-              backgroundColor: theme.color.surface,
-            }}
-          >
-            <Ionicons name="search" size={iconSize.md} color={theme.color.textMuted} />
-            <TextInput
-              value={query}
-              onChangeText={(q) => {
-                setQuery(q);
-                if (q) setTree(false);
-              }}
-              placeholder={t.company.searchEmployees}
-              placeholderTextColor={theme.color.textFaint}
-              accessibilityLabel={t.company.searchEmployees}
-              style={{
-                flex: 1,
-                paddingVertical: 0,
-                fontSize: theme.typography.body.fontSize,
-                color: theme.color.text,
-              }}
-            />
-          </View>
+          <SearchToggle value={query} onChange={setQuery} placeholder={t.company.searchEmployees} />
           {view.isOwner
             ? round('git-network-outline', t.company.hierTitle, () => setTree((v) => !v), tree)
             : null}

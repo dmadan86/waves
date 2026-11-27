@@ -26,7 +26,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import {
   format,
@@ -65,6 +65,13 @@ import { loanScope } from '@/lib/personalLoanScope';
 import { router } from '@/lib/navigation';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { monthLabel, shiftMonth } from '@/lib/monthNav';
+import { SearchField } from '@/components/SearchToggle';
+import {
+  closeHeaderSearch,
+  HEADER_SEARCH_CLOSED,
+  openHeaderSearch,
+  setHeaderQuery,
+} from '@/lib/headerSearch';
 
 type Tab = TxnTab;
 
@@ -133,7 +140,9 @@ function PersonalTransactionsScreenBody() {
   const [tabsWidth, setTabsWidth] = useState(0);
   const [browseMonth, setBrowseMonth] = useState(month ?? localMonth());
   const [monthEnabled, setMonthEnabled] = useState(true);
-  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState(HEADER_SEARCH_CLOSED);
+  const query = search.query;
+  const setQuery = (value: string) => setSearch((s) => setHeaderQuery(s, value));
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(() => new Set());
   useEffect(() => {
@@ -164,6 +173,26 @@ function PersonalTransactionsScreenBody() {
   const [picked, setPicked] = useState<string | null | undefined>(undefined);
   const [filterOpen, setFilterOpen] = useState(false);
   const filter = picked === undefined ? paramCategory : picked;
+
+  const filterButton = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t.personal.filterCategory}
+      accessibilityState={{ selected: filter !== null }}
+      onPress={() => setFilterOpen(true)}
+      style={({ pressed }) => ({
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: filter ? accent : theme.color.surface,
+        opacity: pressed ? 0.8 : 1,
+      })}
+    >
+      <Ionicons name="filter" size={20} color={filter ? '#FFFFFF' : ink} />
+    </Pressable>
+  );
 
   const labelFor = (id: string | null): string | null =>
     personalTxnCategoryLabel(id, (key) => t.categories[key as keyof typeof t.categories] ?? null);
@@ -277,131 +306,98 @@ function PersonalTransactionsScreenBody() {
 
   return (
     <Screen>
-      <Row
-        style={{
-          paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.sm,
-          alignItems: 'center',
-        }}
-      >
-        {drillIn ? (
-          <IconButton
-            label={t.common.back}
-            onPress={() =>
-              params.returnTo && !router.canGoBack()
-                ? router.replace(params.returnTo as never)
-                : router.back()
-            }
-          >
-            <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
-          </IconButton>
-        ) : null}
-        <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-          <Text style={{ fontSize: 28, fontWeight: '800', color: ink }}>
-            {t.personal.transactions}
-          </Text>
-          <Text style={{ fontSize: 12, color: muted }}>{t.personal.transactionsSubtitle}</Text>
-          {filter ? (
-            <Text style={{ fontSize: 12, color: muted }}>{labelFor(filter) ?? filter}</Text>
-          ) : null}
-          {fromDate && toDate ? (
-            <Text style={{ fontSize: 12, color: muted }} numberOfLines={1}>
-              {fromDate === toDate ? fromDate : `${fromDate} – ${toDate}`}
-            </Text>
-          ) : null}
-          <Row style={{ alignItems: 'center', gap: 8 }}>
+      <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm, gap: 10 }}>
+        {search.open ? (
+          <SearchField
+            value={query}
+            onChange={setQuery}
+            onCancel={() => {
+              setQuery('');
+              setSearch(closeHeaderSearch());
+            }}
+            placeholder={t.personal.searchTransactions}
+            trailing={filterButton}
+          />
+        ) : (
+          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+            {drillIn ? (
+              <IconButton
+                label={t.common.back}
+                onPress={() =>
+                  params.returnTo && !router.canGoBack()
+                    ? router.replace(params.returnTo as never)
+                    : router.back()
+                }
+              >
+                <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
+              </IconButton>
+            ) : null}
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <Text
+                style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: ink }}
+                numberOfLines={1}
+              >
+                {t.personal.transactions}
+              </Text>
+              <Text style={{ fontSize: 13, lineHeight: 18, color: muted }} numberOfLines={2}>
+                {t.personal.transactionsSubtitle}
+              </Text>
+              {filter ? (
+                <Text style={{ fontSize: 12, color: muted }}>{labelFor(filter) ?? filter}</Text>
+              ) : null}
+              {fromDate && toDate ? (
+                <Text style={{ fontSize: 12, color: muted }} numberOfLines={1}>
+                  {fromDate === toDate ? fromDate : `${fromDate} – ${toDate}`}
+                </Text>
+              ) : null}
+            </View>
             <IconButton
-              label={t.personal.prevMonth}
-              onPress={() => {
-                setMonthEnabled(true);
-                setBrowseMonth(shiftMonth(browseMonth, -1));
-              }}
+              label={t.personal.searchTransactions}
+              onPress={() => setSearch(openHeaderSearch)}
             >
-              <Ionicons name="chevron-back" size={18} color={muted} />
+              <Ionicons name="search" size={iconSize.xl} color={accent} />
             </IconButton>
-            <Text style={{ fontSize: 12, color: muted }}>
-              {monthEnabled ? monthLabel(browseMonth, locale) : 'All months'}
-            </Text>
+            {/* The assistant, already pointed at the private ledger: what is said or
+                typed there stays personal. */}
             <IconButton
-              label={t.personal.nextMonth}
-              onPress={() => {
-                setMonthEnabled(true);
-                setBrowseMonth(shiftMonth(browseMonth, 1));
-              }}
+              label={t.personal.askByVoice}
+              onPress={() =>
+                router.push({
+                  pathname: '/voice',
+                  params: { scope: 'personal', source: 'personal' },
+                })
+              }
             >
-              <Ionicons name="chevron-forward" size={18} color={muted} />
+              <Ionicons name="mic-outline" size={iconSize.xl} color={accent} />
+            </IconButton>
+            <IconButton label={t.personal.addTransaction} onPress={addExpense}>
+              <Ionicons name="add" size={iconSize.xl} color={accent} />
             </IconButton>
           </Row>
-        </View>
-        {/* The assistant, already pointed at the private ledger: what is said or
-            typed there stays personal. */}
-        <IconButton
-          label={t.assistant.openPersonalAssistant}
-          onPress={() =>
-            router.push({ pathname: '/voice', params: { scope: 'personal', source: 'personal' } })
-          }
-        >
-          <Ionicons name="sparkles-outline" size={iconSize.xl} color={accent} />
-        </IconButton>
-      </Row>
+        )}
 
-      <View style={{ paddingHorizontal: theme.spacing.lg, gap: 10, paddingTop: 6 }}>
-        <Row style={{ alignItems: 'center', gap: 10 }}>
-          <Row
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              gap: 10,
-              height: 44,
-              paddingHorizontal: 14,
-              borderRadius: 22,
-              backgroundColor: lavender,
+        <Row style={{ alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <IconButton
+            label={t.personal.prevMonth}
+            onPress={() => {
+              setMonthEnabled(true);
+              setBrowseMonth(shiftMonth(browseMonth, -1));
             }}
           >
-            <Ionicons name="search" size={18} color={muted} />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder={t.personal.searchTransactions}
-              placeholderTextColor={muted}
-              accessibilityLabel={t.personal.searchTransactions}
-              returnKeyType="search"
-              autoCorrect={false}
-              style={{ flex: 1, fontSize: 15, height: 40, color: ink, paddingVertical: 0 }}
-            />
-            {query ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.entry.clear}
-                onPress={() => setQuery('')}
-                hitSlop={8}
-              >
-                <Ionicons name="close-circle" size={18} color={theme.color.textFaint} />
-              </Pressable>
-            ) : null}
-          </Row>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.personal.filterCategory}
-            accessibilityState={{ selected: filter !== null }}
-            onPress={() => setFilterOpen(true)}
-            style={({ pressed }) => ({
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: filter ? accent : theme.color.surface,
-              opacity: pressed ? 0.8 : 1,
-              shadowColor: '#2A1E6B',
-              shadowOpacity: dark ? 0 : 0.08,
-              shadowRadius: 8,
-              shadowOffset: { width: 0, height: 2 },
-              elevation: 2,
-            })}
+            <Ionicons name={directionalIcon('chevron-back')} size={18} color={muted} />
+          </IconButton>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: ink }}>
+            {monthEnabled ? monthLabel(browseMonth, locale) : 'All months'}
+          </Text>
+          <IconButton
+            label={t.personal.nextMonth}
+            onPress={() => {
+              setMonthEnabled(true);
+              setBrowseMonth(shiftMonth(browseMonth, 1));
+            }}
           >
-            <Ionicons name="filter" size={20} color={filter ? '#FFFFFF' : ink} />
-          </Pressable>
+            <Ionicons name={directionalIcon('chevron-forward')} size={18} color={muted} />
+          </IconButton>
         </Row>
 
         <Row
@@ -527,7 +523,7 @@ function PersonalTransactionsScreenBody() {
         drawDistance={1500}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: clearance + 96,
+          paddingBottom: clearance + theme.spacing.lg,
         }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"

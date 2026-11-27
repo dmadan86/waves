@@ -8711,6 +8711,8 @@ export interface UiStrings {
     collapseDay: string;
     expandDay: string;
     searchTransactions: string;
+    askByVoice: string;
+    addTransaction: string;
     filterCategory: string;
     clearFilter: string;
     txnCount: PluralForms;
@@ -17012,6 +17014,8 @@ const en: UiStrings = {
     collapseDay: 'Collapse day',
     expandDay: 'Expand day',
     searchTransactions: 'Search transactions…',
+    askByVoice: 'Ask or add by voice',
+    addTransaction: 'Add transaction',
     filterCategory: 'Filter by category',
     clearFilter: 'Clear filter',
     txnCount: { one: '{n} transaction', other: '{n} transactions' },
@@ -25368,6 +25372,8 @@ const ta: UiStrings = {
     collapseDay: 'நாளைச் சுருக்கு',
     expandDay: 'நாளை விரி',
     searchTransactions: 'பரிவர்த்தனைகளைத் தேடுங்கள்…',
+    askByVoice: 'குரலில் கேளுங்கள் அல்லது சேர்க்கவும்',
+    addTransaction: 'பரிவர்த்தனையைச் சேர்',
     filterCategory: 'வகைப்படி வடிகட்டு',
     clearFilter: 'வடிகட்டியை அழி',
     txnCount: { one: '{n} பரிவர்த்தனை', other: '{n} பரிவர்த்தனைகள்' },
@@ -33540,6 +33546,8 @@ const hi: UiStrings = {
     collapseDay: 'दिन का विवरण समेटें',
     expandDay: 'दिन का विवरण खोलें',
     searchTransactions: 'लेन-देन खोजें…',
+    askByVoice: 'आवाज़ से पूछें या जोड़ें',
+    addTransaction: 'लेन-देन जोड़ें',
     filterCategory: 'श्रेणी से छाँटें',
     clearFilter: 'फ़िल्टर हटाएँ',
     txnCount: { one: '{n} लेन-देन', other: '{n} लेन-देन' },
@@ -42625,6 +42633,8 @@ const ar: UiStrings = {
     collapseDay: 'طي تفاصيل اليوم',
     expandDay: 'عرض تفاصيل اليوم',
     searchTransactions: 'ابحث في المعاملات…',
+    askByVoice: 'اسأل أو أضف بالصوت',
+    addTransaction: 'إضافة معاملة',
     filterCategory: 'التصفية حسب الفئة',
     clearFilter: 'مسح التصفية',
     txnCount: {
