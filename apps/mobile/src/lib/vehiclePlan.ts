@@ -17,7 +17,7 @@ import {
 
 import { REMIND_HOUR, type Region } from '@/lib/wealthPlan';
 
-export const FREE_VEHICLES = 1;
+export const FREE_VEHICLES = 2;
 export const atVehicleLimit = (activeCount: number, isPro: boolean): boolean =>
   !isPro && activeCount >= FREE_VEHICLES;
 

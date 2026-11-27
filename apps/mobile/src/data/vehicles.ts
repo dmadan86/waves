@@ -20,7 +20,9 @@ import {
 
 import { useMyMemberId, useRentalStore, type RentalStore } from '@/data/personalWealth';
 import { useEntitlement } from '@/lib/useEntitlement';
-import { expenseNote, ownActiveVehicles, VEHICLE_CATEGORY } from '@/lib/vehiclePlan';
+import { expenseNote, FREE_VEHICLES, ownActiveVehicles, VEHICLE_CATEGORY } from '@/lib/vehiclePlan';
+import { moveVehicle as moveRecord } from '@/lib/vehicleMove';
+import { rekeyDocs } from '@/lib/propertyDocs';
 
 export const FREE_VEHICLE_CAP_ERROR = 'FREE_VEHICLE_CAP';
 let pendingVehicles = 0;
@@ -74,7 +76,8 @@ export function useVehicleWrites(groupId?: string) {
   return {
     async createVehicle(d: VehicleDraft): Promise<string> {
       const count = ownActiveVehicles(store.records, me);
-      if (!isPro && count + pendingVehicles >= 1) throw new Error(FREE_VEHICLE_CAP_ERROR);
+      if (!isPro && count + pendingVehicles >= FREE_VEHICLES)
+        throw new Error(FREE_VEHICLE_CAP_ERROR);
       pendingVehicles += 1;
       try {
         const id = randomUUID();
@@ -124,16 +127,17 @@ export function useVehicleWrites(groupId?: string) {
   };
 }
 
-/**
- * Move a vehicle between stores: write it to the target first, remove it from the source only
- * after that succeeded, so a failure never loses it. Same id, so documents kept on this phone
- * (keyed by that id) still show, and past expenses stay in the store they were recorded in.
- */
-export async function moveVehicle(
+/** Move a vehicle to another store under a fresh id (see lib/vehicleMove). Returns the new id. */
+export const moveVehicle = (
   vehicle: PersonalVehicle,
   source: RentalStore,
   target: RentalStore,
-): Promise<void> {
-  await putVehicle(target, vehicle);
-  await source.del(vehicle.id);
-}
+): Promise<string> =>
+  moveRecord(
+    vehicle,
+    source,
+    target,
+    randomUUID(),
+    (a, b) => putVehicle(target, { ...vehicle, id: b }),
+    rekeyDocs,
+  );

@@ -176,3 +176,11 @@ export function renameSlot(
     ),
   };
 }
+
+/** The documents of one owner filed under another id (a vehicle that moved space). */
+export function rekeyIndex(index: DocIndex, from: string, to: string): DocIndex {
+  const mine = index[from];
+  if (!mine || from === to) return index;
+  const { [from]: _gone, ...rest } = index;
+  return { ...rest, [to]: [...(rest[to] ?? []), ...mine] };
+}

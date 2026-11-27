@@ -18,7 +18,10 @@ import {
   spendStrip,
 } from '@/lib/vehiclePlan';
 
-const veh = (renewals: PersonalVehicle['renewals'], extra: Partial<PersonalVehicle> = {}): PersonalVehicle => ({
+const veh = (
+  renewals: PersonalVehicle['renewals'],
+  extra: Partial<PersonalVehicle> = {},
+): PersonalVehicle => ({
   id: 'v1',
   type: 'car',
   name: 'Swift',
@@ -43,7 +46,13 @@ const ren = (id: string, dueDate: string, remindDaysBefore = 15) => ({
   policyNumber: null,
   provider: null,
 });
-const txn = (id: string, date: string, amount: bigint, vehicleId: string | null, currency = 'INR') =>
+const txn = (
+  id: string,
+  date: string,
+  amount: bigint,
+  vehicleId: string | null,
+  currency = 'INR',
+) =>
   decodeTxn(
     id,
     encodeTxn({
@@ -60,14 +69,30 @@ const txn = (id: string, date: string, amount: bigint, vehicleId: string | null,
   );
 
 describe('free cap', () => {
-  it('one vehicle free, Pro unlimited', () => {
+  it('two vehicles free, Pro unlimited', () => {
     expect(atVehicleLimit(0, false)).toBe(false);
-    expect(atVehicleLimit(1, false)).toBe(true);
+    expect(atVehicleLimit(1, false)).toBe(false);
+    expect(atVehicleLimit(2, false)).toBe(true);
     expect(atVehicleLimit(5, true)).toBe(false);
   });
   it('counts only my active vehicles', () => {
-    const rec = (id: string, status: string, by?: string) => ({ id, record_kind: 'vehicle', data: { status }, created_by: by });
-    expect(ownActiveVehicles([rec('a', 'active', 'me'), rec('b', 'active', 'other'), rec('c', 'sold', 'me'), rec('d', 'active')], 'me')).toBe(2);
+    const rec = (id: string, status: string, by?: string) => ({
+      id,
+      record_kind: 'vehicle',
+      data: { status },
+      created_by: by,
+    });
+    expect(
+      ownActiveVehicles(
+        [
+          rec('a', 'active', 'me'),
+          rec('b', 'active', 'other'),
+          rec('c', 'sold', 'me'),
+          rec('d', 'active'),
+        ],
+        'me',
+      ),
+    ).toBe(2);
   });
 });
 
@@ -86,7 +111,15 @@ describe('due soon', () => {
     expect(daysUntil('2026-12-31', '2027-01-01')).toBe(1);
   });
   it('licence expiry', () => {
-    const l: PersonalLicence = { id: 'l', holderName: 'A', number: null, licenceClass: null, expiry: '2026-12-01', remindDaysBefore: 15, vehicleIds: [] };
+    const l: PersonalLicence = {
+      id: 'l',
+      holderName: 'A',
+      number: null,
+      licenceClass: null,
+      expiry: '2026-12-01',
+      remindDaysBefore: 15,
+      vehicleIds: [],
+    };
     expect(licenceDue(l, today)?.inDays).toBe(4);
     expect(licenceDue({ ...l, expiry: null }, today)).toBeNull();
   });
@@ -105,7 +138,13 @@ describe('reminders', () => {
     expect(out[0]!.url).toBe('waves://vehicles/v1');
   });
   it('skips sold vehicles', () => {
-    expect(planVehicleReminders({ vehicles: [veh([ren('a', '2030-01-01')], { status: 'sold' })], licences: [], now: 0 })).toHaveLength(0);
+    expect(
+      planVehicleReminders({
+        vehicles: [veh([ren('a', '2030-01-01')], { status: 'sold' })],
+        licences: [],
+        now: 0,
+      }),
+    ).toHaveLength(0);
   });
 });
 
@@ -152,8 +191,72 @@ describe('spend', () => {
 
 describe('documents', () => {
   it('vehicle ids are kept by the orphan sweep and use their own slots', () => {
-    const ids = liveDocPropertyIds([{ id: 'v1', record_kind: 'vehicle', data: {} }, { id: 'l1', record_kind: 'licence', data: {} }]);
+    const ids = liveDocPropertyIds([
+      { id: 'v1', record_kind: 'vehicle', data: {} },
+      { id: 'l1', record_kind: 'licence', data: {} },
+    ]);
     expect(ids.has('v1') && ids.has('l1')).toBe(true);
     expect(slotsOf([], 'IN', ['rc', 'insurance']).map((s) => s.id)).toEqual(['rc', 'insurance']);
+  });
+});
+
+describe('moving a vehicle back into a store with a tombstone', () => {
+  it('uses a fresh id, so the tombstone cannot swallow it', async () => {
+    const { moveVehicle } = await import('@/lib/vehicleMove');
+    const { rekeyIndex } = await import('@/lib/propertyDocsPure');
+    // A store where deleted ids stay dead, like the e2ee space.
+    const store = (dead: Set<string>) => {
+      const live = new Set<string>();
+      return {
+        live,
+        put: (id: string) => (dead.has(id) ? undefined : live.add(id)),
+        del: async (id: string) => {
+          live.delete(id);
+          dead.add(id);
+        },
+      };
+    };
+    const personal = store(new Set());
+    const space = store(new Set());
+    personal.live.add('v1');
+    let docs = { v1: [{ id: 'd', name: 'rc', mime: 'application/pdf', size: 1 }] };
+    const rekey = async (a: string, b: string) =>
+      void (docs = rekeyIndex(docs, a, b) as typeof docs);
+    const id2 = await moveVehicle(
+      { id: 'v1' },
+      personal,
+      null,
+      'v2',
+      async (_a, b) => space.put(b),
+      rekey,
+    );
+    const id3 = await moveVehicle(
+      { id: id2 },
+      space,
+      null,
+      'v3',
+      async (_a, b) => personal.put(b),
+      rekey,
+    );
+    expect(space.live.size).toBe(0);
+    expect([...personal.live]).toEqual([id3]);
+    expect(Object.keys(docs)).toEqual(['v3']);
+  });
+  it('never removes the source when the target write fails', async () => {
+    const { moveVehicle } = await import('@/lib/vehicleMove');
+    let removed = false;
+    await expect(
+      moveVehicle(
+        { id: 'v1' },
+        { del: async () => void (removed = true) },
+        null,
+        'n',
+        async () => {
+          throw new Error('x');
+        },
+        async () => {},
+      ),
+    ).rejects.toThrow();
+    expect(removed).toBe(false);
   });
 });

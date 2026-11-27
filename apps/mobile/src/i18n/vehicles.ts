@@ -3,12 +3,7 @@
  * (PUC, MOT, Rego) appear only as hints chosen by country (lib/vehiclePlan renewalHint).
  * Tamil, Hindi and Arabic translate the headline words and fall back to English for the rest.
  */
-import type {
-  FuelType,
-  RenewalKind,
-  VehicleExpenseKind,
-  VehicleType,
-} from '@waves/core';
+import type { FuelType, RenewalKind, VehicleExpenseKind, VehicleType } from '@waves/core';
 
 export interface VehicleStrings {
   vehicles: string;
@@ -107,11 +102,12 @@ export const vehiclesEn: VehicleStrings = {
   addVehicle: 'Add vehicle',
   addShort: 'Add',
   trackTitle: 'Keep every vehicle in one place',
-  trackSub: 'Fuel, service, insurance, licence and papers, with a reminder before anything expires.',
+  trackSub:
+    'Fuel, service, insurance, licence and papers, with a reminder before anything expires.',
   thisMonth: 'This month',
   spent: 'Spent',
   vehiclesCount: '{n} vehicles',
-  freeLimit: 'Free plan: 1 vehicle. Upgrade for more.',
+  freeLimit: 'Free plan: 2 vehicles. Upgrade for more.',
   types: {
     car: 'Car',
     bike: 'Motorbike',
@@ -206,7 +202,8 @@ export const vehiclesEn: VehicleStrings = {
     'The vehicle, its renewals and details move. Documents stay on this phone. Past expenses stay in {where}.',
   moveFailed: 'Could not move it. Nothing changed.',
   noSpaces: 'You are not in a couple or home space yet.',
-  deleteBody: 'Delete this vehicle? Its documents on this phone are removed. Past expenses stay in your transactions.',
+  deleteBody:
+    'Delete this vehicle? Its documents on this phone are removed. Past expenses stay in your transactions.',
   reminderTitle: 'Vehicles',
   reminderBody: '{name}: {kind} due in {n} days',
   rowTitle: '{name} {kind}',
@@ -226,6 +223,7 @@ export const vehiclesTa: VehicleStrings = {
   detailsTitle: 'விவரங்கள்',
   notes: 'குறிப்புகள்',
   thisMonth: 'இந்த மாதம்',
+  freeLimit: 'இலவச திட்டம்: 2 வாகனங்கள். மேலும் சேர்க்க மேம்படுத்தவும்.',
   types: { ...vehiclesEn.types, car: 'கார்', bike: 'பைக்', scooter: 'ஸ்கூட்டர்' },
   fuels: { ...vehiclesEn.fuels, petrol: 'பெட்ரோல்', diesel: 'டீசல்', electric: 'மின்சாரம்' },
   renewalKinds: { ...vehiclesEn.renewalKinds, insurance: 'காப்பீடு', service: 'சர்வீஸ்' },
@@ -243,6 +241,7 @@ export const vehiclesHi: VehicleStrings = {
   detailsTitle: 'विवरण',
   notes: 'नोट्स',
   thisMonth: 'इस महीने',
+  freeLimit: 'फ़्री प्लान: 2 वाहन। और जोड़ने के लिए अपग्रेड करें।',
   types: { ...vehiclesEn.types, car: 'कार', bike: 'बाइक', scooter: 'स्कूटर' },
   fuels: { ...vehiclesEn.fuels, petrol: 'पेट्रोल', diesel: 'डीज़ल', electric: 'इलेक्ट्रिक' },
   renewalKinds: { ...vehiclesEn.renewalKinds, insurance: 'बीमा', service: 'सर्विस' },
@@ -260,6 +259,7 @@ export const vehiclesAr: VehicleStrings = {
   detailsTitle: 'التفاصيل',
   notes: 'ملاحظات',
   thisMonth: 'هذا الشهر',
+  freeLimit: 'الخطة المجانية: مركبتان. قم بالترقية لإضافة المزيد.',
   types: { ...vehiclesEn.types, car: 'سيارة', bike: 'دراجة نارية', scooter: 'سكوتر' },
   fuels: { ...vehiclesEn.fuels, petrol: 'بنزين', diesel: 'ديزل', electric: 'كهربائي' },
   renewalKinds: { ...vehiclesEn.renewalKinds, insurance: 'التأمين', service: 'الصيانة' },

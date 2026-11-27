@@ -14,6 +14,7 @@ import {
   docsOf,
   orphanFolders,
   parseIndex,
+  rekeyIndex,
   removeDoc,
   renameDoc,
   renameSlot,
@@ -129,4 +130,22 @@ export async function openLocalDoc(propertyId: string, doc: LocalDoc): Promise<b
   if (!f.exists || !(await Sharing.isAvailableAsync())) return false;
   await Sharing.shareAsync(f.uri, { mimeType: doc.mime, dialogTitle: doc.name });
   return true;
+}
+
+/** Re-key every document of one owner to another id: move the folder, then the index entry. */
+export async function rekeyDocs(from: string, to: string): Promise<void> {
+  const index = await readIndex();
+  if (!index[from]) return;
+  new FileSystem.Directory(root(), to).create({ intermediates: true, idempotent: true });
+  for (const d of index[from]) {
+    const src = fileOf(from, d);
+    if (src.exists) src.move(fileOf(to, d));
+  }
+  try {
+    const dir = new FileSystem.Directory(root(), from);
+    if (dir.exists) dir.delete();
+  } catch {
+    // Swept as an orphan later.
+  }
+  writeIndex(rekeyIndex(index, from, to));
 }
