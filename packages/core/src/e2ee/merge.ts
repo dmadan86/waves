@@ -75,7 +75,11 @@ export function applyOps(
     if (op.op !== 'put') continue;
     const known = cur && cur.createdBy !== '';
     if (known && op.kind !== cur.kind) continue;
-    if (!opts.trusted && op.createdBy !== senderMemberId && (!known || op.createdBy !== cur.createdBy))
+    if (
+      !opts.trusted &&
+      op.createdBy !== senderMemberId &&
+      (!known || op.createdBy !== cur.createdBy)
+    )
       continue;
     const fields: Record<string, Field> = { ...cur?.fields };
     for (const [k, f] of Object.entries(op.fields))
@@ -84,8 +88,7 @@ export function applyOps(
     let createdHlc = minHlc(op.fields);
     if (known) {
       const was = cur.createdHlc ?? minHlc(cur.fields);
-      const c =
-        createdHlc === undefined ? 1 : was === undefined ? -1 : compareHlc(createdHlc, was);
+      const c = createdHlc === undefined ? 1 : was === undefined ? -1 : compareHlc(createdHlc, was);
       if (c > 0 || (c === 0 && op.createdBy >= cur.createdBy)) {
         createdBy = cur.createdBy;
         createdHlc = was;

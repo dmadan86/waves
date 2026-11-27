@@ -244,7 +244,13 @@ describe('double creation of one id', () => {
     const x = apply([a, b]);
     const y = apply([b, a]);
     expect(x).toEqual(y);
-    expect(materialise(x.r!)).toEqual({ amt: 100n, note: 'a', id: 'r', kind: 'rent', createdBy: 'B' });
+    expect(materialise(x.r!)).toEqual({
+      amt: 100n,
+      note: 'a',
+      id: 'r',
+      kind: 'rent',
+      createdBy: 'B',
+    });
   });
 
   it('ties on the hlc go to the smaller author id, in either order', () => {
