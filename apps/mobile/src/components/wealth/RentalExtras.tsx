@@ -19,12 +19,19 @@ import Animated, {
   type EntryExitAnimationFunction,
 } from 'react-native-reanimated';
 
-import type { PersonalProperty, PersonalTenancy } from '@waves/core';
+import { tenancyContacts, type PersonalProperty, type PersonalTenancy } from '@waves/core';
 import { Button, iconSize, isRtlLayout, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { SectionHeader, StandardCard } from '@/components/standard';
-import { RenameSheet, TextAnswer } from '@/components/wealth/parts';
+import {
+  ContactsSheet,
+  CustomFieldsSheet,
+  MaintenanceSheet,
+  MultilineSheet,
+  OccupantsSheet,
+} from '@/components/wealth/DetailsEditors';
+import { RenameSheet, useWealthMoney } from '@/components/wealth/parts';
 import { localIsoDate } from '@/data/personal';
 import { useWealthWrites } from '@/data/personalWealth';
 import { useStrings } from '@/i18n';
@@ -66,6 +73,8 @@ function Line({
   onPress,
   trailing,
   last,
+  block,
+  lines,
 }: {
   icon: IconName;
   label: string;
@@ -73,10 +82,14 @@ function Line({
   onPress?: () => void;
   trailing?: React.ReactNode;
   last?: boolean;
+  /** Label above, value below: for text that runs over several lines. */
+  block?: boolean;
+  lines?: number;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
   const empty = value === t.wealth.notAdded;
+  const valueStyle = { fontWeight: empty ? '400' : '600' } as const;
   return (
     <Pressable
       disabled={!onPress}
@@ -84,150 +97,133 @@ function Line({
       accessibilityLabel={`${label} ${value}`}
       onPress={onPress}
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.md,
+        flexDirection: block ? 'column' : 'row',
+        alignItems: block ? 'stretch' : 'center',
+        gap: block ? theme.spacing.xs : theme.spacing.md,
         paddingBottom: last ? 0 : theme.spacing.md,
         borderBottomWidth: last ? 0 : 1,
         borderBottomColor: theme.color.border,
       }}
     >
-      <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
-      <Text variant="caption" tone="muted">
-        {label}
-      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+        <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
+        <Text variant="caption" tone="muted" style={block ? { flex: 1 } : undefined}>
+          {label}
+        </Text>
+        {block ? trailing : null}
+      </View>
       <Text
         variant="body"
         tone={empty ? 'muted' : undefined}
-        numberOfLines={2}
-        style={{ flex: 1, fontWeight: empty ? '400' : '600', textAlign: 'right' }}
+        numberOfLines={lines ?? 2}
+        style={
+          block
+            ? { ...valueStyle, paddingStart: iconSize.md + theme.spacing.md }
+            : { ...valueStyle, flex: 1, textAlign: isRtlLayout() ? 'left' : 'right' }
+        }
       >
         {value}
       </Text>
-      {trailing}
+      {block ? null : trailing}
     </Pressable>
   );
 }
 
-function TextSheet({
-  title,
-  initial,
-  keyboardType,
-  onSave,
-  onClose,
-}: {
-  title: string;
-  initial: string;
-  keyboardType?: 'default' | 'phone-pad';
-  onSave: (v: string) => void;
-  onClose: () => void;
-}) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const [v, setV] = useState(initial);
-  return (
-    <Sheet visible onClose={onClose} title={title} closeLabel={t.common.close}>
-      <View style={{ gap: theme.spacing.lg }}>
-        <TextAnswer
-          value={v}
-          onChange={setV}
-          placeholder={title}
-          label={title}
-          keyboardType={keyboardType}
-        />
-        <Button label={t.common.save} onPress={() => onSave(v.trim())} />
-      </View>
-    </Sheet>
-  );
-}
-
-type Field = 'phone' | 'address' | 'note';
+type Field = 'address' | 'note' | 'contacts' | 'occupants' | 'maintenance' | 'custom';
 
 export function DetailsCard({
   prop,
   tenancy,
   groupId,
+  readOnly = false,
 }: {
   prop: PersonalProperty;
   tenancy: PersonalTenancy | null;
   groupId?: string;
+  /** A former couple's copy: values show, nothing edits. */
+  readOnly?: boolean;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const w = t.wealth;
+  const fmt = useWealthMoney();
   const writes = useWealthWrites(groupId);
   const [field, setField] = useState<Field | null>(null);
   const [picking, setPicking] = useState<'start' | 'end' | null>(null);
+  const [noteOpen, setNoteOpen] = useState(false);
   const none = w.notAdded;
-  const phone = tenancy?.tenantPhone ?? null;
-  const dial = phone ? dialable(phone) : '';
-
-  const save = (v: string): void => {
-    if (field === 'phone' && tenancy)
-      void writes.saveTenancy({ ...tenancy, tenantPhone: v || null });
-    if (field === 'address') void writes.saveProperty({ ...prop, address: v || null });
-    if (field === 'note') void writes.saveProperty({ ...prop, note: v || null });
-    setField(null);
-  };
-  const initial =
-    field === 'phone'
-      ? (phone ?? '')
-      : field === 'address'
-        ? (prop.address ?? '')
-        : (prop.note ?? '');
+  const contacts = tenancy ? tenancyContacts(tenancy) : [];
+  const custom = prop.customFields ?? [];
+  const freq = prop.maintenanceFrequency ?? 'monthly';
+  const note = prop.note ?? '';
+  const noteLong = note.length > 120 || note.split('\n').length > 3;
   const open = (url: string): void => void Linking.openURL(url).catch(() => {});
+  const edit = (f: Field) => (readOnly ? undefined : () => setField(f));
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
       <SectionHeader title={w.detailsTitle} />
       <StandardCard style={{ gap: theme.spacing.md }}>
-        {tenancy ? (
-          <>
-            <Line
-              icon="call-outline"
-              label={w.tenantPhone.replace(/\s*\(.*\)/, '')}
-              value={phone ?? none}
-              onPress={() => setField('phone')}
-            />
-            {dial ? (
-              <Row style={{ gap: theme.spacing.sm }}>
-                {(
-                  [
-                    ['call-outline', w.callTenant, `tel:${dial}`],
-                    ['logo-whatsapp', w.whatsappTenant, `https://wa.me/${dial.replace('+', '')}`],
-                  ] as const
-                ).map(([icon, label, url]) => (
-                  <Pressable
-                    key={label}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${label} ${phone}`}
-                    onPress={() => open(url)}
-                    style={{
-                      flex: 1,
-                      minHeight: 44,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: theme.spacing.sm,
-                      borderRadius: theme.radius.lg,
-                      backgroundColor: theme.color.brandSoft,
-                    }}
-                  >
-                    <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
-                    <Text variant="body" style={{ fontWeight: '700', color: theme.color.brand }}>
-                      {label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </Row>
-            ) : null}
-          </>
+        {tenancy && contacts.length === 0 ? (
+          <Line
+            icon="call-outline"
+            label={w.contactsTitle}
+            value={none}
+            onPress={edit('contacts')}
+          />
         ) : null}
+        {contacts.map((c) => {
+          const dial = dialable(c.phone);
+          return (
+            <Line
+              key={`${c.label}|${c.phone}`}
+              icon="call-outline"
+              label={c.label || w.contactsTitle}
+              value={c.phone}
+              onPress={edit('contacts')}
+              trailing={
+                dial ? (
+                  <Row style={{ gap: theme.spacing.sm }}>
+                    {(
+                      [
+                        ['call-outline', w.callTenant, `tel:${dial}`],
+                        [
+                          'logo-whatsapp',
+                          w.whatsappTenant,
+                          `https://wa.me/${dial.replace('+', '')}`,
+                        ],
+                      ] as const
+                    ).map(([icon, label, url]) => (
+                      <Pressable
+                        key={label}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${label} ${c.label} ${c.phone}`}
+                        onPress={() => open(url)}
+                        style={{
+                          width: 40,
+                          height: 40,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: theme.radius.lg,
+                          backgroundColor: theme.color.brandSoft,
+                        }}
+                      >
+                        <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
+                      </Pressable>
+                    ))}
+                  </Row>
+                ) : undefined
+              }
+            />
+          );
+        })}
         <Line
           icon="location-outline"
           label={w.addressLabel}
           value={prop.address ?? none}
-          onPress={() => setField('address')}
+          onPress={edit('address')}
+          block
+          lines={3}
         />
         {tenancy ? (
           <>
@@ -235,15 +231,15 @@ export function DetailsCard({
               icon="calendar-outline"
               label={w.agreementStart}
               value={tenancy.startDate ? showDate(tenancy.startDate, locale) : none}
-              onPress={() => setPicking('start')}
+              onPress={readOnly ? undefined : () => setPicking('start')}
             />
             <Line
               icon="calendar-number-outline"
               label={w.agreementEnd}
               value={tenancy.endDate ? showDate(tenancy.endDate, locale) : w.openEnded}
-              onPress={() => setPicking('end')}
+              onPress={readOnly ? undefined : () => setPicking('end')}
               trailing={
-                tenancy.endDate ? (
+                tenancy.endDate && !readOnly ? (
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={w.openEnded}
@@ -259,13 +255,60 @@ export function DetailsCard({
                 ) : undefined
               }
             />
+            <Line
+              icon="people-outline"
+              label={w.occupantsLabel}
+              value={tenancy.occupants == null ? none : String(tenancy.occupants)}
+              onPress={edit('occupants')}
+            />
           </>
+        ) : null}
+        <Line
+          icon="construct-outline"
+          label={w.maintenanceLabel}
+          value={
+            prop.maintenance
+              ? `${fmt(prop.maintenance, prop.currency)}${w.maintenancePer[freq]}`
+              : none
+          }
+          onPress={edit('maintenance')}
+        />
+        {custom.map((c, i) => (
+          <Line
+            key={`${i}|${c.key}`}
+            icon="list-outline"
+            label={c.key}
+            value={c.value}
+            onPress={edit('custom')}
+            block
+            lines={3}
+          />
+        ))}
+        {custom.length === 0 ? (
+          <Line icon="list-outline" label={w.customTitle} value={none} onPress={edit('custom')} />
         ) : null}
         <Line
           icon="reader-outline"
           label={w.notesLabel}
-          value={prop.note ?? none}
-          onPress={() => setField('note')}
+          value={note || none}
+          onPress={edit('note')}
+          block
+          lines={noteOpen ? 1000 : 3}
+          trailing={
+            noteLong ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: noteOpen }}
+                accessibilityLabel={`${w.notesLabel} ${noteOpen ? w.showLess : w.showMore}`}
+                hitSlop={10}
+                onPress={() => setNoteOpen((o) => !o)}
+              >
+                <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '700' }}>
+                  {noteOpen ? w.showLess : w.showMore}
+                </Text>
+              </Pressable>
+            ) : undefined
+          }
           last
         />
       </StandardCard>
@@ -285,14 +328,64 @@ export function DetailsCard({
           }}
         />
       ) : null}
-      {field ? (
-        <TextSheet
-          title={
-            field === 'phone' ? w.tenantPhone : field === 'address' ? w.addressLabel : w.notesLabel
-          }
-          initial={initial}
-          keyboardType={field === 'phone' ? 'phone-pad' : 'default'}
-          onSave={save}
+      {field === 'address' || field === 'note' ? (
+        <MultilineSheet
+          title={field === 'address' ? w.addressLabel : w.notesLabel}
+          initial={field === 'address' ? (prop.address ?? '') : note}
+          dictate={field === 'note'}
+          onSave={(v) => {
+            void writes.saveProperty({
+              ...prop,
+              [field === 'address' ? 'address' : 'note']: v || null,
+            });
+            setField(null);
+          }}
+          onClose={() => setField(null)}
+        />
+      ) : null}
+      {field === 'contacts' && tenancy ? (
+        <ContactsSheet
+          initial={contacts}
+          onSave={(list) => {
+            void writes.saveTenancy({
+              ...tenancy,
+              contacts: list,
+              tenantPhone: list[0]?.phone ?? null,
+            });
+            setField(null);
+          }}
+          onClose={() => setField(null)}
+        />
+      ) : null}
+      {field === 'occupants' && tenancy ? (
+        <OccupantsSheet
+          initial={tenancy.occupants ?? null}
+          onSave={(n) => {
+            void writes.saveTenancy({ ...tenancy, occupants: n });
+            setField(null);
+          }}
+          onClose={() => setField(null)}
+        />
+      ) : null}
+      {field === 'maintenance' ? (
+        <MaintenanceSheet
+          currency={prop.currency}
+          amount={prop.maintenance ?? 0n}
+          frequency={freq}
+          onSave={(amount, f) => {
+            void writes.saveProperty({ ...prop, maintenance: amount, maintenanceFrequency: f });
+            setField(null);
+          }}
+          onClose={() => setField(null)}
+        />
+      ) : null}
+      {field === 'custom' ? (
+        <CustomFieldsSheet
+          initial={custom}
+          onSave={(list) => {
+            void writes.saveProperty({ ...prop, customFields: list });
+            setField(null);
+          }}
           onClose={() => setField(null)}
         />
       ) : null}
@@ -344,6 +437,7 @@ export function DocumentsCard({
   region,
   groupId,
   slotNames,
+  readOnly = false,
 }: {
   /** The owner's id: a property, vehicle or licence. */
   propertyId: string;
@@ -351,6 +445,8 @@ export function DocumentsCard({
   groupId?: string;
   /** Fixed slots (id -> name) for owners other than a rental. */
   slotNames?: Readonly<Record<string, string>>;
+  /** A former couple's copy: documents open, nothing adds or changes. */
+  readOnly?: boolean;
 }) {
   const theme = useTheme();
   const reduce = useReducedMotion();
@@ -527,31 +623,36 @@ export function DocumentsCard({
   };
   const viewingSlot = slots.find((s) => s.id === viewing) ?? null;
 
-  const emptyTile = (name: string, label: string, onPress: () => void) => (
-    <PressableScale
-      pressedScale={0.98}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      disabled={busy}
-      onPress={onPress}
-      style={{
-        ...tileBase,
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: theme.spacing.xs,
-        padding: theme.spacing.sm,
-        borderWidth: 1.5,
-        borderStyle: 'dashed',
-        borderColor: theme.color.border,
-        backgroundColor: theme.color.brandSoft,
-      }}
-    >
-      <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
-      <Text variant="caption" numberOfLines={2} style={{ fontWeight: '600', textAlign: 'center' }}>
-        {name}
-      </Text>
-    </PressableScale>
-  );
+  const emptyTile = (name: string, label: string, onPress: () => void) =>
+    readOnly ? null : (
+      <PressableScale
+        pressedScale={0.98}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        disabled={busy}
+        onPress={onPress}
+        style={{
+          ...tileBase,
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: theme.spacing.xs,
+          padding: theme.spacing.sm,
+          borderWidth: 1.5,
+          borderStyle: 'dashed',
+          borderColor: theme.color.border,
+          backgroundColor: theme.color.brandSoft,
+        }}
+      >
+        <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
+        <Text
+          variant="caption"
+          numberOfLines={2}
+          style={{ fontWeight: '600', textAlign: 'center' }}
+        >
+          {name}
+        </Text>
+      </PressableScale>
+    );
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
@@ -585,6 +686,7 @@ export function DocumentsCard({
             const layout = reduce
               ? undefined
               : LinearTransition.springify().damping(24).stiffness(220);
+            if (!isFilled && readOnly) return null;
             if (!isFilled)
               return (
                 <Animated.View
@@ -611,7 +713,7 @@ export function DocumentsCard({
                   accessibilityRole="button"
                   accessibilityLabel={`${name}, ${kindOf(s)}${when ? `, ${w.docAdded.replace('{date}', when)}` : ''}`}
                   onPress={() => tap(s)}
-                  onLongPress={() => setMenu(s)}
+                  onLongPress={readOnly ? undefined : () => setMenu(s)}
                   style={{
                     ...tileBase,
                     borderWidth: 1,
@@ -656,47 +758,51 @@ export function DocumentsCard({
                       </Text>
                     ) : null}
                   </View>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t.personalHome.toolMore}
-                    hitSlop={8}
-                    onPress={() => setMenu(s)}
-                    style={{
-                      position: 'absolute',
-                      top: 4,
-                      end: 4,
-                      width: 28,
-                      height: 28,
-                      borderRadius: 14,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: theme.color.surface,
-                    }}
-                  >
-                    <Ionicons
-                      name="ellipsis-vertical"
-                      size={iconSize.sm}
-                      color={theme.color.textMuted}
-                    />
-                  </Pressable>
+                  {readOnly ? null : (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t.personalHome.toolMore}
+                      hitSlop={8}
+                      onPress={() => setMenu(s)}
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        end: 4,
+                        width: 28,
+                        height: 28,
+                        borderRadius: 14,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: theme.color.surface,
+                      }}
+                    >
+                      <Ionicons
+                        name="ellipsis-vertical"
+                        size={iconSize.sm}
+                        color={theme.color.textMuted}
+                      />
+                    </Pressable>
+                  )}
                 </PressableScale>
               </Animated.View>
             );
           })}
-          <Animated.View
-            key="other-add"
-            layout={reduce ? undefined : LinearTransition.springify().damping(24).stiffness(220)}
-            entering={
-              loaded && !reduce && !didEnterInitialTiles
-                ? firstLoadTileEntering(slots.length, isRtlLayout() ? -1 : 1)
-                : undefined
-            }
-            style={{ width: tileW }}
-          >
-            {emptyTile(w.docSlotOther, w.docAddTo.replace('{name}', w.docSlotOther), () =>
-              setNaming(true),
-            )}
-          </Animated.View>
+          {readOnly ? null : (
+            <Animated.View
+              key="other-add"
+              layout={reduce ? undefined : LinearTransition.springify().damping(24).stiffness(220)}
+              entering={
+                loaded && !reduce && !didEnterInitialTiles
+                  ? firstLoadTileEntering(slots.length, isRtlLayout() ? -1 : 1)
+                  : undefined
+              }
+              style={{ width: tileW }}
+            >
+              {emptyTile(w.docSlotOther, w.docAddTo.replace('{name}', w.docSlotOther), () =>
+                setNaming(true),
+              )}
+            </Animated.View>
+          )}
         </Animated.ScrollView>
         <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
           <Ionicons name="lock-closed-outline" size={iconSize.sm} color={theme.color.textMuted} />

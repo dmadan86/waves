@@ -17,13 +17,14 @@
 
 import { memo, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Animated, Image, Pressable, useWindowDimensions, View } from 'react-native';
+import { Animated, Image, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { directionalIcon, iconSize, isRtlLayout, Text, useTheme } from '@waves/ui';
 
 import { TourPager, type TourPagerHandle } from '@/components/TourPager';
 import { useStrings } from '@/i18n';
+import { introFit } from '@/lib/introFitPure';
 import { usePromptSlot } from '@/lib/promptQueue';
 import { COMPACT_TYPE_CAP } from '@/lib/typeCap';
 
@@ -325,7 +326,10 @@ const SlideCard = memo(function SlideCard({
 }) {
   const theme = useTheme();
   const { ink, inkMuted } = slide;
-  const artSize = Math.min(width - 80, 270);
+  // The free height between wordmark and text, measured; 0 until laid out and when the text overflows.
+  const [stage, setStage] = useState(0);
+  const fit = introFit({ stage, windowWidth: width });
+  const artSize = fit.artSize;
   // A short screen (iPhone SE class) has no spare height: smaller type keeps the text clear of the dots.
   const short = height < 700;
 
@@ -356,71 +360,88 @@ const SlideCard = memo(function SlideCard({
           { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
         ]}
       />
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text
-          maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-          style={{ fontSize: 20, fontWeight: '800', color: ink }}
-        >
-          {appName}
-        </Text>
-      </View>
-
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        {/* Decorative: the sentence below says the same thing. */}
+      {/* Scroll as a last resort (small screen, large text): the picture gives
+          way first, then the card scrolls, so text never runs into the dots. */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+        scrollEnabled={fit.needsScroll}
+        nestedScrollEnabled
+      >
         <View
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          style={{
-            width: artSize,
-            height: artSize,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
         >
-          <View
-            style={{
-              position: 'absolute',
-              width: artSize * 0.86,
-              height: artSize * 0.86,
-              borderRadius: artSize,
-              backgroundColor: slide.glow,
-              opacity: 0.55,
-            }}
-          />
-          <Image
-            source={slide.art}
-            // No fade-in: Android fades a picture over 300ms by default, which
-            // reads as the art arriving late behind every swipe.
-            fadeDuration={0}
-            resizeMode="contain"
-            style={{ width: artSize, height: artSize * 0.86 }}
-          />
+          <Text
+            maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+            style={{ fontSize: 20, fontWeight: '800', color: ink }}
+          >
+            {appName}
+          </Text>
         </View>
-      </View>
 
-      <View style={{ gap: theme.spacing.sm }}>
-        <Text
-          maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-          style={{
-            fontSize: short ? 24 : 28,
-            lineHeight: short ? 29 : 34,
-            fontWeight: '800',
-            color: ink,
-          }}
+        <View
+          onLayout={(e) => setStage(e.nativeEvent.layout.height)}
+          style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
         >
-          {title}
-        </Text>
-        <Text
-          maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-          style={{ fontSize: short ? 14 : 15, lineHeight: short ? 20 : 22, color: inkMuted }}
-        >
-          {body}
-        </Text>
-      </View>
+          {/* Decorative: the sentence below says the same thing. */}
+          {fit.showArt ? (
+            <View
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={{
+                width: artSize,
+                height: artSize,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <View
+                style={{
+                  position: 'absolute',
+                  width: artSize * 0.86,
+                  height: artSize * 0.86,
+                  borderRadius: artSize,
+                  backgroundColor: slide.glow,
+                  opacity: 0.55,
+                }}
+              />
+              <Image
+                source={slide.art}
+                // No fade-in: Android fades a picture over 300ms by default, which
+                // reads as the art arriving late behind every swipe.
+                fadeDuration={0}
+                resizeMode="contain"
+                style={{ width: artSize, height: artSize * 0.86 }}
+              />
+            </View>
+          ) : null}
+        </View>
+
+        <View style={{ gap: theme.spacing.sm }}>
+          <Text
+            maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+            style={{
+              fontSize: short ? 24 : 28,
+              lineHeight: short ? 29 : 34,
+              fontWeight: '800',
+              color: ink,
+            }}
+          >
+            {title}
+          </Text>
+          <Text
+            maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+            style={{ fontSize: short ? 14 : 15, lineHeight: short ? 20 : 22, color: inkMuted }}
+          >
+            {body}
+          </Text>
+        </View>
+      </ScrollView>
 
       {/* The room the dots and arrow take: they are one overlay (see
           Onboarding), so the card only reserves their space. */}
-      <View style={{ marginTop: short ? theme.spacing.md : theme.spacing.xl, height: 46 }} />
+      <View style={{ marginTop: theme.spacing.lg, height: 46 }} />
     </View>
   );
 });

@@ -221,11 +221,8 @@ export function NeedsYouCard({
           title={h.needsYou}
           action={total > items.length ? h.seeAll : undefined}
           onAction={() => router.push('/needs')}
-        >
-          <Text variant="caption" tone="muted" style={{ fontWeight: '700' }}>
-            {total}
-          </Text>
-        </CardTitle>
+          count={total}
+        />
       )}
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         {settled ? (

@@ -285,6 +285,13 @@ export const RENT_FREQUENCIES: readonly RentFrequency[] = [
   'yearly',
   'custom',
 ];
+export const MAINTENANCE_FREQUENCIES = ['monthly', 'quarterly', 'yearly'] as const;
+export const CONTACTS_MAX = 10;
+export const OCCUPANTS_MAX = 50;
+export const CUSTOM_FIELDS_MAX = 30;
+export const CUSTOM_KEY_MAX = 40;
+export const CUSTOM_VALUE_MAX = 500;
+export type MaintenanceFrequency = (typeof MAINTENANCE_FREQUENCIES)[number];
 
 export interface PersonalProperty {
   readonly id: string;
@@ -296,6 +303,9 @@ export interface PersonalProperty {
   readonly note: string | null;
   /** Street address; the older `locality` stays as it was. */
   readonly address?: string | null;
+  readonly maintenance?: bigint | null;
+  readonly maintenanceFrequency?: MaintenanceFrequency;
+  readonly customFields?: readonly { key: string; value: string }[];
   readonly carried?: Readonly<Record<string, unknown>>;
 }
 
@@ -320,6 +330,8 @@ export interface PersonalTenancy {
   /** The part of the advance the landlord kept; counts as income. */
   readonly depositKept: bigint | null;
   readonly note: string | null;
+  readonly contacts?: readonly { label: string; phone: string }[];
+  readonly occupants?: number | null;
   readonly carried?: Readonly<Record<string, unknown>>;
 }
 
@@ -408,7 +420,18 @@ const KNOWN_INVESTMENT = [
   'status',
   'note',
 ];
-const KNOWN_PROPERTY = ['type', 'name', 'locality', 'currency', 'status', 'note', 'address'];
+const KNOWN_PROPERTY = [
+  'type',
+  'name',
+  'locality',
+  'currency',
+  'status',
+  'note',
+  'address',
+  'maintenance',
+  'maintenanceFrequency',
+  'customFields',
+];
 const KNOWN_TENANCY = [
   'propertyId',
   'unit',
@@ -424,7 +447,52 @@ const KNOWN_TENANCY = [
   'depositReturned',
   'depositKept',
   'note',
+  'contacts',
+  'occupants',
 ];
+
+export function normaliseContacts(list: unknown): { label: string; phone: string }[] {
+  if (!Array.isArray(list)) return [];
+  const out: { label: string; phone: string }[] = [];
+  for (const item of list) {
+    if (out.length >= CONTACTS_MAX) break;
+    if (!item || typeof item !== 'object') continue;
+    const { label, phone } = item as Record<string, unknown>;
+    if (typeof label !== 'string' || typeof phone !== 'string') continue;
+    const l = label.trim(),
+      p = phone.trim();
+    if (!p || l.length > 60 || p.length > 30) continue;
+    out.push({ label: l, phone: p });
+  }
+  return out;
+}
+export function normaliseCustomFields(list: unknown): { key: string; value: string }[] {
+  if (!Array.isArray(list)) return [];
+  const out: { key: string; value: string }[] = [];
+  for (const item of list) {
+    if (out.length >= CUSTOM_FIELDS_MAX) break;
+    if (!item || typeof item !== 'object') continue;
+    const { key, value } = item as Record<string, unknown>;
+    if (typeof key !== 'string' || typeof value !== 'string') continue;
+    const k = key.trim(),
+      v = value.trim();
+    if (!k || k.length > CUSTOM_KEY_MAX || v.length > CUSTOM_VALUE_MAX) continue;
+    out.push({ key: k, value: v });
+  }
+  return out;
+}
+export function tenancyContacts(t: {
+  tenantName: string;
+  tenantPhone: string | null;
+  contacts?: readonly { label: string; phone: string }[];
+}): { label: string; phone: string }[] {
+  const contacts = normaliseContacts(t.contacts);
+  return contacts.length
+    ? contacts
+    : t.tenantPhone
+      ? [{ label: t.tenantName, phone: t.tenantPhone }]
+      : [];
+}
 
 /**
  * Whatever the blob holds that this version has no field for.
@@ -635,6 +703,9 @@ export function decodeProperty(id: string, data: Record<string, unknown>): Perso
     status: oneOf(data.status, ['active', 'closed'] as const, 'active'),
     note: str(data.note),
     address: str(data.address),
+    maintenance: moneyOrNull(data.maintenance),
+    maintenanceFrequency: oneOf(data.maintenanceFrequency, MAINTENANCE_FREQUENCIES, 'monthly'),
+    customFields: normaliseCustomFields(data.customFields),
     carried: carry(data, KNOWN_PROPERTY),
   };
 }
@@ -657,6 +728,14 @@ export function decodeTenancy(id: string, data: Record<string, unknown>): Person
     depositReturned: moneyOrNull(data.depositReturned),
     depositKept: moneyOrNull(data.depositKept),
     note: str(data.note),
+    contacts: normaliseContacts(data.contacts),
+    occupants:
+      typeof data.occupants === 'number' &&
+      Number.isInteger(data.occupants) &&
+      data.occupants >= 0 &&
+      data.occupants <= OCCUPANTS_MAX
+        ? data.occupants
+        : null,
     carried: carry(data, KNOWN_TENANCY),
   };
 }
@@ -787,6 +866,9 @@ export function encodeProperty(p: Omit<PersonalProperty, 'id'>): Record<string, 
       status: p.status,
       note: p.note,
       ...(p.address ? { address: p.address } : {}),
+      maintenance: p.maintenance ? serialiseAmount(p.maintenance) : null,
+      maintenanceFrequency: p.maintenanceFrequency ?? 'monthly',
+      customFields: normaliseCustomFields(p.customFields),
     },
     p.carried,
   );
@@ -798,7 +880,11 @@ export function encodeTenancy(t: Omit<PersonalTenancy, 'id'>): Record<string, un
       propertyId: t.propertyId,
       unit: t.unit,
       tenantName: t.tenantName,
-      tenantPhone: t.tenantPhone,
+      tenantPhone: t.contacts?.length
+        ? (normaliseContacts(t.contacts)[0]?.phone ?? t.tenantPhone)
+        : t.tenantPhone,
+      contacts: normaliseContacts(t.contacts),
+      occupants: t.occupants ?? null,
       depositHeld: serialiseAmount(t.depositHeld),
       rentFrequency: t.rentFrequency,
       startDate: t.startDate,
