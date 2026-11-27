@@ -4,9 +4,9 @@ import { settingsRoute } from '../src/lib/settingsRoute';
 import { resolveFab } from '../src/lib/fabOverride';
 
 describe("Personal's Me tab opens Settings without leaving Personal", () => {
-  it('Settings opened from Me keeps the Personal bar and highlights Me', () => {
+  it('Settings opened from the Personal Home menu keeps the Personal bar and highlights nothing', () => {
     expect(isPersonalMode(['profile'], 'personal')).toBe(true);
-    expect(personalActiveKey(['profile'])).toBe('me');
+    expect(personalActiveKey(['profile'])).toBe('');
   });
 
   it('Settings opened from Groups keeps the Groups bar', () => {
@@ -37,24 +37,26 @@ describe('the round add button', () => {
   });
 });
 
-describe('one add control per Personal screen', () => {
-  it('hides the round + where the header + is the add control', async () => {
+describe('no floating + in Personal or household', () => {
+  it('draws no round + on any Personal route', async () => {
     const { personalShowsAddFab } = await import('../src/lib/personalLayoutRules');
-    for (const leaf of ['loans', 'recurring', 'budgets', 'upcoming'])
-      expect(personalShowsAddFab(['personal', leaf])).toBe(false);
-    expect(personalShowsAddFab(['personal', 'transactions'])).toBe(true);
-    expect(personalShowsAddFab(['(tabs)', 'me'])).toBe(true);
-    expect(personalShowsAddFab(['profile'])).toBe(false);
-    expect(personalShowsAddFab(['settings', 'backup'])).toBe(false);
-    expect(personalShowsAddFab(['personal', 'setup'])).toBe(false);
-    for (const root of ['rentals', 'investments'])
-      for (const rest of [[], ['add'], ['abc123'], ['tenant']])
-        expect(personalShowsAddFab([root, ...rest])).toBe(false);
+    for (const segs of [
+      ['(tabs)', 'me'],
+      ['personal', 'transactions'],
+      ['personal', 'recurring'],
+      ['personal', 'spending'],
+      ['personal', 'accounts'],
+      ['personal', 'loans'],
+      ['rentals'],
+      ['investments'],
+      ['profile'],
+    ])
+      expect(personalShowsAddFab(segs)).toBe(false);
   });
 
-  it('keeps Me selected on Personal settings routes', () => {
-    expect(personalActiveKey(['settings', 'backup'], 'personal')).toBe('me');
-    expect(personalActiveKey(['settings', 'lock'], 'personal')).toBe('me');
+  it('highlights no tab on Personal settings routes', () => {
+    expect(personalActiveKey(['settings', 'backup'], 'personal')).toBe('');
+    expect(personalActiveKey(['settings', 'lock'], 'personal')).toBe('');
   });
 });
 
@@ -70,15 +72,16 @@ describe('room for the round + only where it is drawn', () => {
     ).toBe(false);
     expect(
       fabDrawn({ personal: true, company: false, noAdd: false, segments: ['(tabs)', 'me'] }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       fabDrawn({ personal: false, company: true, noAdd: true, segments: ['group', 'g1'] }),
     ).toBe(false);
     expect(
       fabDrawn({ personal: false, company: true, noAdd: false, segments: ['group', 'g1'] }),
     ).toBe(true);
+    // A household group (neither Personal nor company) floats nothing either.
     expect(
       fabDrawn({ personal: false, company: false, noAdd: false, segments: ['group', 'g1'] }),
-    ).toBe(true);
+    ).toBe(false);
   });
 });

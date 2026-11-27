@@ -72,6 +72,7 @@ import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { measureAnchor } from '@/lib/measureAnchor';
 import { TabHeader, TabIconButton } from '@/components/home/TabHeader';
 import { PersonAvatar } from '@/components/PersonAvatar';
+import { EmptyCard } from '@/components/standard';
 import { PersonalIntro } from '@/components/PersonalIntro';
 import { PersonalPlanCards } from '@/components/PersonalPlanCards';
 import {
@@ -431,7 +432,12 @@ function MeLedger() {
           onPress={() => router.push('/personal/upcoming')}
         />
         <TabIconButton
-          icon="settings-outline"
+          icon="add"
+          label={t.personal.addExpense}
+          onPress={() => router.push({ pathname: '/personal/entry', params: { kind: 'expense' } })}
+        />
+        <TabIconButton
+          icon="ellipsis-vertical"
           label={h.settings}
           onPress={() => setGearOpen(true)}
         />
@@ -720,9 +726,11 @@ function MeLedger() {
               onAction={() => router.push('/personal/transactions')}
             />
             {recentTxns.length === 0 ? (
-              <Text tone="muted" align="center">
-                {t.personal.dash.noExpenses}
-              </Text>
+              <EmptyCard
+                icon="receipt-outline"
+                title={t.personalHome.emptyRecentTitle}
+                helper={t.personalHome.emptyRecentHelp}
+              />
             ) : (
               <View>
                 {recentTxns.map((txn, index) => (
@@ -777,6 +785,12 @@ function MeLedger() {
             icon: 'lock-closed-outline',
             label: t.personal.dash.settings,
             route: '/settings/lock?space=personal',
+          },
+          // The settings the Me tab used to open; the bar stays Personal.
+          {
+            icon: 'settings-outline',
+            label: t.account.faceSettings,
+            route: '/profile?space=personal',
           },
         ]}
       />
