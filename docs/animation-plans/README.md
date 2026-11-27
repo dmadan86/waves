@@ -13,7 +13,7 @@ Libraries: Reanimated 4.5.3 in the app (no new dependencies, OTA-safe). `package
 | [05](05-documents-slot-grid-motion.md) | Documents grid: tile arrival, thumbnail fade, busy dim | Medium | Medium | proposed |
 | [06](06-wizard-step-motion.md) | Wizard steps: progress glide, slide-in question, tile selection | Medium | Medium | proposed |
 | [07](07-sliding-pills-row-exit-dropdown.md) | Sliding tab pill, Mark-paid row exit, loans dropdown | Medium | Medium | proposed |
-| [08](08-personal-add-button-presence.md) | Personal add button fades with the page that covers it | Medium to low | Small | proposed |
+| [08](08-personal-add-button-presence.md) | Personal add button fades with the page that covers it | Medium to low | Small | built |
 
 ## Recommended order
 

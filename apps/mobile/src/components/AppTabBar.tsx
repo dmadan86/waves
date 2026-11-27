@@ -53,6 +53,7 @@ import {
 import { useCaptures, useVoiceAgentStatus } from '@/data/hooks';
 import { UpdateBar } from '@/components/UpdateBar';
 import { isRtl, plural, useStrings } from '@/i18n';
+import { EASE_OUT, SPRING_SETTLE } from '@/lib/anim';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { captureInboxActionState } from '@/lib/dashboardActions';
@@ -245,6 +246,22 @@ export function AppTabBar() {
   const fabStyle = useAnimatedStyle(() => ({
     opacity: p.value,
     transform: reduced ? [] : [{ scale: 0.6 + mic.value * 0.4 }],
+  }));
+  // The Personal add button fades with the page that covers it, rather than cutting.
+  const addVisible = personal && personalShowsAddFab(segments);
+  const presence = useSharedValue(addVisible ? 1 : 0);
+  useEffect(() => {
+    presence.set(
+      addVisible
+        ? reduced
+          ? withTiming(1, { duration: 120 })
+          : withSpring(1, SPRING_SETTLE)
+        : withTiming(0, { duration: 120, easing: EASE_OUT }),
+    );
+  }, [addVisible, reduced, presence]);
+  const presenceStyle = useAnimatedStyle(() => ({
+    opacity: presence.get(),
+    transform: reduced ? [] : [{ scale: 0.6 + presence.get() * 0.4 }],
   }));
   // Company users get a Company tab where Review was (Review moves to Settings).
   // Derived from the local mirror, so it flips the moment they create/join/leave.
@@ -810,9 +827,14 @@ export function AppTabBar() {
               </View>
             )
           ) : personal ? (
-            personalShowsAddFab(segments) ? (
+            <Animated.View
+              pointerEvents={addVisible ? 'auto' : 'none'}
+              accessibilityElementsHidden={!addVisible}
+              importantForAccessibility={addVisible ? 'auto' : 'no-hide-descendants'}
+              style={presenceStyle}
+            >
               <CenterButton action={addPersonal} />
-            ) : null
+            </Animated.View>
           ) : (
             <CenterButton action={voice} />
           )}
