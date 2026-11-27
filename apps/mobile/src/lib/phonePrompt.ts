@@ -110,11 +110,16 @@ export async function readPhonePromptState(ownerId: string): Promise<PhonePrompt
     const raw = await AsyncStorage.getItem(slot(ownerId));
     if (!raw) return EMPTY_PHONE_PROMPT_STATE;
     const parsed = JSON.parse(raw) as Partial<PhonePromptState>;
-    return {
-      laterCount:
-        typeof parsed.laterCount === 'number' && parsed.laterCount >= 0 ? parsed.laterCount : 0,
-      lastLaterOn: typeof parsed.lastLaterOn === 'string' ? parsed.lastLaterOn : null,
-    };
+    const laterCount =
+      typeof parsed.laterCount === 'number' && parsed.laterCount >= 0 ? parsed.laterCount : 0;
+    if (typeof parsed.lastLaterOn !== 'string') return { laterCount, lastLaterOn: null };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(parsed.lastLaterOn)) {
+      // Saved in an older, unreadable format: restart the cooldown from today, once.
+      const fixed = { laterCount, lastLaterOn: localDay() };
+      await writePhonePromptState(ownerId, fixed);
+      return fixed;
+    }
+    return { laterCount, lastLaterOn: parsed.lastLaterOn };
   } catch {
     return EMPTY_PHONE_PROMPT_STATE;
   }

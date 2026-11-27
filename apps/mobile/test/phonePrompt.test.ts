@@ -135,4 +135,18 @@ describe('"Later" holds on every runtime', () => {
     const state = { laterCount: 1, lastLaterOn: '28/11/2026' };
     expect(phonePromptMode(ASKABLE, state, '2026-11-28')).toBe(PhonePromptMode.Hidden);
   });
+
+  it('rewrites an unreadable stored day once, so the cooldown can end', async () => {
+    await AsyncStorage.setItem(
+      'waves.phone_prompt.u1',
+      JSON.stringify({ laterCount: 1, lastLaterOn: '11/28/2026' }),
+    );
+    const state = await readPhonePromptState('u1');
+    expect(state.lastLaterOn).toBe(localDay());
+    expect(phonePromptMode(ASKABLE, state, localDay())).toBe(PhonePromptMode.Hidden);
+    const later = new Date();
+    later.setDate(later.getDate() + 2);
+    expect(phonePromptMode(ASKABLE, state, localDay(later))).toBe(PhonePromptMode.Soft);
+    expect(await readPhonePromptState('u1')).toEqual(state);
+  });
 });
