@@ -218,7 +218,7 @@ describe('resumable move', () => {
       saved: () => saved,
       deps: {
         put: async () => void log.push('put'),
-        rekey: async () => void log.push('rekey'),
+        rekey: async (_from: string, _to: string): Promise<void> => void log.push('rekey'),
         delSource: async () => {
           if (fails-- > 0) throw new Error('offline');
           log.push('del');
