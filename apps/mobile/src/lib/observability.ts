@@ -112,9 +112,30 @@ export function reportHandled(error: unknown, where: string): void {
     `[handled] ${where}:`,
     error instanceof Error ? `${error.name}: ${error.message}` : error,
   );
+  showOnTestBuild(error, where);
   if (!reportingEnabled) return;
   Sentry.captureException(error, { tags: { where } });
 }
 
 /** Wraps the root component for the native error boundary and route tracing. */
 export const withObservability = Sentry.wrap;
+
+/**
+ * Test builds only (the `preview` update channel): show a couple-space or rentals failure
+ * on screen, because release builds write no JS logs and these failures are otherwise silent.
+ */
+function showOnTestBuild(error: unknown, where: string): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Updates = require('expo-updates') as { channel?: string | null };
+    if (Updates.channel !== 'preview') return;
+    if (!where.startsWith('rentals.') && !where.startsWith('e2ee')) return;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { Alert } = require('react-native') as typeof import('react-native');
+    const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    // eslint-disable-next-line no-restricted-syntax -- test builds only, outside any React tree
+    Alert.alert(`Test build: ${where}`, detail.slice(0, 500));
+  } catch {
+    // Diagnostics only.
+  }
+}
