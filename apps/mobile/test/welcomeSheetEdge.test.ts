@@ -15,3 +15,12 @@ describe('welcome sheet reaches the bottom edge', () => {
     expect(src).toMatch(/paddingBottom: theme\.spacing\.sm \+ insets\.bottom/);
   });
 });
+
+describe('welcome cards stay on screen and off the tagline', () => {
+  it('holds the dinner card to the right edge on every width', () => {
+    expect(src).not.toMatch(/left: windowWidth \* 0\.727/);
+  });
+  it('keeps the cards below the tagline with a gap', () => {
+    expect(src).toMatch(/Math\.min\(screenHeight \* aboveSheet, stage - 12\)/);
+  });
+});

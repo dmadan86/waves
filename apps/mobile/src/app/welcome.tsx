@@ -108,7 +108,8 @@ export default function WelcomeScreen() {
   // screen's height above the sheet's edge (the stage's foot). Held inside the
   // stage, so a short phone never pushes one up over the words.
   const chipAt = (aboveSheet: number): number =>
-    Math.max(0, Math.min(screenHeight * aboveSheet, stage) - 46);
+    // 12pt of air under the tagline, so a short phone never lets a card touch it.
+    Math.max(0, Math.min(screenHeight * aboveSheet, stage - 12) - 46);
   // Three chips need ~430pt of width; narrower phones get two, apart, at the edges.
   const narrow = windowWidth < 428;
   const canGoBack = router.canGoBack();
@@ -398,7 +399,9 @@ export default function WelcomeScreen() {
                   faces={[3, 1, 2]}
                   style={{
                     position: 'absolute',
-                    ...(narrow ? { end: 12 } : { left: windowWidth * 0.727 }),
+                    // Held to the right edge on every width: a share of the width ran
+                    // the card off the screen on the largest phones.
+                    end: 12,
                     bottom: chipAt(0.254),
                     transform: [{ rotate: '4deg' }],
                   }}
