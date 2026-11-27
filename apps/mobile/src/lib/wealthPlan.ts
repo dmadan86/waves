@@ -21,6 +21,7 @@ import {
   type PersonalRecurring,
   type PersonalTenancy,
   type PersonalTxn,
+  type PropertyType,
   type RentFrequency,
   pendingEscalation,
   raiseForOf,
@@ -527,4 +528,40 @@ export function raisePrompt(
     oldAmount: rule.amount,
     newAmount: raisedRent(rule.amount, tn.escalationPct, rule.currency),
   };
+}
+
+// ───────────────────────────────────────────────── rental detail hero ──
+
+export type PropertyArtKind = 'shop' | 'house' | 'building' | 'room' | 'land';
+
+/** Which illustration a property type gets on its detail screen. */
+export function artKind(type: PropertyType): PropertyArtKind {
+  switch (type) {
+    case 'shop':
+    case 'commercial':
+      return 'shop';
+    case 'apartment':
+      return 'building';
+    case 'room':
+      return 'room';
+    case 'land':
+      return 'land';
+    default:
+      return 'house';
+  }
+}
+
+/** The wording under the hero amount: the status, with "Due this month" for the plain due case. */
+export function heroCaptionKey(
+  status: RentStatus | 'vacant',
+): 'dueThisMonthCap' | 'statusPaid' | 'statusPart' | 'statusOverdue' | 'statusVacant' {
+  return status === 'due'
+    ? 'dueThisMonthCap'
+    : status === 'paid'
+      ? 'statusPaid'
+      : status === 'part'
+        ? 'statusPart'
+        : status === 'overdue'
+          ? 'statusOverdue'
+          : 'statusVacant';
 }

@@ -3,19 +3,14 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 // The OS share sheet, opened only when the owner taps "Share receipt".
-import { ScrollView, Share, View } from 'react-native';
+import { Pressable, ScrollView, Share, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
-import {
-  isInvestmentCategory,
-  leaseEndsIn,
-  linkedPersonalTxnIds,
-  settleDeposit,
-  type PersonalTxn,
-} from '@waves/core';
+import { leaseEndsIn, linkedPersonalTxnIds, settleDeposit, type PersonalTxn } from '@waves/core';
 import {
   AmountField,
   Button,
+  directionalIcon,
   IconButton,
   iconSize,
   Row,
@@ -28,14 +23,9 @@ import {
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { PlainHeader, SectionHeader, StandardCard } from '@/components/standard';
+import { PropertyArt } from '@/components/wealth/PropertyArt';
 import { RaiseCard, useRaisePrompts } from '@/components/wealth/RaiseCard';
-import {
-  AmountSheet,
-  RenameSheet,
-  StatusPill,
-  useWealthMoney,
-  type PillTone,
-} from '@/components/wealth/parts';
+import { AmountSheet, RenameSheet, StatusPill, useWealthMoney } from '@/components/wealth/parts';
 import { todayIso, useDeletePersonalRecord, usePersonalLedger } from '@/data/personal';
 import { usePersonalWealth, useWealthWrites } from '@/data/personalWealth';
 import { fill, useStrings } from '@/i18n';
@@ -47,22 +37,63 @@ import { router } from '@/lib/navigation';
 import { useEntitlement } from '@/lib/useEntitlement';
 import {
   depositTerm,
+  heroCaptionKey,
   paymentsOfTenancy,
   propertyView,
   regionOf,
   rentStrip,
   stripMark,
 } from '@/lib/wealthPlan';
-import type { IconName } from '@/lib/wizardIcons';
+import { PROPERTY_ICON, type IconName } from '@/lib/wizardIcons';
 
 type Open = 'rent' | 'expense' | 'change' | 'left' | null;
-const TONE: Record<string, PillTone> = {
-  paid: 'positive',
-  part: 'warning',
-  due: 'neutral',
-  overdue: 'negative',
-  none: 'neutral',
-};
+
+// The theme's positive is blue; a received rent reads green, as in the design.
+const GREEN = '#16A34A';
+const GREEN_TINT = '#16A34A22';
+
+function TintButton({
+  label,
+  icon,
+  bg,
+  fg,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  icon: IconName;
+  bg: string;
+  fg: string;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={{
+        flex: 1,
+        minHeight: 48,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: theme.spacing.sm,
+        borderRadius: theme.radius.lg,
+        backgroundColor: bg,
+        opacity: disabled ? 0.5 : 1,
+      }}
+    >
+      <Ionicons name={icon} size={iconSize.md} color={fg} />
+      <Text variant="body" style={{ fontWeight: '700', color: fg }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
 
 function DetailBody() {
   const theme = useTheme();
@@ -119,20 +150,13 @@ function DetailBody() {
     overdue: w.statusOverdue,
     vacant: w.statusVacant,
   };
-  const facts: [IconName, string, string][] = tn
+  const facts: [IconName, string, string, (() => void)?][] = tn
     ? [
         ['person-outline', w.tenantRow, tn.tenantName],
         ['calendar-outline', w.leaseRow, tn.endDate ? day(tn.endDate) : w.openEnded],
-        ['cash-outline', w.refundableDepositHeld, fmt(tn.depositHeld, cur)],
+        ['cash-outline', w.refundableDepositHeld, fmt(tn.depositHeld, cur), () => setOpen('left')],
       ]
     : [];
-
-  const year = today.slice(0, 4);
-  const mine = ledger.txns.filter(
-    (x) => x.propertyId === prop.id && x.date.startsWith(year) && !isInvestmentCategory(x.category),
-  );
-  const income = mine.filter((x) => x.kind === 'income').reduce((s, x) => s + x.amount, 0n);
-  const spent = mine.filter((x) => x.kind === 'expense').reduce((s, x) => s + x.amount, 0n);
 
   const payments: PersonalTxn[] = tn ? paymentsOfTenancy(ledger.txns, v.rules) : [];
   const lastPayment = [...payments].sort((a, b) => (a.date < b.date ? 1 : -1))[0] ?? null;
@@ -244,6 +268,9 @@ function DetailBody() {
       <PlainHeader
         title={prop.name}
         subtitle={w.propertyTypes[prop.type]}
+        subtitleIcon={
+          <Ionicons name={PROPERTY_ICON[prop.type]} size={iconSize.sm} color={theme.color.brand} />
+        }
         trailing={
           <IconButton label={t.personalHome.toolMore} onPress={() => setMenu(true)}>
             <Ionicons name="ellipsis-vertical" size={iconSize.md} color={theme.color.text} />
@@ -257,76 +284,159 @@ function DetailBody() {
           gap: theme.spacing.md,
         }}
       >
-        {tn ? (
-          <StandardCard style={{ gap: theme.spacing.sm }}>
-            <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text variant="body">{w.currentRentDue}</Text>
-              <StatusPill label={statusText[v.status] ?? ''} tone={TONE[v.status] ?? 'neutral'} />
-            </Row>
-            <Text variant="title" style={{ fontWeight: '800' }}>
-              {fmt(remaining, cur)}
-            </Text>
-            {part ? (
-              <Text variant="caption">
-                {fill(w.partLine, {
-                  paid: fmt(part.paid, cur),
-                  due: fmt(part.amount, cur),
-                  left: fmt(part.amount - part.paid, cur),
-                })}
-              </Text>
-            ) : null}
-            {v.next ? (
-              <Text variant="caption" tone="muted">
-                {fill(w.raiseFuture, {
-                  amount: fmt(v.next.amount, cur),
-                  date: day(v.next.anchorDate),
-                })}
-              </Text>
-            ) : null}
-            <Button label={w.recordRent} onPress={() => setOpen('rent')} />
-          </StandardCard>
-        ) : (
-          <StandardCard style={{ gap: theme.spacing.sm }}>
-            <Text variant="caption" tone="muted">
-              {w.vacantNote}
-            </Text>
-            <Button
-              label={w.addTenant}
-              onPress={() => router.push({ pathname: '/rentals/tenant', params: { id: prop.id } })}
-            />
-          </StandardCard>
-        )}
+        <StandardCard
+          style={{ backgroundColor: theme.color.brandSoft, borderColor: theme.color.brandSoft }}
+        >
+          <Row style={{ alignItems: 'center' }}>
+            <View style={{ flex: 1, gap: theme.spacing.xs }}>
+              {tn ? (
+                <>
+                  <Text variant="body" tone="muted">
+                    {w.rentDueCap}
+                  </Text>
+                  <Text variant="title" style={{ fontWeight: '800' }}>
+                    {fmt(remaining, cur)}
+                  </Text>
+                  <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+                    <Ionicons
+                      name="calendar-outline"
+                      size={iconSize.sm}
+                      color={theme.color.textMuted}
+                    />
+                    <Text variant="caption" tone="muted">
+                      {w[heroCaptionKey(v.status)]}
+                    </Text>
+                  </Row>
+                  {part ? (
+                    <Text variant="caption">
+                      {fill(w.partLine, {
+                        paid: fmt(part.paid, cur),
+                        due: fmt(part.amount, cur),
+                        left: fmt(part.amount - part.paid, cur),
+                      })}
+                    </Text>
+                  ) : null}
+                  {v.next ? (
+                    <Text variant="caption" tone="muted">
+                      {fill(w.raiseFuture, {
+                        amount: fmt(v.next.amount, cur),
+                        date: day(v.next.anchorDate),
+                      })}
+                    </Text>
+                  ) : null}
+                  <View style={{ marginTop: theme.spacing.sm }}>
+                    <Button
+                      label={w.recordRent}
+                      icon={
+                        <Ionicons
+                          name="wallet-outline"
+                          size={iconSize.md}
+                          color={theme.color.onButtonPrimary}
+                        />
+                      }
+                      onPress={() => setOpen('rent')}
+                    />
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text variant="caption" tone="muted">
+                    {w.vacantNote}
+                  </Text>
+                  <View style={{ marginTop: theme.spacing.sm }}>
+                    <Button
+                      label={w.addTenant}
+                      onPress={() =>
+                        router.push({ pathname: '/rentals/tenant', params: { id: prop.id } })
+                      }
+                    />
+                  </View>
+                </>
+              )}
+            </View>
+            <PropertyArt type={prop.type} />
+          </Row>
+        </StandardCard>
 
         {raise ? <RaiseCard prompt={raise} /> : null}
 
         {tn && unpaid && asked ? (
           <StandardCard style={{ gap: theme.spacing.md }}>
-            <Text variant="body" style={{ fontWeight: '600' }}>
-              {fill(w.confirmQ, { name: tn.tenantName, amount: fmt(remaining, cur), unit })}
-            </Text>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: theme.radius.md,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: GREEN_TINT,
+                }}
+              >
+                <Ionicons name="wallet-outline" size={iconSize.md} color={GREEN} />
+              </View>
+              <Text variant="body" style={{ fontWeight: '600', flex: 1 }}>
+                {fill(w.confirmQ, { name: tn.tenantName, amount: fmt(remaining, cur), unit })}
+              </Text>
+            </Row>
             <Row style={{ gap: theme.spacing.sm }}>
               <View style={{ flex: 1 }}>
-                <Button label={w.yesReceived} onPress={() => record(remaining, today)} />
+                <Button
+                  label={w.yesReceived}
+                  icon={
+                    <Ionicons
+                      name="checkmark"
+                      size={iconSize.md}
+                      color={theme.color.onButtonPrimary}
+                    />
+                  }
+                  onPress={() => record(remaining, today)}
+                />
               </View>
-              <View style={{ flex: 1 }}>
-                <Button label={w.notYet} variant="secondary" onPress={() => setAsked(false)} />
-              </View>
+              <TintButton
+                label={w.notYet}
+                icon="time-outline"
+                bg={theme.color.brandSoft}
+                fg={theme.color.brand}
+                onPress={() => setAsked(false)}
+              />
             </Row>
           </StandardCard>
         ) : null}
 
         {tn ? (
           <StandardCard style={{ gap: theme.spacing.md }}>
-            {facts.map(([icon, label, value]) => (
-              <Row key={label} style={{ alignItems: 'center', gap: theme.spacing.md }}>
+            {facts.map(([icon, label, value, onPress], i) => (
+              <Pressable
+                key={label}
+                disabled={!onPress}
+                accessibilityRole={onPress ? 'button' : undefined}
+                accessibilityLabel={`${label} ${value}`}
+                onPress={onPress}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.spacing.md,
+                  paddingBottom: i < facts.length - 1 ? theme.spacing.md : 0,
+                  borderBottomWidth: i < facts.length - 1 ? 1 : 0,
+                  borderBottomColor: theme.color.border,
+                }}
+              >
                 <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
                 <Text variant="caption" tone="muted" style={{ flex: 1 }}>
                   {label}
                 </Text>
-                <Text variant="body" style={{ fontWeight: '600' }}>
+                <Text variant="body" style={{ fontWeight: '700' }}>
                   {value}
                 </Text>
-              </Row>
+                {onPress ? (
+                  <Ionicons
+                    name={directionalIcon('chevron-forward')}
+                    size={iconSize.sm}
+                    color={theme.color.textMuted}
+                  />
+                ) : null}
+              </Pressable>
             ))}
             {lease !== null ? (
               <StatusPill label={fill(w.leaseEndsIn, { n: lease })} tone="warning" />
@@ -344,10 +454,12 @@ function DetailBody() {
                   const current = i === strip.length - 1;
                   const color =
                     mark === 'alert'
-                      ? theme.color.negative
+                      ? theme.color.negativeText
                       : mark === 'warn'
                         ? theme.color.warning
-                        : theme.color.textMuted;
+                        : mark === 'check'
+                          ? GREEN
+                          : theme.color.textMuted;
                   return (
                     <View
                       key={m.month}
@@ -356,26 +468,46 @@ function DetailBody() {
                       style={{
                         flex: 1,
                         alignItems: 'center',
-                        gap: 4,
-                        paddingVertical: 4,
-                        borderRadius: theme.radius.sm,
-                        backgroundColor: current ? theme.color.surfaceMuted : undefined,
+                        gap: 6,
+                        paddingVertical: 6,
+                        borderRadius: theme.radius.md,
+                        backgroundColor: current ? theme.color.negativeSoft : undefined,
                       }}
                     >
                       <Text variant="micro" tone="muted">
                         {month(m.month)}
                       </Text>
-                      {mark === 'check' ? (
-                        <Ionicons name="checkmark" size={12} color={theme.color.positive} />
-                      ) : (
+                      <View
+                        style={{
+                          width: 18,
+                          height: 14,
+                          borderRadius: 5,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: mark === 'check' ? GREEN_TINT : theme.color.surfaceMuted,
+                        }}
+                      >
+                        {mark === 'check' ? (
+                          <Ionicons name="checkmark" size={11} color={GREEN} />
+                        ) : null}
+                      </View>
+                      {mark === 'dash' && !current ? (
                         <Text variant="micro" style={{ color }}>
-                          {mark === 'dash' ? '-' : '•'}
+                          -
                         </Text>
-                      )}
-                      {current && mark !== 'dash' && mark !== 'check' ? (
-                        <Text variant="micro" numberOfLines={1} style={{ fontSize: 9, color }}>
-                          {statusText[m.state] ?? ''}
-                        </Text>
+                      ) : mark === 'alert' || mark === 'warn' || mark === 'check' || current ? (
+                        <>
+                          {mark === 'alert' || mark === 'warn' ? (
+                            <Text variant="micro" style={{ color }}>
+                              •
+                            </Text>
+                          ) : null}
+                          {current ? (
+                            <Text variant="micro" numberOfLines={1} style={{ fontSize: 9, color }}>
+                              {statusText[m.state] ?? ''}
+                            </Text>
+                          ) : null}
+                        </>
                       ) : null}
                     </View>
                   );
@@ -384,24 +516,6 @@ function DetailBody() {
             </StandardCard>
           </View>
         ) : null}
-
-        <StandardCard style={{ gap: theme.spacing.sm }}>
-          <Text variant="body" style={{ fontWeight: '700' }}>
-            {w.thisYear}
-          </Text>
-          <Row style={{ justifyContent: 'space-between' }}>
-            <Text variant="body">{w.rentReceived}</Text>
-            <Text variant="body" style={{ fontWeight: '700' }}>
-              {fmt(income, cur)}
-            </Text>
-          </Row>
-          <Row style={{ justifyContent: 'space-between' }}>
-            <Text variant="body">{w.propertyExpenses}</Text>
-            <Text variant="body" style={{ fontWeight: '700' }}>
-              {fmt(spent, cur)}
-            </Text>
-          </Row>
-        </StandardCard>
       </ScrollView>
       <Row
         style={{
@@ -410,18 +524,22 @@ function DetailBody() {
           paddingBottom: clearance + theme.spacing.md,
         }}
       >
-        <View style={{ flex: 1 }}>
-          <Button label={w.addExpense} variant="secondary" onPress={() => setOpen('expense')} />
-        </View>
+        <TintButton
+          label={w.addExpense}
+          icon="document-text-outline"
+          bg={theme.color.brandSoft}
+          fg={theme.color.brand}
+          onPress={() => setOpen('expense')}
+        />
         {tn ? (
-          <View style={{ flex: 1 }}>
-            <Button
-              label={w.receiptsBtn}
-              variant="secondary"
-              disabled={!lastPayment}
-              onPress={() => void share()}
-            />
-          </View>
+          <TintButton
+            label={w.receiptsBtn}
+            icon="receipt-outline"
+            bg={theme.color.surfaceMuted}
+            fg={theme.color.text}
+            disabled={!lastPayment}
+            onPress={() => void share()}
+          />
         ) : null}
       </Row>
 

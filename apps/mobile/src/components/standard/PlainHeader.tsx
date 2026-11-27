@@ -17,12 +17,15 @@ import { router } from '@/lib/navigation';
 export function PlainHeader({
   title,
   subtitle,
+  subtitleIcon,
   onBack,
   trailing,
 }: {
   title: string;
   /** A muted line under the title (a document's number and status). */
   subtitle?: string;
+  /** A small icon before the subtitle. */
+  subtitleIcon?: ReactNode;
   /** Defaults to going back one screen. */
   onBack?: () => void;
   trailing?: ReactNode;
@@ -58,9 +61,12 @@ export function PlainHeader({
           {title}
         </Text>
         {subtitle ? (
-          <Text variant="caption" tone="muted" numberOfLines={1}>
-            {subtitle}
-          </Text>
+          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+            {subtitleIcon}
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {subtitle}
+            </Text>
+          </Row>
         ) : null}
       </View>
       {trailing ? <View>{trailing}</View> : null}
