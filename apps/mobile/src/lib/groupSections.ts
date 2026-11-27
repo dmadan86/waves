@@ -5,6 +5,7 @@
  */
 import { hasHouseholdHome } from '@waves/core';
 
+import { isViewer } from '@/data/types';
 import { filterGroups, sortGroups, type GroupsEntry } from '@/lib/groupsList';
 
 export interface SectionEntry extends GroupsEntry {
@@ -16,9 +17,9 @@ export interface SectionEntry extends GroupsEntry {
 
 /** True once the viewer's own member row has left_at set. */
 export const viewerLeft = (
-  members: readonly { profile_id?: string | null; left_at: string | null }[],
+  members: readonly { profile_id: string | null; left_at: string | null }[],
   viewerId: string | null | undefined,
-): boolean => !!viewerId && members.some((m) => m.profile_id === viewerId && !!m.left_at);
+): boolean => !!viewerId && members.some((m) => isViewer(m, viewerId) && !!m.left_at);
 
 /** Couples, homes and pooled groups the viewer is still in. */
 export const isPinnedFamily = (entry: SectionEntry): boolean =>
