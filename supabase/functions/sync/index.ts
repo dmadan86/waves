@@ -79,6 +79,8 @@ type MutationKind =
   // The private personal-finance ledger (A48): personal like captures, under its
   // own suffixed scope. One generic upsert/delete covers all four record kinds.
   | 'personal.upsert'
+  | 'group_record.upsert'
+  | 'group_record.delete'
   | 'personal.delete'
   // Trip plan + budgets (A23) — group-scoped, authorised by membership, so NOT
   // in isPersonalKind below.
@@ -345,6 +347,17 @@ const FRESH_GROUPS_PER_PULL = 2 * GROUP_CONCURRENCY;
  * worth an unbounded loop holding a connection open.
  */
 const PERSONAL_MERGE_ATTEMPTS = 3;
+const PERSONAL_RECORD_KINDS = [
+  'txn',
+  'recurring',
+  'loan',
+  'budget',
+  'date',
+  'investment',
+  'property',
+  'tenancy',
+];
+const GROUP_RECORD_KINDS = ['property', 'tenancy', 'recurring', 'txn'];
 
 /**
  * Every group-scoped table one pull walks, with the shape each is read in.
@@ -377,6 +390,7 @@ const GROUP_TABLES = [
   ['group_recurring_expenses', '*'],
   // Household income plans (RLS: members only). Deleted plans arrive with deleted_at set.
   ['group_income_plans', '*'],
+  ['group_records', '*'],
   // Company employees receive only their own entries, including tombstones.
   // Phase 3 fields travel through these wildcard projections under caller RLS:
   // groups: company_tags, company_industry, company_policies, company_policy_revision, company_default_mileage_rate_minor;
@@ -458,6 +472,7 @@ const GROUP_SEQ_STAMPED_TABLES = new Set([
   'trip_member_budgets',
   'group_recurring_expenses',
   'group_income_plans',
+  'group_records',
   'company_entries',
   'company_entry_attachments',
   'company_projects',
@@ -1054,6 +1069,16 @@ export class SyncSession {
         return await this.upsertPersonal(mutation);
       case 'personal.delete':
         return await this.deletePersonal(mutation);
+      case 'group_record.upsert':
+        return await this.upsertRecord(
+          mutation,
+          'group_records',
+          'group_id',
+          mutation.groupId,
+          GROUP_RECORD_KINDS,
+        );
+      case 'group_record.delete':
+        return await this.deleteGroupRecord(mutation);
       case 'plan_item.create':
         return await this.rpcAsCaller('waves_add_plan_item', {
           p_group_id: mutation.groupId,
@@ -2501,6 +2526,28 @@ export class SyncSession {
    */
   private async upsertPersonal(mutation: MutationEnvelope): Promise<unknown> {
     this.requirePersonalScope(mutation);
+    return this.upsertRecord(
+      mutation,
+      'personal_records',
+      'owner_user_id',
+      this.profileId,
+      PERSONAL_RECORD_KINDS,
+    );
+  }
+
+  /**
+   * The merge/CAS body shared by `personal_records` (scoped by owner) and
+   * `group_records` (scoped by group). See `upsertPersonal`'s history above:
+   * read, per-field merge, compare-and-swap on `updated_seq`, a bounded retry,
+   * and the old whole-record write as the last resort.
+   */
+  private async upsertRecord(
+    mutation: MutationEnvelope,
+    table: 'personal_records' | 'group_records',
+    scopeColumn: 'owner_user_id' | 'group_id',
+    scopeValue: string,
+    kinds: readonly string[],
+  ): Promise<unknown> {
     const payload = mutation.payload as {
       recordId?: string;
       recordKind?: string;
@@ -2508,12 +2555,12 @@ export class SyncSession {
     };
     const recordId = requireString(payload.recordId, 'recordId');
     const recordKind = requireString(payload.recordKind, 'recordKind');
-    if (
-      !['txn', 'recurring', 'loan', 'budget', 'date', 'investment', 'property', 'tenancy'].includes(
-        recordKind,
-      )
-    ) {
-      throw new HttpError(400, 'VALIDATION_FAILED', `Unknown personal record kind: ${recordKind}`);
+    if (!kinds.includes(recordKind)) {
+      throw new HttpError(
+        400,
+        'VALIDATION_FAILED',
+        `Unknown ${table === 'personal_records' ? 'personal' : 'group'} record kind: ${recordKind}`,
+      );
     }
     const data =
       payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)
@@ -2522,17 +2569,17 @@ export class SyncSession {
 
     for (let attempt = 0; attempt < PERSONAL_MERGE_ATTEMPTS; attempt += 1) {
       const { data: stored, error: readError } = await this.caller
-        .from('personal_records')
-        .select('data, updated_seq')
+        .from(table)
+        .select(`data, updated_seq, ${scopeColumn}`)
         .eq('id', recordId)
         .maybeSingle();
       if (readError) throw new HttpError(400, 'VALIDATION_FAILED', readError.message);
 
       if (!stored) {
         const now = Date.now();
-        const { error: insertError } = await this.caller.from('personal_records').insert({
+        const { error: insertError } = await this.caller.from(table).insert({
           id: recordId,
-          owner_user_id: this.profileId,
+          [scopeColumn]: scopeValue,
           record_kind: recordKind,
           data: stampFields(null, data, { now, deviceId: 'server' }),
           deleted_at: null,
@@ -2545,6 +2592,11 @@ export class SyncSession {
           throw new HttpError(400, 'VALIDATION_FAILED', insertError.message);
         }
         continue;
+      }
+
+      // A record id that already lives in another scope is not ours to merge into.
+      if ((stored as Record<string, unknown>)[scopeColumn] !== scopeValue) {
+        throw new HttpError(403, 'NOT_OWNER', 'That record belongs to somebody else');
       }
 
       const before =
@@ -2565,7 +2617,7 @@ export class SyncSession {
       );
 
       const { data: written, error: writeError } = await this.caller
-        .from('personal_records')
+        .from(table)
         .update({
           record_kind: recordKind,
           data: merged,
@@ -2585,10 +2637,10 @@ export class SyncSession {
     // for the reason in the doc comment above. Stamp the blob we leave behind so
     // the next edit has a baseline for per-field merging again.
     const now = Date.now();
-    const { error } = await this.caller.from('personal_records').upsert(
+    const { error } = await this.caller.from(table).upsert(
       {
         id: recordId,
-        owner_user_id: this.profileId,
+        [scopeColumn]: scopeValue,
         record_kind: recordKind,
         data: stampFields(null, data, { now, deviceId: 'server' }),
         deleted_at: null,
@@ -2596,6 +2648,17 @@ export class SyncSession {
       },
       { onConflict: 'id' },
     );
+    if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
+    return { recordId };
+  }
+
+  private async deleteGroupRecord(mutation: MutationEnvelope): Promise<unknown> {
+    const recordId = requireString(mutation.payload.recordId, 'recordId');
+    const { error } = await this.caller
+      .from('group_records')
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', recordId)
+      .eq('group_id', mutation.groupId);
     if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
     return { recordId };
   }
@@ -2754,6 +2817,10 @@ export async function pull(
 
     const tablesToRead = GROUP_TABLES.filter(([table]) => {
       if (table.startsWith('company_') && group.type !== 'company') return false;
+      // Rentals live only in a couple/home group (HOUSEHOLD_HOME_TYPES).
+      if (table === 'group_records' && group.type !== 'couple' && group.type !== 'home') {
+        return false;
+      }
       return highWater > since || !GROUP_SEQ_STAMPED_TABLES.has(table);
     });
     const pages = await Promise.all(

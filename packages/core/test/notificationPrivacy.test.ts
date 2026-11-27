@@ -50,3 +50,17 @@ describe('renderPrivateNotification', () => {
     expect(buildPushBatch([{ ...row, private: true }]).messages[0]?.body).not.toContain('Taj');
   });
 });
+
+describe('rent recorded in a couple space', () => {
+  it('never puts the amount on the lock screen, in any language', () => {
+    for (const locale of ['en', 'ta', 'hi', 'ar']) {
+      const out = renderPrivateNotification(
+        'rent_recorded',
+        { counterparty: 'Asha', group: 'Us', amount: '₹20,000', description: 'May rent' },
+        locale,
+      );
+      expect(out.title + out.body).not.toMatch(/20,000|May rent/);
+      expect(out.title).toContain('Asha');
+    }
+  });
+});
