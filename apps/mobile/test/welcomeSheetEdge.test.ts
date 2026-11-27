@@ -24,3 +24,11 @@ describe('welcome cards stay on screen and off the tagline', () => {
     expect(src).toMatch(/Math\.min\(screenHeight \* aboveSheet, stage - 12\)/);
   });
 });
+
+describe('welcome picture fills the width', () => {
+  it('never shows the friends as a narrow box with hard edges', () => {
+    expect(src).toMatch(
+      /resizeMode="cover"\s*\n\s*style=\{\{ width: windowWidth, height: friendsH/,
+    );
+  });
+});

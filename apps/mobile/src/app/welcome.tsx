@@ -99,7 +99,7 @@ export default function WelcomeScreen() {
   // than climb over the words.
   const [stage, setStage] = useState(0);
   // Short phones shrink the picture, then drop it; the sheet never moves.
-  const { friendsH, friendsW, headlineW, showFriends, needsScroll } = welcomeFit({
+  const { friendsH, headlineW, showFriends, needsScroll } = welcomeFit({
     stage,
     windowWidth,
     windowHeight: screenHeight,
@@ -367,10 +367,12 @@ export default function WelcomeScreen() {
           >
             {showFriends ? (
               <>
+                {/* Always the full width: a shrunk picture showed hard straight edges on
+                    small phones. It is trimmed to the fitted height instead. */}
                 <Image
                   source={FRIENDS}
-                  resizeMode="contain"
-                  style={{ width: friendsW, height: friendsH, marginBottom: -22 }}
+                  resizeMode="cover"
+                  style={{ width: windowWidth, height: friendsH, marginBottom: -22 }}
                 />
                 <SplitChip
                   icon="home-outline"
