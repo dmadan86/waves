@@ -112,3 +112,26 @@ export function ruleTimeline(
   for (const txn of txns) if (txn.recurringId === rule.id && txn.date > to) to = txn.date;
   return occurrences(rule, txns, { from, to }, today);
 }
+
+/** The list's tab for the session; a save of the other kind moves it. */
+export const recurringTabMemory: { tab: 'expense' | 'income' } = { tab: 'expense' };
+
+/** One tab of the recurring list: that kind's rules, active ones by due date and
+ *  paused ones after them, with both tabs' counts for the pills. */
+export function recurringTab<T extends Pick<PersonalRecurring, 'txnKind' | 'active' | 'nextDate'>>(
+  rules: readonly T[],
+  tab: 'expense' | 'income',
+): { rules: T[]; counts: { expense: number; income: number } } {
+  const isIncome = (rule: T): boolean => rule.txnKind === 'income';
+  return {
+    rules: rules
+      .filter((rule) => isIncome(rule) === (tab === 'income'))
+      .sort(
+        (a, b) => Number(!a.active) - Number(!b.active) || a.nextDate.localeCompare(b.nextDate),
+      ),
+    counts: {
+      income: rules.filter(isIncome).length,
+      expense: rules.filter((rule) => !isIncome(rule)).length,
+    },
+  };
+}

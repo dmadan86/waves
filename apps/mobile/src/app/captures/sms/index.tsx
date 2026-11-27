@@ -45,11 +45,12 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { SearchToggle } from '@/components/SearchToggle';
 import { useFocusEffect } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { randomUUID } from 'expo-crypto';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import { MutationKind, peopleSignatureKey, SmsKind, fallbackCurrency } from '@waves/core';
 import {
@@ -679,39 +680,11 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
         ) : null}
 
         {/* Search: a plain field, because this is a list people look through. */}
-        <Row
-          style={{
-            alignItems: 'center',
-            gap: theme.spacing.sm,
-            paddingHorizontal: theme.spacing.lg,
-            height: 42,
-            borderRadius: theme.radius.pill,
-            backgroundColor: theme.color.surface,
-            borderWidth: 1,
-            borderColor: theme.color.border,
-          }}
-        >
-          <Ionicons name="search" size={iconSize.md} color={theme.color.textMuted} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t.smsInbox.searchPlaceholder}
-            placeholderTextColor={theme.color.textFaint}
-            accessibilityLabel={t.smsInbox.searchPlaceholder}
-            autoCorrect={false}
-            style={{ flex: 1, color: theme.color.text, fontSize: 15, paddingVertical: 0 }}
-          />
-          {query !== '' ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.smsInbox.searchClear}
-              hitSlop={8}
-              onPress={() => setQuery('')}
-            >
-              <Ionicons name="close-circle" size={iconSize.md} color={theme.color.textMuted} />
-            </Pressable>
-          ) : null}
-        </Row>
+        <SearchToggle
+          value={query}
+          onChange={setQuery}
+          placeholder={t.smsInbox.searchPlaceholder}
+        />
 
         {/* Three piles: Spent, Received, Neither — the third is the debits
             that must not be counted as spending (card bills, top-ups). */}

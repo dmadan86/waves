@@ -2,6 +2,7 @@ import { x25519 } from '@noble/curves/ed25519.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha.js';
 import { describe, expect, it } from 'vitest';
 import { e2ee } from '../src/index';
+import { decodeProperty, decodeTenancy } from '../src/personal/types';
 import {
   encodeBudget,
   encodeDate,
@@ -385,7 +386,7 @@ describe('merge', () => {
     }
   });
 
-  it('round-trips carried fields without letting them override allowlisted record metadata', () => {
+  it('round-trips carried fields without letting them override record metadata', () => {
     const carried = JSON.parse(
       '{"amount":["12","1:0:A"],"createdBy":["attacker","2:0:A"],"kind":["loan","3:0:A"],"amounts":["999","4:0:A"],"status":["closed","5:0:A"]}',
     );
@@ -402,8 +403,10 @@ describe('merge', () => {
     const merged = applyOps({}, [accepted.op], 'A');
     const decoded = JSON.parse(JSON.stringify(merged));
     expect(decoded.safe.fields.status[0]).toBe('closed');
+    // Carried fields are kept, but record metadata always wins over a carried name.
     expect(materialise(decoded.safe)).toEqual({
       amount: '12',
+      amounts: '999',
       status: 'closed',
       id: 'safe',
       kind: 'rent',
@@ -441,6 +444,25 @@ describe('merge', () => {
     expect(states[0]).toEqual([
       expect.objectContaining({ createdBy: 'A', note: 'B edit', extra: 'C edit' }),
     ]);
+  });
+
+  it('preserves property and tenancy detail shapes as JSON-safe fields', () => {
+    const state = run([
+      put('t1', 'A', {
+        contacts: [[{ label: 'A', phone: '123' }], '1:0:A'],
+        occupants: [2, '1:0:A'],
+        maintenance: ['250000', '1:0:A'],
+        maintenanceFrequency: ['monthly', '1:0:A'],
+        customFields: [[{ key: '__proto__', value: 'kept' }], '1:0:A'],
+      }),
+    ]);
+    const data = materialise(state.t1!)!;
+    expect(data.contacts).toEqual([{ label: 'A', phone: '123' }]);
+    expect(decodeTenancy('t1', data).occupants).toBe(2);
+    expect(decodeTenancy('t1', data).contacts).toEqual([{ label: 'A', phone: '123' }]);
+    expect(decodeProperty('p', data).maintenance).toBe(250000n);
+    expect(decodeProperty('p', data).customFields).toEqual([{ key: '__proto__', value: 'kept' }]);
+    expect(Object.prototype).not.toHaveProperty('kept');
   });
   const ops: MergeOp[] = [
     put('r1', 'A', { rent: [100n, '1:0:A'], note: ['hi', '1:0:A'] }),
@@ -589,7 +611,7 @@ describe('double creation of one id', () => {
     const y = runThree([createB, createA, editByB]);
     expect(y).toEqual(x);
     expect(y.three!.fields.partner?.[0]).toBe('edit');
-    expect(materialise(y.three!)).not.toHaveProperty('partner');
+    expect(materialise(y.three!)).toMatchObject({ partner: 'edit' });
   });
 });
 

@@ -12,7 +12,7 @@ export function loanHeaderAddVisible(count: number): boolean {
 }
 
 /** Personal sub-screens whose one add control is the header + (docs/design-standard.md, Add controls). */
-const HEADER_ADD_SCREENS = new Set(['loans', 'recurring', 'budgets', 'upcoming']);
+const HEADER_ADD_SCREENS = new Set(['loans', 'recurring', 'budgets', 'upcoming', 'transactions']);
 
 /** Whether the tab bar's round + shows in Personal: tab roots yes; back-header sub-screens, Rentals and Investments (own Add) no. */
 export function personalShowsAddFab(segments: readonly string[]): boolean {
@@ -20,6 +20,7 @@ export function personalShowsAddFab(segments: readonly string[]): boolean {
     (segments[0] === 'personal' &&
       (HEADER_ADD_SCREENS.has(segments[1] ?? '') || segments[1] === 'setup')) ||
     segments[0] === 'rentals' ||
+    segments[0] === 'vehicles' ||
     segments[0] === 'investments' ||
     segments[0] === 'profile' ||
     segments[0] === 'settings'

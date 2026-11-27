@@ -228,6 +228,9 @@ const FIELDS: Record<string, ReadonlySet<string>> = {
     'updated_at',
   ]),
   _former: new Set(['name']),
+  // Every field of these kinds is read through the app's own tolerant decoders; none is trusted for authorization.
+  vehicle: new Set<string>(),
+  licence: new Set<string>(),
   recurring: new Set([
     'txnKind',
     'amount',
@@ -311,7 +314,6 @@ export function validateOp(
       validateHlc(op.createdHlc);
     }
     const entries = Object.entries(op.fields as Record<string, unknown>);
-    const allowedFields = FIELDS[op.kind]!;
     if (!entries.length || entries.length > 128) return { ok: false, reason: 'fields' };
     for (const [name, raw] of entries) {
       if (
@@ -330,11 +332,11 @@ export function validateOp(
         !/^\d{4}-\d{2}-\d{2}$/.test(value)
       )
         return { ok: false, reason: 'field' };
-      const isObject = value !== null && typeof value === 'object' && !Array.isArray(value);
-      const isCarried = !allowedFields.has(name);
-      const isEncodedObject = isObject && (isCarried || (op.kind === 'loan' && name === 'synced'));
+      // Objects and arrays (contacts, custom fields, carried future fields) are JSON-safe, size-bounded below.
+      const isEncodedObject = value !== null && typeof value === 'object';
       if (!(
         value === null ||
+        value === undefined || // an encoder's unset optional field; it serialises as null
         (typeof value === 'string' && value.length <= 8192) ||
         typeof value === 'boolean' ||
         (typeof value === 'number' && Number.isFinite(value)) ||
@@ -506,7 +508,8 @@ export function materialise(rec: RecordState): Record<string, unknown> | null {
   const data: Record<string, unknown> = Object.create(null);
   let alive = false;
   for (const [k, [v, h]] of Object.entries(rec.fields)) {
-    if (FIELDS[rec.kind]?.has(k) && newer(h, rec.deleted)) {
+    // Carried (unknown) fields travel along; id, kind and createdBy below always win over them.
+    if (newer(h, rec.deleted)) {
       data[k] = v;
       alive = true;
     }

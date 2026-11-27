@@ -17,7 +17,11 @@ import { RaiseCard, useRaisePrompts } from '@/components/wealth/RaiseCard';
 import { useDateOccurrences } from '@/data/personalDates';
 import { usePersonalWealth } from '@/data/personalWealth';
 import { fill, plural, useStrings } from '@/i18n';
+import { usePersonalVehicles } from '@/data/vehicles';
 import { PressableScale } from '@/lib/anim';
+import { dueText } from '@/lib/vehicleText';
+import { regionOf } from '@/lib/wealthPlan';
+import { badgeLabel } from '@/lib/countBadge';
 import { useAuth } from '@/lib/auth';
 import { actionFor } from '@/lib/dateReminders/actions';
 import { subtitleOf, titleOf } from '@/lib/dateReminders/text';
@@ -28,6 +32,7 @@ import {
   billRows,
   dateRows,
   mergeUpcoming,
+  vehicleRows,
   wealthRows,
   type UpcomingRow,
 } from '@/lib/personalUpcoming';
@@ -60,6 +65,20 @@ export function useWealthRows(
   });
 }
 
+/** Vehicle renewals and licence expiry inside their reminder window. */
+function useVehicleRows(today: string): UpcomingRow[] {
+  const { vehicles, licences } = usePersonalVehicles();
+  const { t } = useStrings();
+  const { profile } = useAuth();
+  const region = regionOf(profile?.country_code);
+  return vehicleRows({
+    vehicles,
+    licences,
+    today,
+    title: (name, item) => `${name} · ${dueText(t.vehicles, item, region)}`,
+  });
+}
+
 /** The merged rows: bills, dates and the setup to-do. `limit` 0 lists them all. */
 export function usePersonalUpcoming(
   ledger: {
@@ -74,6 +93,7 @@ export function usePersonalUpcoming(
   const occurrences = useDateOccurrences();
   const dates = session && !isGuest ? pickUpcoming(occurrences, limit > 0 ? limit : 50) : [];
   const wealth = useWealthRows(ledger, limit > 0 ? HOME_HORIZON_DAYS : LIST_HORIZON_DAYS);
+  const vehicles = useVehicleRows(ledger.today);
   const bills = billRows(
     ledger.txns,
     ledger.recurrings,
@@ -81,7 +101,7 @@ export function usePersonalUpcoming(
     ledger.today,
     limit > 0 ? HOME_HORIZON_DAYS : LIST_HORIZON_DAYS,
   );
-  return mergeUpcoming([...bills, ...wealth, ...dateRows(dates)], limit);
+  return mergeUpcoming([...bills, ...wealth, ...vehicles, ...dateRows(dates)], limit);
 }
 
 export const ICON_FOR: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -159,19 +179,55 @@ export function CardTitle({
   title,
   action,
   onAction,
+  count,
   children,
 }: {
   title: string;
   action?: string;
   onAction?: () => void;
+  /** Pill right after the title; hidden at 0, capped at 99+. */
+  count?: number;
   children?: React.ReactNode;
 }) {
   const theme = useTheme();
+  const badge = badgeLabel(count);
   return (
     <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-      <Text accessibilityRole="header" variant="subheading" numberOfLines={1} style={{ flex: 1 }}>
-        {title}
-      </Text>
+      <Row
+        accessible={badge !== null}
+        accessibilityRole={badge !== null ? 'header' : undefined}
+        accessibilityLabel={badge !== null ? `${title}, ${count} items` : undefined}
+        style={{ flex: 1, alignItems: 'center', gap: theme.spacing.sm }}
+      >
+        <Text
+          accessibilityRole={badge === null ? 'header' : undefined}
+          variant="subheading"
+          numberOfLines={1}
+          style={{ flexShrink: 1 }}
+        >
+          {title}
+        </Text>
+        {badge !== null ? (
+          <View
+            style={{
+              minWidth: 22,
+              height: 22,
+              paddingHorizontal: 7,
+              borderRadius: 11,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.negativeSoft,
+            }}
+          >
+            <Text
+              variant="caption"
+              style={{ fontSize: 12, fontWeight: '700', color: theme.color.negativeText }}
+            >
+              {badge}
+            </Text>
+          </View>
+        ) : null}
+      </Row>
       {children}
       {action && onAction ? (
         <Pressable

@@ -96,6 +96,12 @@ export interface PersonalTxn {
   readonly investmentId?: string | null;
   /** The rental property this repair, tax or rent entry belongs to. */
   readonly propertyId?: string | null;
+  /** The vehicle this fuel, service, insurance or other vehicle entry belongs to. */
+  readonly vehicleId?: string | null;
+  /** What sort of vehicle cost it is (fuel, service, ...). Only meaningful with `vehicleId`. */
+  readonly vehicleKind?: VehicleExpenseKind | null;
+  /** The vehicle's name when this was recorded, so the entry still reads right after the vehicle moves away. */
+  readonly vehicleName?: string | null;
   /** Fields from the stored blob this version of the app did not recognise,
    *  kept so that editing a record here never deletes something a newer
    *  version wrote. Re-emitted by the encoder; see the note at the top. */
@@ -281,6 +287,13 @@ export const RENT_FREQUENCIES: readonly RentFrequency[] = [
   'yearly',
   'custom',
 ];
+export const MAINTENANCE_FREQUENCIES = ['monthly', 'quarterly', 'yearly'] as const;
+export const CONTACTS_MAX = 10;
+export const OCCUPANTS_MAX = 50;
+export const CUSTOM_FIELDS_MAX = 30;
+export const CUSTOM_KEY_MAX = 40;
+export const CUSTOM_VALUE_MAX = 500;
+export type MaintenanceFrequency = (typeof MAINTENANCE_FREQUENCIES)[number];
 
 export interface PersonalProperty {
   readonly id: string;
@@ -292,6 +305,9 @@ export interface PersonalProperty {
   readonly note: string | null;
   /** Street address; the older `locality` stays as it was. */
   readonly address?: string | null;
+  readonly maintenance?: bigint | null;
+  readonly maintenanceFrequency?: MaintenanceFrequency;
+  readonly customFields?: readonly { key: string; value: string }[];
   readonly carried?: Readonly<Record<string, unknown>>;
 }
 
@@ -316,6 +332,8 @@ export interface PersonalTenancy {
   /** The part of the advance the landlord kept; counts as income. */
   readonly depositKept: bigint | null;
   readonly note: string | null;
+  readonly contacts?: readonly { label: string; phone: string }[];
+  readonly occupants?: number | null;
   readonly carried?: Readonly<Record<string, unknown>>;
 }
 
@@ -358,6 +376,9 @@ const KNOWN_TXN = [
   'receiptKey',
   'investmentId',
   'propertyId',
+  'vehicleId',
+  'vehicleKind',
+  'vehicleName',
 ];
 const KNOWN_RECURRING = [
   'txnKind',
@@ -402,7 +423,18 @@ const KNOWN_INVESTMENT = [
   'status',
   'note',
 ];
-const KNOWN_PROPERTY = ['type', 'name', 'locality', 'currency', 'status', 'note', 'address'];
+const KNOWN_PROPERTY = [
+  'type',
+  'name',
+  'locality',
+  'currency',
+  'status',
+  'note',
+  'address',
+  'maintenance',
+  'maintenanceFrequency',
+  'customFields',
+];
 const KNOWN_TENANCY = [
   'propertyId',
   'unit',
@@ -418,7 +450,52 @@ const KNOWN_TENANCY = [
   'depositReturned',
   'depositKept',
   'note',
+  'contacts',
+  'occupants',
 ];
+
+export function normaliseContacts(list: unknown): { label: string; phone: string }[] {
+  if (!Array.isArray(list)) return [];
+  const out: { label: string; phone: string }[] = [];
+  for (const item of list) {
+    if (out.length >= CONTACTS_MAX) break;
+    if (!item || typeof item !== 'object') continue;
+    const { label, phone } = item as Record<string, unknown>;
+    if (typeof label !== 'string' || typeof phone !== 'string') continue;
+    const l = label.trim(),
+      p = phone.trim();
+    if (!p || l.length > 60 || p.length > 30) continue;
+    out.push({ label: l, phone: p });
+  }
+  return out;
+}
+export function normaliseCustomFields(list: unknown): { key: string; value: string }[] {
+  if (!Array.isArray(list)) return [];
+  const out: { key: string; value: string }[] = [];
+  for (const item of list) {
+    if (out.length >= CUSTOM_FIELDS_MAX) break;
+    if (!item || typeof item !== 'object') continue;
+    const { key, value } = item as Record<string, unknown>;
+    if (typeof key !== 'string' || typeof value !== 'string') continue;
+    const k = key.trim(),
+      v = value.trim();
+    if (!k || k.length > CUSTOM_KEY_MAX || v.length > CUSTOM_VALUE_MAX) continue;
+    out.push({ key: k, value: v });
+  }
+  return out;
+}
+export function tenancyContacts(t: {
+  tenantName: string;
+  tenantPhone: string | null;
+  contacts?: readonly { label: string; phone: string }[];
+}): { label: string; phone: string }[] {
+  const contacts = normaliseContacts(t.contacts);
+  return contacts.length
+    ? contacts
+    : t.tenantPhone
+      ? [{ label: t.tenantName, phone: t.tenantPhone }]
+      : [];
+}
 
 /**
  * Whatever the blob holds that this version has no field for.
@@ -468,6 +545,9 @@ export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTx
   const investmentId = str(data.investmentId);
   const propertyId = str(data.propertyId);
   const occurrenceDate = str(data.occurrenceDate);
+  const vehicleId = str(data.vehicleId);
+  const vehicleKind = vehicleId ? oneOf(data.vehicleKind, VEHICLE_EXPENSE_KINDS, 'other') : null;
+  const vehicleName = vehicleId ? str(data.vehicleName) : null;
   return {
     id,
     kind: oneOf(data.kind, ['expense', 'income'] as const, 'expense'),
@@ -487,6 +567,9 @@ export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTx
     ...(receiptKey !== null ? { receiptKey } : {}),
     ...(investmentId !== null ? { investmentId } : {}),
     ...(propertyId !== null ? { propertyId } : {}),
+    ...(vehicleId !== null
+      ? { vehicleId, vehicleKind, ...(vehicleName ? { vehicleName } : {}) }
+      : {}),
     carried: carry(data, KNOWN_TXN),
   };
 }
@@ -625,6 +708,9 @@ export function decodeProperty(id: string, data: Record<string, unknown>): Perso
     status: oneOf(data.status, ['active', 'closed'] as const, 'active'),
     note: str(data.note),
     address: str(data.address),
+    maintenance: moneyOrNull(data.maintenance),
+    maintenanceFrequency: oneOf(data.maintenanceFrequency, MAINTENANCE_FREQUENCIES, 'monthly'),
+    customFields: normaliseCustomFields(data.customFields),
     carried: carry(data, KNOWN_PROPERTY),
   };
 }
@@ -647,6 +733,14 @@ export function decodeTenancy(id: string, data: Record<string, unknown>): Person
     depositReturned: moneyOrNull(data.depositReturned),
     depositKept: moneyOrNull(data.depositKept),
     note: str(data.note),
+    contacts: normaliseContacts(data.contacts),
+    occupants:
+      typeof data.occupants === 'number' &&
+      Number.isInteger(data.occupants) &&
+      data.occupants >= 0 &&
+      data.occupants <= OCCUPANTS_MAX
+        ? data.occupants
+        : null,
     carried: carry(data, KNOWN_TENANCY),
   };
 }
@@ -676,6 +770,13 @@ export function encodeTxn(txn: Omit<PersonalTxn, 'id'>): Record<string, unknown>
       receiptKey: txn.receiptKey ?? null,
       ...(txn.investmentId ? { investmentId: txn.investmentId } : {}),
       ...(txn.propertyId ? { propertyId: txn.propertyId } : {}),
+      ...(txn.vehicleId
+        ? {
+            vehicleId: txn.vehicleId,
+            vehicleKind: txn.vehicleKind ?? 'other',
+            ...(txn.vehicleName ? { vehicleName: txn.vehicleName } : {}),
+          }
+        : {}),
     },
     txn.carried,
   );
@@ -771,6 +872,9 @@ export function encodeProperty(p: Omit<PersonalProperty, 'id'>): Record<string, 
       status: p.status,
       note: p.note,
       ...(p.address ? { address: p.address } : {}),
+      maintenance: p.maintenance ? serialiseAmount(p.maintenance) : null,
+      maintenanceFrequency: p.maintenanceFrequency ?? 'monthly',
+      customFields: normaliseCustomFields(p.customFields),
     },
     p.carried,
   );
@@ -782,7 +886,11 @@ export function encodeTenancy(t: Omit<PersonalTenancy, 'id'>): Record<string, un
       propertyId: t.propertyId,
       unit: t.unit,
       tenantName: t.tenantName,
-      tenantPhone: t.tenantPhone,
+      tenantPhone: t.contacts?.length
+        ? (normaliseContacts(t.contacts)[0]?.phone ?? t.tenantPhone)
+        : t.tenantPhone,
+      contacts: normaliseContacts(t.contacts),
+      occupants: t.occupants ?? null,
       depositHeld: serialiseAmount(t.depositHeld),
       rentFrequency: t.rentFrequency,
       startDate: t.startDate,
@@ -795,5 +903,256 @@ export function encodeTenancy(t: Omit<PersonalTenancy, 'id'>): Record<string, un
       note: t.note,
     },
     t.carried,
+  );
+}
+
+// ─────────────────────────────────────────────────────────── vehicles ──
+// Generic names throughout: regional words (PUC, MOT, rego) are display hints
+// chosen by country in the app, never stored.
+
+export type VehicleType = 'car' | 'bike' | 'scooter' | 'three_wheeler' | 'truck' | 'other';
+export const VEHICLE_TYPES: readonly VehicleType[] = [
+  'car',
+  'bike',
+  'scooter',
+  'three_wheeler',
+  'truck',
+  'other',
+];
+export type FuelType = 'petrol' | 'diesel' | 'cng' | 'electric' | 'hybrid' | 'other';
+export const FUEL_TYPES: readonly FuelType[] = [
+  'petrol',
+  'diesel',
+  'cng',
+  'electric',
+  'hybrid',
+  'other',
+];
+export type RenewalKind =
+  | 'insurance'
+  | 'emission_test'
+  | 'service'
+  | 'road_tax'
+  | 'registration'
+  | 'inspection'
+  | 'permit'
+  | 'other';
+export const RENEWAL_KINDS: readonly RenewalKind[] = [
+  'insurance',
+  'emission_test',
+  'service',
+  'road_tax',
+  'registration',
+  'inspection',
+  'permit',
+  'other',
+];
+export type VehicleExpenseKind =
+  'fuel' | 'service' | 'insurance' | 'tax' | 'toll_parking' | 'repair' | 'other';
+export const VEHICLE_EXPENSE_KINDS: readonly VehicleExpenseKind[] = [
+  'fuel',
+  'service',
+  'insurance',
+  'tax',
+  'toll_parking',
+  'repair',
+  'other',
+];
+
+export const DEFAULT_REMIND_DAYS = 15;
+export const MAX_CUSTOM_FIELDS = 20;
+export const MAX_CUSTOM_KEY = 40;
+export const MAX_CUSTOM_VALUE = 200;
+export const MAX_RENEWALS = 30;
+
+export interface CustomField {
+  readonly key: string;
+  readonly value: string;
+}
+
+/** Trimmed, length-capped, blank keys dropped, at most MAX_CUSTOM_FIELDS. Tolerant of any input. */
+export function cleanCustomFields(v: unknown): CustomField[] {
+  if (!Array.isArray(v)) return [];
+  const out: CustomField[] = [];
+  for (const f of v as Record<string, unknown>[]) {
+    const key = typeof f?.key === 'string' ? f.key.trim().slice(0, MAX_CUSTOM_KEY) : '';
+    const value = typeof f?.value === 'string' ? f.value.trim().slice(0, MAX_CUSTOM_VALUE) : '';
+    if (key) out.push({ key, value });
+    if (out.length >= MAX_CUSTOM_FIELDS) break;
+  }
+  return out;
+}
+
+export interface VehicleRenewal {
+  /** Stable within the vehicle, so a reminder keeps its id when the date moves. */
+  readonly id: string;
+  readonly kind: RenewalKind;
+  readonly label: string | null;
+  /** YYYY-MM-DD. */
+  readonly dueDate: string;
+  readonly remindDaysBefore: number;
+  readonly policyNumber: string | null;
+  readonly provider: string | null;
+}
+
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+const cleanRenewals = (v: unknown): VehicleRenewal[] => {
+  if (!Array.isArray(v)) return [];
+  const out: VehicleRenewal[] = [];
+  for (const r of v as Record<string, unknown>[]) {
+    const id = str(r?.id);
+    const dueDate = str(r?.dueDate);
+    if (!id || !dueDate || !ISO_DAY.test(dueDate)) continue;
+    const days = r.remindDaysBefore;
+    out.push({
+      id,
+      kind: oneOf(r.kind, RENEWAL_KINDS, 'other'),
+      label: str(r.label)?.slice(0, 60) ?? null,
+      dueDate,
+      remindDaysBefore:
+        typeof days === 'number' && Number.isInteger(days) && days >= 0 && days <= 365
+          ? days
+          : DEFAULT_REMIND_DAYS,
+      policyNumber: str(r.policyNumber)?.slice(0, 60) ?? null,
+      provider: str(r.provider)?.slice(0, 60) ?? null,
+    });
+    if (out.length >= MAX_RENEWALS) break;
+  }
+  return out;
+};
+
+export interface PersonalVehicle {
+  readonly id: string;
+  readonly type: VehicleType;
+  readonly name: string;
+  readonly registration: string | null;
+  readonly makeModel: string | null;
+  readonly year: number | null;
+  readonly fuel: FuelType;
+  readonly currency: CurrencyCode;
+  readonly status: 'active' | 'sold';
+  /** In the person's own unit (km or miles); never converted. */
+  readonly odometer: number | null;
+  readonly notes: string | null;
+  readonly customFields: readonly CustomField[];
+  readonly renewals: readonly VehicleRenewal[];
+  /** Where it was before it moved here ("Personal" or a space name), so the page can say where earlier expenses are. */
+  readonly movedFrom?: string | null;
+  readonly carried?: Readonly<Record<string, unknown>>;
+}
+
+/** A driving licence belongs to the person, not to a vehicle; it may list the vehicles it covers. */
+export interface PersonalLicence {
+  readonly id: string;
+  readonly holderName: string;
+  readonly number: string | null;
+  readonly licenceClass: string | null;
+  /** YYYY-MM-DD. */
+  readonly expiry: string | null;
+  readonly remindDaysBefore: number;
+  readonly vehicleIds: readonly string[];
+  readonly carried?: Readonly<Record<string, unknown>>;
+}
+
+const KNOWN_VEHICLE = [
+  'type',
+  'name',
+  'registration',
+  'makeModel',
+  'year',
+  'fuel',
+  'currency',
+  'status',
+  'odometer',
+  'notes',
+  'customFields',
+  'renewals',
+  'movedFrom',
+];
+const KNOWN_LICENCE = [
+  'holderName',
+  'number',
+  'licenceClass',
+  'expiry',
+  'remindDaysBefore',
+  'vehicleIds',
+];
+
+const nonNegInt = (v: unknown): number | null =>
+  typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : null;
+
+export function decodeVehicle(id: string, data: Record<string, unknown>): PersonalVehicle {
+  const year = nonNegInt(data.year);
+  return {
+    id,
+    type: oneOf(data.type, VEHICLE_TYPES, 'other'),
+    name: str(data.name) ?? '',
+    registration: str(data.registration),
+    makeModel: str(data.makeModel),
+    year: year !== null && year >= 1900 && year <= 2200 ? year : null,
+    fuel: oneOf(data.fuel, FUEL_TYPES, 'other'),
+    currency: str(data.currency) ?? '',
+    status: oneOf(data.status, ['active', 'sold'] as const, 'active'),
+    odometer: nonNegInt(data.odometer),
+    notes: str(data.notes),
+    customFields: cleanCustomFields(data.customFields),
+    renewals: cleanRenewals(data.renewals),
+    ...(str(data.movedFrom) ? { movedFrom: str(data.movedFrom)?.slice(0, 80) } : {}),
+    carried: carry(data, KNOWN_VEHICLE),
+  };
+}
+
+export function encodeVehicle(v: Omit<PersonalVehicle, 'id'>): Record<string, unknown> {
+  return withCarried(
+    {
+      type: v.type,
+      name: v.name,
+      registration: v.registration,
+      makeModel: v.makeModel,
+      year: v.year,
+      fuel: v.fuel,
+      currency: v.currency,
+      status: v.status,
+      odometer: v.odometer,
+      notes: v.notes,
+      customFields: cleanCustomFields(v.customFields),
+      renewals: cleanRenewals(v.renewals),
+      ...(v.movedFrom ? { movedFrom: v.movedFrom } : {}),
+    },
+    v.carried,
+  );
+}
+
+export function decodeLicence(id: string, data: Record<string, unknown>): PersonalLicence {
+  const expiry = str(data.expiry);
+  const days = data.remindDaysBefore;
+  return {
+    id,
+    holderName: str(data.holderName) ?? '',
+    number: str(data.number),
+    licenceClass: str(data.licenceClass),
+    expiry: expiry && ISO_DAY.test(expiry) ? expiry : null,
+    remindDaysBefore:
+      typeof days === 'number' && Number.isInteger(days) && days >= 0 && days <= 365
+        ? days
+        : DEFAULT_REMIND_DAYS,
+    vehicleIds: Array.isArray(data.vehicleIds)
+      ? (data.vehicleIds as unknown[]).filter((x): x is string => typeof x === 'string' && !!x)
+      : [],
+    carried: carry(data, KNOWN_LICENCE),
+  };
+}
+
+export function encodeLicence(l: Omit<PersonalLicence, 'id'>): Record<string, unknown> {
+  return withCarried(
+    {
+      holderName: l.holderName,
+      number: l.number,
+      licenceClass: l.licenceClass,
+      expiry: l.expiry,
+      remindDaysBefore: l.remindDaysBefore,
+      vehicleIds: [...l.vehicleIds],
+    },
+    l.carried,
   );
 }

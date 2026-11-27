@@ -39,6 +39,7 @@ export function PersonalNoteField({
   label,
   hints,
   plain = false,
+  minHeight = 40,
 }: {
   value: string;
   onChange: (next: string) => void;
@@ -56,9 +57,11 @@ export function PersonalNoteField({
   /** Drop the field's own fill and padding, for a box that already sits in a
    *  card of its own (the entry form's note card). The mic stays. */
   plain?: boolean;
+  /** Starting height of the box; it still grows with the text. */
+  minHeight?: number;
 }): React.JSX.Element {
   const theme = useTheme();
-  const [inputHeight, setInputHeight] = useState(40);
+  const [inputHeight, setInputHeight] = useState(minHeight);
   return (
     <View style={{ gap: theme.spacing.sm }}>
       {label ? (
@@ -81,13 +84,13 @@ export function PersonalNoteField({
           accessibilityLabel={accessibilityLabel}
           multiline
           onContentSizeChange={(event) =>
-            setInputHeight(Math.max(40, event.nativeEvent.contentSize.height))
+            setInputHeight(Math.max(minHeight, event.nativeEvent.contentSize.height))
           }
           style={
             plain
               ? {
                   flex: 1,
-                  minHeight: 40,
+                  minHeight,
                   height: inputHeight,
                   fontSize: 15,
                   lineHeight: 20,
@@ -97,7 +100,7 @@ export function PersonalNoteField({
                 }
               : {
                   flex: 1,
-                  minHeight: 40,
+                  minHeight,
                   height: inputHeight,
                   fontSize: 16,
                   lineHeight: 22,

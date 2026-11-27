@@ -143,6 +143,7 @@ export interface WealthStrings {
   attachPhoto: string;
   attachFile: string;
   docsLocalNote: string;
+  readOnlyCopy: string;
   docsEmpty: string;
   renameDoc: string;
   docSlotAgreement: string;
@@ -173,6 +174,24 @@ export interface WealthStrings {
   callTenant: string;
   whatsappTenant: string;
   notAdded: string;
+  contactsTitle: string;
+  addContact: string;
+  contactName: string;
+  contactPhone: string;
+  removeContact: string;
+  occupantsLabel: string;
+  occupantsFewer: string;
+  occupantsMore: string;
+  maintenanceLabel: string;
+  maintenanceAmount: string;
+  customTitle: string;
+  addCustom: string;
+  customKey: string;
+  customValue: string;
+  removeCustom: string;
+  showMore: string;
+  showLess: string;
+  maintenancePer: { monthly: string; quarterly: string; yearly: string };
   sendToPartner: string;
   /** The lock line on a couple/home group's Rentals screen. */
   e2eeNote: string;
@@ -412,6 +431,7 @@ export const wealthEn: WealthStrings = {
   attachPhoto: 'Photo',
   attachFile: 'File (PDF)',
   docsLocalNote: 'Kept only on this phone, never uploaded.',
+  readOnlyCopy: 'Read-only copy from a couple you left.',
   docsEmpty: 'Add the rental agreement or other papers.',
   renameDoc: 'Rename',
   docSlotAgreement: 'Agreement',
@@ -442,6 +462,24 @@ export const wealthEn: WealthStrings = {
   callTenant: 'Call',
   whatsappTenant: 'WhatsApp',
   notAdded: 'Not added',
+  contactsTitle: 'Phone',
+  addContact: 'Add contact',
+  contactName: 'Name or tag, e.g. Ravi (tenant)',
+  contactPhone: 'Phone number',
+  removeContact: 'Remove contact',
+  occupantsLabel: 'Occupants',
+  occupantsFewer: 'Fewer people',
+  occupantsMore: 'More people',
+  maintenanceLabel: 'Maintenance',
+  maintenanceAmount: 'Maintenance amount',
+  customTitle: 'More details',
+  addCustom: 'Add detail',
+  customKey: 'Name',
+  customValue: 'Value',
+  removeCustom: 'Remove detail',
+  showMore: 'more',
+  showLess: 'less',
+  maintenancePer: { monthly: ' / month', quarterly: ' / quarter', yearly: ' / year' },
   sendToPartner: 'Send to partner',
   e2eeNote: 'End-to-end encrypted. Only you and your partner can read this.',
   e2eeNoteHome: 'End-to-end encrypted. Only members of this group can read this.',
@@ -671,6 +709,7 @@ export const wealthTa: WealthStrings = {
   attachPhoto: 'புகைப்படம்',
   attachFile: 'கோப்பு (PDF)',
   docsLocalNote: 'இந்த போனில் மட்டும் வைக்கப்படும்; பதிவேற்றப்படாது.',
+  readOnlyCopy: 'நீங்கள் விலகிய ஜோடியின் படிக்க மட்டும் நகல்.',
   docsEmpty: 'வாடகை ஒப்பந்தம் அல்லது பிற ஆவணங்களை சேர்க்கவும்.',
   renameDoc: 'பெயர் மாற்று',
   docSlotAgreement: 'ஒப்பந்தம்',
@@ -701,6 +740,24 @@ export const wealthTa: WealthStrings = {
   callTenant: 'அழை',
   whatsappTenant: 'வாட்ஸ்அப்',
   notAdded: 'சேர்க்கவில்லை',
+  contactsTitle: 'போன்',
+  addContact: 'தொடர்பைச் சேர்',
+  contactName: 'பெயர் அல்லது குறிச்சொல்',
+  contactPhone: 'போன் எண்',
+  removeContact: 'தொடர்பை நீக்கு',
+  occupantsLabel: 'குடியிருப்போர்',
+  occupantsFewer: 'குறைவு',
+  occupantsMore: 'அதிகம்',
+  maintenanceLabel: 'பராமரிப்பு',
+  maintenanceAmount: 'பராமரிப்புத் தொகை',
+  customTitle: 'மேலும் விவரங்கள்',
+  addCustom: 'விவரம் சேர்',
+  customKey: 'பெயர்',
+  customValue: 'மதிப்பு',
+  removeCustom: 'விவரத்தை நீக்கு',
+  showMore: 'மேலும்',
+  showLess: 'குறைவாக',
+  maintenancePer: { monthly: ' / மாதம்', quarterly: ' / காலாண்டு', yearly: ' / ஆண்டு' },
   sendToPartner: 'துணைக்கு அனுப்பு',
   e2eeNote: 'முழுமையாக குறியாக்கம் செய்யப்பட்டது. நீங்களும் உங்கள் துணையும் மட்டுமே இதைப் படிக்க முடியும்.',
   e2eeNoteHome:
@@ -931,6 +988,7 @@ export const wealthHi: WealthStrings = {
   attachPhoto: 'फ़ोटो',
   attachFile: 'फ़ाइल (PDF)',
   docsLocalNote: 'सिर्फ़ इसी फ़ोन में रहता है, अपलोड नहीं होता।',
+  readOnlyCopy: 'आपके छोड़े हुए जोड़े की केवल-पढ़ने वाली प्रति।',
   docsEmpty: 'किरायानामा या दूसरे काग़ज़ जोड़ें।',
   renameDoc: 'नाम बदलें',
   docSlotAgreement: 'किरायानामा',
@@ -961,6 +1019,24 @@ export const wealthHi: WealthStrings = {
   callTenant: 'कॉल करें',
   whatsappTenant: 'व्हाट्सऐप',
   notAdded: 'जोड़ा नहीं',
+  contactsTitle: 'फोन',
+  addContact: 'संपर्क जोड़ें',
+  contactName: 'नाम या टैग',
+  contactPhone: 'फोन नंबर',
+  removeContact: 'संपर्क हटाएं',
+  occupantsLabel: 'रहने वाले',
+  occupantsFewer: 'कम लोग',
+  occupantsMore: 'ज़्यादा लोग',
+  maintenanceLabel: 'मेंटेनेंस',
+  maintenanceAmount: 'मेंटेनेंस राशि',
+  customTitle: 'और विवरण',
+  addCustom: 'विवरण जोड़ें',
+  customKey: 'नाम',
+  customValue: 'मान',
+  removeCustom: 'विवरण हटाएं',
+  showMore: 'और',
+  showLess: 'कम',
+  maintenancePer: { monthly: ' / माह', quarterly: ' / तिमाही', yearly: ' / वर्ष' },
   sendToPartner: 'साथी को भेजें',
   e2eeNote: 'एंड-टू-एंड एन्क्रिप्टेड। इसे केवल आप और आपके साथी पढ़ सकते हैं।',
   e2eeNoteHome: 'एंड-टू-एंड एन्क्रिप्टेड। इसे केवल इस ग्रुप के सदस्य पढ़ सकते हैं।',
@@ -1189,6 +1265,7 @@ export const wealthAr: WealthStrings = {
   attachPhoto: 'صورة',
   attachFile: 'ملف (PDF)',
   docsLocalNote: 'تبقى على هذا الهاتف فقط ولا يتم رفعها.',
+  readOnlyCopy: 'نسخة للقراءة فقط من زوج غادرته.',
   docsEmpty: 'أضف عقد الإيجار أو أوراقًا أخرى.',
   renameDoc: 'إعادة تسمية',
   docSlotAgreement: 'عقد الإيجار',
@@ -1219,6 +1296,24 @@ export const wealthAr: WealthStrings = {
   callTenant: 'اتصال',
   whatsappTenant: 'واتساب',
   notAdded: 'غير مضاف',
+  contactsTitle: 'الهاتف',
+  addContact: 'إضافة جهة اتصال',
+  contactName: 'الاسم أو الوسم',
+  contactPhone: 'رقم الهاتف',
+  removeContact: 'إزالة جهة الاتصال',
+  occupantsLabel: 'عدد السكان',
+  occupantsFewer: 'أقل',
+  occupantsMore: 'أكثر',
+  maintenanceLabel: 'الصيانة',
+  maintenanceAmount: 'مبلغ الصيانة',
+  customTitle: 'تفاصيل أخرى',
+  addCustom: 'إضافة تفصيل',
+  customKey: 'الاسم',
+  customValue: 'القيمة',
+  removeCustom: 'إزالة التفصيل',
+  showMore: 'المزيد',
+  showLess: 'أقل',
+  maintenancePer: { monthly: ' / شهر', quarterly: ' / ربع سنة', yearly: ' / سنة' },
   sendToPartner: 'إرسال إلى الشريك',
   e2eeNote: 'مشفّر من طرف إلى طرف. أنت وشريكك فقط يمكنكما قراءة هذا.',
   e2eeNoteHome: 'مشفّر من طرف إلى طرف. أعضاء هذه المجموعة فقط يمكنهم قراءة هذا.',

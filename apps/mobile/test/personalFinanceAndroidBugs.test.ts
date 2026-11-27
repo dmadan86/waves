@@ -172,10 +172,15 @@ describe('Android personal finance regressions', () => {
     const txns = src('app/personal/transactions.tsx');
     expect(txns).toContain('setBrowseMonth(shiftMonth(browseMonth, -1))');
     expect(txns).toContain('setBrowseMonth(shiftMonth(browseMonth, 1))');
-    expect(txns).toContain('No entries match these filters');
-    expect(txns).toContain('Clear filters');
+    expect(txns).toContain('t.personal.noEntriesMatch');
+    expect(txns).toContain('t.personal.clearFilters');
+    const i18n = src('i18n/index.ts');
+    expect(i18n).toContain("noEntriesMatch: 'No entries match these filters'");
+    expect(i18n).toContain("clearFilters: 'Clear filters'");
     expect(txns).toContain('<CategoryPicker\n          wrap');
-    expect(txns).toContain('`No entries in ${monthLabel(browseMonth, locale)}`');
+    expect(txns).toContain(
+      "t.personal.noEntriesIn.replace('{month}', monthLabel(browseMonth, locale))",
+    );
     expect(txns).toContain("tab !== 'all' || drillIn");
     expect(txns).not.toContain('accessibilityLabel={t.personal.add}');
   });
@@ -202,7 +207,7 @@ describe('Android personal finance regressions', () => {
     expect(src('app/personal/entry.tsx')).toContain('addRecurring\n');
     expect(recurring).not.toContain('useClaimFab(true, t.personal.addRecurring');
     expect(recurring).toContain('action={t.personal.addRecurringItem.replace');
-    expect(src('app/personal/entry.tsx')).toContain('editing || recordPayment');
+    expect(src('app/personal/entry.tsx')).toContain('editingTxn || recordPayment');
     expect(src('app/personal/setup.tsx')).toContain(
       'setupPrefillForUntouched(null, incomePrefill, touched.current)',
     );

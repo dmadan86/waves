@@ -30,6 +30,7 @@
  */
 
 import { wealthAr, wealthEn, wealthHi, wealthTa, type WealthStrings } from './wealth';
+import { vehiclesAr, vehiclesEn, vehiclesHi, vehiclesTa, type VehicleStrings } from './vehicles';
 import { createContext, useContext } from 'react';
 import type { ActivityText } from '@/lib/companyActivity';
 import { getLocales } from 'expo-localization';
@@ -190,6 +191,7 @@ export function plural(locale: string, count: number, forms: PluralForms): strin
 
 export interface UiStrings {
   wealth: WealthStrings;
+  vehicles: VehicleStrings;
   calendar: {
     title: string;
     today: string;
@@ -8712,6 +8714,12 @@ export interface UiStrings {
     collapseDay: string;
     expandDay: string;
     searchTransactions: string;
+    askByVoice: string;
+    filterLabel: string;
+    noEntriesMatch: string;
+    noEntriesIn: string;
+    clearFilters: string;
+    addTransaction: string;
     filterCategory: string;
     clearFilter: string;
     txnCount: PluralForms;
@@ -8823,6 +8831,10 @@ export interface UiStrings {
     recurring: string;
     recurringSub: string;
     eachMonth: string;
+    monthTitle: string;
+    leftLabel: string;
+    noRecurringExpense: string;
+    noRecurringIncome: string;
     monthSummary: string;
     moneyIn: string;
     moneyOut: string;
@@ -9103,6 +9115,7 @@ export interface UiStrings {
 
 const en: UiStrings = {
   wealth: wealthEn,
+  vehicles: vehiclesEn,
   calendar: {
     title: 'Calendar',
     today: 'Today',
@@ -17014,6 +17027,12 @@ const en: UiStrings = {
     collapseDay: 'Collapse day',
     expandDay: 'Expand day',
     searchTransactions: 'Search transactions…',
+    askByVoice: 'Ask or add by voice',
+    filterLabel: 'Filter',
+    noEntriesMatch: 'No entries match these filters',
+    noEntriesIn: 'No entries in {month}',
+    clearFilters: 'Clear filters',
+    addTransaction: 'Add transaction',
     filterCategory: 'Filter by category',
     clearFilter: 'Clear filter',
     txnCount: { one: '{n} transaction', other: '{n} transactions' },
@@ -17122,6 +17141,10 @@ const en: UiStrings = {
     recurring: 'Recurring',
     recurringSub: 'Bills and income that repeat.',
     eachMonth: 'Bills and income that repeat.',
+    monthTitle: 'Each month',
+    leftLabel: 'Left',
+    noRecurringExpense: 'No recurring expenses yet',
+    noRecurringIncome: 'No recurring income yet',
     monthSummary: 'Each month: {in} in · {out} out · {left} left',
     moneyIn: 'Money in',
     moneyOut: 'Money out',
@@ -17374,6 +17397,7 @@ const en: UiStrings = {
  */
 const ta: UiStrings = {
   wealth: wealthTa,
+  vehicles: vehiclesTa,
   calendar: {
     title: 'நாட்காட்டி',
     today: 'இன்று',
@@ -25372,6 +25396,12 @@ const ta: UiStrings = {
     collapseDay: 'நாளைச் சுருக்கு',
     expandDay: 'நாளை விரி',
     searchTransactions: 'பரிவர்த்தனைகளைத் தேடுங்கள்…',
+    askByVoice: 'குரலில் கேளுங்கள் அல்லது சேர்க்கவும்',
+    filterLabel: 'வடிகட்டு',
+    noEntriesMatch: 'இந்த வடிகட்டிகளுக்குப் பொருந்தும் பதிவுகள் இல்லை',
+    noEntriesIn: '{month} மாதத்தில் பதிவுகள் இல்லை',
+    clearFilters: 'வடிகட்டிகளை அழி',
+    addTransaction: 'பரிவர்த்தனையைச் சேர்',
     filterCategory: 'வகைப்படி வடிகட்டு',
     clearFilter: 'வடிகட்டியை அழி',
     txnCount: { one: '{n} பரிவர்த்தனை', other: '{n} பரிவர்த்தனைகள்' },
@@ -25480,6 +25510,10 @@ const ta: UiStrings = {
     recurring: 'மீண்டும் வருபவை',
     recurringSub: 'மீண்டும் வரும் பில்கள், வருமானம்.',
     eachMonth: 'ஒவ்வொரு மாதமும்',
+    monthTitle: 'ஒவ்வொரு மாதமும்',
+    leftLabel: 'மீதி',
+    noRecurringExpense: 'தொடர் செலவுகள் இல்லை',
+    noRecurringIncome: 'தொடர் வருமானம் இல்லை',
     monthSummary: 'ஒவ்வொரு மாதமும்: {in} வரவு · {out} செலவு · {left} மீதி',
     moneyIn: 'வரவு',
     moneyOut: 'செலவு',
@@ -25722,6 +25756,7 @@ const ta: UiStrings = {
 
 const hi: UiStrings = {
   wealth: wealthHi,
+  vehicles: vehiclesHi,
   calendar: {
     title: 'कैलेंडर',
     today: 'आज',
@@ -33545,6 +33580,12 @@ const hi: UiStrings = {
     collapseDay: 'दिन का विवरण समेटें',
     expandDay: 'दिन का विवरण खोलें',
     searchTransactions: 'लेन-देन खोजें…',
+    askByVoice: 'आवाज़ से पूछें या जोड़ें',
+    filterLabel: 'फ़िल्टर',
+    noEntriesMatch: 'इन फ़िल्टरों से मेल खाती कोई प्रविष्टि नहीं',
+    noEntriesIn: '{month} में कोई प्रविष्टि नहीं',
+    clearFilters: 'फ़िल्टर हटाएँ',
+    addTransaction: 'लेन-देन जोड़ें',
     filterCategory: 'श्रेणी से छाँटें',
     clearFilter: 'फ़िल्टर हटाएँ',
     txnCount: { one: '{n} लेन-देन', other: '{n} लेन-देन' },
@@ -33653,6 +33694,10 @@ const hi: UiStrings = {
     recurring: 'आवर्ती',
     recurringSub: 'दोहराए जाने वाले बिल और आय।',
     eachMonth: 'हर महीने',
+    monthTitle: 'हर महीने',
+    leftLabel: 'शेष',
+    noRecurringExpense: 'अभी कोई आवर्ती खर्च नहीं',
+    noRecurringIncome: 'अभी कोई आवर्ती आय नहीं',
     monthSummary: 'हर महीने: {in} आय · {out} खर्च · {left} शेष',
     moneyIn: 'पैसे आएँ',
     moneyOut: 'पैसे जाएँ',
@@ -33893,6 +33938,7 @@ const hi: UiStrings = {
  */
 const ar: UiStrings = {
   wealth: wealthAr,
+  vehicles: vehiclesAr,
   calendar: {
     title: 'التقويم',
     today: 'اليوم',
@@ -42631,6 +42677,12 @@ const ar: UiStrings = {
     collapseDay: 'طي تفاصيل اليوم',
     expandDay: 'عرض تفاصيل اليوم',
     searchTransactions: 'ابحث في المعاملات…',
+    askByVoice: 'اسأل أو أضف بالصوت',
+    filterLabel: 'تصفية',
+    noEntriesMatch: 'لا توجد إدخالات تطابق هذه المرشحات',
+    noEntriesIn: 'لا توجد إدخالات في {month}',
+    clearFilters: 'مسح المرشحات',
+    addTransaction: 'إضافة معاملة',
     filterCategory: 'التصفية حسب الفئة',
     clearFilter: 'مسح التصفية',
     txnCount: {
@@ -42753,6 +42805,10 @@ const ar: UiStrings = {
     recurring: 'متكرر',
     recurringSub: 'فواتير ودخل يتكرران.',
     eachMonth: 'كل شهر',
+    monthTitle: 'كل شهر',
+    leftLabel: 'المتبقي',
+    noRecurringExpense: 'لا مصروفات متكررة بعد',
+    noRecurringIncome: 'لا دخل متكرر بعد',
     monthSummary: 'كل شهر: {in} دخل · {out} مصروف · {left} متبقٍ',
     moneyIn: 'أموال داخلة',
     moneyOut: 'أموال خارجة',

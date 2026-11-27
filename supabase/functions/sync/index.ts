@@ -354,6 +354,8 @@ const PERSONAL_RECORD_KINDS = [
   'investment',
   'property',
   'tenancy',
+  'vehicle',
+  'licence',
 ];
 
 /**

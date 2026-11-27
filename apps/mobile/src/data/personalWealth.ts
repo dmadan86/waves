@@ -63,7 +63,7 @@ export interface RentalStore {
   readonly records: readonly RentalRecord[];
   readonly upsert: (
     recordId: string,
-    recordKind: 'investment' | 'property' | 'tenancy' | 'recurring' | 'txn',
+    recordKind: 'investment' | 'property' | 'tenancy' | 'recurring' | 'txn' | 'vehicle' | 'licence',
     data: Record<string, unknown>,
   ) => Promise<unknown>;
   readonly del: (recordId: string) => Promise<unknown>;
@@ -567,7 +567,17 @@ export function useWealthWrites(groupId?: string) {
     /** Blank the personal details first, so the tombstone holds no name or phone. */
     async deleteTenancy(tn: PersonalTenancy): Promise<void> {
       const { id, ...rest } = tn;
-      await put('tenancy', id, encodeTenancy({ ...rest, tenantName: '', tenantPhone: null }));
+      await put(
+        'tenancy',
+        id,
+        encodeTenancy({
+          ...rest,
+          tenantName: '',
+          tenantPhone: null,
+          contacts: [],
+          occupants: null,
+        }),
+      );
       await store.del(id);
     },
 
