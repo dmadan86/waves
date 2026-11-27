@@ -24,10 +24,7 @@ import { PlainHeader, SectionHeader, StandardCard } from '@/components/standard'
 import { StatusPill, RenameSheet, useWealthMoney } from '@/components/wealth/parts';
 import { DocumentsCard } from '@/components/wealth/RentalExtras';
 import { ExpenseSheet, FieldsSheet, RenewalSheet } from '@/components/wealth/VehicleSheets';
-import {
-  todayIso,
-  usePersonalLedger,
-} from '@/data/personal';
+import { todayIso, usePersonalLedger } from '@/data/personal';
 import { useGroups } from '@/data/hooks';
 import { useRentalStore, useSpaceName, type RentalStore } from '@/data/personalWealth';
 import { moveVehicle, usePersonalVehicles, useVehicleWrites } from '@/data/vehicles';
