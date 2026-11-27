@@ -142,11 +142,17 @@ describe('mailbox send', () => {
     expect(await a.mailbox.failedOutboxGroups()).toMatchObject([
       { groupId: G, reason: 'membership-lost' },
     ]);
+    a.groups.push(G); // the phone still lists the group while the server refuses it
+    await a.mailbox.flushOutbox();
+    const attempts = server.directoryCalls;
+    for (let i = 0; i < 4; i++) await a.mailbox.flushOutbox();
+    expect(server.directoryCalls).toBe(attempts);
+    expect(server.sendAttempts).toBe(0);
     server.groups.set(G, [
       { memberId: 'mA', profileId: 'pA' },
       { memberId: 'mB', profileId: 'pB' },
     ]);
-    a.groups.push(G);
+    a.clock.t += 61_000; // past the directory cache
     await a.mailbox.flushOutbox();
     expect(server.mailbox).toHaveLength(1);
     expect(await a.mailbox.failedOutboxGroups()).toEqual([]);

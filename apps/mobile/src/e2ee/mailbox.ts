@@ -170,6 +170,7 @@ export function createMailbox(deps: MailboxDeps) {
   const notices = new NoticeStore(meta);
   const answered = new Map<string, number>();
   const parts = new Map<string, Set<number>>();
+  const probedAt = new Map<string, number>();
   const devicesCache = new Map<string, { at: number; list: GroupDevice[] }>();
   const pairKeys = new Map<string, Uint8Array>();
   const attempts = new Map<string, { n: number; next: number }>();
@@ -487,11 +488,6 @@ export function createMailbox(deps: MailboxDeps) {
 
   async function runOutbox(): Promise<void> {
     const isCurrent = captureCurrent();
-    const joined = new Set(deps.groups?.() ?? []);
-    for (const groupId of joined) {
-      const failure = await meta.get(`outbox-failed:${groupId}`);
-      if (failure?.includes('membership-lost')) await meta.set(`outbox-failed:${groupId}`, '');
-    }
     const rows = await outbox.readE2eeOutbox();
     if (!isCurrent() || (await revoked(isCurrent)) || !isCurrent()) return;
     const blockedGroups = new Set<string>();
@@ -514,7 +510,23 @@ export function createMailbox(deps: MailboxDeps) {
           await meta.set(`outbox-failed:${row.groupId}`, '');
         continue;
       }
-      const failureRaw = await meta.get(`outbox-failed:${row.groupId}`);
+      let failureRaw = await meta.get(`outbox-failed:${row.groupId}`);
+      if (failureRaw?.includes('membership-lost')) {
+        // Quarantined: no send attempts. Only the (cached, ~1/min) directory can lift it:
+        // it clears the marker when this device is listed again.
+        if (deps.now() - (probedAt.get(row.groupId) ?? -Infinity) < DEVICES_TTL_MS) {
+          blockedGroups.add(row.groupId);
+          continue;
+        }
+        probedAt.set(row.groupId, deps.now());
+        try {
+          await groupDevices(row.groupId, false, isCurrent);
+        } catch {
+          /* still not a member */
+        }
+        if (!isCurrent()) return;
+        failureRaw = await meta.get(`outbox-failed:${row.groupId}`);
+      }
       if (failureRaw) {
         let reason = 'unknown';
         try {

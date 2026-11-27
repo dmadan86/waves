@@ -49,4 +49,27 @@ describe('couple mailbox foreground poll', () => {
     expect(run).toHaveBeenCalledTimes(15);
     poll.stop();
   });
+
+  it('stop then start while a run is in flight leaves exactly one loop', async () => {
+    vi.useFakeTimers();
+    let release: () => void = () => undefined;
+    let calls = 0;
+    const run = vi.fn(async () => {
+      calls += 1;
+      if (calls === 1) await new Promise<void>((r) => (release = r));
+      return 1;
+    });
+    const poll = createForegroundPoll(run, () => true, 10_000);
+    poll.start();
+    await vi.advanceTimersByTimeAsync(10_000); // first run is now in flight
+    poll.stop();
+    poll.start();
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    calls = 100; // later runs return at once
+    run.mockClear();
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(run).toHaveBeenCalledTimes(3);
+    poll.stop();
+  });
 });

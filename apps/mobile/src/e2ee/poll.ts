@@ -12,21 +12,23 @@ export function createForegroundPoll(
 ) {
   let timer: ReturnType<typeof setTimeout> | null = null;
   let quiet = 0;
+  let generation = 0;
   const delay = () => (quiet < 12 ? ms : quiet < 36 ? ms * 3 : ms * 6);
-  const tick = (): void => {
+  const tick = (gen: number): void => {
     timer = setTimeout(async () => {
       if (hasWork()) {
         const applied = await run().catch(() => 0);
         quiet = applied ? 0 : quiet + 1;
       }
-      if (timer) tick();
+      // A run finishing after stop()/start() belongs to an old loop.
+      if (timer && gen === generation) tick(gen);
     }, delay());
   };
   return {
     start(): void {
       if (timer) return;
       quiet = 0;
-      tick();
+      tick(++generation);
     },
     stop(): void {
       if (timer) clearTimeout(timer);

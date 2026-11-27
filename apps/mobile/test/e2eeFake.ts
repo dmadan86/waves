@@ -37,6 +37,7 @@ export class FakeServer {
   failSends = 0;
   failAfterAccept = 0;
   failDirectory = 0;
+  directoryCalls = 0;
   /** Devices the server would report as stale on their next waves_device_seen. */
   staleDevices = new Set<string>();
   sendAttempts = 0;
@@ -71,6 +72,7 @@ export class FakeServer {
           if (fn === 'waves_device_seen')
             return { data: server.staleDevices.delete(args.p_device_id as string), error: null };
           if (fn === 'waves_group_devices') {
+            server.directoryCalls += 1;
             if (server.failDirectory > 0) {
               server.failDirectory -= 1;
               return { data: null, error: { message: 'directory offline' } };
