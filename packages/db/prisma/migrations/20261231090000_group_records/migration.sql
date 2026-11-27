@@ -59,9 +59,18 @@ CREATE FUNCTION public.waves_group_records_guard() RETURNS trigger
     AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    NEW.created_by := COALESCE(NEW.created_by, public.waves_my_member_id(NEW.group_id));
-  ELSIF NEW.group_id <> OLD.group_id THEN
-    RAISE EXCEPTION 'A record cannot move to another group' USING ERRCODE = 'check_violation';
+    -- The author is always the signed-in caller, never a value the client sent,
+    -- so one partner cannot record rent in the other's name. Only the service
+    -- role (server jobs, tests) may set it explicitly.
+    IF coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role', '') <> 'service_role'
+       OR NEW.created_by IS NULL THEN
+      NEW.created_by := public.waves_my_member_id(NEW.group_id);
+    END IF;
+  ELSE
+    IF NEW.group_id <> OLD.group_id THEN
+      RAISE EXCEPTION 'A record cannot move to another group' USING ERRCODE = 'check_violation';
+    END IF;
+    NEW.created_by := OLD.created_by;
   END IF;
   RETURN NEW;
 END
@@ -195,7 +204,12 @@ CREATE FUNCTION public.waves_group_records_member_left() RETURNS trigger
     SET search_path TO 'public', 'pg_temp'
     AS $$
 BEGIN
-  PERFORM public.waves_copy_group_records_to_personal(NEW.group_id, NEW.profile_id);
+  -- Never block leaving or removal over the copy.
+  BEGIN
+    PERFORM public.waves_copy_group_records_to_personal(NEW.group_id, NEW.profile_id);
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'group_records copy on leave failed for %: %', NEW.profile_id, SQLERRM;
+  END;
   RETURN NULL;
 END
 $$;
@@ -216,7 +230,12 @@ BEGIN
      WHERE m.group_id = NEW.id AND m.profile_id IS NOT NULL
        AND m.left_at IS NULL AND m.removed_at IS NULL
   LOOP
-    PERFORM public.waves_copy_group_records_to_personal(NEW.id, r.profile_id);
+    -- Never block deleting the group over the copy.
+    BEGIN
+      PERFORM public.waves_copy_group_records_to_personal(NEW.id, r.profile_id);
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'group_records copy on delete failed for %: %', r.profile_id, SQLERRM;
+    END;
   END LOOP;
   RETURN NULL;
 END

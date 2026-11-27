@@ -100,6 +100,25 @@ describe('access', () => {
     expect(seen.rows[0].created_by).toBe(couple.memberIds[alice]);
   });
 
+  it('takes the author from the signed-in caller, never from the client', async () => {
+    const id = '00000000-0000-4000-8000-0000000000a1';
+    await as(couple.profileIds[alice]!, () =>
+      client.query(
+        `INSERT INTO group_records (id, group_id, record_kind, data, created_by)
+         VALUES ($1, $2, 'property', '{"name":"Spoof"}', $3)`,
+        [id, couple.groupId, couple.memberIds[bob]],
+      ),
+    );
+    await as(couple.profileIds[bob]!, () =>
+      client.query(`UPDATE group_records SET created_by = $2 WHERE id = $1`, [
+        id,
+        couple.memberIds[bob],
+      ]),
+    );
+    const seen = await client.query(`SELECT created_by FROM group_records WHERE id = $1`, [id]);
+    expect(seen.rows[0].created_by).toBe(couple.memberIds[alice]);
+  });
+
   it('refuses outsiders, left members, non-household groups and unknown kinds', async () => {
     const id = await put(couple, alice, 'property', { name: 'Flat' });
     await expectDenied(
