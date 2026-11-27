@@ -473,6 +473,11 @@ function ProfileForm() {
               route: '/settings/backup',
             },
             {
+              icon: 'phone-portrait-outline',
+              label: t.wealth.yourPhones,
+              route: '/settings/phones',
+            },
+            {
               icon: 'archive-outline',
               label: t.group.archivedTitle,
               route: '/settings/archived',

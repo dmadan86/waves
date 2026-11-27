@@ -686,6 +686,29 @@ class SqliteStore implements LocalStore {
     });
   }
 
+  /** A group left: drop its rows and unsent messages and write `rows` (re-tagged, own AAD). */
+  replaceE2eeGroup(groupId: string, rows: readonly E2eeRecordRow[]): Promise<void> {
+    return this.serial.run(async () => {
+      const database = await this.db();
+      const key = await loadE2eeKey();
+      await database.withTransactionAsync(async () => {
+        await database.runAsync(`DELETE FROM e2ee_records WHERE group_id = ?`, [groupId]);
+        await database.runAsync(`DELETE FROM e2ee_outbox WHERE group_id = ?`, [groupId]);
+        for (const row of rows)
+          await database.runAsync(
+            `INSERT INTO e2ee_records (group_id, id, kind, json) VALUES (?, ?, ?, ?)
+             ON CONFLICT (group_id, id) DO UPDATE SET kind = excluded.kind, json = excluded.json`,
+            [
+              row.groupId,
+              row.id,
+              row.kind,
+              encryptWith(key, e2ee.encodeJson(row.state), e2eeRecordAad(row.groupId, row.id)),
+            ],
+          );
+      });
+    });
+  }
+
   readE2eeRecords(): Promise<E2eeRecordRow[]> {
     return this.serial.run(async () => {
       const database = await this.db();

@@ -48,11 +48,23 @@ export interface BackupRecord {
   readonly deletedAt: string | null;
 }
 
+/**
+ * One couple group's shared rentals, as this phone holds them. `records` is the
+ * merge state (hlcs and tombstones) as `e2ee.encodeJson` text, so bigints survive.
+ */
+export interface BackupCouple {
+  readonly groupId: string;
+  readonly name: string;
+  readonly records: string;
+}
+
 /** The part that is encrypted: everything that says anything about anybody. */
 export interface BackupBody {
   readonly ownerId: string;
   readonly createdAt: string;
   readonly records: readonly BackupRecord[];
+  /** Optional, so older backups stay readable and no version bump is needed. */
+  readonly couple?: readonly BackupCouple[];
 }
 
 /**
@@ -128,10 +140,12 @@ export function buildBody(
   ownerId: string,
   records: readonly SourceRecord[],
   now: Date,
+  couple: readonly BackupCouple[] = [],
 ): BackupBody {
   return {
     ownerId,
     createdAt: now.toISOString(),
+    ...(couple.length > 0 ? { couple } : {}),
     // Sorted by id so two backups of an unchanged ledger produce byte-identical
     // bodies. Not an optimisation the uploader uses today, but it makes the
     // file diffable and the tests independent of mirror ordering.
@@ -226,9 +240,14 @@ export function parseBody(plain: string, expectOwnerId: string): BackupBody {
     throw new BackupOpenError('backup belongs to a different account');
   }
   const records = Array.isArray(body.records) ? body.records : [];
+  const couple = (Array.isArray(body.couple) ? body.couple : []).filter(
+    (c): c is BackupCouple =>
+      typeof c?.groupId === 'string' && typeof c.name === 'string' && typeof c.records === 'string',
+  );
   return {
     ownerId: body.ownerId,
     createdAt: typeof body.createdAt === 'string' ? body.createdAt : '',
+    ...(couple.length > 0 ? { couple } : {}),
     records: records.filter(
       (record): record is BackupRecord =>
         typeof record?.id === 'string' &&

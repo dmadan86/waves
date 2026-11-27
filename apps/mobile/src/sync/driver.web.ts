@@ -237,6 +237,19 @@ class AsyncStorageStore implements LocalStore {
     });
   }
 
+  replaceE2eeGroup(groupId: string, rows: readonly E2eeRecordRow[]): Promise<void> {
+    return this.serial.run(async () => {
+      const recs = (await this.readJson<E2eeRecordRow[]>(WEB_E2EE_KEYS.records, [])).filter(
+        (r) => r.groupId !== groupId,
+      );
+      const out = (await this.readJson<E2eeOutboxRow[]>(WEB_E2EE_KEYS.outbox, [])).filter(
+        (o) => o.groupId !== groupId,
+      );
+      await AsyncStorage.setItem(WEB_E2EE_KEYS.records, e2ee.encodeJson([...recs, ...rows]));
+      await AsyncStorage.setItem(WEB_E2EE_KEYS.outbox, e2ee.encodeJson(out));
+    });
+  }
+
   readE2eeRecords(): Promise<E2eeRecordRow[]> {
     return this.serial.run(() => this.readJson<E2eeRecordRow[]>(WEB_E2EE_KEYS.records, []));
   }

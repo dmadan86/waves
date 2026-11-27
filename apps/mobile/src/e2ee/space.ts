@@ -8,6 +8,7 @@
 
 import { e2ee } from '@waves/core';
 
+import type { BackupCouple } from '@/lib/backup/payload';
 import type { E2eeOutboxRow, E2eeRecordRow } from '@/sync/store';
 
 type Store = e2ee.Store;
@@ -35,7 +36,14 @@ export interface Me {
 export interface OutboxMsg {
   readonly plaintext: e2ee.Plaintext;
   readonly hint: string | null;
+  /** Seal for this one device only (a snapshot answer), not the whole group. */
+  readonly to?: string;
 }
+
+/** A group this phone has left (or was removed from, or that was deleted): a read-only copy. */
+export const FORMER = 'former:';
+const META = '__former';
+export const isFormer = (groupId: string): boolean => groupId.startsWith(FORMER);
 
 export interface SpaceIo {
   readE2eeRecords(): Promise<E2eeRecordRow[]>;
@@ -43,12 +51,29 @@ export interface SpaceIo {
     rows: readonly E2eeRecordRow[],
     outbox?: readonly E2eeOutboxRow[],
   ): Promise<void>;
+  /** Replace every row and message of `groupId` with `rows` (stored under their own group ids). */
+  replaceE2eeGroup(groupId: string, rows: readonly E2eeRecordRow[]): Promise<void>;
 }
 
 export interface Incoming {
   readonly groupId: string;
   readonly ops: readonly e2ee.MergeOp[];
   readonly senderMemberId: string;
+  /** A snapshot from a partner's phone: first-sight author checks do not apply. */
+  readonly trusted?: boolean;
+  /** With `trusted`: an unknown record's author must be one of these (the group's members). */
+  readonly authors?: ReadonlySet<string>;
+}
+
+/** A snapshot's records as merge ops (a put per record, plus its delete stamp). */
+export function snapshotOps(records: readonly e2ee.RecordState[]): e2ee.MergeOp[] {
+  const ops: e2ee.MergeOp[] = [];
+  for (const r of records) {
+    if (r.createdBy !== '')
+      ops.push({ op: 'put', id: r.id, kind: r.kind, createdBy: r.createdBy, fields: r.fields });
+    if (r.deleted !== undefined) ops.push({ op: 'del', id: r.id, hlc: r.deleted });
+  }
+  return ops;
 }
 
 const same = (a: unknown, b: unknown): boolean => e2ee.encodeJson(a) === e2ee.encodeJson(b);
@@ -133,7 +158,7 @@ export class E2eeSpace {
     const list: GroupRecord[] = [];
     for (const id of Object.keys(store).sort()) {
       const rec = store[id]!;
-      if (rec.createdBy === '') continue;
+      if (rec.createdBy === '' || rec.kind.startsWith('_')) continue;
       const data = aliveFields(rec);
       if (Object.keys(data).length === 0) continue;
       list.push({
@@ -149,6 +174,103 @@ export class E2eeSpace {
     }
     this.cache.set(groupId, { store, list });
     return list;
+  }
+
+  /** Whether this phone kept a read-only copy of a group it left. */
+  hasFormer(groupId: string): boolean {
+    return this.stores.has(FORMER + groupId);
+  }
+
+  /** Every record of a live group as merge state, tombstones included (a snapshot, a backup). */
+  snapshot(groupId: string): e2ee.RecordState[] {
+    return Object.values(this.stores.get(groupId) ?? {}).filter((r) => !r.kind.startsWith('_'));
+  }
+
+  /** Live groups only: never a read-only former couple. */
+  liveGroupIds(): string[] {
+    return this.groupIds().filter((g) => !isFormer(g));
+  }
+
+  /** Former couples, for the read-only section under Personal -> Rentals. */
+  formerGroups(): { groupId: string; name: string }[] {
+    return this.groupIds()
+      .filter(isFormer)
+      .map((groupId) => ({
+        groupId,
+        name: String(this.stores.get(groupId)?.[META]?.fields.name?.[0] ?? ''),
+      }));
+  }
+
+  /** Queue a message that carries no record change (a resync request or answer). */
+  queue(groupId: string, ops: readonly unknown[], to?: string): Promise<void> {
+    return this.run(async () => {
+      const msgId = this.clock.newId();
+      const msg: OutboxMsg = { plaintext: { v: 1, msgId, ops }, hint: null, ...(to ? { to } : {}) };
+      await this.io.writeE2eeRecords(
+        [],
+        [{ id: msgId, groupId, msg, createdAt: new Date(this.clock.now()).toISOString() }],
+      );
+      this.onOutbox?.();
+    });
+  }
+
+  /** Records for a backup: one entry per live group that has any. */
+  backupCouple(nameOf: (groupId: string) => string): BackupCouple[] {
+    return this.liveGroupIds()
+      .map((groupId) => ({ groupId, records: this.snapshot(groupId) }))
+      .filter((g) => g.records.length > 0)
+      .map((g) => ({
+        groupId: g.groupId,
+        name: nameOf(g.groupId),
+        records: e2ee.encodeJson(g.records),
+      }));
+  }
+
+  /**
+   * Merge a backup back in (trusted, like a snapshot), straight into the tables and never
+   * into the send queue. A group the account is no longer in comes back as a former couple.
+   */
+  async restoreCouple(
+    entries: readonly BackupCouple[],
+    liveGroupIds: readonly string[],
+  ): Promise<void> {
+    for (const c of entries) {
+      if (this.stores.has(FORMER + c.groupId)) continue;
+      const records = e2ee.decodeJson(c.records) as e2ee.RecordState[];
+      await this.applyIncoming([
+        { groupId: c.groupId, ops: snapshotOps(records), senderMemberId: '', trusted: true },
+      ]);
+      if (!liveGroupIds.includes(c.groupId)) await this.retire(c.groupId, c.name);
+    }
+  }
+
+  /**
+   * The phone is no longer in this group: keep what it holds as a read-only copy, on this
+   * phone only. Rows are re-tagged `former:<id>`; unsent messages for the group are dropped.
+   */
+  retire(groupId: string, name: string): Promise<void> {
+    return this.run(async () => {
+      const store = this.stores.get(groupId);
+      if (isFormer(groupId) || !store || Object.keys(store).length === 0) return;
+      const fid = FORMER + groupId;
+      const meta: e2ee.RecordState = {
+        id: META,
+        kind: '_former',
+        createdBy: '_',
+        fields: { name: [name, '0'] },
+      };
+      const next: Store = { ...store, [META]: meta };
+      const rows = Object.values(next).map((r) => ({
+        groupId: fid,
+        id: r.id,
+        kind: r.kind,
+        state: r,
+      }));
+      await this.io.replaceE2eeGroup(groupId, rows);
+      this.stores.delete(groupId);
+      this.stores.set(fid, next);
+      this.notify();
+    });
   }
 
   private run<T>(fn: () => Promise<T>): Promise<T> {
@@ -187,6 +309,7 @@ export class E2eeSpace {
     data: Record<string, unknown>,
   ): Promise<void> {
     return this.run(async () => {
+      if (isFormer(groupId)) throw new Error('e2ee: a former couple is read-only');
       const store = this.stores.get(groupId) ?? {};
       const cur = store[id];
       const known = cur && cur.createdBy !== '' ? cur : undefined;
@@ -216,6 +339,7 @@ export class E2eeSpace {
   /** Delete one record, locally first. A tombstone, so a late edit cannot bring it back. */
   del(groupId: string, me: Me, id: string): Promise<void> {
     return this.run(async () => {
+      if (isFormer(groupId)) throw new Error('e2ee: a former couple is read-only');
       const store = this.stores.get(groupId) ?? {};
       const rec = store[id];
       if (!rec || rec.createdBy === '') return;
@@ -256,7 +380,18 @@ export class E2eeSpace {
           next: this.stores.get(e.groupId) ?? {},
           touched: new Set<string>(),
         };
-        g.next = e2ee.applyOps(g.next, e.ops, e.senderMemberId);
+        let ops = e.ops;
+        if (e.trusted) {
+          // A snapshot never changes a known record's author, and never names a stranger.
+          const base = g.next;
+          ops = ops.flatMap((op): e2ee.MergeOp[] => {
+            if (op.op !== 'put') return [op];
+            const known = base[op.id];
+            if (known && known.createdBy !== '') return [{ ...op, createdBy: known.createdBy }];
+            return e.authors && !e.authors.has(op.createdBy) ? [] : [op];
+          });
+        }
+        g.next = e2ee.applyOps(g.next, ops, e.senderMemberId, { trusted: e.trusted });
         for (const op of e.ops) g.touched.add(op.id);
         byGroup.set(e.groupId, g);
       }
