@@ -19,7 +19,10 @@ describe('couple backup structure', () => {
       groups: 2,
       records: 3,
       tombstones: 1,
-      byGroup: { g1: { records: 2, tombstones: 1 }, g2: { records: 1, tombstones: 0 } },
+      byGroup: {
+        g1: { records: 2, tombstones: 1, recordIds: ['a'], tombstoneIds: ['b'] },
+        g2: { records: 1, tombstones: 0, recordIds: ['c'], tombstoneIds: [] },
+      },
     });
   });
 
@@ -58,5 +61,26 @@ describe('couple backup structure', () => {
         ]),
       ),
     ).toBe(false);
+  });
+
+  it('detects a record or tombstone id missing even when counts match', () => {
+    const existing = coupleStructure([
+      {
+        groupId: 'g',
+        name: 'Home',
+        records: JSON.stringify([{ id: 'record-a' }, { id: 'deleted-b', deleted: '2:0:A' }]),
+      },
+    ]);
+    const local = coupleStructure([
+      {
+        groupId: 'g',
+        name: 'Home',
+        records: JSON.stringify([
+          { id: 'different-record' },
+          { id: 'different-deleted', deleted: '3:0:A' },
+        ]),
+      },
+    ]);
+    expect(losesCoupleData(existing, local)).toBe(true);
   });
 });

@@ -275,8 +275,10 @@ export class E2eeSpace {
   async restoreCouple(
     entries: readonly BackupCouple[],
     liveGroupIds: readonly string[],
+    isCurrent: () => boolean = () => true,
   ): Promise<void> {
     for (const c of entries) {
+      if (!isCurrent()) return;
       if (c.former && liveGroupIds.includes(c.groupId)) continue;
       if (this.stores.has(FORMER + c.groupId)) continue;
       const records = e2ee.decodeJson(c.records) as e2ee.RecordState[];
@@ -285,14 +287,14 @@ export class E2eeSpace {
         ...record,
         fields: Object.assign(Object.create(null), record.fields),
       }));
-      const validation = e2ee.validateMessage({ msgId: 'restore', ops: snapshotOps(safeRecords) });
-      if (!validation.ok || validation.rejected.length)
-        throw new Error('e2ee: invalid couple backup records');
-      await this.io.writeE2eePending(c.groupId, []);
-      this.pendingByGroup.delete(c.groupId);
-      await this.applyIncoming([
-        { groupId: c.groupId, ops: snapshotOps(safeRecords), senderMemberId: '', trusted: true },
-      ]);
+      const ops = snapshotOps(safeRecords);
+      for (const op of ops) {
+        const validation = e2ee.validateMessage({ msgId: 'restore', ops: [op] });
+        if (!validation.ok || validation.rejected.length)
+          throw new Error('e2ee: invalid couple backup records');
+      }
+      await this.applyIncoming([{ groupId: c.groupId, ops, senderMemberId: '', trusted: true }]);
+      if (!isCurrent()) return;
       if (c.former || !liveGroupIds.includes(c.groupId)) await this.retire(c.groupId, c.name);
     }
   }

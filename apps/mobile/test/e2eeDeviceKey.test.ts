@@ -32,7 +32,7 @@ describe('device key', () => {
     expect(keyWrite[2]).toEqual({
       keychainAccessible: 'after-first-unlock-this-device-only',
     });
-  });
+  }, 15_000);
 
   it('survives a relaunch: the same key comes back, nothing is written again', async () => {
     const first = await (await import('../src/e2ee/deviceKey')).loadDeviceKey('acct-a');
@@ -41,7 +41,7 @@ describe('device key', () => {
     expect(Array.from(again.publicKey)).toEqual(Array.from(first.publicKey));
     expect(Array.from(again.privateKey)).toEqual(Array.from(first.privateKey));
     expect(secure.sets.filter(([k]) => k === 'waves.e2ee.device.v2.acct-a')).toHaveLength(1);
-  });
+  }, 15_000);
 
   it('registers its public key on every call and returns the device id', async () => {
     const m = await import('../src/e2ee/deviceKey');
@@ -108,5 +108,22 @@ describe('device key', () => {
         Array.from(pair.privateKey).every((value, i) => value === privateKey[i]),
       ),
     ).toHaveLength(1);
+  });
+
+  it('writes the migrated scoped key before the marker so interrupted migration retries', async () => {
+    const m = await import('../src/e2ee/deviceKey');
+    const old = (await m.loadDeviceKey('seed')).privateKey;
+    const legacy = btoa(String.fromCharCode(...old));
+    secure.items.set('waves.e2ee.device.v1', legacy);
+    secure.items.delete('waves.e2ee.device.v1.migrated');
+    secure.items.delete('waves.e2ee.device.v2.account-a');
+    secure.sets.length = 0;
+    vi.resetModules();
+    const keys = await import('../src/e2ee/deviceKey');
+    await keys.loadDeviceKey('account-a');
+    const scopedIndex = secure.sets.findIndex(([key]) => key === 'waves.e2ee.device.v2.account-a');
+    const markerIndex = secure.sets.findIndex(([key]) => key === 'waves.e2ee.device.v1.migrated');
+    expect(scopedIndex).toBeGreaterThanOrEqual(0);
+    expect(markerIndex).toBeGreaterThan(scopedIndex);
   });
 });

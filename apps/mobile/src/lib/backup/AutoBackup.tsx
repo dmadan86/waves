@@ -20,7 +20,7 @@
  */
 
 import { coupleBridge } from './coupleBridge';
-import { useE2eeReady } from '@/e2ee/runtime';
+import { captureE2eeOwner, useE2eeReady } from '@/e2ee/runtime';
 import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
@@ -66,11 +66,13 @@ export function AutoBackup() {
     let alive = true;
 
     const check = async (): Promise<void> => {
+      const isCurrent = captureE2eeOwner(ownerId);
       const now = Date.now();
       if (now - lastCheckRef.current < CHECK_THROTTLE_MS) return;
       lastCheckRef.current = now;
 
       await recoverBackground(ownerId);
+      if (!alive || !isCurrent()) return;
       // Nothing to protect, and an empty seal is the one thing that must never go out.
       if (
         recordsRef.current.length === 0 &&
@@ -78,6 +80,7 @@ export function AutoBackup() {
       )
         return;
       const settings = await loadBackupSettings(ownerId);
+      if (!alive || !isCurrent()) return;
       if (!isDue(settings.last?.at ?? null, settings.frequency, now)) return;
 
       // The keystore read is now only here to answer the tier question for an
@@ -88,6 +91,7 @@ export function AutoBackup() {
         (await loadRecoveryKey(ownerId)) !== null,
         settings.keySeen,
       );
+      if (!alive || !isCurrent()) return;
       // On Extra protection nothing goes out until the person has been shown
       // the key and said they have it: a backup they cannot open is worse than
       // none. On Standard there is nothing to have kept, so there is no gate.
@@ -102,8 +106,9 @@ export function AutoBackup() {
         // The whole point of the network preference is to gate *this* run.
         manual: false,
         knownBackupAt: settings.last?.at ?? null,
+        isCurrent,
       });
-      if (!alive || !result.ok) return;
+      if (!alive || !isCurrent() || !result.ok) return;
       await saveLastBackup(ownerId, result.last);
     };
 

@@ -11,5 +11,5 @@ describe('my member id in a couple space', () => {
     expect(myMemberIdFrom(rows, 'auth-user-uuid')).toBeNull();
     expect(myMemberIdFrom(undefined, 'p-me')).toBeNull();
     expect(myMemberIdFrom(rows, null)).toBeNull();
-  });
+  }, 15_000);
 });

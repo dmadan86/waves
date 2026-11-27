@@ -20,6 +20,13 @@ async function claimLegacyKey(profileId: string): Promise<string | null> {
       const migrated = await SecureStore.getItemAsync(MIGRATED_SLOT);
       if (migrated !== null) return { owner: migrated, key: null };
       const legacy = await SecureStore.getItemAsync(DEVICE_KEY_SLOT);
+      if (legacy) {
+        await SecureStore.setItemAsync(slot(profileId), legacy, {
+          keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
+        });
+      }
+      // The marker is the commit point. If the scoped write fails, a later
+      // sign-in retries with the same legacy key and the marker remains unset.
       await SecureStore.setItemAsync(MIGRATED_SLOT, profileId);
       return { owner: profileId, key: legacy };
     })().finally(() => {
@@ -32,18 +39,9 @@ async function claimLegacyKey(profileId: string): Promise<string | null> {
 
 async function loadOrCreate(profileId: string): Promise<e2ee.DeviceKeyPair> {
   const keySlot = slot(profileId);
+  const legacy = await claimLegacyKey(profileId);
   let stored = await SecureStore.getItemAsync(keySlot);
-  if (!stored) {
-    // The v1 identity can be adopted by only the first profile that signs in
-    // after this upgrade. Persist the marker before writing the scoped slot.
-    const legacy = await claimLegacyKey(profileId);
-    if (legacy) {
-      stored = legacy;
-      await SecureStore.setItemAsync(keySlot, legacy, {
-        keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
-      });
-    }
-  }
+  if (!stored && legacy) stored = legacy;
   if (stored) {
     const privateKey = base64ToBytes(stored);
     return e2ee.generateDeviceKeyPair(() => privateKey);

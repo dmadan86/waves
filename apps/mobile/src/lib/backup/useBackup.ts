@@ -497,17 +497,21 @@ export function useBackup(): BackupState & BackupActions {
   const applyRestore = useCallback(
     async (result: Extract<RestoreScan, { ok: true }>): Promise<number> => {
       if (!ownerId) return 0;
+      const isCurrent = coupleBridge.captureOwner(ownerId);
       const scope = personalScope(ownerId);
       for (const record of result.plan.restore) {
+        if (!isCurrent()) return 0;
         await mutate(MutationKind.PersonalUpsert, scope, {
           recordId: record.id,
           recordKind: record.kind,
           data: record.data,
         });
       }
+      if (!isCurrent()) return 0;
       // Shared rentals go straight into the phone's couple tables, never the server queue,
       // then the partner's phone fills in what changed since the backup.
-      if (result.body?.couple?.length) await coupleBridge.restore(result.body.couple);
+      if (result.body?.couple?.length) await coupleBridge.restore(result.body.couple, isCurrent);
+      if (!isCurrent()) return 0;
       // Durable on disk already; this only asks the queue to leave sooner.
       void flush([scope]);
       await startFresh();

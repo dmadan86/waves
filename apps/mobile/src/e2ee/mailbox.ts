@@ -229,7 +229,12 @@ export function createMailbox(deps: MailboxDeps) {
     } catch (cause) {
       throw new TransientMailboxError(cause);
     }
-    const oldRaw = await meta.get(`devices:${groupId}`);
+    let oldRaw: string | null;
+    try {
+      oldRaw = await meta.get(`devices:${groupId}`);
+    } catch (cause) {
+      throw new TransientMailboxError(cause);
+    }
     if (!current()) return [];
     const oldDevices = previous ?? (oldRaw ? (JSON.parse(oldRaw) as KnownDevice[]) : null);
     if (oldDevices) {
@@ -237,9 +242,20 @@ export function createMailbox(deps: MailboxDeps) {
       for (const old of oldDevices) {
         if (!present.has(old.deviceId)) {
           const key = `sender:${groupId}:${old.deviceId}:removedAt`;
-          const removedAt = await meta.get(key);
+          let removedAt: string | null;
+          try {
+            removedAt = await meta.get(key);
+          } catch (cause) {
+            throw new TransientMailboxError(cause);
+          }
           if (!current()) return [];
-          if (removedAt === null) await meta.set(key, String(deps.now()));
+          if (removedAt === null) {
+            try {
+              await meta.set(key, String(deps.now()));
+            } catch (cause) {
+              throw new TransientMailboxError(cause);
+            }
+          }
           if (!current()) return [];
         }
       }
@@ -460,12 +476,21 @@ export function createMailbox(deps: MailboxDeps) {
           `outbox-failed:${row.groupId}`,
           JSON.stringify({ at: deps.now(), reason: 'expired' }),
         );
-        blockedGroups.add(row.groupId);
+        await outbox.deleteE2eeOutbox([row.id]);
         continue;
       }
-      if (await meta.get(`outbox-failed:${row.groupId}`)) {
-        blockedGroups.add(row.groupId);
-        continue;
+      const failureRaw = await meta.get(`outbox-failed:${row.groupId}`);
+      if (failureRaw) {
+        let reason = 'unknown';
+        try {
+          reason = String((JSON.parse(failureRaw) as { reason?: unknown }).reason ?? reason);
+        } catch {
+          /* old marker */
+        }
+        if (reason !== 'expired') {
+          blockedGroups.add(row.groupId);
+          continue;
+        }
       }
       if (!isCurrent()) return;
       const state = attempts.get(row.id);
@@ -577,8 +602,14 @@ export function createMailbox(deps: MailboxDeps) {
             directoryChecked = true;
             if (!isCurrent()) return applied;
           } catch (error) {
-            const message = String((error as TransientMailboxError).cause ?? error).toLowerCase();
-            if (!message.includes('not a member') && !message.includes('not_member')) throw error;
+            const cause = (error as TransientMailboxError).cause ?? error;
+            const message =
+              String((cause as { message?: unknown; code?: unknown })?.message ?? '') +
+              ' ' +
+              String((cause as { code?: unknown })?.code ?? '');
+            const normalized = message.toLowerCase();
+            if (!normalized.includes('not a member') && !normalized.includes('not_member'))
+              throw error;
           }
           let sender = devices.find((d) => d.deviceId === senderId);
           if (!sender && !refreshed.has(row.group_id)) {
@@ -589,7 +620,9 @@ export function createMailbox(deps: MailboxDeps) {
               if (!isCurrent()) return applied;
               sender = devices.find((d) => d.deviceId === senderId);
             } catch (error) {
-              const message = String((error as TransientMailboxError).cause ?? error).toLowerCase();
+              const cause = (error as TransientMailboxError).cause ?? error;
+              const message =
+                `${String((cause as { message?: unknown })?.message ?? '')} ${String((cause as { code?: unknown })?.code ?? '')}`.toLowerCase();
               if (!message.includes('not a member') && !message.includes('not_member')) throw error;
             }
           }
@@ -903,7 +936,7 @@ export function createMailbox(deps: MailboxDeps) {
     },
     async failedOutboxGroups(): Promise<{ groupId: string; reason: string }[]> {
       const rows = await outbox.readE2eeOutbox();
-      const groups = [...new Set(rows.map((row) => row.groupId))];
+      const groups = [...new Set([...rows.map((row) => row.groupId), ...(deps.groups?.() ?? [])])];
       const failed: { groupId: string; reason: string }[] = [];
       for (const groupId of groups) {
         const raw = await meta.get(`outbox-failed:${groupId}`);

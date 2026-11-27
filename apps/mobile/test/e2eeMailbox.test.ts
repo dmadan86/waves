@@ -94,7 +94,7 @@ describe('mailbox send', () => {
 
   it('expires an outbox item before receipt cleanup and reports the permanent reason', async () => {
     const server = world();
-    const a = phone(server, 'pA', 'mA', 1);
+    const a = phone(server, 'pA', 'mA', 1, undefined, [G]);
     const b = phone(server, 'pB', 'mB', 2);
     await Promise.all([a.deviceId(), b.deviceId()]);
     await a.set(G, 'p1', 'property', prop);
@@ -102,6 +102,21 @@ describe('mailbox send', () => {
     row.createdAt = new Date(a.clock.t - 26 * 24 * 60 * 60 * 1000).toISOString();
     await a.mailbox.flushOutbox();
     expect(server.mailbox).toHaveLength(0);
+    expect(await a.mailbox.failedOutboxGroups()).toEqual([{ groupId: G, reason: 'expired' }]);
+  });
+
+  it('drops only expired rows and continues sending later rows for the group', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1, undefined, [G]);
+    const b = phone(server, 'pB', 'mB', 2);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await a.set(G, 'old', 'property', prop);
+    const old = [...a.store.outbox.values()][0]!;
+    old.createdAt = new Date(a.clock.t - 26 * 24 * 60 * 60 * 1000).toISOString();
+    await a.set(G, 'new', 'property', { ...prop, name: 'Later' });
+    await a.mailbox.flushOutbox();
+    expect(server.mailbox.length).toBeGreaterThan(0);
+    expect([...a.store.outbox.values()].map((row) => row.id)).not.toContain(old.id);
     expect(await a.mailbox.failedOutboxGroups()).toEqual([{ groupId: G, reason: 'expired' }]);
   });
 

@@ -178,6 +178,8 @@ export interface BackupRunInput {
   readonly knownBackupAt?: number | null;
   /** The person saw the "Drive has more" choice and picked Replace. */
   readonly replaceExisting?: boolean;
+  /** Session guard for callers whose backup work spans auth changes. */
+  readonly isCurrent?: () => boolean;
 }
 
 // One run at a time, process-wide. The automatic check and a button press can
@@ -522,6 +524,7 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
   let terminal: 'complete' | 'failed' | 'cancelled' = 'failed';
   const checkCancelled = () => {
     if (controller.signal.aborted) throw new Error('Backup cancelled');
+    if (input.isCurrent && !input.isCurrent()) throw new Error('Backup account changed');
   };
   try {
     dispose = await beginBackground(
@@ -620,6 +623,7 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
       checkCancelled();
       publishBackup({ status: 'uploading', percent: null });
       const stagingName = `${backupFileName(input.ownerId)}.pending`;
+      checkCancelled();
       // A previous process may have died after creating the private staging file.
       const abandoned = await provider.find(tokens, stagingName);
       if (abandoned) await provider.remove(tokens, abandoned.remoteId);
@@ -628,6 +632,7 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
       let stored: CloudFile;
       try {
         for (let attempt = 0; attempt < 2; attempt += 1) {
+          checkCancelled();
           try {
             staged = await provider.put(tokens, stagingName, content, null, {
               signal: controller.signal,
