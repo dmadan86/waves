@@ -1,5 +1,5 @@
 /**
- * Device-local choices about dates: which festivals are switched off and which
+ * Device-local choices about dates: which festivals were switched on and which
  * occurrences were answered "Not this time". Per account, in AsyncStorage —
  * nothing here needs to follow the person to another phone.
  */
@@ -11,13 +11,13 @@ import { useAuth } from '@/lib/auth';
 
 interface State {
   readonly owner: string;
-  readonly festivalsOff: readonly string[];
+  readonly festivalsOn: readonly string[];
   readonly dismissed: readonly string[];
 }
 
-const OFF_KEY = 'waves.dates.festivals_off';
+const ON_KEY = 'waves.dates.festivals_on';
 const DISMISSED_KEY = 'waves.dates.dismissed';
-const NONE: State = { owner: '', festivalsOff: [], dismissed: [] };
+const NONE: State = { owner: '', festivalsOn: [], dismissed: [] };
 
 let state: State = NONE;
 const listeners = new Set<() => void>();
@@ -37,11 +37,11 @@ const readList = async (key: string): Promise<string[]> => {
 };
 
 async function load(owner: string): Promise<void> {
-  const [festivalsOff, dismissed] = await Promise.all([
-    readList(`${OFF_KEY}.${owner}`),
+  const [festivalsOn, dismissed] = await Promise.all([
+    readList(`${ON_KEY}.${owner}`),
     readList(`${DISMISSED_KEY}.${owner}`),
   ]);
-  set({ owner, festivalsOff, dismissed });
+  set({ owner, festivalsOn, dismissed });
 }
 
 export function dismissOccurrence(key: string): void {
@@ -54,13 +54,14 @@ export function dismissOccurrence(key: string): void {
   );
 }
 
-export function setFestivalOff(id: string, off: boolean): void {
+// The old festivals_off key is never read: everything starts off, nobody is switched on for them.
+export function setFestivalOn(id: string, on: boolean): void {
   if (!state.owner) return;
-  const festivalsOff = off
-    ? [...new Set([...state.festivalsOff, id])]
-    : state.festivalsOff.filter((f) => f !== id);
-  set({ ...state, festivalsOff });
-  void AsyncStorage.setItem(`${OFF_KEY}.${state.owner}`, JSON.stringify(festivalsOff)).catch(
+  const festivalsOn = on
+    ? [...new Set([...state.festivalsOn, id])]
+    : state.festivalsOn.filter((f) => f !== id);
+  set({ ...state, festivalsOn });
+  void AsyncStorage.setItem(`${ON_KEY}.${state.owner}`, JSON.stringify(festivalsOn)).catch(
     () => {},
   );
 }

@@ -8,7 +8,7 @@ import { ListRow, PlainHeader, SectionHeader, StandardCard } from '@/components/
 import { usePersonalDates } from '@/data/personalDates';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
-import { setFestivalOff, useDatePrefs } from '@/lib/dateReminders/store';
+import { setFestivalOn, useDatePrefs } from '@/lib/dateReminders/store';
 import { router } from '@/lib/navigation';
 
 export default function DatesScreen() {
@@ -17,7 +17,7 @@ export default function DatesScreen() {
   const { t, locale } = useStrings();
   const { profile } = useAuth();
   const dates = usePersonalDates();
-  const { festivalsOff } = useDatePrefs();
+  const { festivalsOn } = useDatePrefs();
 
   const label = (d: (typeof dates)[number]): string =>
     d.name ? `${d.name} · ${t.dates.kinds[d.label]}` : t.dates.kinds[d.label];
@@ -76,8 +76,8 @@ export default function DatesScreen() {
                 repeatable
                 trailing={
                   <Toggle
-                    value={!festivalsOff.includes(id)}
-                    onValueChange={(on) => setFestivalOff(id, !on)}
+                    value={festivalsOn.includes(id)}
+                    onValueChange={(on) => setFestivalOn(id, on)}
                     accessibilityLabel={t.dates.festivals[id]}
                   />
                 }

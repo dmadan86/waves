@@ -9997,7 +9997,7 @@ const en: UiStrings = {
     notNow: 'Not now',
     remove: 'Delete this date',
     festivalsTitle: 'Festivals',
-    festivalsHint: 'We remind you a few weeks ahead. Switch off any you do not want.',
+    festivalsHint: 'Off until you switch one on. We then remind you a few weeks ahead.',
     notifTitle: 'A reminder from Waves',
     reminder: {
       from: 'From Waves',
@@ -18272,7 +18272,7 @@ const ta: UiStrings = {
     notNow: 'இப்போது வேண்டாம்',
     remove: 'இந்தத் தேதியை நீக்கு',
     festivalsTitle: 'பண்டிகைகள்',
-    festivalsHint: 'சில வாரங்களுக்கு முன்பே நினைவூட்டுவோம். வேண்டாதவற்றை அணைத்துவிடுங்கள்.',
+    festivalsHint: 'நீங்கள் இயக்கும் வரை அணைந்தே இருக்கும். இயக்கினால் சில வாரங்களுக்கு முன்பே நினைவூட்டுவோம்.',
     notifTitle: 'Waves நினைவூட்டல்',
     reminder: {
       from: 'Waves-இடமிருந்து',
@@ -26604,7 +26604,7 @@ const hi: UiStrings = {
     notNow: 'अभी नहीं',
     remove: 'यह तारीख़ हटाएँ',
     festivalsTitle: 'त्योहार',
-    festivalsHint: 'हम कुछ हफ़्ते पहले याद दिलाते हैं। जो न चाहिए उसे बंद कर दें।',
+    festivalsHint: 'जब तक आप चालू न करें, बंद रहते हैं। चालू करने पर हम कुछ हफ़्ते पहले याद दिलाते हैं।',
     notifTitle: 'Waves की ओर से याद दिलाना',
     reminder: {
       from: 'Waves की ओर से',
@@ -34827,7 +34827,7 @@ const ar: UiStrings = {
     notNow: 'ليس الآن',
     remove: 'احذف هذا التاريخ',
     festivalsTitle: 'الأعياد',
-    festivalsHint: 'نذكّرك قبلها بأسابيع. أوقف ما لا تريده.',
+    festivalsHint: 'متوقفة حتى تفعّلها. بعد ذلك نذكّرك قبلها بأسابيع.',
     notifTitle: 'تذكير من Waves',
     reminder: {
       from: 'من Waves',

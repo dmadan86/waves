@@ -9,7 +9,7 @@ import { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
 import { Row, Text, useTheme } from '@waves/ui';
 
-import { useDateOccurrences } from '@/data/personalDates';
+import { useReminderOccurrences } from '@/data/personalDates';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { actionFor } from '@/lib/dateReminders/actions';
@@ -25,12 +25,17 @@ export function DateReminderCard() {
   const { t, locale } = useStrings();
   const theme = useTheme();
   const { session, isGuest } = useAuth();
-  const occurrences = useDateOccurrences();
+  const occurrences = useReminderOccurrences();
   const { dismissed, owner } = useDatePrefs();
   const run = useRunDateAction();
   const signedIn = !!session && !isGuest && owner !== '';
 
-  const card = signedIn ? pickReminderCard(occurrences, new Set(dismissed)) : null;
+  const card = signedIn
+    ? pickReminderCard(
+        occurrences.filter((i) => i.source !== 'festival'),
+        new Set(dismissed),
+      )
+    : null;
   const shown = usePromptSlot({ id: 'date-reminder', priority: 5, active: card !== null });
 
   useEffect(() => {
