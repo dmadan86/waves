@@ -176,6 +176,8 @@ export interface WealthStrings {
   sendToPartner: string;
   /** The lock line on a couple/home group's Rentals screen. */
   e2eeNote: string;
+  /** The same notice for a home space, which can have more than two members. */
+  e2eeNoteHome: string;
   phoneAdded: string;
   phoneRemoved: string;
   dismiss: string;
@@ -442,6 +444,7 @@ export const wealthEn: WealthStrings = {
   notAdded: 'Not added',
   sendToPartner: 'Send to partner',
   e2eeNote: 'End-to-end encrypted. Only you and your partner can read this.',
+  e2eeNoteHome: 'End-to-end encrypted. Only members of this group can read this.',
   phoneAdded: '{name} added a new phone.',
   phoneRemoved: '{name} removed a phone.',
   dismiss: 'Dismiss',
@@ -700,6 +703,8 @@ export const wealthTa: WealthStrings = {
   notAdded: 'சேர்க்கவில்லை',
   sendToPartner: 'துணைக்கு அனுப்பு',
   e2eeNote: 'முழுமையாக குறியாக்கம் செய்யப்பட்டது. நீங்களும் உங்கள் துணையும் மட்டுமே இதைப் படிக்க முடியும்.',
+  e2eeNoteHome:
+    'முழுமையாக குறியாக்கம் செய்யப்பட்டது. இந்தக் குழுவின் உறுப்பினர்கள் மட்டுமே இதைப் படிக்க முடியும்.',
   phoneAdded: '{name} புதிய ஃபோனைச் சேர்த்தார்.',
   phoneRemoved: '{name} ஒரு ஃபோனை நீக்கினார்.',
   dismiss: 'மூடு',
@@ -958,6 +963,7 @@ export const wealthHi: WealthStrings = {
   notAdded: 'जोड़ा नहीं',
   sendToPartner: 'साथी को भेजें',
   e2eeNote: 'एंड-टू-एंड एन्क्रिप्टेड। इसे केवल आप और आपके साथी पढ़ सकते हैं।',
+  e2eeNoteHome: 'एंड-टू-एंड एन्क्रिप्टेड। इसे केवल इस ग्रुप के सदस्य पढ़ सकते हैं।',
   phoneAdded: '{name} ने नया फ़ोन जोड़ा।',
   phoneRemoved: '{name} ने एक फ़ोन हटाया।',
   dismiss: 'बंद करें',
@@ -1215,6 +1221,7 @@ export const wealthAr: WealthStrings = {
   notAdded: 'غير مضاف',
   sendToPartner: 'إرسال إلى الشريك',
   e2eeNote: 'مشفّر من طرف إلى طرف. أنت وشريكك فقط يمكنكما قراءة هذا.',
+  e2eeNoteHome: 'مشفّر من طرف إلى طرف. أعضاء هذه المجموعة فقط يمكنهم قراءة هذا.',
   phoneAdded: '{name} أضاف هاتفًا جديدًا.',
   phoneRemoved: '{name} أزال هاتفًا.',
   dismiss: 'إغلاق',

@@ -9,7 +9,7 @@ import { Platform, Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
 import { PROPERTY_TYPES, type PropertyType } from '@waves/core';
-import { Button, iconSize, Row, Screen, Sheet, Text, useTheme } from '@waves/ui';
+import { Button, Callout, iconSize, Row, Screen, Sheet, Text, useTheme } from '@waves/ui';
 
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { FieldLabel, SelectField } from '@/components/company/EntryForm';
@@ -21,6 +21,7 @@ import { dateFrom, showDate } from '@/lib/expenseDay';
 import { localIsoDate, todayIso } from '@/data/personal';
 import {
   FREE_CAP_ERROR,
+  useMyMemberId,
   useOwnPropertyCount,
   useSpaceName,
   useWealthWrites,
@@ -31,7 +32,8 @@ import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { router } from '@/lib/navigation';
-import { reportHandled } from '@/lib/observability';
+import { friendlyError } from '@/lib/errors';
+import { writesReady } from '@/lib/rentalScope';
 import { PROPERTY_ICON } from '@/lib/wizardIcons';
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -60,11 +62,15 @@ function AddBody() {
   const [end, setEnd] = useState<string | null>(null);
   const [sheet, setSheet] = useState<'type' | 'day' | null>(null);
   const [picking, setPicking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const memberId = useMyMemberId(space);
 
   const isRented = rented === 'yes';
-  const ready = !isRented || (tenant.trim() !== '' && rent > 0n);
+  const loaded = writesReady(space, memberId);
+  const ready = loaded && (!isRented || (tenant.trim() !== '' && rent > 0n));
 
   const save = async (): Promise<void> => {
+    setError(null);
     if (!isPro && ownCount >= 1) {
       router.push('/paywall');
       return;
@@ -91,16 +97,15 @@ function AddBody() {
     };
     try {
       await writes.createRental(draft);
+      router.back();
     } catch (error) {
       if (error instanceof Error && error.message === FREE_CAP_ERROR) {
         router.push('/paywall');
         return;
       }
-      // Local-first: the queue retries; nothing is shown as a refusal, but a write
-      // that never reached the phone must not vanish unseen.
-      reportHandled(error, 'rentals.add.save');
+      // The write never reached the phone: keep the form and say so.
+      setError(friendlyError(error, t.couldNotSave, 'rentals.add.save'));
     }
-    router.back();
   };
 
   const row = (label: string, selected: boolean, onPress: () => void, icon?: ReactElement) => (
@@ -239,7 +244,13 @@ function AddBody() {
           paddingBottom: clearance + theme.spacing.md,
         }}
       >
-        <Button label={w.savePropertyBtn} disabled={!ready} fullWidth onPress={() => void save()} />
+        {error ? <Callout tone="negative">{error}</Callout> : null}
+        <Button
+          label={loaded ? w.savePropertyBtn : t.common.loading}
+          disabled={!ready}
+          fullWidth
+          onPress={() => void save()}
+        />
       </View>
 
       <Sheet

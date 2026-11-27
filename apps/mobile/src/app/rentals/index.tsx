@@ -21,13 +21,18 @@ import { isFormer } from '@/e2ee/space';
 import { PlainHeader, StandardCard } from '@/components/standard';
 import { StatusPill, useWealthMoney, type PillTone } from '@/components/wealth/parts';
 import { todayIso, usePersonalLedger } from '@/data/personal';
-import { useOwnPropertyCount, usePersonalWealth, useSpaceName } from '@/data/personalWealth';
+import {
+  useOwnPropertyCount,
+  usePersonalWealth,
+  useSpaceName,
+  useSpaceType,
+} from '@/data/personalWealth';
 import { fill, useStrings } from '@/i18n';
 import { houseEntering, EASE_OUT, popEntering, PressableScale, Stagger } from '@/lib/anim';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { router } from '@/lib/navigation';
-import { spaceParams } from '@/lib/rentalScope';
+import { e2eeNoteFor, spaceParams } from '@/lib/rentalScope';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { PROPERTY_ICON } from '@/lib/wizardIcons';
@@ -72,6 +77,7 @@ function RentalsBody() {
   const dc = useDefaultCurrency();
   const { space } = useLocalSearchParams<{ space?: string }>();
   const subtitle = useSpaceName(space);
+  const spaceType = useSpaceType(space);
   const ledger = usePersonalLedger(space);
   const { properties, tenancies } = usePersonalWealth(space);
   const ownCount = useOwnPropertyCount(space);
@@ -124,12 +130,12 @@ function RentalsBody() {
     </View>
   );
 
-  // Only in a couple/home space: what is said there is read by the two of them alone.
+  // Only in a couple/home space: what is said there is read by its members alone.
   const lock = space ? (
     <Row style={{ alignItems: 'center', justifyContent: 'center', gap: theme.spacing.xs }}>
       <Ionicons name="lock-closed-outline" size={iconSize.sm} color={theme.color.textMuted} />
       <Text variant="micro" tone="muted" style={{ flexShrink: 1, textAlign: 'center' }}>
-        {w.e2eeNote}
+        {e2eeNoteFor(w, spaceType)}
       </Text>
     </Row>
   ) : null;

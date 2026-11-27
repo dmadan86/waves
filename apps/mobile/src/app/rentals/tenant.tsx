@@ -5,9 +5,11 @@ import { useLocalSearchParams } from 'expo-router';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { TENANT_STEPS, TenantFlow } from '@/components/wealth/TenantFlow';
 import { todayIso } from '@/data/personal';
-import { usePersonalWealth, useWealthWrites } from '@/data/personalWealth';
+import { useMyMemberId, usePersonalWealth, useWealthWrites } from '@/data/personalWealth';
 import { useAuth } from '@/lib/auth';
 import { router } from '@/lib/navigation';
+import { reportHandled } from '@/lib/observability';
+import { writesReady } from '@/lib/rentalScope';
 import { regionOf } from '@/lib/wealthPlan';
 
 function TenantBody() {
@@ -15,9 +17,11 @@ function TenantBody() {
   const { profile } = useAuth();
   const { properties } = usePersonalWealth(space);
   const writes = useWealthWrites(space);
+  const memberId = useMyMemberId(space);
   const [today] = useState(() => todayIso());
   const prop = properties.find((p) => p.id === id);
-  if (!prop) return null;
+  // The group member id loads after the records: wait, so a finished form is never dropped.
+  if (!prop || !writesReady(space, memberId)) return null;
   return (
     <TenantFlow
       currency={prop.currency}
@@ -27,11 +31,10 @@ function TenantBody() {
       total={TENANT_STEPS}
       onSkip={() => router.back()}
       onDone={(tenant) => {
-        void writes
-          .addTenant(prop, tenant, today)
-          // Local-first: the queue retries; nothing is shown as a refusal.
-          .catch(() => {})
-          .finally(() => router.back());
+        void writes.addTenant(prop, tenant, today).then(
+          () => router.back(),
+          (error) => reportHandled(error, 'rentals.tenant.add'),
+        );
       }}
     />
   );

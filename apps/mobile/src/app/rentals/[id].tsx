@@ -51,11 +51,12 @@ import {
 import { useBlockedUsers } from '@/data/blocked';
 import { memberLookup, useGroup } from '@/data/hooks';
 import { memberNameById } from '@/lib/memberName';
-import { liveDocPropertyIds, spaceParams } from '@/lib/rentalScope';
+import { fullPaymentOf, liveDocPropertyIds, outstandingRent, spaceParams } from '@/lib/rentalScope';
 import { fill, useStrings } from '@/i18n';
 import { DetailEnter, EASE_OUT, popEntering, PressableScale, settleEntering } from '@/lib/anim';
 import { hapticSuccess } from '@/lib/assistantHaptics';
 import { useReducedMotion } from '@/lib/reducedMotion';
+import { shouldShowPreviousBalance } from '@/lib/rentalExtrasBehavior';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
@@ -74,7 +75,7 @@ import {
 } from '@/lib/wealthPlan';
 import { PROPERTY_ICON, type IconName } from '@/lib/wizardIcons';
 
-type Open = 'rent' | 'expense' | 'change' | 'left' | null;
+type Open = 'rent' | 'expense' | 'change' | 'left' | 'deposit' | null;
 
 // The theme's positive is blue; a received rent reads green, as in the design.
 const GREEN = '#16A34A';
@@ -144,19 +145,22 @@ function SwapText({ value }: { value: string }) {
   }, [value, reduce, mix]);
   const next = useAnimatedStyle(() => ({ opacity: mix.get() }));
   const old = useAnimatedStyle(() => ({ opacity: 1 - mix.get(), position: 'absolute' }));
+  const showPrevious = shouldShowPreviousBalance(value, prev, BALANCE_MASK);
   const style = { fontWeight: '800', fontSize: 34, lineHeight: 40 } as const;
   return (
     <View>
-      <Animated.View
-        style={old}
-        pointerEvents="none"
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <Text variant="title" style={style}>
-          {prev}
-        </Text>
-      </Animated.View>
+      {showPrevious ? (
+        <Animated.View
+          style={old}
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <Text variant="title" style={style}>
+            {prev}
+          </Text>
+        </Animated.View>
+      ) : null}
       <Animated.View style={next}>
         <Text variant="title" style={style}>
           {value}
@@ -252,7 +256,9 @@ function DetailBody() {
     new Date(`${m}-01T12:00:00`).toLocaleDateString(locale, { month: 'narrow' });
 
   const unpaid = v.balance.lines.find((l) => l.status !== 'paid' && l.date <= today);
-  const remaining = unpaid ? unpaid.amount - unpaid.paid : (v.rule?.amount ?? 0n);
+  const outstanding = outstandingRent(unpaid);
+  // The recording form still offers the regular instalment when nothing is overdue.
+  const remaining = unpaid ? outstanding : (v.rule?.amount ?? 0n);
   const part = v.balance.lines.find((l) => l.status === 'part');
   const lease = tn ? leaseEndsIn(tn.endDate, today, 60) : null;
   const strip = rentStrip(v.balance, today);
@@ -267,7 +273,12 @@ function DetailBody() {
     ? [
         ['person-outline', w.tenantRow, tn.tenantName],
         ['calendar-outline', w.leaseRow, tn.endDate ? day(tn.endDate) : w.openEnded],
-        ['cash-outline', w.refundableDepositHeld, fmt(tn.depositHeld, cur), () => setOpen('left')],
+        [
+          'cash-outline',
+          w.refundableDepositHeld,
+          fmt(tn.depositHeld, cur),
+          () => setOpen('deposit'),
+        ],
       ]
     : [];
 
@@ -276,7 +287,7 @@ function DetailBody() {
 
   const record = (amount: bigint, date: string): void => {
     // A full payment of an untouched due date keeps one fixed id (see recordRent).
-    const full = unpaid && unpaid.paid === 0n && amount === unpaid.amount ? unpaid.date : null;
+    const full = fullPaymentOf(unpaid, amount);
     if (!v.rule) return;
     void writes.recordRent(v.rule, prop.id, amount, date, unit, full).then(hapticSuccess, () => {});
   };
@@ -427,7 +438,7 @@ function DetailBody() {
                       <Text variant="body" tone="muted">
                         {w.rentDueCap}
                       </Text>
-                      <SwapText value={fmt(remaining, cur)} />
+                      <SwapText value={fmt(outstanding, cur)} />
                       <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
                         <Ionicons
                           name="calendar-outline"
@@ -738,6 +749,20 @@ function DetailBody() {
           setOpen(null);
         }}
       />
+      {tn ? (
+        <AmountSheet
+          visible={open === 'deposit'}
+          title={fill(w.depositQ, { term: noun })}
+          currency={cur}
+          initial={tn.depositHeld}
+          saveLabel={w.save}
+          onClose={() => setOpen(null)}
+          onSave={(amount) => {
+            void writes.saveTenancy({ ...tn, depositHeld: amount });
+            setOpen(null);
+          }}
+        />
+      ) : null}
       {tn && settle ? (
         <Sheet
           visible={open === 'left'}
