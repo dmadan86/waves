@@ -9,12 +9,14 @@
  * later put revives only the fields it writes (the record then shows just those
  * fields). A record with no alive field is tombstoned and left out of the UI.
  *
- * createdBy rule: fixed the first time a put is seen. Unless the batch is
- * `trusted` (a snapshot), a put's createdBy must equal the sender's member on
- * first sight, else it is rejected; later puts must repeat the same createdBy
- * and kind. A rejected op is dropped, so an edit that overtakes its creating put
- * is dropped too and must be re-sent (snapshots cover that). A delete that
- * arrives first leaves a stub (kind and createdBy empty) the first put fills in.
+ * createdBy rule: unless the batch is `trusted` (a snapshot), a put's createdBy
+ * must equal the sender's member on first sight, else it is dropped. Two partners
+ * may legitimately create the same deterministic id (both tap "paid in full"):
+ * a put for a known record with a different createdBy is accepted only from that
+ * author, and the EARLIEST creation wins. `createdHlc` is the smallest hlc of any
+ * put seen (ties by createdBy), so every phone settles on the same author and the
+ * fields then merge as usual. Kind must always match. A delete that arrives first
+ * leaves a stub (kind and createdBy empty) the first put fills in.
  */
 
 import { compareHlc } from './hlc';
@@ -25,6 +27,8 @@ export interface RecordState {
   readonly id: string;
   readonly kind: string;
   readonly createdBy: string;
+  /** Smallest put hlc seen: decides which author wins a double creation. */
+  readonly createdHlc?: string;
   readonly fields: Readonly<Record<string, Field>>;
   readonly deleted?: string;
 }
@@ -45,6 +49,12 @@ export type MergeOp = PutOp | DelOp;
 
 export type Store = Readonly<Record<string, RecordState>>;
 
+const minHlc = (fields: Readonly<Record<string, Field>>): string | undefined =>
+  Object.values(fields).reduce<string | undefined>(
+    (m, f) => (m === undefined || compareHlc(f[1], m) < 0 ? f[1] : m),
+    undefined,
+  );
+
 const newer = (a: string, b: string | undefined): boolean =>
   b === undefined || compareHlc(a, b) > 0;
 
@@ -64,13 +74,31 @@ export function applyOps(
     }
     if (op.op !== 'put') continue;
     const known = cur && cur.createdBy !== '';
-    if (known) {
-      if (op.createdBy !== cur.createdBy || op.kind !== cur.kind) continue;
-    } else if (!opts.trusted && op.createdBy !== senderMemberId) continue;
+    if (known && op.kind !== cur.kind) continue;
+    if (!opts.trusted && op.createdBy !== senderMemberId && (!known || op.createdBy !== cur.createdBy))
+      continue;
     const fields: Record<string, Field> = { ...cur?.fields };
     for (const [k, f] of Object.entries(op.fields))
       if (!fields[k] || newer(f[1], fields[k]![1])) fields[k] = f;
-    out[op.id] = { ...cur, id: op.id, kind: op.kind, createdBy: op.createdBy, fields };
+    let createdBy = op.createdBy;
+    let createdHlc = minHlc(op.fields);
+    if (known) {
+      const was = cur.createdHlc ?? minHlc(cur.fields);
+      const c =
+        createdHlc === undefined ? 1 : was === undefined ? -1 : compareHlc(createdHlc, was);
+      if (c > 0 || (c === 0 && op.createdBy >= cur.createdBy)) {
+        createdBy = cur.createdBy;
+        createdHlc = was;
+      }
+    }
+    out[op.id] = {
+      ...cur,
+      id: op.id,
+      kind: op.kind,
+      createdBy,
+      ...(createdHlc === undefined ? {} : { createdHlc }),
+      fields,
+    };
   }
   return out;
 }

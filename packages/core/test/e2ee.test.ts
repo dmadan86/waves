@@ -222,12 +222,43 @@ describe('merge', () => {
 
   it('createdBy and kind are fixed once seen', () => {
     const s = applyOps({}, [put('r', 'A', { a: [1, '1:0:A'] })], 'A');
+    // A competing creation by B merges its fields but the earlier author (A) keeps the record.
     const s2 = applyOps(s, [put('r', 'B', { a: [2, '9:0:B'] })], 'B');
-    expect(s2).toEqual(s);
+    expect(materialise(s2.r!)).toMatchObject({ a: 2, createdBy: 'A' });
+    // Nobody may put under someone else's name.
+    expect(applyOps(s, [put('r', 'C', { a: [5, '9:0:B'] })], 'B')).toEqual(s);
     expect(applyOps(s, [{ ...put('r', 'A', { a: [2, '9:0:A'] }), kind: 'other' }], 'A')).toEqual(s);
     // The creator's partner may edit once the record is known.
     const s3 = applyOps(s, [put('r', 'A', { a: [3, '9:0:B'] })], 'B');
     expect(materialise(s3.r!)).toMatchObject({ a: 3, createdBy: 'A' });
+  });
+});
+
+describe('double creation of one id', () => {
+  const a = put('r', 'A', { amt: [100n, '5:0:A'], note: ['a', '5:0:A'] });
+  const b = put('r', 'B', { amt: [90n, '3:0:B'], note: ['b', '3:0:B'] });
+  const apply = (order: [MergeOp, MergeOp]) =>
+    order.reduce<Store>((s, op) => applyOps(s, [op], (op as PutOp).createdBy), {});
+
+  it('settles on the earliest author in either order, with merged fields', () => {
+    const x = apply([a, b]);
+    const y = apply([b, a]);
+    expect(x).toEqual(y);
+    expect(materialise(x.r!)).toEqual({ amt: 100n, note: 'a', id: 'r', kind: 'rent', createdBy: 'B' });
+  });
+
+  it('ties on the hlc go to the smaller author id, in either order', () => {
+    const a2 = put('r', 'A', { n: [1, '3:0:Z'] });
+    const b2 = put('r', 'B', { n: [1, '3:0:Z'] });
+    expect(apply([a2, b2])).toEqual(apply([b2, a2]));
+    expect(apply([a2, b2]).r!.createdBy).toBe('A');
+  });
+
+  it('is order independent with an edit by the other partner in the mix', () => {
+    const edit = put('r', 'B', { note: ['late', '9:0:A'] });
+    const all = [a, b, edit];
+    const want = run(all, 'B');
+    for (const p of permutations(all)) expect(run(p, 'B')).toEqual(want);
   });
 });
 

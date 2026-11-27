@@ -76,17 +76,34 @@ describe('two phones converge through the mailbox', () => {
     expect(a.data(G).tn).toEqual(b.data(G).tn);
   });
 
-  it('both tapping "paid in full" while offline leaves one entry on each phone', async () => {
-    const { a, b, settle } = couple();
-    await Promise.all([a.deviceId(), b.deviceId()]);
-    const id = recurringOccurrenceId('rule-1', '2027-01-05');
-    const entry = { kind: 'income', category: 'inc.rent', amount: '25000', date: '2027-01-05' };
-    await a.set(G, id, 'txn', entry);
-    await b.set(G, id, 'txn', entry);
-    await settle();
-    expect(Object.keys(a.data(G))).toEqual([id]);
-    expect(Object.keys(b.data(G))).toEqual([id]);
-    expect(a.data(G)[id]).toEqual(b.data(G)[id]);
+  it('both tapping "paid in full" offline converge, createdBy included, and edits cross over', async () => {
+    for (const order of ['ab', 'ba']) {
+      const { a, b, tick, settle } = couple();
+      await Promise.all([a.deviceId(), b.deviceId()]);
+      const id = recurringOccurrenceId('rule-1', '2027-01-05');
+      const base = { kind: 'income', category: 'inc.rent', date: '2027-01-05' };
+      const first = order === 'ab' ? a : b;
+      const second = order === 'ab' ? b : a;
+      await first.set(G, id, 'txn', { ...base, amount: '25000', note: 'first' });
+      tick();
+      await second.set(G, id, 'txn', { ...base, amount: '24000', note: 'second' });
+      await settle();
+      expect(a.space.records(G)).toHaveLength(1);
+      expect(a.data(G)).toEqual(b.data(G));
+      const by = a.space.records(G)[0]!.created_by;
+      expect(b.space.records(G)[0]!.created_by).toBe(by);
+      expect(by).toBe(first.me.memberId); // the earliest creation wins
+
+      tick();
+      await a.set(G, id, 'txn', { ...a.data(G)[id]!, note: 'from A' });
+      await settle();
+      expect(b.data(G)[id]!.note).toBe('from A');
+      tick();
+      await b.set(G, id, 'txn', { ...b.data(G)[id]!, amount: '1' });
+      await settle();
+      expect(a.data(G)[id]!.amount).toBe('1');
+      expect(a.data(G)).toEqual(b.data(G));
+    }
   });
 
   it('a delete is not undone by a late edit from the other phone', async () => {
