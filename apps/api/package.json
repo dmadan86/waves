@@ -12,10 +12,10 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.119.1",
+    "@supabase/supabase-js": "^2.119.2",
     "@waves/api-client": "workspace:*",
     "@waves/core": "workspace:*",
-    "hono": "^4.13.19",
+    "hono": "^4.13.21",
     "next": "^16.4.6",
     "react": "19.3.1",
     "react-dom": "19.3.1"
