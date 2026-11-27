@@ -40,6 +40,10 @@ describe('opening a screen is quiet', () => {
     expect(source).toContain("(acted || result.status !== 'unavailable')");
     expect(source).not.toContain('autoFocus');
   });
+  it('two-step pull-to-refresh counts as a user action', () => {
+    const source = readFileSync(join(app, 'settings/two-step.tsx'), 'utf8');
+    expect(source).toMatch(/onRefresh=\{\(\) => \{\s*setActed\(true\);/);
+  });
   it.each(['settings/redeem.tsx', 'settings/feedback.tsx', 'new-company.tsx'])(
     '%s does not autofocus',
     (file) => {

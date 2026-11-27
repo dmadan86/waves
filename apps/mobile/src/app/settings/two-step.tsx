@@ -146,7 +146,15 @@ export default function TwoStepScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: clearance }}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={() => void check()} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={false}
+            onRefresh={() => {
+              setActed(true);
+              void check();
+            }}
+          />
+        }
         showsVerticalScrollIndicator={false}
       >
         <ScenicBody>
