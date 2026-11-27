@@ -191,6 +191,7 @@ export function RestorePrompt(): React.JSX.Element | null {
     configured,
     connected: reads?.linked ?? false,
     recordCount: records.length,
+    coupleCount: coupleBridge.count() + coupleBridge.formerCount(),
     settled,
     dismissed: reads?.dismissed ?? false,
     restorePending: reads?.restorePending ?? false,
@@ -199,7 +200,13 @@ export function RestorePrompt(): React.JSX.Element | null {
 
   // An empty, settled phone is a fresh one: remember it, so adding an entry does
   // not quietly end the chance to restore.
-  const fresh = settled && Boolean(session) && !isGuest && configured && records.length === 0;
+  const fresh =
+    settled &&
+    Boolean(session) &&
+    !isGuest &&
+    configured &&
+    records.length === 0 &&
+    coupleBridge.count() + coupleBridge.formerCount() === 0;
   useEffect(() => {
     // Not re-armed after a decision: 'done' reads back as not pending and the
     // store keeps it done.

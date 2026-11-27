@@ -84,7 +84,7 @@ export function useRentalStore(groupId?: string): RentalStore {
   const memberId = useMyMemberId(groupId);
   const me = async () => {
     if (!groupId || !memberId) throw new Error('This space is not ready yet');
-    return { memberId, clockId: await clockId() };
+    return { memberId, clockId: await clockId(memberId) };
   };
   const upsertGroup = useMutation({
     mutationFn: async (input: {

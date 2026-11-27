@@ -150,6 +150,7 @@ import { usePreventCapture } from '@/lib/secretScreen';
 import { formatRecoveryKey } from '@/lib/backup/recoveryKey';
 import { backupSetup, BackupStep } from '@/lib/backup/setup';
 import { BackupTier } from '@/lib/backup/tier';
+import { coupleBridge } from '@/lib/backup/coupleBridge';
 import type { RestoreScan } from '@/lib/backup/engine';
 import { CloudAuthError } from '@/lib/cloud/oauth';
 import { friendlyError } from '@/lib/errors';
@@ -800,6 +801,7 @@ export default function BackupSettingsScreen() {
    */
   const checklist = setup.total > 1;
   const last = backup.settings.last;
+  const restorableCount = backup.recordCount + coupleBridge.count() + coupleBridge.formerCount();
 
   /**
    * A linked phone with nothing on it is a new phone, and the one thing it
@@ -814,12 +816,12 @@ export default function BackupSettingsScreen() {
    * single row further down for the rare case of wanting it anyway.
    */
   const restoreFirst =
-    settled && setup.complete && (backup.recordCount === 0 || (backup.restorePending && !last));
+    settled && setup.complete && (restorableCount === 0 || (backup.restorePending && !last));
 
   // An empty, settled phone may have a backup waiting. Remember it, so the
   // first new entry does not turn this card into "Back up now".
   const armRestore = backup.armRestore;
-  const emptyAndSettled = settled && backup.recordCount === 0;
+  const emptyAndSettled = settled && restorableCount === 0;
   useEffect(() => {
     if (emptyAndSettled) void armRestore();
   }, [emptyAndSettled, armRestore]);

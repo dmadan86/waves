@@ -69,7 +69,11 @@ export function AutoBackup() {
 
       await recoverBackground(ownerId);
       // Nothing to protect, and an empty seal is the one thing that must never go out.
-      if (recordsRef.current.length === 0 && coupleBridge.count() === 0) return;
+      if (
+        recordsRef.current.length === 0 &&
+        coupleBridge.count() + coupleBridge.formerCount() === 0
+      )
+        return;
       const settings = await loadBackupSettings(ownerId);
       if (!isDue(settings.last?.at ?? null, settings.frequency, now)) return;
 

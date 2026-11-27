@@ -6,4 +6,5 @@ export const coupleBridge = {
   backup: (): BackupCouple[] => [],
   restore: (_entries: readonly BackupCouple[]): Promise<void> => Promise.resolve(),
   count: (): number => 0,
+  formerCount: (): number => 0,
 };

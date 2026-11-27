@@ -260,7 +260,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     // One account swapped for another with no signed-out frame between: the
     // leaving account's cached images and signed URLs are bearer links to its
     // private photos, so the arriving one must not be served them.
-    if (lastOwnerId.current !== null && lastOwnerId.current !== ownerId) clearImageCache();
+    if (lastOwnerId.current !== null && lastOwnerId.current !== ownerId) {
+      stopE2ee();
+      clearImageCache();
+    }
     lastOwnerId.current = ownerId;
     // A mark that was never spent — a `signOut` that threw before the session
     // actually ended — must not sit armed waiting for the next revoked token.
@@ -294,7 +297,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       syncEngine.start();
       void syncEngine.flush();
       // Load the couple space from disk, tell the server about this phone, pick up mail.
-      void startE2ee().catch((error: unknown) => reportHandled(error, 'e2ee.start'));
+      if (ownerId !== null)
+        void startE2ee(ownerId).catch((error: unknown) => reportHandled(error, 'e2ee.start'));
       // Launch is the moment an upload the app was killed mid-way through gets
       // picked back up. It runs after the wipe-then-hydrate dance above, so a
       // previous account's cleanup can never delete the bytes this one is sending.

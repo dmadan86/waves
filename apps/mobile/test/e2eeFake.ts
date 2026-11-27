@@ -37,8 +37,11 @@ export class FakeServer {
   failSends = 0;
   failAfterAccept = 0;
   failDirectory = 0;
+  sendAttempts = 0;
+  failAtSendAttempt: number | null = null;
   private n = 0;
   private clock = 0;
+  fetchGate: Promise<void> | null = null;
 
   nextId(prefix: string): string {
     this.n += 1;
@@ -83,6 +86,9 @@ export class FakeServer {
             return { data: rows, error: null };
           }
           if (fn === 'waves_mailbox_send') {
+            server.sendAttempts += 1;
+            if (server.sendAttempts === server.failAtSendAttempt)
+              return { data: null, error: { message: 'offline on selected send attempt' } };
             if (server.failSends > 0) {
               server.failSends -= 1;
               return { data: null, error: { message: 'offline' } };
@@ -162,7 +168,9 @@ export class FakeServer {
               .sort((a, b) => a.created_at.localeCompare(b.created_at))
               .slice(0, limit)
               .map((r) => ({ ...r }));
-            return Promise.resolve({ data: rows, error: null }).then(res, rej);
+            return (server.fetchGate ?? Promise.resolve())
+              .then(() => ({ data: rows, error: null }))
+              .then(res, rej);
           },
         };
         return q;
@@ -222,6 +230,7 @@ export interface Phone {
   store: MemStore;
   space: E2eeSpace;
   mailbox: ReturnType<typeof createMailbox>;
+  recreateMailbox(): ReturnType<typeof createMailbox>;
   key: e2ee.DeviceKeyPair;
   me: { memberId: string; clockId: string };
   deviceId(): Promise<string>;
@@ -232,6 +241,8 @@ export interface Phone {
   sync(): Promise<void>;
   /** The groups this account is in (the mailbox's `groups()`); edit in place. */
   groups: string[];
+  endSession(): void;
+  setDeviceStatus(status: boolean): void;
   data(groupId: string): Record<string, Record<string, unknown>>;
 }
 
@@ -243,11 +254,14 @@ export function phone(
   seed: number,
   clock = { t: 1_700_000_000_000 },
   groups: string[] = [],
+  status: { active: boolean } = { active: true },
 ): Phone {
   const store = new MemStore();
   const key = newKey(seed);
   const client = server.client(profileId);
   const reports: { error: unknown; where: string }[] = [];
+  let current = true;
+  let deviceActive = status.active;
   const metaValues = new Map<string, string>();
   const meta = {
     get: async (key: string) => metaValues.get(key) ?? null,
@@ -269,7 +283,7 @@ export function phone(
     now: () => clock.t,
     newId: () => `msg-${seed}-${(n += 1)}`,
   });
-  const mailbox = createMailbox({
+  const mailboxDeps = {
     client,
     space,
     outbox: store,
@@ -279,13 +293,20 @@ export function phone(
     randomBytes: (len) => new Uint8Array(len).fill(7),
     now: () => clock.t,
     report: (error, where) => reports.push({ error, where }),
-  });
+    isCurrent: () => current,
+    deviceStatus: async () => deviceActive,
+  };
+  let mailbox = createMailbox(mailboxDeps);
+  const recreateMailbox = () => (mailbox = createMailbox(mailboxDeps));
   space.onOutbox = () => void mailbox.flushOutbox().catch(() => undefined);
   const me = { memberId, clockId: `ck${seed}` };
   return {
     store,
     space,
-    mailbox,
+    get mailbox() {
+      return mailbox;
+    },
+    recreateMailbox,
     key,
     me,
     deviceId,
@@ -295,6 +316,12 @@ export function phone(
     del: (g, i) => space.del(g, me, i),
     sync: () => mailbox.sync(),
     groups,
+    endSession: () => {
+      current = false;
+    },
+    setDeviceStatus: (active) => {
+      deviceActive = active;
+    },
     data: (g) => Object.fromEntries(space.records(g).map((r) => [r.id, r.data])),
   };
 }

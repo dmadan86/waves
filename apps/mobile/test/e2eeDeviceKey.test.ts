@@ -23,35 +23,50 @@ beforeEach(() => {
 describe('device key', () => {
   it('is generated once, kept in the keystore with the mirror key accessibility', async () => {
     const m = await import('../src/e2ee/deviceKey');
-    const a = await m.loadDeviceKey();
-    const b = await m.loadDeviceKey();
+    const a = await m.loadDeviceKey('acct-a');
+    const b = await m.loadDeviceKey('acct-a');
     expect(b).toBe(a);
-    expect(secure.sets).toHaveLength(1);
-    expect(secure.sets[0]![0]).toBe('waves.e2ee.device.v1');
-    expect(secure.sets[0]![2]).toEqual({
+    expect(secure.sets).toHaveLength(2);
+    const keyWrite = secure.sets.find(([key]) => key === 'waves.e2ee.device.v2.acct-a')!;
+    expect(keyWrite[2]).toEqual({
       keychainAccessible: 'after-first-unlock-this-device-only',
     });
   });
 
   it('survives a relaunch: the same key comes back, nothing is written again', async () => {
-    const first = await (await import('../src/e2ee/deviceKey')).loadDeviceKey();
+    const first = await (await import('../src/e2ee/deviceKey')).loadDeviceKey('acct-a');
     vi.resetModules();
-    const again = await (await import('../src/e2ee/deviceKey')).loadDeviceKey();
+    const again = await (await import('../src/e2ee/deviceKey')).loadDeviceKey('acct-a');
     expect(Array.from(again.publicKey)).toEqual(Array.from(first.publicKey));
     expect(Array.from(again.privateKey)).toEqual(Array.from(first.privateKey));
-    expect(secure.sets).toHaveLength(1);
+    expect(secure.sets.filter(([k]) => k === 'waves.e2ee.device.v2.acct-a')).toHaveLength(1);
   });
 
   it('registers its public key on every call and returns the device id', async () => {
     const m = await import('../src/e2ee/deviceKey');
     const sent: string[] = [];
     const register = async (key: string) => (sent.push(key), 'dev-1');
-    expect(await m.registerDevice(register)).toBe('dev-1');
-    expect(await m.registerDevice(register)).toBe('dev-1');
+    expect(await m.registerDevice('acct-a', register)).toBe('dev-1');
+    expect(await m.registerDevice('acct-a', register)).toBe('dev-1');
     expect(sent).toHaveLength(2);
     expect(sent[0]).toMatch(/^\\x[0-9a-f]{64}$/);
-    expect(m.registeredDeviceId()).toBe('dev-1');
-    m.forgetDeviceId();
-    expect(m.registeredDeviceId()).toBeNull();
+    expect(m.registeredDeviceId('acct-a')).toBe('dev-1');
+    m.forgetDeviceId('acct-a');
+    expect(m.registeredDeviceId('acct-a')).toBeNull();
+  });
+
+  it('uses distinct keys per account and migrates the legacy key only once', async () => {
+    const m = await import('../src/e2ee/deviceKey');
+    const old = (await m.loadDeviceKey('legacy-account')).privateKey;
+    secure.items.set('waves.e2ee.device.v1', btoa(String.fromCharCode(...old)));
+    secure.items.delete('waves.e2ee.device.v1.migrated');
+    secure.items.delete('waves.e2ee.device.v2.legacy-account');
+    vi.resetModules();
+    const keys = await import('../src/e2ee/deviceKey');
+    const first = await keys.loadDeviceKey('account-a');
+    const second = await keys.loadDeviceKey('account-b');
+    expect(Array.from(first.privateKey)).toEqual(Array.from(old));
+    expect(Array.from(second.publicKey)).not.toEqual(Array.from(first.publicKey));
+    expect(secure.items.get('waves.e2ee.device.v1.migrated')).toBe('account-a');
   });
 });

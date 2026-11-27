@@ -20,6 +20,9 @@ import {
   NoticeStore,
   type KnownDevice,
   type Meta,
+  type DeviceStatus,
+  isDeviceRevoked,
+  markDeviceRevoked,
 } from './deviceNotice';
 import { snapshotOps, type E2eeSpace, type Incoming, type OutboxMsg } from './space';
 
@@ -45,6 +48,10 @@ export interface MailboxDeps {
   randomBytes(length: number): Uint8Array;
   now(): number;
   report(error: unknown, where: string): void;
+  /** False means this account/device has been removed or revoked server-side. */
+  deviceStatus?: DeviceStatus;
+  /** Session/generation guard supplied by runtime. */
+  isCurrent?: () => boolean;
 }
 
 interface GroupDevice {
@@ -114,6 +121,20 @@ export function createMailbox(deps: MailboxDeps) {
   let flushing: Promise<void> | null = null;
   let flushAgain = false;
   const reported = new Set<string>();
+  const isCurrent = (): boolean => deps.isCurrent?.() ?? true;
+  const fixedPayloadError = (): e2ee.E2eeError => new e2ee.E2eeError('E2EE_DECODE_FAILED');
+
+  async function revoked(): Promise<boolean> {
+    const id = await keys.deviceId();
+    if (!isCurrent()) return true;
+    if (await isDeviceRevoked(meta, id)) return true;
+    if (deps.deviceStatus && !(await deps.deviceStatus(id))) {
+      if (!isCurrent()) return true;
+      await markDeviceRevoked(meta, id);
+      return true;
+    }
+    return false;
+  }
 
   const reportOnce = (error: unknown, where: string): void => {
     if (reported.has(where)) return;
@@ -163,6 +184,7 @@ export function createMailbox(deps: MailboxDeps) {
   }
 
   async function rememberSender(groupId: string, device: GroupDevice): Promise<void> {
+    if (!isCurrent()) return;
     await meta.set(
       `sender:${groupId}:${device.deviceId}`,
       JSON.stringify({
@@ -209,11 +231,14 @@ export function createMailbox(deps: MailboxDeps) {
 
   /** Seal one outbox message for every other device in the group and hand it to the server. */
   async function sendOne(row: E2eeOutboxRow): Promise<SendResult> {
+    if (!isCurrent() || (await revoked()) || !isCurrent()) return 'wait';
     const msg = row.msg as OutboxMsg;
     const me = await keys.deviceId();
+    if (!isCurrent()) return 'wait';
     const recipients = (await groupDevices(row.groupId)).filter(
       (d) => d.deviceId !== me && (msg.to === undefined || d.deviceId === msg.to),
     );
+    if (!isCurrent()) return 'wait';
     // Nobody to tell yet (the partner has not set up): keep it for when they do.
     if (recipients.length === 0) return 'wait';
     const parts = splitToFit(msg.plaintext);
@@ -236,8 +261,11 @@ export function createMailbox(deps: MailboxDeps) {
           partIndex,
         );
       }
-    if (JSON.stringify(deliveryIds) !== JSON.stringify((msg as OutboxMsg).deliveryIds ?? {}))
+    if (JSON.stringify(deliveryIds) !== JSON.stringify((msg as OutboxMsg).deliveryIds ?? {})) {
+      if (!isCurrent()) return 'wait';
       await outbox.updateE2eeOutbox({ ...row, msg: { ...msg, deliveryIds } });
+      if (!isCurrent()) return 'wait';
+    }
     for (let partIndex = 0; partIndex < parts.length; partIndex++) {
       const part = parts[partIndex]!;
       const items: { recipient_device: string; ciphertext: string; delivery_id: string }[] = [];
@@ -255,6 +283,7 @@ export function createMailbox(deps: MailboxDeps) {
             },
             deps.randomBytes(24),
           );
+          if (!isCurrent()) return 'wait';
           items.push({
             recipient_device: r.deviceId,
             ciphertext: bytesToBase64(frame(part.msgId, sealed)),
@@ -274,13 +303,16 @@ export function createMailbox(deps: MailboxDeps) {
           // Only the first call of a message may notify, or one rent entry pings twice.
           p_hint: first ? msg.hint : null,
         });
+        if (!isCurrent()) return 'wait';
         if (error) throw error;
         for (const item of items.slice(i, i + MAX_ITEMS_PER_CALL))
           delivered.add(`${item.recipient_device}:${partIndex}`);
+        if (!isCurrent()) return 'wait';
         await outbox.updateE2eeOutbox({
           ...row,
           msg: { ...msg, deliveryIds, delivered: [...delivered] },
         });
+        if (!isCurrent()) return 'wait';
         first = false;
       }
     }
@@ -293,6 +325,7 @@ export function createMailbox(deps: MailboxDeps) {
 
   async function runOutbox(): Promise<void> {
     const rows = await outbox.readE2eeOutbox();
+    if (!isCurrent() || (await revoked()) || !isCurrent()) return;
     const blockedGroups = new Set<string>();
     for (const row of rows) {
       if (blockedGroups.has(row.groupId)) continue;
@@ -300,20 +333,24 @@ export function createMailbox(deps: MailboxDeps) {
         blockedGroups.add(row.groupId);
         continue;
       }
+      if (!isCurrent()) return;
       const state = attempts.get(row.id);
       if (state && deps.now() < state.next) continue;
       try {
         const result = await sendOne(row);
+        if (!isCurrent()) return;
         if (result === 'wait') {
           blockedGroups.add(row.groupId);
           continue;
         }
+        if (!isCurrent()) return;
         await outbox.deleteE2eeOutbox([row.id]);
         attempts.delete(row.id);
       } catch (error) {
         const cause = error instanceof TransientMailboxError ? error.cause : error;
         const message = String((cause as { message?: unknown })?.message ?? cause).toLowerCase();
         if (message.includes('not a member') || message.includes('not_member')) {
+          if (!isCurrent()) return;
           await meta.set(
             `outbox-failed:${row.groupId}`,
             JSON.stringify({ at: deps.now(), reason: 'membership-lost' }),
@@ -364,12 +401,14 @@ export function createMailbox(deps: MailboxDeps) {
   /** Fetch my mail, merge it, then delete it from the server. */
   async function fetch(): Promise<number> {
     const me = await keys.deviceId();
+    if (!isCurrent() || (await revoked()) || !isCurrent()) return 0;
     let applied = 0;
     const refreshed = new Set<string>();
     const asked = new Set<string>();
     const closed = new Set<string>();
     for (const g of deps.groups?.() ?? []) {
       const at = Number((await meta.get(`open:${g}`)) ?? 0);
+      if (!isCurrent()) return applied;
       if (deps.now() - at < 24 * RESYNC_GAP_MS) asked.add(g);
     }
     for (let round = 0; round < 10; round++) {
@@ -379,18 +418,21 @@ export function createMailbox(deps: MailboxDeps) {
         .eq('recipient_device_id', me)
         .order('created_at', { ascending: true })
         .limit(FETCH_PAGE);
+      if (!isCurrent()) return applied;
       if (res.error) throw res.error;
       const rows = (res.data ?? []) as Row[];
       if (rows.length === 0) break;
 
       const entries: Incoming[] = [];
-      const answers: { groupId: string; to: string }[] = [];
+      const answers: { groupId: string; to: string; rowId: string }[] = [];
       const done: string[] = [];
       for (const row of rows) {
+        if (!isCurrent()) return applied;
         try {
           let devices: GroupDevice[] = [];
           try {
             devices = await groupDevices(row.group_id);
+            if (!isCurrent()) return applied;
           } catch (error) {
             const message = String((error as TransientMailboxError).cause ?? error).toLowerCase();
             if (!message.includes('not a member') && !message.includes('not_member')) throw error;
@@ -400,15 +442,20 @@ export function createMailbox(deps: MailboxDeps) {
             refreshed.add(row.group_id);
             try {
               devices = await groupDevices(row.group_id, true);
+              if (!isCurrent()) return applied;
               sender = devices.find((d) => d.deviceId === row.sender_device_id);
             } catch (error) {
               const message = String((error as TransientMailboxError).cause ?? error).toLowerCase();
               if (!message.includes('not a member') && !message.includes('not_member')) throw error;
             }
           }
-          if (!sender) sender = await rememberedSender(row.group_id, row.sender_device_id ?? '');
+          if (!sender) {
+            sender = await rememberedSender(row.group_id, row.sender_device_id ?? '');
+            if (!isCurrent()) return applied;
+          }
           if (!sender) throw new Error('e2ee: unknown sender device');
           await rememberSender(row.group_id, sender);
+          if (!isCurrent()) return applied;
           // A group this phone has left: its mail is not for the copy it kept.
           if (space.hasFormer(row.group_id) && !(deps.groups?.() ?? []).includes(row.group_id)) {
             await quarantine(row, 'former-group');
@@ -416,30 +463,50 @@ export function createMailbox(deps: MailboxDeps) {
             continue;
           }
           const { msgId, sealed } = unframe(fromBytea(row.ciphertext));
-          const pt = e2ee.open(await keyFor(sender), sealed, {
+          const key = await keyFor(sender);
+          if (!isCurrent()) return applied;
+          const pt = e2ee.open(key, sealed, {
             groupId: row.group_id,
             senderDevice: sender.deviceId,
             recipientDevice: me,
             msgId,
           });
+          if (!isCurrent()) return applied;
           if (pt.msgId !== msgId) throw new Error('e2ee: msgId mismatch');
-          const validateOp = (
-            e2ee as unknown as {
-              validateOp?: (value: unknown) => { ok: boolean };
-            }
-          ).validateOp;
-          for (const op of pt.ops as { op?: unknown }[])
-            if ((op.op === 'put' || op.op === 'del') && validateOp && !validateOp(op).ok)
-              throw new Error('e2ee: invalid operation');
+          if (!Array.isArray(pt.ops) || typeof pt.msgId !== 'string') throw fixedPayloadError();
+          const rawOps = Array.isArray(pt.ops) ? (pt.ops as unknown[]) : [];
+          const mergeInput = rawOps.filter(
+            (op) =>
+              !!op &&
+              typeof op === 'object' &&
+              ((op as { op?: unknown }).op === 'put' || (op as { op?: unknown }).op === 'del'),
+          );
+          const validation = e2ee.validateMessage({ msgId: pt.msgId, ops: mergeInput });
+          if (!validation.ok || validation.rejected.length > 0) throw fixedPayloadError();
           const merge: e2ee.MergeOp[] = [];
           const snap: e2ee.RecordState[] = [];
           // An op this build does not know is skipped.
-          for (const op of pt.ops as { op: string }[]) {
+          for (const op of rawOps as ({ op: string } | e2ee.SnapshotOp)[]) {
             if (op.op === 'put' || op.op === 'del') merge.push(op as e2ee.MergeOp);
             else if (op.op === 'snapshot') {
+              const so = op as e2ee.SnapshotOp;
+              const snapshotValidation = e2ee.validateMessage({
+                msgId: pt.msgId,
+                ops: Array.isArray(so.records) ? snapshotOps(so.records) : [],
+              });
+              if (
+                !snapshotValidation.ok ||
+                snapshotValidation.rejected.length > 0 ||
+                typeof so.to !== 'string' ||
+                !Number.isInteger(so.part) ||
+                !Number.isInteger(so.of) ||
+                so.of < 1 ||
+                so.part < 0 ||
+                so.part >= so.of
+              )
+                throw fixedPayloadError();
               // Sealed for this phone already; `to` also has to say so.
-              if ((op as { to?: string }).to === me) {
-                const so = op as e2ee.SnapshotOp;
+              if (so.to === me) {
                 snap.push(...so.records);
                 const key = `${row.group_id}|${sender.deviceId}|${so.of}`;
                 const seen = (parts.get(key) ?? new Set<number>()).add(so.part);
@@ -454,7 +521,7 @@ export function createMailbox(deps: MailboxDeps) {
                   'e2ee.snapshot',
                 );
             } else if (op.op === 'resync_req')
-              answers.push({ groupId: row.group_id, to: sender.deviceId });
+              answers.push({ groupId: row.group_id, to: sender.deviceId, rowId: row.id });
           }
           if (merge.length > 0)
             entries.push({ groupId: row.group_id, ops: merge, senderMemberId: sender.memberId });
@@ -476,17 +543,38 @@ export function createMailbox(deps: MailboxDeps) {
         } catch (error) {
           if (error instanceof TransientMailboxError) throw error;
           // Invalid/undecryptable rows are acknowledged only after durable quarantine.
+          if (!isCurrent()) return applied;
           await quarantine(row, 'invalid');
-          reportOnce(error, 'e2ee.fetch.undecryptable');
+          if (!isCurrent()) return applied;
+          reportOnce(
+            error instanceof e2ee.E2eeError ? error : fixedPayloadError(),
+            'e2ee.fetch.undecryptable',
+          );
           done.push(row.id);
         }
       }
-      await space.applyIncoming(entries);
+      if (!isCurrent()) return applied;
+      const committed = await space.applyIncoming(entries, isCurrent);
+      if (!committed || !isCurrent()) return applied;
       applied += entries.length;
-      for (const g of closed) await meta.set(`open:${g}`, '0');
-      for (const a of answers) await answer(a.groupId, a.to);
+      for (const g of closed) {
+        if (!isCurrent()) return applied;
+        await meta.set(`open:${g}`, '0');
+        if (!isCurrent()) return applied;
+      }
+      for (const a of answers) {
+        if (!isCurrent()) return applied;
+        const queued = await answer(a.groupId, a.to);
+        if (!isCurrent()) return applied;
+        if (!queued) {
+          const index = done.indexOf(a.rowId);
+          if (index >= 0) done.splice(index, 1);
+        }
+      }
       if (done.length > 0) {
+        if (!isCurrent()) return applied;
         const del = await client.from('group_mailbox').delete().in('id', done);
+        if (!isCurrent()) return applied;
         if (del.error) throw del.error;
       }
       if (rows.length < FETCH_PAGE || done.length === 0) break;
@@ -495,8 +583,9 @@ export function createMailbox(deps: MailboxDeps) {
   }
 
   async function quarantine(row: Row, reason: string): Promise<void> {
+    if (!isCurrent()) return;
     const key = `quarantine:${row.id}`;
-    if ((await meta.get(key)) !== null) return;
+    if ((await meta.get(key)) !== null || !isCurrent()) return;
     await meta.set(
       key,
       JSON.stringify({
@@ -509,48 +598,64 @@ export function createMailbox(deps: MailboxDeps) {
   }
 
   /** Send my whole group state to one phone that asked, at most once an hour per phone. */
-  async function answer(groupId: string, to: string): Promise<void> {
-    const last = answered.get(`${to}|${groupId}`);
-    if (last !== undefined && deps.now() - last < RESYNC_GAP_MS) return;
+  async function answer(groupId: string, to: string): Promise<boolean> {
+    const answerKey = `${to}|${groupId}`;
+    const last = answered.get(answerKey) ?? Number((await meta.get(`answer:${answerKey}`)) ?? NaN);
+    if (!isCurrent()) return false;
+    if (last !== undefined && deps.now() - last < RESYNC_GAP_MS) return true;
     const records = space.snapshot(groupId);
-    if (records.length === 0) return;
-    answered.set(`${to}|${groupId}`, deps.now());
+    if (records.length === 0) return true;
     try {
       for (const part of e2ee.chunkSnapshot(records, CHUNK_PAD))
-        await space.queue(groupId, [{ ...part, to }], to);
+        if (!isCurrent()) return false;
+        else await space.queue(groupId, [{ ...part, to }], to);
+      if (!isCurrent()) return false;
+      answered.set(answerKey, deps.now());
+      await meta.set(`answer:${answerKey}`, String(deps.now()));
+      return isCurrent();
     } catch {
       // Not the error itself: it names a record id.
       reportOnce(new Error('e2ee: snapshot too large to send'), 'e2ee.resync.answer');
+      return false;
     }
   }
 
   /** Ask the group's other phones for everything (a new phone, or one away over 30 days). */
   async function requestResync(groupId: string): Promise<void> {
+    if (!isCurrent()) return;
     await meta.set(`asked:${groupId}`, String(deps.now()));
+    if (!isCurrent()) return;
     // Open until every part of the answer has arrived: only then may a snapshot be trusted.
     await meta.set(`open:${groupId}`, String(deps.now()));
+    if (!isCurrent()) return;
     await space.queue(groupId, [{ op: 'resync_req' }]);
   }
 
   /** After a good fetch: ask for a snapshot if due, and look for a partner's new phone. */
   async function housekeeping(): Promise<void> {
     const fetchedAt = Number((await meta.get('fetchedAt')) ?? NaN);
+    if (!isCurrent()) return;
     const now = deps.now();
     for (const groupId of deps.groups?.() ?? []) {
       try {
         const asked = Number((await meta.get(`asked:${groupId}`)) ?? 0);
+        if (!isCurrent()) return;
         const due =
           space.snapshot(groupId).length === 0 ||
           Number.isNaN(fetchedAt) ||
           now - fetchedAt > STALE_MS;
         if (due && now - asked >= RESYNC_GAP_MS) await requestResync(groupId);
+        if (!isCurrent()) return;
 
         const current: KnownDevice[] = (await groupDevices(groupId)).map((d) => ({
           deviceId: d.deviceId,
           memberId: d.memberId,
         }));
+        if (!isCurrent()) return;
         const me = await keys.deviceId();
+        if (!isCurrent()) return;
         const raw = await meta.get(`devices:${groupId}`);
+        if (!isCurrent()) return;
         const known = raw === null ? null : (JSON.parse(raw) as KnownDevice[]);
         const fresh = diffDevices(
           known,
@@ -558,6 +663,7 @@ export function createMailbox(deps: MailboxDeps) {
           current.find((d) => d.deviceId === me)?.memberId ?? null,
         );
         const myMember = current.find((d) => d.deviceId === me)?.memberId ?? null;
+        if (!isCurrent()) return;
         await notices.add([
           ...fresh.map((d) => ({ ...d, groupId })),
           ...removedDevices(known, current, myMember).map((d) => ({
@@ -566,16 +672,20 @@ export function createMailbox(deps: MailboxDeps) {
             removed: true,
           })),
         ]);
+        if (!isCurrent()) return;
         await meta.set(`devices:${groupId}`, JSON.stringify(current));
+        if (!isCurrent()) return;
       } catch (error) {
         reportOnce(error, 'e2ee.housekeeping');
       }
     }
+    if (!isCurrent()) return;
     await meta.set('fetchedAt', String(now));
   }
 
   /** One round: pick up mail, then send what is waiting. */
   async function sync(): Promise<void> {
+    if (!isCurrent() || (await revoked()) || !isCurrent()) return;
     let failure: unknown = null;
     try {
       await fetch();

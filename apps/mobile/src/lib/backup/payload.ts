@@ -56,6 +56,8 @@ export interface BackupCouple {
   readonly groupId: string;
   readonly name: string;
   readonly records: string;
+  /** True when the source phone had already left this group. Older payloads omit it. */
+  readonly former?: boolean;
 }
 
 /** The part that is encrypted: everything that says anything about anybody. */

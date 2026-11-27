@@ -21,28 +21,67 @@ import type { BackupCouple } from '@/lib/backup/payload';
 import type { Meta } from './deviceNotice';
 import { createMailbox } from './mailbox';
 import { E2eeSpace, type GroupRecord } from './space';
+import { ownerMismatch, SessionGeneration } from './session';
 
 export const e2eeSpace = new E2eeSpace(syncEngine.localStore, {
   now: () => Date.now(),
   newId: () => Crypto.randomUUID(),
 });
 
-let registering: Promise<string> | null = null;
+const registering = new Map<string, Promise<string>>();
+let activeProfileId: string | null = null;
+const generations = new SessionGeneration();
+const OWNER_KEY = 'waves.e2ee.owner';
+let pendingMetaCleanup: Promise<void> = Promise.resolve();
 
 /** This phone's device id on the server, registering it first if need be. */
-export function ensureDeviceId(): Promise<string> {
-  const known = registeredDeviceId();
-  if (known) return Promise.resolve(known);
-  registering ??= registerDevice(async (publicKey) => {
-    const { data, error } = await backend.rpc('waves_register_device', {
-      p_public_key: publicKey,
+export async function ensureDeviceId(profileId = activeProfileId): Promise<string> {
+  if (!profileId) return Promise.reject(new Error('E2EE requires a verified profile id'));
+  const revokedKey = `waves.e2ee.revoked.${encodeURIComponent(profileId)}`;
+  if (await AsyncStorage.getItem(revokedKey)) throw new Error('E2EE device was revoked');
+  const storedDeviceId = await AsyncStorage.getItem(
+    `waves.e2ee.device-id.${encodeURIComponent(profileId)}`,
+  );
+  if (
+    storedDeviceId &&
+    (await AsyncStorage.getItem(`${META_PREFIX}device-revoked:${storedDeviceId}`)) === '1'
+  )
+    throw new Error('E2EE device was revoked');
+  const known = registeredDeviceId(profileId);
+  if (known) return known;
+  let pending = registering.get(profileId);
+  if (!pending) {
+    pending = registerDevice(profileId, async (publicKey) => {
+      const { data, error } = await backend.rpc('waves_register_device', {
+        p_public_key: publicKey,
+      });
+      if (error) throw error;
+      return data as string;
+    }).finally(() => {
+      registering.delete(profileId);
     });
-    if (error) throw error;
-    return data as string;
-  }).finally(() => {
-    registering = null;
-  });
-  return registering;
+    registering.set(profileId, pending);
+  }
+  const id = await pending;
+  await AsyncStorage.setItem(`waves.e2ee.device-id.${encodeURIComponent(profileId)}`, id);
+  if ((await AsyncStorage.getItem(`${META_PREFIX}device-revoked:${id}`)) === '1') {
+    await markDeviceRevoked(profileId);
+    throw new Error('E2EE device was revoked');
+  }
+  return id;
+}
+
+/** Record a server-side device revocation so background restart cannot re-enrol it. */
+export async function markDeviceRevoked(profileId: string): Promise<void> {
+  await AsyncStorage.setItem(`waves.e2ee.revoked.${encodeURIComponent(profileId)}`, '1');
+  forgetDeviceId(profileId);
+}
+
+/** Explicit recovery action for a device whose server registration was revoked. */
+export async function clearDeviceRevoked(profileId: string): Promise<void> {
+  await AsyncStorage.removeItem(`waves.e2ee.revoked.${encodeURIComponent(profileId)}`);
+  const id = await AsyncStorage.getItem(`waves.e2ee.device-id.${encodeURIComponent(profileId)}`);
+  if (id) await AsyncStorage.removeItem(`${META_PREFIX}device-revoked:${id}`);
 }
 
 const META_PREFIX = 'waves.e2ee.meta.';
@@ -78,7 +117,8 @@ const mailbox = createMailbox({
   meta,
   space: e2eeSpace,
   outbox: syncEngine.localStore,
-  keys: { pair: loadDeviceKey, deviceId: ensureDeviceId },
+  keys: { pair: () => loadDeviceKey(activeProfileId ?? ''), deviceId: () => ensureDeviceId() },
+  isCurrent: () => activeProfileId !== null && isSessionCurrent(),
   randomBytes: (n) => Crypto.getRandomBytes(n),
   now: () => Date.now(),
   report: reportHandled,
@@ -88,6 +128,7 @@ const mailbox = createMailbox({
 e2eeSpace.onOutbox = () => void mailbox.flushOutbox().catch(() => undefined);
 
 let running: Promise<void> | null = null;
+let isSessionCurrent = (): boolean => false;
 
 /**
  * Pick up mail and send what is waiting. Safe to call from anywhere, any number of
@@ -109,22 +150,44 @@ export function getE2eeOutboxFailures(): Promise<string[]> {
 }
 
 /** Sign-in: load what is on the phone, make sure the server knows this device, then sync. */
-export async function startE2ee(): Promise<void> {
+export async function startE2ee(profileId: string): Promise<void> {
+  await pendingMetaCleanup;
+  const isCurrent = generations.bump();
+  isSessionCurrent = isCurrent;
+  activeProfileId = profileId;
+  const storedOwner = await AsyncStorage.getItem(OWNER_KEY);
+  if (ownerMismatch(storedOwner, profileId)) {
+    await syncEngine.localStore.wipeE2ee();
+    const keys = await AsyncStorage.getAllKeys();
+    await AsyncStorage.multiRemove([...keys.filter((k) => k.startsWith(META_PREFIX)), OWNER_KEY]);
+    if (!isCurrent()) return;
+    await AsyncStorage.setItem(OWNER_KEY, profileId);
+  }
+  if (!isCurrent()) return;
   await e2eeSpace.load();
+  if (!isCurrent()) return;
   await mailbox.notices.load();
-  forgetDeviceId();
+  if (!isCurrent()) return;
+  forgetDeviceId(profileId);
   mailbox.forgetDevices();
-  await ensureDeviceId().catch(() => undefined);
+  await ensureDeviceId(profileId).catch(() => undefined);
+  if (!isCurrent()) return;
   await syncE2ee();
 }
 
 /** Sign-out: drop what is in memory (the engine wipes the tables). */
 export function stopE2ee(): void {
+  generations.invalidate();
+  activeProfileId = null;
   e2eeSpace.clear();
   mailbox.notices.clear();
   // Last fetch, known devices and notices belong to the account that just left.
-  void AsyncStorage.getAllKeys()
-    .then((keys) => AsyncStorage.removeMany(keys.filter((k) => k.startsWith(META_PREFIX))))
+  pendingMetaCleanup = AsyncStorage.getAllKeys()
+    .then((keys) =>
+      AsyncStorage.removeMany(
+        keys.filter((k) => k.startsWith(META_PREFIX) && !k.includes('device-revoked:')),
+      ),
+    )
     .catch(() => undefined);
   forgetDeviceId();
   mailbox.forgetDevices();
@@ -180,6 +243,7 @@ coupleBridge.restore = restoreCoupleFromBackup;
 export const coupleRecordCount = (): number =>
   e2eeSpace.liveGroupIds().reduce((n, g) => n + e2eeSpace.records(g).length, 0);
 coupleBridge.count = coupleRecordCount;
+coupleBridge.formerCount = () => e2eeSpace.formerGroups().length;
 
 function useSpaceVersion(): number {
   return useSyncExternalStore(

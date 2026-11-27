@@ -140,6 +140,7 @@ describe('mailbox send', () => {
     };
     const key = e2ee.pairKey(b1.key.privateKey, a1.key.publicKey);
     const pt = e2ee.open(key, sealed, aad);
+    expect(pt.kv).toBe(2);
     expect(pt.ops[0]).toMatchObject({ op: 'put', id: 'p1', kind: 'property', createdBy: 'mA' });
     expect(() => e2ee.open(key, sealed, { ...aad, recipientDevice: a2Id })).toThrow();
     expect(() => e2ee.open(key, sealed, { ...aad, groupId: 'other' })).toThrow();
