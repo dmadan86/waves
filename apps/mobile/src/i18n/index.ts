@@ -8828,6 +8828,10 @@ export interface UiStrings {
     recurring: string;
     recurringSub: string;
     eachMonth: string;
+    monthTitle: string;
+    leftLabel: string;
+    noRecurringExpense: string;
+    noRecurringIncome: string;
     monthSummary: string;
     moneyIn: string;
     moneyOut: string;
@@ -17132,6 +17136,10 @@ const en: UiStrings = {
     recurring: 'Recurring',
     recurringSub: 'Bills and income that repeat.',
     eachMonth: 'Bills and income that repeat.',
+    monthTitle: 'Each month',
+    leftLabel: 'Left',
+    noRecurringExpense: 'No recurring expenses yet',
+    noRecurringIncome: 'No recurring income yet',
     monthSummary: 'Each month: {in} in · {out} out · {left} left',
     moneyIn: 'Money in',
     moneyOut: 'Money out',
@@ -25494,6 +25502,10 @@ const ta: UiStrings = {
     recurring: 'மீண்டும் வருபவை',
     recurringSub: 'மீண்டும் வரும் பில்கள், வருமானம்.',
     eachMonth: 'ஒவ்வொரு மாதமும்',
+    monthTitle: 'ஒவ்வொரு மாதமும்',
+    leftLabel: 'மீதி',
+    noRecurringExpense: 'தொடர் செலவுகள் இல்லை',
+    noRecurringIncome: 'தொடர் வருமானம் இல்லை',
     monthSummary: 'ஒவ்வொரு மாதமும்: {in} வரவு · {out} செலவு · {left} மீதி',
     moneyIn: 'வரவு',
     moneyOut: 'செலவு',
@@ -33672,6 +33684,10 @@ const hi: UiStrings = {
     recurring: 'आवर्ती',
     recurringSub: 'दोहराए जाने वाले बिल और आय।',
     eachMonth: 'हर महीने',
+    monthTitle: 'हर महीने',
+    leftLabel: 'शेष',
+    noRecurringExpense: 'अभी कोई आवर्ती खर्च नहीं',
+    noRecurringIncome: 'अभी कोई आवर्ती आय नहीं',
     monthSummary: 'हर महीने: {in} आय · {out} खर्च · {left} शेष',
     moneyIn: 'पैसे आएँ',
     moneyOut: 'पैसे जाएँ',
@@ -42777,6 +42793,10 @@ const ar: UiStrings = {
     recurring: 'متكرر',
     recurringSub: 'فواتير ودخل يتكرران.',
     eachMonth: 'كل شهر',
+    monthTitle: 'كل شهر',
+    leftLabel: 'المتبقي',
+    noRecurringExpense: 'لا مصروفات متكررة بعد',
+    noRecurringIncome: 'لا دخل متكرر بعد',
     monthSummary: 'كل شهر: {in} دخل · {out} مصروف · {left} متبقٍ',
     moneyIn: 'أموال داخلة',
     moneyOut: 'أموال خارجة',
