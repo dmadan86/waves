@@ -10,6 +10,7 @@ import { Card, directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
 import { RentalsRow } from '@/components/household/RentalsRow';
+import { VehiclesRow } from '@/components/household/VehiclesRow';
 import { fill, useStrings } from '@/i18n';
 import { billPayer, billWhen, monthProgress } from '@/lib/householdHome';
 import { router } from '@/lib/navigation';
@@ -200,6 +201,7 @@ export function HouseholdHome({
           amountText={amountText(rentals.received)}
         />
       ) : null}
+      {rentals ? <VehiclesRow groupId={groupId} /> : null}
     </View>
   );
 }

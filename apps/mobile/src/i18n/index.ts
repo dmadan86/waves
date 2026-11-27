@@ -30,6 +30,7 @@
  */
 
 import { wealthAr, wealthEn, wealthHi, wealthTa, type WealthStrings } from './wealth';
+import { vehiclesAr, vehiclesEn, vehiclesHi, vehiclesTa, type VehicleStrings } from './vehicles';
 import { createContext, useContext } from 'react';
 import type { ActivityText } from '@/lib/companyActivity';
 import { getLocales } from 'expo-localization';
@@ -190,6 +191,7 @@ export function plural(locale: string, count: number, forms: PluralForms): strin
 
 export interface UiStrings {
   wealth: WealthStrings;
+  vehicles: VehicleStrings;
   calendar: {
     title: string;
     today: string;
@@ -9112,6 +9114,7 @@ export interface UiStrings {
 
 const en: UiStrings = {
   wealth: wealthEn,
+  vehicles: vehiclesEn,
   calendar: {
     title: 'Calendar',
     today: 'Today',
@@ -17392,6 +17395,7 @@ const en: UiStrings = {
  */
 const ta: UiStrings = {
   wealth: wealthTa,
+  vehicles: vehiclesTa,
   calendar: {
     title: 'நாட்காட்டி',
     today: 'இன்று',
@@ -25748,6 +25752,7 @@ const ta: UiStrings = {
 
 const hi: UiStrings = {
   wealth: wealthHi,
+  vehicles: vehiclesHi,
   calendar: {
     title: 'कैलेंडर',
     today: 'आज',
@@ -33928,6 +33933,7 @@ const hi: UiStrings = {
  */
 const ar: UiStrings = {
   wealth: wealthAr,
+  vehicles: vehiclesAr,
   calendar: {
     title: 'التقويم',
     today: 'اليوم',

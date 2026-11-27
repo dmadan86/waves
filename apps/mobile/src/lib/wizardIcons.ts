@@ -4,7 +4,7 @@
  */
 import type Ionicons from '@expo/vector-icons/Ionicons';
 
-import type { InvestmentType, PropertyType } from '@waves/core';
+import type { InvestmentType, PropertyType, VehicleType } from '@waves/core';
 
 export type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -15,6 +15,15 @@ export const PROPERTY_ICON: Record<PropertyType, IconName> = {
   shop: 'storefront-outline',
   commercial: 'storefront-outline',
   land: 'map-outline',
+  other: 'ellipsis-horizontal-circle-outline',
+};
+
+export const VEHICLE_ICON: Record<VehicleType, IconName> = {
+  car: 'car-outline',
+  bike: 'bicycle-outline',
+  scooter: 'speedometer-outline',
+  three_wheeler: 'bus-outline',
+  truck: 'bus-outline',
   other: 'ellipsis-horizontal-circle-outline',
 };
 
