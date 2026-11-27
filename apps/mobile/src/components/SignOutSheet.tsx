@@ -62,7 +62,10 @@ import { Button, Callout, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui
 
 import { plural, useStrings } from '@/i18n';
 import { loadRecoveryKey } from '@/lib/backup/recoveryKey';
+import { coupleRecordCount } from '@/e2ee/runtime';
+import { shouldPromptCoupleBackup } from '@/lib/backup/couplePrompt';
 import { loadBackupSettings } from '@/lib/backup/settings';
+import { router } from '@/lib/navigation';
 import { BackupTier, resolveTier } from '@/lib/backup/tier';
 import { useAuth } from '@/lib/auth';
 import { useLocalSmsDrafts } from '@/data/hooks';
@@ -219,6 +222,31 @@ function useUnconfirmedBackupKey(visible: boolean, ownerId: string): boolean {
   return atRisk;
 }
 
+/** Shared rentals live only on the partners' phones: warn when there is no recent backup of them. */
+function useCoupleAtRisk(visible: boolean, ownerId: string): boolean {
+  const [atRisk, setAtRisk] = useState(false);
+  useEffect(() => {
+    if (!visible || !ownerId) return;
+    let alive = true;
+    void loadBackupSettings(ownerId)
+      .then((settings) => {
+        if (alive)
+          setAtRisk(
+            shouldPromptCoupleBackup({
+              coupleRecords: coupleRecordCount(),
+              lastBackupAt: settings.last?.at ?? null,
+              now: Date.now(),
+            }),
+          );
+      })
+      .catch((error: unknown) => reportHandled(error, 'signOut.coupleBackup'));
+    return () => {
+      alive = false;
+    };
+  }, [visible, ownerId]);
+  return atRisk;
+}
+
 export function SignOutSheet({
   visible,
   onClose,
@@ -241,6 +269,7 @@ export function SignOutSheet({
   // SMS drafts never sync, so sign-out takes the only copy with it.
   const smsLocal = useLocalSmsDrafts(ownerId);
   const backupKeyAtRisk = useUnconfirmedBackupKey(visible, ownerId);
+  const coupleAtRisk = useCoupleAtRisk(visible, ownerId);
   const work = useMemo(() => unsentWork(queue, ownerId), [queue, ownerId]);
   // A receipt that has been sent stays in the queue a while so its tile keeps
   // its place; only the ones still owed are at risk.
@@ -359,7 +388,7 @@ export function SignOutSheet({
 
   // Nothing queued and no key to lose is the ordinary case, and it is not a
   // dangerous one — the head mark then says "safe", not "look out".
-  const alarmed = atRisk > 0 || backupKeyAtRisk;
+  const alarmed = atRisk > 0 || backupKeyAtRisk || coupleAtRisk;
   const headTone = isGuest
     ? { bg: theme.color.negativeSoft, ink: theme.color.negative }
     : alarmed
@@ -476,6 +505,13 @@ export function SignOutSheet({
             {/* Not unsent work: the recovery key is lost on sign-out whether or
                 not anything is queued, which is why it is the one row that can
                 appear under an otherwise clear list. */}
+            {coupleAtRisk ? (
+              <RiskRow
+                icon="heart-outline"
+                label={t.wealth.signOutBackUpTitle}
+                hint={t.wealth.signOutBackUpBody}
+              />
+            ) : null}
             {backupKeyAtRisk ? (
               <RiskRow
                 icon="key-outline"
@@ -499,6 +535,17 @@ export function SignOutSheet({
             they protect rather than above the decision, which is where a
             precaution drawn at full width starts reading as the thing to do. */}
         <Row style={{ gap: theme.spacing.sm }}>
+          {coupleAtRisk ? (
+            <Button
+              label={t.wealth.backUpAction}
+              variant="secondary"
+              size="sm"
+              onPress={() => {
+                onClose();
+                router.push('/settings/backup');
+              }}
+            />
+          ) : null}
           {sendable && !offline ? (
             <Button
               label={busy === 'sync' ? t.signOutSheet.syncing : t.signOutSheet.syncNow}
@@ -535,7 +582,7 @@ export function SignOutSheet({
           this sheet warns, it does not hold anybody hostage. */}
       <View style={{ gap: theme.spacing.sm, marginTop: theme.spacing.lg }}>
         <Button
-          label={t.lock.signOut}
+          label={coupleAtRisk ? t.wealth.signOutAnyway : t.lock.signOut}
           variant="danger"
           fullWidth
           disabled={busy !== 'none'}

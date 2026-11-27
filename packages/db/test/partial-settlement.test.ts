@@ -55,7 +55,7 @@ it('records less than owed and tells the payee how much of what', async () => {
     `SELECT payload FROM activity_log WHERE group_id = $1 AND verb = 'settled'`,
     [g.groupId],
   );
-  expect(log[0].payload).toMatchObject({ amount: 200000, owed: '500000' });
+  expect(log[0].payload).toMatchObject({ amount: '200000', owed: '500000' });
 
   // A payment in full carries no `owed`.
   await recordAs(g.profileIds[0] as string, [g.groupId, a, b, 500_000, randomUUID()]);

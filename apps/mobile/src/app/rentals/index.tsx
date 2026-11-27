@@ -15,7 +15,9 @@ import Animated, {
 import { leaseEndsIn } from '@waves/core';
 import { Button, directionalIcon, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
 
+import { FormerCouples, NewPhoneNotice } from '@/components/couple/CoupleRentalsExtras';
 import { PersonalGuard } from '@/components/PersonalGuard';
+import { isFormer } from '@/e2ee/space';
 import { PlainHeader, StandardCard } from '@/components/standard';
 import { StatusPill, useWealthMoney, type PillTone } from '@/components/wealth/parts';
 import { todayIso, usePersonalLedger } from '@/data/personal';
@@ -87,6 +89,8 @@ function RentalsBody() {
     today.slice(0, 7),
   );
   const limit = atPropertyLimit(ownCount, isPro);
+  // A former couple is a read-only copy: nothing to add.
+  const readOnly = isFormer(space ?? '');
   const add = (): void =>
     router.push(limit ? '/paywall' : { pathname: '/rentals/add', params: spaceParams(space) });
   const statusText: Record<string, string> = {
@@ -175,13 +179,16 @@ function RentalsBody() {
               {w.trackRentSub}
             </Text>
           </Animated.View>
-          <Animated.View
-            entering={reduce ? undefined : fadeUp(360)}
-            style={{ alignSelf: 'center', width: '70%', marginTop: theme.spacing.md }}
-          >
-            <Button label={w.addProperty} fullWidth onPress={add} />
-          </Animated.View>
+          {readOnly ? null : (
+            <Animated.View
+              entering={reduce ? undefined : fadeUp(360)}
+              style={{ alignSelf: 'center', width: '70%', marginTop: theme.spacing.md }}
+            >
+              <Button label={w.addProperty} fullWidth onPress={add} />
+            </Animated.View>
+          )}
           {lock}
+          {space ? null : <FormerCouples />}
         </View>
       </Screen>
     );
@@ -193,18 +200,20 @@ function RentalsBody() {
         title={w.rentals}
         subtitle={subtitle}
         trailing={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={w.addRental}
-            hitSlop={10}
-            onPress={add}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
-          >
-            <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
-            <Text variant="body" style={{ color: theme.color.brand, fontWeight: '700' }}>
-              {w.addShort}
-            </Text>
-          </Pressable>
+          readOnly ? undefined : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={w.addRental}
+              hitSlop={10}
+              onPress={add}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
+            >
+              <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
+              <Text variant="body" style={{ color: theme.color.brand, fontWeight: '700' }}>
+                {w.addShort}
+              </Text>
+            </Pressable>
+          )
         }
       />
       <ScrollView
@@ -215,6 +224,7 @@ function RentalsBody() {
         }}
       >
         {lock}
+        <NewPhoneNotice groupId={space} />
         <Stagger index={0}>
           <StandardCard style={{ gap: theme.spacing.md }}>
             <Text variant="body" style={{ fontWeight: '700' }}>
@@ -348,6 +358,7 @@ function RentalsBody() {
             {w.freeRentalLimit}
           </Text>
         ) : null}
+        {space ? null : <FormerCouples />}
       </ScrollView>
     </Screen>
   );

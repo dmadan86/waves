@@ -176,6 +176,24 @@ export interface WealthStrings {
   sendToPartner: string;
   /** The lock line on a couple/home group's Rentals screen. */
   e2eeNote: string;
+  phoneAdded: string;
+  phoneRemoved: string;
+  dismiss: string;
+  formerCouple: string;
+  formerCouplesTitle: string;
+  formerCoupleNote: string;
+  backupCoupleStandard: string;
+  backupCoupleExtra: string;
+  yourPhones: string;
+  yourPhonesSub: string;
+  thisPhone: string;
+  phoneLastSeen: string;
+  removePhone: string;
+  removePhoneConfirm: string;
+  signOutBackUpTitle: string;
+  signOutBackUpBody: string;
+  backUpAction: string;
+  signOutAnyway: string;
   recordedBy: string;
   rentalsRowSub: string;
   tenants: string;
@@ -424,6 +442,26 @@ export const wealthEn: WealthStrings = {
   notAdded: 'Not added',
   sendToPartner: 'Send to partner',
   e2eeNote: 'End-to-end encrypted. Only you and your partner can read this.',
+  phoneAdded: '{name} added a new phone.',
+  phoneRemoved: '{name} removed a phone.',
+  dismiss: 'Dismiss',
+  formerCouple: 'Former couple: {name}',
+  formerCouplesTitle: 'Former couples',
+  formerCoupleNote: 'A read-only copy, kept on this phone only.',
+  backupCoupleStandard:
+    'Your shared rentals are included. On Standard backups they are protected by Google.',
+  backupCoupleExtra:
+    'Your shared rentals are included. On Extra backups they are protected by your own recovery key.',
+  yourPhones: 'Your phones',
+  yourPhonesSub: 'Phones that can read your shared rentals.',
+  thisPhone: 'This phone',
+  phoneLastSeen: 'Last seen {when}',
+  removePhone: 'Remove',
+  removePhoneConfirm: 'Remove this phone? It will stop receiving shared rentals.',
+  signOutBackUpTitle: 'Back up first?',
+  signOutBackUpBody: 'Shared rentals live only on your phones.',
+  backUpAction: 'Back up',
+  signOutAnyway: 'Sign out anyway',
   recordedBy: 'Recorded by {name}',
   rentalsRowSub: '{n} properties · {amount} received this month',
   tenants: 'Tenants',
@@ -662,6 +700,26 @@ export const wealthTa: WealthStrings = {
   notAdded: 'சேர்க்கவில்லை',
   sendToPartner: 'துணைக்கு அனுப்பு',
   e2eeNote: 'முழுமையாக குறியாக்கம் செய்யப்பட்டது. நீங்களும் உங்கள் துணையும் மட்டுமே இதைப் படிக்க முடியும்.',
+  phoneAdded: '{name} புதிய ஃபோனைச் சேர்த்தார்.',
+  phoneRemoved: '{name} ஒரு ஃபோனை நீக்கினார்.',
+  dismiss: 'மூடு',
+  formerCouple: 'முன்னாள் ஜோடி: {name}',
+  formerCouplesTitle: 'முன்னாள் ஜோடிகள்',
+  formerCoupleNote: 'படிக்க மட்டும் நகல், இந்த ஃபோனில் மட்டும் வைக்கப்பட்டுள்ளது.',
+  backupCoupleStandard:
+    'உங்கள் பகிர்ந்த வாடகைகளும் சேர்க்கப்படும். நிலையான காப்புப்பிரதியில் அவை Google மூலம் பாதுகாக்கப்படும்.',
+  backupCoupleExtra:
+    'உங்கள் பகிர்ந்த வாடகைகளும் சேர்க்கப்படும். கூடுதல் காப்புப்பிரதியில் அவை உங்கள் சொந்த மீட்பு விசையால் பாதுகாக்கப்படும்.',
+  yourPhones: 'உங்கள் ஃபோன்கள்',
+  yourPhonesSub: 'உங்கள் பகிர்ந்த வாடகைகளைப் படிக்கக்கூடிய ஃபோன்கள்.',
+  thisPhone: 'இந்த ஃபோன்',
+  phoneLastSeen: 'கடைசியாகப் பார்த்தது {when}',
+  removePhone: 'நீக்கு',
+  removePhoneConfirm: 'இந்த ஃபோனை நீக்கவா? இது பகிர்ந்த வாடகைகளைப் பெறுவதை நிறுத்தும்.',
+  signOutBackUpTitle: 'முதலில் காப்புப்பிரதி எடுக்கவா?',
+  signOutBackUpBody: 'பகிர்ந்த வாடகைகள் உங்கள் ஃபோன்களில் மட்டுமே உள்ளன.',
+  backUpAction: 'காப்புப்பிரதி',
+  signOutAnyway: 'எப்படியும் வெளியேறு',
   recordedBy: '{name} பதிவு செய்தார்',
   rentalsRowSub: '{n} சொத்துகள் · இந்த மாதம் {amount} பெறப்பட்டது',
   tenants: 'குத்தகைதாரர்கள்',
@@ -900,6 +958,25 @@ export const wealthHi: WealthStrings = {
   notAdded: 'जोड़ा नहीं',
   sendToPartner: 'साथी को भेजें',
   e2eeNote: 'एंड-टू-एंड एन्क्रिप्टेड। इसे केवल आप और आपके साथी पढ़ सकते हैं।',
+  phoneAdded: '{name} ने नया फ़ोन जोड़ा।',
+  phoneRemoved: '{name} ने एक फ़ोन हटाया।',
+  dismiss: 'बंद करें',
+  formerCouple: 'पूर्व जोड़ी: {name}',
+  formerCouplesTitle: 'पूर्व जोड़ियाँ',
+  formerCoupleNote: 'केवल पढ़ने के लिए प्रति, सिर्फ़ इसी फ़ोन पर रखी गई।',
+  backupCoupleStandard: 'आपके साझा किराये भी शामिल हैं। स्टैंडर्ड बैकअप में ये Google द्वारा सुरक्षित रहते हैं।',
+  backupCoupleExtra:
+    'आपके साझा किराये भी शामिल हैं। एक्स्ट्रा बैकअप में ये आपकी अपनी रिकवरी कुंजी से सुरक्षित रहते हैं।',
+  yourPhones: 'आपके फ़ोन',
+  yourPhonesSub: 'वे फ़ोन जो आपके साझा किराये पढ़ सकते हैं।',
+  thisPhone: 'यह फ़ोन',
+  phoneLastSeen: 'आखिरी बार देखा गया {when}',
+  removePhone: 'हटाएँ',
+  removePhoneConfirm: 'इस फ़ोन को हटाएँ? यह साझा किराये पाना बंद कर देगा।',
+  signOutBackUpTitle: 'पहले बैकअप लें?',
+  signOutBackUpBody: 'साझा किराये सिर्फ़ आपके फ़ोन पर रहते हैं।',
+  backUpAction: 'बैकअप लें',
+  signOutAnyway: 'फिर भी साइन आउट करें',
   recordedBy: '{name} ने दर्ज किया',
   rentalsRowSub: '{n} संपत्तियाँ · इस महीने {amount} मिला',
   tenants: 'किरायेदार',
@@ -1138,6 +1215,25 @@ export const wealthAr: WealthStrings = {
   notAdded: 'غير مضاف',
   sendToPartner: 'إرسال إلى الشريك',
   e2eeNote: 'مشفّر من طرف إلى طرف. أنت وشريكك فقط يمكنكما قراءة هذا.',
+  phoneAdded: '{name} أضاف هاتفًا جديدًا.',
+  phoneRemoved: '{name} أزال هاتفًا.',
+  dismiss: 'إغلاق',
+  formerCouple: 'الزوجان السابقان: {name}',
+  formerCouplesTitle: 'الأزواج السابقون',
+  formerCoupleNote: 'نسخة للقراءة فقط، محفوظة على هذا الهاتف فقط.',
+  backupCoupleStandard: 'إيجاراتكما المشتركة مضمّنة. في النسخ الاحتياطي القياسي تحميها Google.',
+  backupCoupleExtra:
+    'إيجاراتكما المشتركة مضمّنة. في النسخ الاحتياطي الإضافي يحميها مفتاح الاسترداد الخاص بك.',
+  yourPhones: 'هواتفك',
+  yourPhonesSub: 'الهواتف التي يمكنها قراءة إيجاراتك المشتركة.',
+  thisPhone: 'هذا الهاتف',
+  phoneLastSeen: 'آخر ظهور {when}',
+  removePhone: 'إزالة',
+  removePhoneConfirm: 'إزالة هذا الهاتف؟ سيتوقف عن تلقي الإيجارات المشتركة.',
+  signOutBackUpTitle: 'النسخ الاحتياطي أولًا؟',
+  signOutBackUpBody: 'الإيجارات المشتركة موجودة على هواتفكما فقط.',
+  backUpAction: 'نسخ احتياطي',
+  signOutAnyway: 'تسجيل الخروج على أي حال',
   recordedBy: 'سجّله {name}',
   rentalsRowSub: '{n} عقارات · استُلم {amount} هذا الشهر',
   tenants: 'المستأجرون',

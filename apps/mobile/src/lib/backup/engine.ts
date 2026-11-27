@@ -55,6 +55,7 @@ import {
   parseFile,
   planRestore,
   type BackupBody,
+  type BackupCouple,
   type BackupFile,
   type RestorePlan,
   type SourceRecord,
@@ -153,6 +154,8 @@ export type BackupResult =
 export interface BackupRunInput {
   readonly ownerId: string;
   readonly records: readonly SourceRecord[];
+  /** Shared couple rentals held on this phone; they ride in the same sealed body. */
+  readonly couple?: readonly BackupCouple[];
   /**
    * Which promise this account's backup makes. Decides where the key comes
    * from, what goes in the envelope, and whether a copy of the key is left in
@@ -585,7 +588,7 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
       checkCancelled();
       input.onPhase?.('collecting');
       publishBackup({ status: 'preparing', percent: 5 });
-      const body = buildBody(input.ownerId, input.records, new Date());
+      const body = buildBody(input.ownerId, input.records, new Date(), input.couple);
 
       input.onPhase?.('sealing');
       publishBackup({ status: 'preparing', percent: 10 });
@@ -886,6 +889,7 @@ export interface UpgradeInput {
   readonly ownerId: string;
   /** The ledger as it stands, for the case where there is nothing to re-seal. */
   readonly records: readonly SourceRecord[];
+  readonly couple?: readonly BackupCouple[];
   /** The key just minted and shown to the person. Not yet stored anywhere. */
   readonly key: Uint8Array;
 }
@@ -966,7 +970,7 @@ export async function upgradeToExtra(input: UpgradeInput): Promise<UpgradeResult
         }
       }
     }
-    const outgoing = body ?? buildBody(input.ownerId, input.records, new Date());
+    const outgoing = body ?? buildBody(input.ownerId, input.records, new Date(), input.couple);
 
     // The keystore, before the network. See the note in the doc comment.
     await saveRecoveryKey(input.ownerId, input.key);
