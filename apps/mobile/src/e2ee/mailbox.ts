@@ -259,7 +259,7 @@ export function createMailbox(deps: MailboxDeps) {
             throw new TransientMailboxError(cause);
           }
           if (!current()) return [];
-          if (removedAt === null) {
+          if (removedAt === null || removedAt === '') {
             try {
               await meta.set(key, String(deps.now()));
             } catch (cause) {

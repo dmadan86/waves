@@ -481,6 +481,52 @@ describe('mailbox fetch', () => {
     expect(b.data(G)['before-removal']).toMatchObject(prop);
   });
 
+  it('resets the sender cutoff on rejoin so a later departure gets a new cutoff', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1);
+    const b = phone(server, 'pB', 'mB', 2, undefined, [G]);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await b.mailbox.sync();
+    await a.set(G, 'cutoff-row', 'property', prop);
+    await a.mailbox.flushOutbox();
+    const aId = await a.deviceId();
+    const bId = await b.deviceId();
+    const original = server.mailbox.find((row) => row.sender_device_id === aId)!;
+    server.groups.set(G, [{ memberId: 'mB', profileId: 'pB' }]);
+    b.clock.t += 61_000;
+    await b.sync();
+    server.groups.set(G, [
+      { memberId: 'mA', profileId: 'pA' },
+      { memberId: 'mB', profileId: 'pB' },
+    ]);
+    b.clock.t += 61_000;
+    await b.sync();
+    server.groups.set(G, [{ memberId: 'mB', profileId: 'pB' }]);
+    b.clock.t += 61_000;
+    await b.sync();
+    const cutoff = b.clock.t;
+    server.mailbox = [
+      {
+        ...original,
+        id: 'between',
+        recipient_device_id: bId,
+        created_at: new Date(cutoff - 1).toISOString(),
+      },
+      {
+        ...original,
+        id: 'after',
+        recipient_device_id: bId,
+        created_at: new Date(cutoff + 1).toISOString(),
+      },
+    ];
+    await b.sync();
+    expect(b.store.quarantine).toContainEqual(
+      expect.objectContaining({ reason: 'revoked-sender' }),
+    );
+    expect(b.data(G)['cutoff-row']).toMatchObject(prop);
+    expect(server.mailbox.map((row) => row.id)).not.toContain('after');
+  });
+
   it('applies the ops, then deletes only this phone’s rows', async () => {
     const server = world();
     const a1 = phone(server, 'pA', 'mA', 1);

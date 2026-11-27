@@ -929,6 +929,7 @@ export interface UpgradeInput {
   readonly couple?: readonly BackupCouple[];
   /** The key just minted and shown to the person. Not yet stored anywhere. */
   readonly key: Uint8Array;
+  readonly isCurrent?: () => boolean;
 }
 
 export type UpgradeResult =
@@ -974,12 +975,15 @@ export async function upgradeToExtra(input: UpgradeInput): Promise<UpgradeResult
   const provider = providerFor(PRIMARY_PROVIDER);
 
   try {
+    if (input.isCurrent && !input.isCurrent()) return stop('auth');
     if (!provider.isConfigured()) return stop('not-configured');
 
     const net = await connection();
+    if (input.isCurrent && !input.isCurrent()) return stop('auth');
     if (!net.online) return stop('offline');
 
     const lookup = await freshTokens(PRIMARY_PROVIDER, input.ownerId);
+    if (input.isCurrent && !input.isCurrent()) return stop('auth');
     if (lookup.kind !== 'ok') return stop(lookup.kind === 'auth' ? 'auth' : 'not-connected');
     const tokens = lookup.tokens;
 

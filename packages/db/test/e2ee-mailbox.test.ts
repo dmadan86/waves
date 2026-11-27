@@ -153,6 +153,15 @@ describe('devices', () => {
 });
 
 describe('mailbox membership locking', () => {
+  it('rejects sends from a sender whose membership has already been removed', async () => {
+    const profile = couple.profileIds[alice]!;
+    const sender = await register(profile);
+    await client.query(`UPDATE group_members SET removed_at = now() WHERE id = $1`, [
+      couple.memberIds[alice],
+    ]);
+    await expect(send(profile, couple.groupId, sender, [])).rejects.toThrow();
+  });
+
   it('waits for a concurrent member removal, then rejects the departed recipient', async () => {
     const other = await connect();
     const senderProfile = couple.profileIds[alice]!;

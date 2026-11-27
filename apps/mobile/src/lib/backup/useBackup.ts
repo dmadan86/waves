@@ -483,7 +483,12 @@ export function useBackup(): BackupState & BackupActions {
       // Only reachable if the hex we minted came back mangled, which would mean
       // the screen handed us something other than what it was given.
       if (!key || !ownerId) return { kind: 'refused', refusal: 'no-key' };
-      const result = await upgradeToExtra({ ownerId, records, couple: coupleBridge.backup(), key });
+      if (!e2eeReady) return { kind: 'refused', refusal: 'e2ee-loading' };
+      const isCurrent = coupleBridge.captureOwner(ownerId);
+      if (!isCurrent()) return { kind: 'refused', refusal: 'auth' };
+      const couple = coupleBridge.backup();
+      if (!isCurrent()) return { kind: 'refused', refusal: 'auth' };
+      const result = await upgradeToExtra({ ownerId, records, couple, key, isCurrent });
       if (!result.ok) {
         const refused: BackupOutcome = { kind: 'refused', refusal: result.refusal };
         setOutcome(refused);
@@ -506,7 +511,7 @@ export function useBackup(): BackupState & BackupActions {
       setOutcome(done);
       return done;
     },
-    [ownerId, records, refreshLink],
+    [ownerId, records, refreshLink, e2eeReady],
   );
 
   const scan = useCallback(async (): Promise<RestoreScan> => {
