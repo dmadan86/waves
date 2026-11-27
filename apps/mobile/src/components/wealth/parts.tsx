@@ -255,12 +255,15 @@ export function TextAnswer({
   placeholder,
   label,
   keyboardType,
+  bordered = false,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
   label: string;
   keyboardType?: 'default' | 'phone-pad' | 'numeric';
+  /** Outlined like the form's select fields, for one-screen forms. */
+  bordered?: boolean;
 }) {
   const theme = useTheme();
   return (
@@ -276,8 +279,15 @@ export function TextAnswer({
         color: theme.color.text,
         paddingVertical: 12,
         paddingHorizontal: theme.spacing.md,
-        borderRadius: theme.radius.md,
-        backgroundColor: theme.color.surfaceMuted,
+        ...(bordered
+          ? {
+              minHeight: 46,
+              borderRadius: theme.radius.lg,
+              borderWidth: 1,
+              borderColor: theme.color.border,
+              backgroundColor: theme.color.surface,
+            }
+          : { borderRadius: theme.radius.md, backgroundColor: theme.color.surfaceMuted }),
       }}
     />
   );

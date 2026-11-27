@@ -122,7 +122,7 @@ function RentalsBody() {
             {w.trackRentSub}
           </Text>
           <View style={{ alignSelf: 'stretch', marginTop: theme.spacing.md }}>
-            <Button label={w.addProperty} onPress={add} />
+            <Button label={w.addProperty} fullWidth onPress={add} />
           </View>
         </View>
       </Screen>
