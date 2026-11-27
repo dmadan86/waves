@@ -83,7 +83,7 @@ describe('Couple tiles and Personal entry', () => {
   it('Save is pinned outside the scroll and lifted by the keyboard', () => {
     const entry = src('app/personal/entry.tsx');
     expect(entry).toContain('<KeyboardAvoidingView');
-    expect(entry.indexOf('<SaveButton')).toBeGreaterThan(entry.indexOf('</ScrollView>'));
+    expect(entry.indexOf('fullWidth')).toBeGreaterThan(entry.indexOf('</ScrollView>'));
   });
 });
 

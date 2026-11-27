@@ -201,7 +201,7 @@ describe('Android personal finance regressions', () => {
     expect(src('app/personal/entry.tsx')).toContain('addRecurring\n');
     expect(recurring).not.toContain('useClaimFab(true, t.personal.addRecurring');
     expect(recurring).toContain('action={t.personal.addRecurringItem.replace');
-    expect(src('app/personal/entry.tsx')).toContain('editing || recordPayment');
+    expect(src('app/personal/entry.tsx')).toContain('editingTxn || recordPayment');
     expect(src('app/personal/setup.tsx')).toContain(
       'setupPrefillForUntouched(null, incomePrefill, touched.current)',
     );
