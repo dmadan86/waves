@@ -25,7 +25,8 @@ export function coupleStructure(couple: readonly BackupCouple[]): CoupleStructur
     const recordIds = state
       .filter((row) => !!row && typeof row === 'object' && !('deleted' in row))
       .map((row) => String((row as { id?: unknown }).id ?? ''));
-    byGroup[entry.groupId] = { records: state.length, tombstones: dead, recordIds, tombstoneIds };
+    const key = entry.former ? `former:${entry.groupId}` : entry.groupId;
+    byGroup[key] = { records: state.length, tombstones: dead, recordIds, tombstoneIds };
     records += state.length;
     tombstones += dead;
   }

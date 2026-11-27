@@ -18,16 +18,19 @@ async function claimLegacyKey(profileId: string): Promise<string | null> {
   if (!legacyMigration) {
     legacyMigration = (async () => {
       const migrated = await SecureStore.getItemAsync(MIGRATED_SLOT);
-      if (migrated !== null) return { owner: migrated, key: null };
+      if (migrated !== null) {
+        // Only the reserved owner may resume an interrupted copy.
+        if (migrated !== profileId) return { owner: migrated, key: null };
+        return { owner: migrated, key: await SecureStore.getItemAsync(DEVICE_KEY_SLOT) };
+      }
       const legacy = await SecureStore.getItemAsync(DEVICE_KEY_SLOT);
+      // Reserve the owner FIRST: if the copy below fails, nobody else can take the key.
+      await SecureStore.setItemAsync(MIGRATED_SLOT, profileId);
       if (legacy) {
         await SecureStore.setItemAsync(slot(profileId), legacy, {
           keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
         });
       }
-      // The marker is the commit point. If the scoped write fails, a later
-      // sign-in retries with the same legacy key and the marker remains unset.
-      await SecureStore.setItemAsync(MIGRATED_SLOT, profileId);
       return { owner: profileId, key: legacy };
     })().finally(() => {
       legacyMigration = null;

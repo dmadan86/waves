@@ -69,7 +69,7 @@ export function mergeOps(
   store: Store,
   ops: readonly unknown[],
   senderMemberId: string,
-  opts: { trusted?: boolean; isSharedId?: (id: string) => boolean } = {},
+  opts: MergeOpts = {},
 ): DetailedMergeResult {
   const merged = applyOps(store, ops as readonly MergeOp[], senderMemberId, opts);
   const meta = diagnostics.get(merged as object) ?? { rejected: [], pending: [] };
@@ -390,11 +390,17 @@ const minHlc = (fields: Readonly<Record<string, Field>>): string | undefined =>
 const newer = (a: string, b: string | undefined): boolean =>
   b === undefined || compareHlc(a, b) > 0;
 
+export interface MergeOpts {
+  trusted?: boolean;
+  /** `fields` are the record's merged fields, so a restarted phone can recognise a shared id. */
+  isSharedId?: (id: string, fields: Readonly<Record<string, Field>>) => boolean;
+}
+
 export function applyOps(
   store: Store,
   ops: readonly MergeOp[],
   senderMemberId: string,
-  opts: { trusted?: boolean; isSharedId?: (id: string) => boolean } = {},
+  opts: MergeOpts = {},
 ): MergeResult {
   const out: Record<string, RecordState> = Object.assign(Object.create(null), store);
   const rejected: { op: unknown; reason: string }[] = [];
@@ -419,7 +425,7 @@ export function applyOps(
       pending.push(op);
       continue;
     }
-    const shared = opts.isSharedId?.(op.id) ?? false;
+    const shared = opts.isSharedId?.(op.id, { ...cur?.fields, ...op.fields }) ?? false;
     if (
       !opts.trusted &&
       ((!known && op.createdBy !== senderMemberId) ||
@@ -434,22 +440,17 @@ export function applyOps(
     for (const [k, f] of Object.entries(op.fields))
       if (!Object.hasOwn(fields, k) || newer(f[1], fields[k]![1])) fields[k] = f;
     let createdBy = op.createdBy;
-    let createdHlc = minHlc(op.fields);
+    // Only authenticated creates set the creation clock; an edit never lowers it.
+    let createdHlc = op.create === true ? minHlc(op.fields) : undefined;
     if (known) {
-      const was = cur.createdHlc ?? minHlc(cur.fields);
       if (op.create !== true) {
-        // An edit never moves the creator; its clock only lowers the creation floor, so order can't matter.
         createdBy = cur.createdBy;
-        createdHlc =
-          was === undefined || (createdHlc !== undefined && compareHlc(createdHlc, was) < 0)
-            ? createdHlc
-            : was;
-      } else {
-        const c =
-          createdHlc === undefined ? 1 : was === undefined ? -1 : compareHlc(createdHlc, was);
+        createdHlc = cur.createdHlc;
+      } else if (cur.createdHlc !== undefined) {
+        const c = createdHlc === undefined ? 1 : compareHlc(createdHlc, cur.createdHlc);
         if (c > 0 || (c === 0 && op.createdBy >= cur.createdBy)) {
           createdBy = cur.createdBy;
-          createdHlc = was;
+          createdHlc = cur.createdHlc;
         }
       }
     }
@@ -467,7 +468,11 @@ export function applyOps(
 }
 
 /** Replays locally persisted pre-creation edits after their authenticated create arrives. */
-export function mergePending(store: Store, pending: readonly PendingOp[]): MergeResult {
+export function mergePending(
+  store: Store,
+  pending: readonly PendingOp[],
+  opts: MergeOpts = {},
+): MergeResult {
   let result: MergeResult = store;
   const wait: PendingOp[] = [];
   for (const item of pending) {
@@ -475,7 +480,7 @@ export function mergePending(store: Store, pending: readonly PendingOp[]): Merge
       wait.push(item);
       continue;
     }
-    result = applyOps(result, [item.op], item.sender);
+    result = applyOps(result, [item.op], item.sender, opts);
   }
   diagnostics.set(result as object, { rejected: [], pending: wait });
   return result;

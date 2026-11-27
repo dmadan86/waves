@@ -657,3 +657,59 @@ describe('chunk', () => {
 
 const KAT =
   '6465666768696a6b6c6d6e6f707172737475767778797a7b07518f92c51fa5a0ea43fa76c24d87eb368a705dc643bac3ae6f3fdc093108329124271b4094dbe583624726762e2a7d4c8dbc7cbd881697f53f312cbaaac3317af1af93f254965083d60d2b38d2cf785741ea39c884b5c0';
+
+describe('creation floor and shared ids (review round)', () => {
+  const create = (id: string, by: string, hlc: string): PutOp => ({
+    ...put(id, by, { a: [by, hlc] }),
+    create: true as const,
+  });
+  const shared = { isSharedId: () => true };
+  const run = (ops: MergeOp[], senders: string[]) =>
+    ops.reduce<Store>((s, op, i) => applyOps(s, [op], senders[i]!, shared), {});
+
+  it('an early edit never lowers the creation floor, whatever the delivery order', () => {
+    const a = create('x', 'A', '5:0:A');
+    const b = create('x', 'B', '3:0:B');
+    const edit = put('x', 'A', { n: [1, '1:0:B'] });
+    const orders: [MergeOp[], string[]][] = [
+      [
+        [a, edit, b],
+        ['A', 'B', 'B'],
+      ],
+      [
+        [b, a, edit],
+        ['B', 'A', 'B'],
+      ],
+      [
+        [edit, a, b],
+        ['B', 'A', 'B'],
+      ],
+      [
+        [b, edit, a],
+        ['B', 'B', 'A'],
+      ],
+    ];
+    const who = orders.map(([ops, by]) => run(ops, by).x!.createdBy);
+    expect(new Set(who).size).toBe(1);
+    expect(who[0]).toBe('B');
+  });
+
+  it('replaying a pending edit keeps the shared-id rule', () => {
+    const edit = put('x', 'A', { n: [1, '9:0:B'] });
+    const store = run([create('x', 'B', '3:0:B')], ['B']);
+    const out = e2ee.mergePending(store, [{ op: edit, sender: 'B', receivedAt: 0 }], shared);
+    expect(materialise(out.x!)).toMatchObject({ n: 1 });
+    const strict = e2ee.mergePending(store, [{ op: edit, sender: 'B', receivedAt: 0 }]);
+    expect(materialise(strict.x!)).not.toMatchObject({ n: 1 });
+  });
+
+  it('recognises a shared occurrence id after a restart from its rule and date', async () => {
+    const { deterministicId } = await import('../src/ids');
+    const id = deterministicId('rule-1:2026-12-05');
+    const { isSharedOccurrenceId } = await import('../src/index');
+    expect(
+      isSharedOccurrenceId(id, { recurringId: ['rule-1', '1:0:A'], date: ['2026-12-05', '1:0:A'] }),
+    ).toBe(true);
+    expect(isSharedOccurrenceId('other', { recurringId: ['rule-1', '1:0:A'] })).toBe(false);
+  });
+});

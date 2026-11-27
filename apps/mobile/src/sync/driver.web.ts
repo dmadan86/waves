@@ -54,10 +54,26 @@ type WebE2eeStore = {
 };
 const emptyE2eeStore = (): WebE2eeStore => ({ records: [], outbox: [], pending: [] });
 
+/**
+ * `Serial` plus a Web Lock, so another tab over the same browser storage can't commit between
+ * this instance's read and write of the combined e2ee value. Without Web Locks (old browsers)
+ * it degrades to in-instance ordering.
+ */
+class CrossTabSerial extends Serial {
+  override run<T>(task: () => Promise<T>): Promise<T> {
+    const locks = (
+      globalThis as {
+        navigator?: { locks?: { request: <R>(n: string, f: () => Promise<R>) => Promise<R> } };
+      }
+    ).navigator?.locks;
+    return super.run(() => (locks ? locks.request('waves:web-store', task) : task()));
+  }
+}
+
 class AsyncStorageStore implements LocalStore {
   // Every entry point below is read-modify-write, so two overlapping callers
   // lose one of the two writes. Same lock as native, for a plainer reason.
-  private readonly serial = new Serial();
+  private readonly serial = new CrossTabSerial();
 
   async ready(): Promise<void> {
     await legacyKeysMigrated;

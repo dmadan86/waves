@@ -121,11 +121,29 @@ export function reportHandled(error: unknown, where: string): void {
 export const isSensitivePath = (where: string): boolean =>
   where.startsWith('rentals.') || where.startsWith('e2ee') || where.startsWith('couple');
 
-/** Fixed code for an error: its `code` if it has a short one, else its class name. */
+/** The only codes and exception classes that may be printed or sent from a sensitive path. */
+const SAFE_CODES = new Set([
+  'E2EE_DECODE_FAILED',
+  'E2EE_BAD_SHAPE',
+  'E2eeError',
+  'SyntaxError',
+  'TypeError',
+  'RangeError',
+  'Error',
+  'TransientMailboxError',
+  'AbortError',
+  'PGRST301',
+  '22023',
+  '42501',
+  '23505',
+  '23503',
+]);
+
+/** Fixed category for an error: an approved code or class name, else plain `Error`. */
 export function safeCode(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
-  if (typeof code === 'string' && /^[A-Za-z0-9_.-]{1,48}$/.test(code)) return code;
-  return error instanceof Error && /^[A-Za-z0-9_]{1,48}$/.test(error.name) ? error.name : 'Error';
+  if (typeof code === 'string' && SAFE_CODES.has(code)) return code;
+  return error instanceof Error && SAFE_CODES.has(error.name) ? error.name : 'Error';
 }
 
 /** What goes to the log and the test-build alert: name/code only on sensitive paths. */

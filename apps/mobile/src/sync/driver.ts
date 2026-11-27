@@ -79,6 +79,8 @@ const e2eeOutboxAad = (id: string, groupId: string): string =>
  * Reported once per table per process: a cold start walks thousands of rows and
  * one lost key would otherwise be thousands of identical Sentry events.
  */
+/** Prefix of an `e2ee_pending` row that could not be read and was set aside. */
+const CORRUPT_PENDING = 'corrupt:';
 const quarantineReported = new Set<string>();
 function reportQuarantine(table: string, skipped: number, total: number, cause: unknown): void {
   if (skipped === 0 || quarantineReported.has(table)) return;
@@ -795,14 +797,18 @@ class SqliteStore implements LocalStore {
         `SELECT group_id, json FROM e2ee_pending`,
       );
       const out: [string, e2ee.PendingOp[]][] = [];
+      let skipped = 0;
       for (const row of rows) {
+        if (row.group_id.startsWith(CORRUPT_PENDING)) continue; // kept aside by writeE2eePending
         try {
           const value = e2ee.decodeJson(decryptWith(key, row.json, e2eePendingAad(row.group_id)));
           if (Array.isArray(value)) out.push([row.group_id, value as e2ee.PendingOp[]]);
         } catch {
-          /* Ignore a corrupt pending group. */
+          skipped += 1;
         }
       }
+      // Fixed text only: the real error could quote decrypted record content.
+      reportQuarantine('e2ee_pending', skipped, rows.length, new Error('E2EE_DECODE_FAILED'));
       return out;
     });
   }
@@ -815,6 +821,21 @@ class SqliteStore implements LocalStore {
         return;
       }
       const key = await loadE2eeKey();
+      // An unreadable row is set aside, not overwritten, so its operations are not silently lost.
+      const old = await database.getFirstAsync<{ json: string }>(
+        `SELECT json FROM e2ee_pending WHERE group_id = ?`,
+        [groupId],
+      );
+      if (old) {
+        try {
+          decryptWith(key, old.json, e2eePendingAad(groupId));
+        } catch {
+          await database.runAsync(
+            `INSERT OR IGNORE INTO e2ee_pending (group_id, json) VALUES (?, ?)`,
+            [`${CORRUPT_PENDING}${groupId}`, old.json],
+          );
+        }
+      }
       await database.runAsync(
         `INSERT INTO e2ee_pending (group_id, json) VALUES (?, ?)
          ON CONFLICT (group_id) DO UPDATE SET json = excluded.json`,

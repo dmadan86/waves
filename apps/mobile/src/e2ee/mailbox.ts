@@ -75,8 +75,13 @@ const RESYNC_GAP_MS = 3_600_000;
 /** Pads the msgId while chunking: room for the real id and the `to` field the answer adds. */
 const CHUNK_PAD = 'x'.repeat(160);
 /** Exact bytes this message takes on the server: frame byte + msgId + nonce + tag + plaintext. */
+// Versioned frame: 3-byte header + 36-byte sender device id + msgId + nonce/tag; `seal` adds kv 2.
 const wireSize = (pt: e2ee.Plaintext): number =>
-  1 + utf8.encode(pt.msgId).length + 40 + utf8.encode(e2ee.encodeJson(pt)).length;
+  3 +
+  36 +
+  utf8.encode(pt.msgId).length +
+  40 +
+  utf8.encode(e2ee.encodeJson({ ...pt, kv: pt.kv ?? 2 })).length;
 const fits = (pt: e2ee.Plaintext): boolean => wireSize(pt) <= e2ee.MAX_MESSAGE_BYTES;
 
 const utf8 = new TextEncoder();
@@ -252,11 +257,13 @@ export function createMailbox(deps: MailboxDeps) {
         }
       }
     }
-    devicesCache.set(groupId, { at: deps.now(), list });
+    // Publish to the cache only once every binding is durable, so a failed write is retried.
     for (const device of list) {
       if (!current()) return [];
       await rememberSender(groupId, device, current);
     }
+    if (!current()) return [];
+    devicesCache.set(groupId, { at: deps.now(), list });
     return list;
   }
 
@@ -282,7 +289,12 @@ export function createMailbox(deps: MailboxDeps) {
   }
 
   async function legacyKeyFor(peer: GroupDevice): Promise<Uint8Array> {
-    const device = await keys.pair();
+    let device: e2ee.DeviceKeyPair;
+    try {
+      device = await keys.pair();
+    } catch (error) {
+      throw new TransientMailboxError(error);
+    }
     return e2ee.pairKeyV1(device.privateKey, peer.publicKey);
   }
 

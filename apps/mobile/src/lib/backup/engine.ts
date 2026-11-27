@@ -455,14 +455,22 @@ async function peekExisting(
   key: Uint8Array,
   ownerId: string,
   signal?: AbortSignal,
-): Promise<{ createdAt: string; ids: readonly string[]; couple: CoupleStructure } | 'unreadable'> {
+): Promise<
+  { createdAt: string; ids: readonly string[]; couple: CoupleStructure | null } | 'unreadable'
+> {
   const envelope = parseFile(await provider.read(tokens, blob.remoteId, signal));
   try {
     const body = parseBody(openBackup(key, envelope.sealed, backupAad(ownerId)), ownerId);
+    let couple: CoupleStructure | null = null;
+    try {
+      couple = coupleStructure(body.couple ?? []);
+    } catch {
+      // Opens, but its shared rentals cannot be inspected: never treat that as "nothing to lose".
+    }
     return {
       createdAt: envelope.createdAt || body.createdAt,
       ids: body.records.map((r) => r.id),
-      couple: coupleStructure(body.couple ?? []),
+      couple,
     };
   } catch {
     return 'unreadable';
@@ -478,13 +486,14 @@ function wouldLose(
   existing: {
     createdAt: string;
     ids: readonly string[];
-    couple?: CoupleStructure;
+    couple?: CoupleStructure | null;
     coupleCount?: number;
   },
   local: readonly SourceRecord[],
   knownBackupAt: number | null,
   localCouple: readonly BackupCouple[] = [],
 ): boolean {
+  if (existing.couple === null) return true;
   const oldCouple = existing.couple ?? {
     groups: 0,
     records: existing.coupleCount ?? 0,

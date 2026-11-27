@@ -276,25 +276,41 @@ export class E2eeSpace {
     liveGroupIds: readonly string[],
     isCurrent: () => boolean = () => true,
   ): Promise<void> {
-    for (const c of entries) {
+    // A backup can hold a live and a former copy of one group: merge them into one history.
+    const byGroup = new Map<string, BackupCouple[]>();
+    for (const c of entries) byGroup.set(c.groupId, [...(byGroup.get(c.groupId) ?? []), c]);
+    for (const [groupId, group] of byGroup) {
       if (!isCurrent()) return;
-      if (c.former && liveGroupIds.includes(c.groupId)) continue;
-      if (this.stores.has(FORMER + c.groupId)) continue;
-      const records = e2ee.decodeJson(c.records) as e2ee.RecordState[];
-      if (!Array.isArray(records)) throw new Error('e2ee: invalid couple backup records');
-      const safeRecords = records.map((record) => ({
-        ...record,
-        fields: Object.assign(Object.create(null), record.fields),
-      }));
-      const ops = snapshotOps(safeRecords);
-      for (const op of ops) {
-        const validation = e2ee.validateMessage({ msgId: 'restore', ops: [op] });
-        if (!validation.ok || validation.rejected.length)
-          throw new Error('e2ee: invalid couple backup records');
+      const asLive = group.filter((c) => !c.former);
+      // A former-only copy of a group this account is in again is stale: the live store has it.
+      if (asLive.length === 0 && liveGroupIds.includes(groupId)) continue;
+      if (this.stores.has(FORMER + groupId)) continue;
+      const ops: e2ee.MergeOp[] = [];
+      for (const c of group) {
+        const records = e2ee.decodeJson(c.records) as e2ee.RecordState[];
+        if (!Array.isArray(records)) throw new Error('e2ee: invalid couple backup records');
+        const safeRecords = records.map((record) => ({
+          ...record,
+          fields: Object.assign(Object.create(null), record.fields),
+        }));
+        const part = snapshotOps(safeRecords);
+        for (const op of part) {
+          const validation = e2ee.validateMessage({ msgId: 'restore', ops: [op] });
+          if (!validation.ok || validation.rejected.length)
+            throw new Error('e2ee: invalid couple backup records');
+        }
+        ops.push(...part);
       }
-      await this.applyIncoming([{ groupId: c.groupId, ops, senderMemberId: '', trusted: true }]);
+      if (
+        !(await this.applyIncoming(
+          [{ groupId, ops, senderMemberId: '', trusted: true }],
+          isCurrent,
+        ))
+      )
+        return;
       if (!isCurrent()) return;
-      if (c.former || !liveGroupIds.includes(c.groupId)) await this.retire(c.groupId, c.name);
+      if (group.some((c) => c.former) || !liveGroupIds.includes(groupId))
+        await this.retire(groupId, group[0]!.name, isCurrent);
     }
   }
 
@@ -302,8 +318,9 @@ export class E2eeSpace {
    * The phone is no longer in this group: keep what it holds as a read-only copy, on this
    * phone only. Rows are re-tagged `former:<id>`; unsent messages for the group are dropped.
    */
-  retire(groupId: string, name: string): Promise<void> {
+  retire(groupId: string, name: string, isCurrent: () => boolean = () => true): Promise<void> {
     return this.run(async () => {
+      if (!isCurrent()) return;
       const store = this.stores.get(groupId);
       if (isFormer(groupId) || !store || Object.keys(store).length === 0) return;
       const fid = FORMER + groupId;
@@ -320,8 +337,8 @@ export class E2eeSpace {
         kind: r.kind,
         state: r,
       }));
+      // Each backend clears the group's outbox and pending rows in the same operation.
       await this.io.replaceE2eeGroup(groupId, rows);
-      await this.io.writeE2eePending(groupId, []);
       this.pendingByGroup.delete(groupId);
       this.stores.delete(groupId);
       this.stores.set(fid, next);
@@ -462,7 +479,7 @@ export class E2eeSpace {
         try {
           merged = e2ee.mergeOps(g.next, ops, e.senderMemberId, {
             trusted: e.trusted,
-            isSharedId: (id) => isSharedOccurrenceId(id),
+            isSharedId: isSharedOccurrenceId,
           });
         } catch {
           throw new e2ee.E2eeError('E2EE_DECODE_FAILED');
@@ -474,7 +491,9 @@ export class E2eeSpace {
         ];
         let replayed: e2ee.Store;
         try {
-          replayed = e2ee.mergePending(merged.store, combinedPending);
+          replayed = e2ee.mergePending(merged.store, combinedPending, {
+            isSharedId: isSharedOccurrenceId,
+          });
         } catch {
           throw new e2ee.E2eeError('E2EE_DECODE_FAILED');
         }

@@ -283,8 +283,19 @@ export function latestDueOccurrence(rule: PersonalRecurring, today: string): str
  * makes a collision vanishingly unlikely.
  */
 const sharedOccurrenceIds = new Set<string>();
-export function isSharedOccurrenceId(id: string): boolean {
-  return sharedOccurrenceIds.has(id);
+export function isSharedOccurrenceId(
+  id: string,
+  fields?: Readonly<Record<string, readonly [unknown, string]>>,
+): boolean {
+  if (sharedOccurrenceIds.has(id)) return true;
+  // After a restart the set is empty: recognise the id from the record's own rule and date.
+  const rule = fields?.recurringId?.[0];
+  const date = fields?.date?.[0];
+  return (
+    typeof rule === 'string' &&
+    typeof date === 'string' &&
+    deterministicId(`${rule}:${date}`) === id
+  );
 }
 
 export function recurringOccurrenceId(ruleId: string, date: string): string {
