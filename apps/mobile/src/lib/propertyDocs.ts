@@ -12,7 +12,6 @@ import {
   addDoc,
   docFileName,
   docsOf,
-  orphanFolders,
   parseIndex,
   removeDoc,
   renameDoc,
@@ -104,22 +103,6 @@ export async function deleteAllDocs(propertyId: string): Promise<void> {
   if (index[propertyId]) {
     const { [propertyId]: _gone, ...rest } = index;
     writeIndex(rest);
-  }
-}
-
-/** Remove folders and index entries of properties that no longer exist. */
-export async function sweepOrphanDocs(liveIds: ReadonlySet<string>): Promise<void> {
-  try {
-    if (!root().exists) return;
-    const folders = root()
-      .list()
-      .filter((e) => e instanceof FileSystem.Directory)
-      .map((e) => e.name);
-    for (const name of orphanFolders(folders, liveIds)) await deleteAllDocs(name);
-    for (const pid of orphanFolders(Object.keys(await readIndex()), liveIds))
-      await deleteAllDocs(pid);
-  } catch {
-    // Housekeeping only.
   }
 }
 

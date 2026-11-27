@@ -126,6 +126,23 @@ describe('with a DSN', () => {
     expect(h.captureException).toHaveBeenCalledWith(error, { tags: { where: 'sync.flush' } });
   });
 
+  it('never logs or reports the message of an e2ee or rentals error', async () => {
+    const obs = await load('dsn');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const secret = new SyntaxError('Unexpected token Ravi Kumar flat 4B');
+    for (const where of ['e2ee.mailbox', 'rentals.save']) {
+      obs.reportHandled(secret, where);
+      const sent = h.captureException.mock.calls.at(-1)?.[0] as Error;
+      expect(sent.message).not.toContain('Ravi');
+    }
+    expect(JSON.stringify(warn.mock.calls)).not.toContain('Ravi');
+    expect(obs.describeError(secret, 'e2ee.x')).toBe('SyntaxError');
+    expect(obs.safeCode(Object.assign(new Error('Ravi'), { code: 'E2EE_DECODE_FAILED' }))).toBe(
+      'E2EE_DECODE_FAILED',
+    );
+    warn.mockRestore();
+  });
+
   it('wraps the root with Sentry’s boundary', async () => {
     const obs = await load('dsn');
     expect(obs.withObservability).toBe(h.wrap);

@@ -108,13 +108,30 @@ export function identifyForReporting(userId: string | null): void {
  */
 export function reportHandled(error: unknown, where: string): void {
   // Also to the device log (logcat / Console), so a tester can see it without Sentry.
-  console.warn(
-    `[handled] ${where}:`,
-    error instanceof Error ? `${error.name}: ${error.message}` : error,
-  );
+  console.warn(`[handled] ${where}:`, describeError(error, where));
   showOnTestBuild(error, where);
   if (!reportingEnabled) return;
-  Sentry.captureException(error, { tags: { where } });
+  // Couple-space paths handle decrypted text: send only a fixed code, never the original.
+  Sentry.captureException(isSensitivePath(where) ? new Error(safeCode(error)) : error, {
+    tags: { where },
+  });
+}
+
+/** Rentals and e2ee errors can carry decrypted tenant data in their message. */
+export const isSensitivePath = (where: string): boolean =>
+  where.startsWith('rentals.') || where.startsWith('e2ee') || where.startsWith('couple');
+
+/** Fixed code for an error: its `code` if it has a short one, else its class name. */
+export function safeCode(error: unknown): string {
+  const code = (error as { code?: unknown } | null)?.code;
+  if (typeof code === 'string' && /^[A-Za-z0-9_.-]{1,48}$/.test(code)) return code;
+  return error instanceof Error && /^[A-Za-z0-9_]{1,48}$/.test(error.name) ? error.name : 'Error';
+}
+
+/** What goes to the log and the test-build alert: name/code only on sensitive paths. */
+export function describeError(error: unknown, where: string): string {
+  if (isSensitivePath(where)) return safeCode(error);
+  return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
 }
 
 /** Wraps the root component for the native error boundary and route tracing. */
@@ -132,7 +149,7 @@ function showOnTestBuild(error: unknown, where: string): void {
     if (!where.startsWith('rentals.') && !where.startsWith('e2ee')) return;
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { Alert } = require('react-native') as typeof import('react-native');
-    const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    const detail = describeError(error, where);
     // eslint-disable-next-line no-restricted-syntax -- test builds only, outside any React tree
     Alert.alert(`Test build: ${where}`, detail.slice(0, 500));
   } catch {

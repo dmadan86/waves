@@ -9,7 +9,6 @@ import {
   slotsOf,
   docFileName,
   docMime,
-  orphanFolders,
   parseIndex,
   removeDoc,
   renameDoc,
@@ -32,9 +31,6 @@ describe('propertyDocsPure', () => {
     expect(i.p2).toBeUndefined();
   });
 
-  it('finds folders of deleted properties', () => {
-    expect(orphanFolders(['p1', 'gone'], new Set(['p1']))).toEqual(['gone']);
-  });
 
   it('maps mime and extension', () => {
     expect(docMime('x.PDF')).toBe('application/pdf');

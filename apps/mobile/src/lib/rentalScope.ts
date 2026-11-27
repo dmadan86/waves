@@ -86,16 +86,6 @@ export function rentReceivedInMonth(
   return total;
 }
 
-/** Property ids from Personal plus every group the person is in: what the orphan sweep must keep. */
-export function liveDocPropertyIds(
-  ...stores: readonly (readonly RentalRecord[])[]
-): ReadonlySet<string> {
-  const ids = new Set<string>();
-  for (const records of stores)
-    for (const r of records) if (r.record_kind === 'property') ids.add(r.id);
-  return ids;
-}
-
 export function txnsOf(records: readonly RentalRecord[]): PersonalTxn[] {
   return records.filter((r) => r.record_kind === 'txn').map((r) => decodeTxn(r.id, r.data));
 }
