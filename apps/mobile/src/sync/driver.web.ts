@@ -41,7 +41,11 @@ const WEB_KEYS = {
 } as const;
 
 /** The couple e2ee tables. Kept out of WEB_KEYS: `reset` removes every WEB_KEYS entry. */
-const WEB_E2EE_KEYS = { records: 'waves:e2ee:records', outbox: 'waves:e2ee:outbox' } as const;
+const WEB_E2EE_KEYS = {
+  records: 'waves:e2ee:records',
+  outbox: 'waves:e2ee:outbox',
+  pending: 'waves:e2ee:pending',
+} as const;
 
 class AsyncStorageStore implements LocalStore {
   // Every entry point below is read-modify-write, so two overlapping callers
@@ -247,11 +251,31 @@ class AsyncStorageStore implements LocalStore {
       );
       await AsyncStorage.setItem(WEB_E2EE_KEYS.records, e2ee.encodeJson([...recs, ...rows]));
       await AsyncStorage.setItem(WEB_E2EE_KEYS.outbox, e2ee.encodeJson(out));
+      const pending = await this.readJson<[string, e2ee.PendingOp[]][]>(WEB_E2EE_KEYS.pending, []);
+      await AsyncStorage.setItem(
+        WEB_E2EE_KEYS.pending,
+        e2ee.encodeJson(pending.filter(([g]) => g !== groupId)),
+      );
     });
   }
 
   readE2eeRecords(): Promise<E2eeRecordRow[]> {
     return this.serial.run(() => this.readJson<E2eeRecordRow[]>(WEB_E2EE_KEYS.records, []));
+  }
+
+  readE2eePending(): Promise<[string, e2ee.PendingOp[]][]> {
+    return this.serial.run(() =>
+      this.readJson<[string, e2ee.PendingOp[]][]>(WEB_E2EE_KEYS.pending, []),
+    );
+  }
+
+  writeE2eePending(groupId: string, rows: readonly e2ee.PendingOp[]): Promise<void> {
+    return this.serial.run(async () => {
+      const pending = await this.readJson<[string, e2ee.PendingOp[]][]>(WEB_E2EE_KEYS.pending, []);
+      const next = pending.filter(([g]) => g !== groupId);
+      if (rows.length > 0) next.push([groupId, [...rows]]);
+      await AsyncStorage.setItem(WEB_E2EE_KEYS.pending, e2ee.encodeJson(next));
+    });
   }
 
   readE2eeOutbox(): Promise<E2eeOutboxRow[]> {

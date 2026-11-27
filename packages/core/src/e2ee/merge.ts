@@ -49,6 +49,11 @@ export interface DelOp {
   readonly hlc: string;
 }
 export type MergeOp = PutOp | DelOp;
+export interface PendingOp {
+  readonly op: MergeOp;
+  readonly sender: string;
+  readonly receivedAt: number;
+}
 
 export type Store = Readonly<Record<string, RecordState>>;
 
@@ -177,6 +182,7 @@ export function validateOp(
     const op = input as Record<string, unknown>;
     if (typeof op.id !== 'string' || op.id.length < 1 || op.id.length > 128)
       return { ok: false, reason: 'id' };
+    if (op.id.startsWith('__meta:')) return { ok: false, reason: 'id' };
     if (UUID.test(op.id) === false && !/^[A-Za-z0-9_:-]{1,128}$/.test(op.id))
       return { ok: false, reason: 'id' };
     if (op.op === 'del') {
@@ -352,14 +358,16 @@ export function applyOps(
 }
 
 /** Replays locally persisted pre-creation edits after their authenticated create arrives. */
-export function mergePending(
-  store: Store,
-  pending: readonly MergeOp[],
-  senderMemberId = '',
-): MergeResult {
-  const ready = pending.filter((op) => store[op.id]?.createdBy);
-  const wait = pending.filter((op) => !store[op.id]?.createdBy);
-  const result = applyOps(store, ready, senderMemberId, { trusted: true });
+export function mergePending(store: Store, pending: readonly PendingOp[]): MergeResult {
+  let result: MergeResult = store;
+  const wait: PendingOp[] = [];
+  for (const item of pending) {
+    if (!store[item.op.id]?.createdBy) {
+      wait.push(item);
+      continue;
+    }
+    result = applyOps(result, [item.op], item.sender);
+  }
   Object.defineProperty(result, 'pending', { value: wait, enumerable: false, configurable: true });
   return result;
 }

@@ -307,6 +307,55 @@ describe('mailbox fetch', () => {
     expect(b.data(G).p1).toMatchObject(prop);
   });
 
+  it('quarantines mail created after a successful directory refresh removed its sender', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1);
+    const b = phone(server, 'pB', 'mB', 2, undefined, [G]);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await b.mailbox.sync();
+    await a.set(G, 'old', 'property', prop);
+    await a.mailbox.flushOutbox();
+    const aId = await a.deviceId();
+    const bId = await b.deviceId();
+    const original = server.mailbox.find(
+      (row) => row.sender_device_id === aId && row.recipient_device_id === bId,
+    )!;
+    server.groups.set(G, [{ memberId: 'mB', profileId: 'pB' }]);
+    b.clock.t += 61_000;
+    // First fetch observes removal; this row was created after that observation.
+    server.mailbox = [];
+    await b.sync();
+    server.mailbox.push({
+      ...original,
+      id: 'new-after-revocation',
+      created_at: new Date(b.clock.t + 1).toISOString(),
+    });
+    await b.sync();
+    expect(b.data(G).old).toBeUndefined();
+    expect(b.store.quarantine).toContainEqual(
+      expect.objectContaining({ reason: 'revoked-sender' }),
+    );
+    expect(server.mailbox).toHaveLength(0);
+  });
+
+  it('still applies a sender message created before the removal was observed', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1);
+    const b = phone(server, 'pB', 'mB', 2, undefined, [G]);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await b.mailbox.sync();
+    await a.set(G, 'before-removal', 'property', prop);
+    await a.mailbox.flushOutbox();
+    const created = server.mailbox[0]!.created_at;
+    server.groups.set(G, [{ memberId: 'mB', profileId: 'pB' }]);
+    b.clock.t += 61_000;
+    await b.sync(); // successful refresh records the sender's removal
+    expect(server.mailbox).toHaveLength(1);
+    expect(new Date(created).getTime()).toBeLessThan(b.clock.t);
+    await b.sync();
+    expect(b.data(G)['before-removal']).toMatchObject(prop);
+  });
+
   it('applies the ops, then deletes only this phone’s rows', async () => {
     const server = world();
     const a1 = phone(server, 'pA', 'mA', 1);

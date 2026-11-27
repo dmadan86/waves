@@ -88,6 +88,8 @@ export interface LocalStore {
    * `wipeE2ee` (sign-out) does.
    */
   readE2eeRecords(): Promise<E2eeRecordRow[]>;
+  readE2eePending(): Promise<[string, e2ee.PendingOp[]][]>;
+  writeE2eePending(groupId: string, pending: readonly e2ee.PendingOp[]): Promise<void>;
   /** Upsert records and add outbox rows in one step. */
   writeE2eeRecords(
     rows: readonly E2eeRecordRow[],

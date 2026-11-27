@@ -118,6 +118,15 @@ const mailbox = createMailbox({
   space: e2eeSpace,
   outbox: syncEngine.localStore,
   keys: { pair: () => loadDeviceKey(activeProfileId ?? ''), deviceId: () => ensureDeviceId() },
+  deviceStatus: async (deviceId) => {
+    const { data, error } = await backend
+      .from('e2ee_devices')
+      .select('id')
+      .eq('id', deviceId)
+      .maybeSingle();
+    if (error) throw error;
+    return data !== null;
+  },
   isCurrent: () => activeProfileId !== null && isSessionCurrent(),
   randomBytes: (n) => Crypto.getRandomBytes(n),
   now: () => Date.now(),

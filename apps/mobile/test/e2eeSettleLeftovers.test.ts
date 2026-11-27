@@ -206,9 +206,7 @@ describe('E2EE settle review regressions', () => {
     await b.mailbox.flushOutbox();
     await c.mailbox.sync(); // receives B's edit before A's create
     expect(c.data(G)).toEqual({});
-    expect([...c.store.records.values()].some((row) => row.id.startsWith('__meta:pending'))).toBe(
-      true,
-    );
+    expect(c.store.pending.get(G)).toHaveLength(1);
     await c.space.load(); // the pending edit must survive a process restart
     server.mailbox.push(...heldCreate);
     await c.mailbox.sync();

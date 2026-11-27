@@ -220,11 +220,19 @@ describe('merge', () => {
     const orders = permutations([create, editB, editC]);
     const states = orders.map((order) => {
       let state: Store = {};
-      let pending: MergeOp[] = [];
+      let pending: import('../src/e2ee/merge').PendingOp[] = [];
       for (const op of order) {
-        const res = applyOps(state, [op], op === create ? 'A' : op === editB ? 'B' : 'C');
+        const sender = op === create ? 'A' : op === editB ? 'B' : 'C';
+        const res = applyOps(state, [op], sender);
         state = res;
-        pending = [...pending, ...(res as unknown as { pending: MergeOp[] }).pending];
+        pending = [
+          ...pending,
+          ...(res as unknown as { pending: MergeOp[] }).pending.map((pendingOp) => ({
+            op: pendingOp,
+            sender,
+            receivedAt: 0,
+          })),
+        ];
       }
       const resolved = mergePending(state, pending);
       return materialiseAll(resolved);

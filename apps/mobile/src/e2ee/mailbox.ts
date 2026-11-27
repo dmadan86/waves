@@ -151,6 +151,9 @@ export function createMailbox(deps: MailboxDeps) {
     } catch (error) {
       throw new TransientMailboxError(error);
     }
+    // A successful refresh is the revocation boundary for remembered sender keys.
+    // Persist it before processing rows so only mail created earlier can use that key.
+    const previous = hit?.list;
     const { data, error } = response;
     if (error) throw new TransientMailboxError(error);
     let list: GroupDevice[];
@@ -163,6 +166,17 @@ export function createMailbox(deps: MailboxDeps) {
       }));
     } catch (cause) {
       throw new TransientMailboxError(cause);
+    }
+    const oldRaw = await meta.get(`devices:${groupId}`);
+    const oldDevices = previous ?? (oldRaw ? (JSON.parse(oldRaw) as KnownDevice[]) : null);
+    if (oldDevices) {
+      const present = new Set(list.map((d) => d.deviceId));
+      for (const old of oldDevices) {
+        if (!present.has(old.deviceId)) {
+          const key = `sender:${groupId}:${old.deviceId}:removedAt`;
+          if ((await meta.get(key)) === null) await meta.set(key, String(deps.now()));
+        }
+      }
     }
     devicesCache.set(groupId, { at: deps.now(), list });
     for (const device of list) await rememberSender(groupId, device);
@@ -430,8 +444,10 @@ export function createMailbox(deps: MailboxDeps) {
         if (!isCurrent()) return applied;
         try {
           let devices: GroupDevice[] = [];
+          let directoryChecked = false;
           try {
             devices = await groupDevices(row.group_id);
+            directoryChecked = true;
             if (!isCurrent()) return applied;
           } catch (error) {
             const message = String((error as TransientMailboxError).cause ?? error).toLowerCase();
@@ -442,6 +458,7 @@ export function createMailbox(deps: MailboxDeps) {
             refreshed.add(row.group_id);
             try {
               devices = await groupDevices(row.group_id, true);
+              directoryChecked = true;
               if (!isCurrent()) return applied;
               sender = devices.find((d) => d.deviceId === row.sender_device_id);
             } catch (error) {
@@ -452,6 +469,22 @@ export function createMailbox(deps: MailboxDeps) {
           if (!sender) {
             sender = await rememberedSender(row.group_id, row.sender_device_id ?? '');
             if (!isCurrent()) return applied;
+            if (sender && directoryChecked) {
+              const removedAt = Number(
+                (await meta.get(`sender:${row.group_id}:${row.sender_device_id}:removedAt`)) ?? NaN,
+              );
+              if (!isCurrent()) return applied;
+              const createdAt = Date.parse(row.created_at);
+              if (
+                !Number.isFinite(removedAt) ||
+                !Number.isFinite(createdAt) ||
+                createdAt >= removedAt
+              ) {
+                await quarantine(row, 'revoked-sender');
+                done.push(row.id);
+                continue;
+              }
+            }
           }
           if (!sender) throw new Error('e2ee: unknown sender device');
           await rememberSender(row.group_id, sender);

@@ -186,6 +186,7 @@ export class MemStore {
   writes = 0;
   quarantine: unknown[] = [];
   bindings = new Map<string, { memberId: string; publicKey: Uint8Array }>();
+  pending = new Map<string, e2ee.PendingOp[]>();
   async quarantineE2eeMail(row: unknown) {
     this.quarantine.push(structuredClone(row));
   }
@@ -202,12 +203,22 @@ export class MemStore {
   async readE2eeRecords() {
     return [...this.records.values()];
   }
+  async readE2eePending() {
+    return [...this.pending.entries()].map(
+      ([groupId, rows]) => [groupId, structuredClone(rows)] as [string, e2ee.PendingOp[]],
+    );
+  }
+  async writeE2eePending(groupId: string, rows: readonly e2ee.PendingOp[]) {
+    if (rows.length) this.pending.set(groupId, structuredClone([...rows]));
+    else this.pending.delete(groupId);
+  }
   async writeE2eeRecords(rows: readonly E2eeRecordRow[], outbox: readonly E2eeOutboxRow[] = []) {
     this.writes += 1;
     for (const r of rows) this.records.set(`${r.groupId}:${r.id}`, structuredClone(r));
     for (const o of outbox) if (!this.outbox.has(o.id)) this.outbox.set(o.id, structuredClone(o));
   }
   async replaceE2eeGroup(groupId: string, rows: readonly E2eeRecordRow[]) {
+    this.pending.delete(groupId);
     for (const [k, r] of this.records) if (r.groupId === groupId) this.records.delete(k);
     for (const [k, o] of this.outbox) if (o.groupId === groupId) this.outbox.delete(k);
     for (const r of rows) this.records.set(`${r.groupId}:${r.id}`, structuredClone(r));

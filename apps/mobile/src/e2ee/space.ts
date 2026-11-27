@@ -62,11 +62,12 @@ export interface OutboxMsg {
 /** A group this phone has left (or was removed from, or that was deleted): a read-only copy. */
 export const FORMER = 'former:';
 const META = '__former';
-const PENDING = '__meta:pending';
 export const isFormer = (groupId: string): boolean => groupId.startsWith(FORMER);
 
 export interface SpaceIo {
   readE2eeRecords(): Promise<E2eeRecordRow[]>;
+  readE2eePending(): Promise<[string, e2ee.PendingOp[]][]>;
+  writeE2eePending(groupId: string, pending: readonly e2ee.PendingOp[]): Promise<void>;
   writeE2eeRecords(
     rows: readonly E2eeRecordRow[],
     outbox?: readonly E2eeOutboxRow[],
@@ -121,7 +122,7 @@ function lastHlc(store: Store): string | null {
 
 export class E2eeSpace {
   private stores = new Map<string, Store>();
-  private pendingByGroup = new Map<string, e2ee.MergeOp[]>();
+  private pendingByGroup = new Map<string, e2ee.PendingOp[]>();
   private listeners = new Set<() => void>();
   private cache = new Map<string, { store: Store; list: readonly GroupRecord[] }>();
   private chain: Promise<unknown> = Promise.resolve();
@@ -137,17 +138,8 @@ export class E2eeSpace {
   async load(): Promise<void> {
     const rows = await this.io.readE2eeRecords();
     const stores = new Map<string, Record<string, e2ee.RecordState>>();
-    const pendingByGroup = new Map<string, e2ee.MergeOp[]>();
+    const pendingByGroup = new Map(await this.io.readE2eePending());
     for (const r of rows) {
-      if (r.id === PENDING) {
-        try {
-          const pending = JSON.parse(String(r.state.fields.value?.[0] ?? '[]')) as e2ee.MergeOp[];
-          pendingByGroup.set(r.groupId, pending);
-        } catch {
-          // A corrupt local pending row is ignored; normal record rows remain readable.
-        }
-        continue;
-      }
       const s = stores.get(r.groupId) ?? {};
       s[r.id] = r.state;
       stores.set(r.groupId, s);
@@ -277,6 +269,8 @@ export class E2eeSpace {
   ): Promise<void> {
     for (const c of entries) {
       if (this.stores.has(FORMER + c.groupId)) continue;
+      await this.io.writeE2eePending(c.groupId, []);
+      this.pendingByGroup.delete(c.groupId);
       const records = e2ee.decodeJson(c.records) as e2ee.RecordState[];
       await this.applyIncoming([
         { groupId: c.groupId, ops: snapshotOps(records), senderMemberId: '', trusted: true },
@@ -308,6 +302,8 @@ export class E2eeSpace {
         state: r,
       }));
       await this.io.replaceE2eeGroup(groupId, rows);
+      await this.io.writeE2eePending(groupId, []);
+      this.pendingByGroup.delete(groupId);
       this.stores.delete(groupId);
       this.stores.set(fid, next);
       this.notify();
@@ -418,7 +414,7 @@ export class E2eeSpace {
   ): Promise<boolean> {
     if (entries.length === 0) return Promise.resolve(true);
     return this.run(async () => {
-      const pendingUpdates = new Map<string, e2ee.MergeOp[]>();
+      const pendingUpdates = new Map<string, e2ee.PendingOp[]>();
       const byGroup = new Map<string, { next: Store; touched: Set<string> }>();
       for (const e of entries) {
         const g = byGroup.get(e.groupId) ?? {
@@ -442,18 +438,21 @@ export class E2eeSpace {
         } catch {
           throw new e2ee.E2eeError('E2EE_DECODE_FAILED');
         }
-        const combinedPending = [
+        const receivedAt = this.clock.now();
+        const combinedPending: e2ee.PendingOp[] = [
           ...(pendingUpdates.get(e.groupId) ?? this.pendingByGroup.get(e.groupId) ?? []),
-          ...merged.pending,
+          ...merged.pending.map((op) => ({ op, sender: e.senderMemberId, receivedAt })),
         ];
         let replayed: e2ee.Store;
         try {
-          replayed = e2ee.mergePending(merged.store, combinedPending, e.senderMemberId);
+          replayed = e2ee.mergePending(merged.store, combinedPending);
         } catch {
           throw new e2ee.E2eeError('E2EE_DECODE_FAILED');
         }
-        const remaining = (replayed as unknown as { pending: readonly e2ee.MergeOp[] }).pending;
-        const unique = [...new Map(remaining.map((op) => [e2ee.encodeJson(op), op])).values()];
+        const remaining = (replayed as unknown as { pending: readonly e2ee.PendingOp[] }).pending;
+        const unique = [
+          ...new Map(remaining.map((item) => [e2ee.encodeJson(item), item])).values(),
+        ];
         pendingUpdates.set(e.groupId, unique);
         g.next = replayed;
         for (const op of e.ops) g.touched.add(op.id);
@@ -463,20 +462,12 @@ export class E2eeSpace {
       for (const [groupId, g] of byGroup)
         for (const id of g.touched)
           if (g.next[id]) rows.push({ groupId, id, kind: g.next[id]!.kind, state: g.next[id]! });
-      const persistedPending = new Map(this.pendingByGroup);
-      for (const [groupId, pending] of pendingUpdates) persistedPending.set(groupId, pending);
-      for (const [groupId, pending] of persistedPending) {
-        const state: e2ee.RecordState = {
-          id: PENDING,
-          kind: '_pending',
-          createdBy: '_',
-          fields: { value: [e2ee.encodeJson(pending), '0'] },
-        };
-        rows.push({ groupId, id: PENDING, kind: '_pending', state });
-      }
       if (!canCommit()) return false;
       await this.io.writeE2eeRecords(rows);
-      for (const [groupId, pending] of pendingUpdates) this.pendingByGroup.set(groupId, pending);
+      for (const [groupId, pending] of pendingUpdates) {
+        await this.io.writeE2eePending(groupId, pending);
+        this.pendingByGroup.set(groupId, pending);
+      }
       for (const [groupId, g] of byGroup) this.stores.set(groupId, g.next);
       this.notify();
       return true;
