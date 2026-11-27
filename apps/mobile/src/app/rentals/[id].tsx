@@ -289,7 +289,7 @@ function DetailBody() {
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: clearance + theme.spacing.md,
+          paddingBottom: theme.spacing.lg,
           gap: theme.spacing.md,
         }}
       >
@@ -528,26 +528,33 @@ function DetailBody() {
             </StandardCard>
           </View>
         ) : null}
-        <Row style={{ gap: theme.spacing.sm }}>
-          <TintButton
-            label={w.addExpense}
-            icon="document-text-outline"
-            bg={theme.color.brandSoft}
-            fg={theme.color.brand}
-            onPress={() => setOpen('expense')}
-          />
-          {tn ? (
-            <TintButton
-              label={w.receiptsBtn}
-              icon="receipt-outline"
-              bg={theme.color.surfaceMuted}
-              fg={theme.color.text}
-              disabled={!lastPayment}
-              onPress={() => void share()}
-            />
-          ) : null}
-        </Row>
       </ScrollView>
+      <Row
+        style={{
+          gap: theme.spacing.sm,
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.sm,
+          paddingBottom: clearance + theme.spacing.sm,
+        }}
+      >
+        <TintButton
+          label={w.addExpense}
+          icon="document-text-outline"
+          bg={theme.color.brandSoft}
+          fg={theme.color.brand}
+          onPress={() => setOpen('expense')}
+        />
+        {tn ? (
+          <TintButton
+            label={w.receiptsBtn}
+            icon="receipt-outline"
+            bg={theme.color.surfaceMuted}
+            fg={theme.color.text}
+            disabled={!lastPayment}
+            onPress={() => void share()}
+          />
+        ) : null}
+      </Row>
 
       <AmountSheet
         visible={open === 'rent'}
@@ -607,6 +614,7 @@ function DetailBody() {
               </Text>
             </Row>
             <Button
+              fullWidth
               label={w.save}
               onPress={() => {
                 void writes.tenantLeft(tn, prop, v.rules, settle.returned, settle.kept, today);

@@ -198,7 +198,7 @@ function Shell({
         </ScrollView>
         {onSkip ? (
           <View style={{ paddingBottom: clearance + theme.spacing.lg }}>
-            <Button label={s.skip} variant="ghost" onPress={onSkip} />
+            <Button fullWidth label={s.skip} variant="ghost" onPress={onSkip} />
           </View>
         ) : null}
       </View>
@@ -352,6 +352,7 @@ function IncomeStep({ s, currency, save, skip, index, total, incomePrefill }: St
         }}
       />
       <Button
+        fullWidth
         label={s.cont}
         disabled={amount <= 0n}
         onPress={() => void save('income', { income: { kind, amount, day } })}
@@ -421,6 +422,7 @@ function HomeStep({ s, region, currency, save, skip, index, total, homePrefill }
         }}
       />
       <Button
+        fullWidth
         label={s.cont}
         disabled={amount <= 0n}
         onPress={() => void save('home', { home: { kind, amount, day } })}
@@ -506,6 +508,7 @@ function BillsStep({
           })}
         </View>
         <Button
+          fullWidth
           label={s.cont}
           onPress={() => {
             touched.current = true;
@@ -551,7 +554,7 @@ function BillsStep({
           />
         </View>
       ))}
-      <Button label={s.cont} onPress={() => void save('bills', { bills: rows })} />
+      <Button fullWidth label={s.cont} onPress={() => void save('bills', { bills: rows })} />
     </Shell>
   );
 }
@@ -640,6 +643,7 @@ function EmiStep({ s, region, currency, save, skip, index, total }: StepProps & 
         />
       </AmountDay>
       <Button
+        fullWidth
         label={s.cont}
         disabled={draft.emi <= 0n}
         onPress={() => void save('emi', { emi: draft })}
@@ -704,6 +708,7 @@ function EatStep({ s, currency, locale, save, skip, index, total }: StepProps & 
     >
       <Stepper s={s} currency={currency} value={monthly} onChange={setMonthly} />
       <Button
+        fullWidth
         label={s.cont}
         disabled={monthly <= 0n}
         onPress={() => void save('eatOut', { eatOut: { freq, each, monthly } })}
@@ -747,7 +752,12 @@ function CapStep({ s, currency, free, save, skip, index, total }: StepProps & Po
         {s.capHint}
       </Text>
       <Stepper s={s} currency={currency} value={cap} onChange={setCap} />
-      <Button label={s.cont} disabled={cap <= 0n} onPress={() => void save('cap', { cap })} />
+      <Button
+        fullWidth
+        label={s.cont}
+        disabled={cap <= 0n}
+        onPress={() => void save('cap', { cap })}
+      />
     </Shell>
   );
 }
@@ -851,7 +861,7 @@ function Reveal({
         ) : null}
         <View style={{ flex: 1 }} />
         <View style={{ paddingBottom: clearance + theme.spacing.lg }}>
-          <Button label={s.doneBtn} onPress={() => router.back()} />
+          <Button fullWidth label={s.doneBtn} onPress={() => router.back()} />
         </View>
       </View>
     </Screen>
