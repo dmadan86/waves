@@ -17,6 +17,7 @@ import Animated, {
   FadeInDown,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withSpring,
   withTiming,
   type EntryExitAnimationFunction,
@@ -171,6 +172,32 @@ const detailEntering: EntryExitAnimationFunction = () => {
     animations: {
       opacity: withTiming(1, { duration: 220 }),
       transform: [{ scale: withSpring(1, { damping: 20, stiffness: 200 }) }],
+    },
+  };
+};
+
+/** A small element arriving with a pop: starts at 60% and a touch transparent, overshoots slightly. */
+export function popEntering(delay = 0): EntryExitAnimationFunction {
+  return () => {
+    'worklet';
+    return {
+      initialValues: { opacity: 0, transform: [{ scale: 0.6 }] },
+      animations: {
+        opacity: withDelay(delay, withTiming(1, { duration: 140 })),
+        transform: [{ scale: withDelay(delay, withSpring(1, SPRING_POP)) }],
+      },
+    };
+  };
+}
+
+/** A picture that rises 12px into place while fading in (first-run empty states). */
+export const houseEntering: EntryExitAnimationFunction = () => {
+  'worklet';
+  return {
+    initialValues: { opacity: 0, transform: [{ translateY: 12 }] },
+    animations: {
+      opacity: withTiming(1, { duration: 200 }),
+      transform: [{ translateY: withSpring(0, SPRING_SETTLE) }],
     },
   };
 };
