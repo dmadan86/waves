@@ -67,7 +67,7 @@ describe('mailbox send', () => {
     await Promise.all([a.deviceId(), b.deviceId()]);
     await a.set(G, 'p1', 'property', prop);
     const row = [...a.store.outbox.values()][0]!;
-    row.msg = { ...row.msg, owner: 'pB' };
+    row.msg = { ...(row.msg as Record<string, unknown>), owner: 'pB' } as typeof row.msg;
     await a.mailbox.flushOutbox();
     expect(server.mailbox).toHaveLength(0);
     expect(a.store.outbox.has(row.id)).toBe(true);

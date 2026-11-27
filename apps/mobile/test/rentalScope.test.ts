@@ -4,6 +4,7 @@ import { encodeProperty, encodeTxn, recurringOccurrenceId } from '@waves/core';
 
 import { incomeTotal } from '../../../packages/core/src/group/household';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   decodeWealth,
   groupRentalsSummary,
@@ -84,7 +85,7 @@ describe('paid in full dedupes between partners', () => {
 
 describe('document sweep', () => {
   it('is gone: folders are deleted only by an explicit property delete', () => {
-    const src = readFileSync(new URL('../src/app/rentals/[id].tsx', import.meta.url), 'utf8');
+    const src = readFileSync(join(process.cwd(), 'src/app/rentals/[id].tsx'), 'utf8');
     expect(src).not.toContain('sweepOrphanDocs');
   });
 });
