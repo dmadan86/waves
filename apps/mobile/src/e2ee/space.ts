@@ -127,6 +127,7 @@ export class E2eeSpace {
   private listeners = new Set<() => void>();
   private cache = new Map<string, { store: Store; list: readonly GroupRecord[] }>();
   private chain: Promise<unknown> = Promise.resolve();
+  private generation = 0;
   /** Called after a message lands in the outbox, so the mailbox can send it. */
   onOutbox: (() => void) | null = null;
 
@@ -136,25 +137,29 @@ export class E2eeSpace {
     private readonly clock: { now: () => number; newId: () => string },
   ) {}
 
-  async load(canCommit: () => boolean = () => true): Promise<void> {
-    if (!canCommit()) return;
-    const rows = await this.io.readE2eeRecords();
-    if (!canCommit()) return;
-    const stores = new Map<string, Record<string, e2ee.RecordState>>();
-    const pendingByGroup = new Map(await this.io.readE2eePending());
-    if (!canCommit()) return;
-    for (const r of rows) {
-      const s = stores.get(r.groupId) ?? {};
-      s[r.id] = r.state;
-      stores.set(r.groupId, s);
-    }
-    this.stores = stores;
-    this.pendingByGroup = pendingByGroup;
-    this.notify();
+  load(canCommit: () => boolean = () => true): Promise<void> {
+    const generation = this.generation;
+    return this.run(async () => {
+      if (!canCommit()) return;
+      const rows = await this.io.readE2eeRecords();
+      if (!canCommit() || generation !== this.generation) return;
+      const stores = new Map<string, Record<string, e2ee.RecordState>>();
+      const pendingByGroup = new Map(await this.io.readE2eePending());
+      if (!canCommit() || generation !== this.generation) return;
+      for (const r of rows) {
+        const s = stores.get(r.groupId) ?? {};
+        s[r.id] = r.state;
+        stores.set(r.groupId, s);
+      }
+      this.stores = stores;
+      this.pendingByGroup = pendingByGroup;
+      this.notify();
+    });
   }
 
   /** Sign-out: the tables are wiped by the store; this drops what is in memory. */
   clear(): void {
+    this.generation += 1;
     this.stores = new Map();
     this.pendingByGroup = new Map();
     this.cache.clear();
@@ -323,6 +328,10 @@ export class E2eeSpace {
     const next = this.chain.then(fn, fn);
     this.chain = next.catch(() => undefined);
     return next;
+  }
+
+  drain(): Promise<void> {
+    return this.run(async () => undefined);
   }
 
   /** Commit new state for some records of one group, and optionally one outbox message. */

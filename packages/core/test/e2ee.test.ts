@@ -525,6 +525,24 @@ describe('double creation of one id', () => {
     const want = run(all, 'B');
     for (const p of permutations(all)) expect(run(p, 'B')).toEqual(want);
   });
+
+  it('preserves a partner edit across competing creation orderings', () => {
+    const createA = { ...put('three', 'A', { a: ['A', '5:0:A'] }), create: true as const };
+    const createB = { ...put('three', 'B', { b: ['B', '3:0:B'] }), create: true as const };
+    const editByB = put('three', 'A', { partner: ['edit', '9:0:B'] });
+    const runThree = (ops: MergeOp[]) =>
+      ops.reduce<Store>(
+        (s, op) =>
+          applyOps(s, [op], op === editByB ? 'B' : (op as PutOp).createdBy, {
+            isSharedId: () => true,
+          }),
+        {},
+      );
+    const x = runThree([createA, editByB, createB]);
+    const y = runThree([createB, createA, editByB]);
+    expect(y).toEqual(x);
+    expect(materialise(y.three!)).toMatchObject({ partner: 'edit' });
+  });
 });
 
 describe('chunk', () => {

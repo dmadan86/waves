@@ -362,12 +362,16 @@ export class SyncEngine {
   /** Sign-out: nothing of the previous account may survive on the device. */
   async clear(): Promise<void> {
     await this.settleFlush();
+    await this.beforeE2eeWipe?.();
     await this.store.reset();
     // The "back up your rentals first?" prompt is in SignOutSheet, before this runs. The couple
     // space is wiped with the rest of the account, as it must not outlive it.
     await this.store.wipeE2ee();
     this.forgetInMemory();
   }
+
+  /** E2EE runtime installs this so mailbox work drains before sign-out deletion. */
+  beforeE2eeWipe: (() => Promise<void>) | null = null;
 
   /**
    * A session lost rather than left (`retention.ts`): keep the unsent work.

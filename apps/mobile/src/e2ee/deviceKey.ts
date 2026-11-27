@@ -12,6 +12,7 @@ const slot = (profileId: string) => `waves.e2ee.device.v2.${encodeURIComponent(p
 const pairs = new Map<string, Promise<e2ee.DeviceKeyPair>>();
 const deviceIds = new Map<string, string>();
 let legacyMigration: Promise<{ owner: string; key: string | null }> | null = null;
+const registrationGeneration = new Map<string, number>();
 
 async function claimLegacyKey(profileId: string): Promise<string | null> {
   if (!legacyMigration) {
@@ -86,8 +87,11 @@ export async function registerDevice(
   profileId: string,
   register: (publicKeyBytea: string) => Promise<string>,
 ): Promise<string> {
+  const generation = registrationGeneration.get(profileId) ?? 0;
   const { publicKey } = await loadDeviceKey(profileId);
   const id = await register(toBytea(publicKey));
+  if (generation !== (registrationGeneration.get(profileId) ?? 0))
+    throw new Error('e2ee: device registration outlived its session');
   deviceIds.set(profileId, id);
   return id;
 }
@@ -95,6 +99,12 @@ export async function registerDevice(
 export const registeredDeviceId = (profileId: string): string | null =>
   deviceIds.get(profileId) ?? null;
 export function forgetDeviceId(profileId?: string): void {
-  if (profileId === undefined) deviceIds.clear();
-  else deviceIds.delete(profileId);
+  if (profileId === undefined) {
+    for (const key of new Set([...registrationGeneration.keys(), ...deviceIds.keys()]))
+      registrationGeneration.set(key, (registrationGeneration.get(key) ?? 0) + 1);
+    deviceIds.clear();
+  } else {
+    registrationGeneration.set(profileId, (registrationGeneration.get(profileId) ?? 0) + 1);
+    deviceIds.delete(profileId);
+  }
 }

@@ -420,7 +420,9 @@ export function applyOps(
       ((!known && op.createdBy !== senderMemberId) ||
         (known &&
           op.createdBy !== cur.createdBy &&
-          !(shared && op.create === true && op.createdBy === senderMemberId)))
+          !(shared && op.create === true && op.createdBy === senderMemberId) &&
+          // A shared-id edit names the creator its author saw; the creator itself never moves.
+          !(shared && op.create !== true)))
     )
       continue;
     const fields: Record<string, Field> = { ...cur?.fields };
@@ -430,17 +432,20 @@ export function applyOps(
     let createdHlc = minHlc(op.fields);
     if (known) {
       const was = cur.createdHlc ?? minHlc(cur.fields);
-      const c =
-        op.create !== true
-          ? 1
-          : createdHlc === undefined
-            ? 1
-            : was === undefined
-              ? -1
-              : compareHlc(createdHlc, was);
-      if (c > 0 || (c === 0 && op.createdBy >= cur.createdBy)) {
+      if (op.create !== true) {
+        // An edit never moves the creator; its clock only lowers the creation floor, so order can't matter.
         createdBy = cur.createdBy;
-        createdHlc = was;
+        createdHlc =
+          was === undefined || (createdHlc !== undefined && compareHlc(createdHlc, was) < 0)
+            ? createdHlc
+            : was;
+      } else {
+        const c =
+          createdHlc === undefined ? 1 : was === undefined ? -1 : compareHlc(createdHlc, was);
+        if (c > 0 || (c === 0 && op.createdBy >= cur.createdBy)) {
+          createdBy = cur.createdBy;
+          createdHlc = was;
+        }
       }
     }
     out[op.id] = {

@@ -27,6 +27,7 @@ export const e2eeSpace = new E2eeSpace(syncEngine.localStore, {
   now: () => Date.now(),
   newId: () => Crypto.randomUUID(),
 });
+syncEngine.beforeE2eeWipe = drainE2ee;
 
 const registering = new Map<string, Promise<string>>();
 let activeProfileId: string | null = null;
@@ -230,6 +231,15 @@ export function stopE2ee(): void {
     .catch(() => undefined);
   forgetDeviceId();
   mailbox.forgetDevices();
+}
+
+/** Stop and drain current mailbox work before the account's E2EE tables are wiped. */
+export async function drainE2ee(): Promise<void> {
+  generations.invalidate();
+  activeProfileId = null;
+  const inFlight = running;
+  if (inFlight) await inFlight;
+  await e2eeSpace.drain();
 }
 
 export function useE2eeReady(profileId: string): boolean {
