@@ -47,6 +47,9 @@ describe('one add control per Personal screen', () => {
     expect(personalShowsAddFab(['profile'])).toBe(false);
     expect(personalShowsAddFab(['settings', 'backup'])).toBe(false);
     expect(personalShowsAddFab(['personal', 'setup'])).toBe(false);
+    for (const root of ['rentals', 'investments'])
+      for (const rest of [[], ['add'], ['abc123'], ['tenant']])
+        expect(personalShowsAddFab([root, ...rest])).toBe(false);
   });
 
   it('keeps Me selected on Personal settings routes', () => {
