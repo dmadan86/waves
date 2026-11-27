@@ -51,12 +51,20 @@ class FakeDatabase {
   >();
   readonly cursors = new Map<string, number>();
   readonly drafts = new Map<string, { key: string; json: string; saved_at: string }>();
+  readonly e2eeRecords = new Map<
+    string,
+    { group_id: string; id: string; kind: string; json: string }
+  >();
+  readonly e2eeOutbox = new Map<
+    string,
+    { id: string; group_id: string; msg_json: string; created_at: string }
+  >();
   /** The single-row hold stamp. Null when nothing is being kept. */
   retained: { owner_id: string; retained_at: string } | null = null;
   // Defaults to the current schema version so the one-time migrations
   // (driver.migrate) are a no-op for these tests; each step is exercised on its
   // own below by seeding an older version.
-  userVersion = 2;
+  userVersion = 3;
 
   private async enter<T>(run: () => Promise<T>): Promise<T> {
     this.live += 1;
@@ -175,6 +183,30 @@ class FakeDatabase {
         }
         return;
       }
+      if (statement === 'INSERT INTO e2ee_records') {
+        const [groupId, id, kind, json] = params as [string, string, string, string];
+        this.e2eeRecords.set(`${groupId}:${id}`, { group_id: groupId, id, kind, json });
+        return;
+      }
+      if (statement === 'DELETE FROM e2ee_records') {
+        this.e2eeRecords.clear();
+        return;
+      }
+      if (statement === 'INSERT INTO e2ee_outbox') {
+        const [id, groupId, msgJson, createdAt] = params as [string, string, string, string];
+        this.e2eeOutbox.set(id, {
+          id,
+          group_id: groupId,
+          msg_json: msgJson,
+          created_at: createdAt,
+        });
+        return;
+      }
+      if (statement === 'DELETE FROM e2ee_outbox') {
+        if (source.includes('id = ?')) this.e2eeOutbox.delete((params as [string])[0]);
+        else this.e2eeOutbox.clear();
+        return;
+      }
       if (statement === 'INSERT INTO retained_work') {
         const [ownerId, retainedAt] = params as [string, string];
         this.retained = { owner_id: ownerId, retained_at: retainedAt };
@@ -209,6 +241,8 @@ class FakeDatabase {
     return this.enter(async () => {
       await tick();
       if (source.includes('FROM mirror_rows')) return [...this.mirrorRows.values()] as T[];
+      if (source.includes('FROM e2ee_records')) return [...this.e2eeRecords.values()] as T[];
+      if (source.includes('FROM e2ee_outbox')) return [...this.e2eeOutbox.values()] as T[];
       if (source.includes('FROM sync_cursors')) {
         return [...this.cursors].map(([group_id, seq]) => ({ group_id, seq })) as T[];
       }
@@ -699,7 +733,7 @@ describe('at-rest encryption', () => {
     // Migrated in place: now sealed, version bumped, WAL flushed.
     expect(database.mirrorRows.get('expenses:e1')?.json.startsWith('v1:')).toBe(true);
     expect(database.drafts.get('d1')?.json.startsWith('v1:')).toBe(true);
-    expect(database.userVersion).toBe(2);
+    expect(database.userVersion).toBe(3);
     expect(database.statements).toContain('PRAGMA wal_checkpoint(TRUNCATE)');
 
     // And the seeded plaintext still reads correctly through the decrypt path.
@@ -736,7 +770,7 @@ describe('at-rest encryption', () => {
     const store = createLocalStore();
     await store.ready();
 
-    expect(database.userVersion).toBe(2);
+    expect(database.userVersion).toBe(3);
     // Cursors gone, so the next pull starts from the beginning of every group...
     expect(await store.readCursors()).toEqual({});
     // ...but the screens keep their rows meanwhile, and nothing unsent moves.
@@ -942,5 +976,60 @@ describe('at-rest encryption', () => {
     expect(await store.listDrafts()).toEqual([]);
     // Not replayed, and not re-sealed into something that would later read as real.
     expect(database.mirrorRows.get('expenses:planted')?.json.startsWith('v1:')).toBe(false);
+  });
+});
+
+describe('the couple e2ee tables', () => {
+  const state = {
+    id: 'p1',
+    kind: 'property',
+    createdBy: 'me',
+    fields: { name: ['Flat', '1:0:dev'], rent: [{ big: 1n }, '1:0:dev'] },
+  } as const;
+  const record = { groupId: 'g1', id: 'p1', kind: 'property', state } as never;
+  const outbox = { id: 'm1', groupId: 'g1', msg: { n: 5n }, createdAt: '2027-01-01T00:00:00Z' };
+
+  async function seeded() {
+    const store = createLocalStore();
+    await store.writeE2eeRecords([record], [outbox]);
+    return store;
+  }
+
+  beforeEach(() => {
+    secure.keystore.clear();
+  });
+
+  it('round-trips records and the outbox through sealed json, bigints included', async () => {
+    const store = await seeded();
+    const [stored] = [...database.e2eeRecords.values()];
+    expect(stored!.json.startsWith('v1:')).toBe(true);
+    expect(stored!.json).not.toContain('Flat');
+    expect(await store.readE2eeRecords()).toEqual([record]);
+    expect(await store.readE2eeOutbox()).toEqual([outbox]);
+  });
+
+  it('writes records and outbox in one transaction', async () => {
+    database.statements.length = 0;
+    await seeded();
+    expect(database.statements.filter((s) => s === 'BEGIN')).toHaveLength(1);
+  });
+
+  it('survives forgetGroup, reset and retainUnsent', async () => {
+    const store = await seeded();
+    await store.forgetGroup('g1', []);
+    await store.retainUnsent('owner', '2027-01-01T00:00:00Z');
+    await store.reset();
+    expect(await store.readE2eeRecords()).toEqual([record]);
+    expect(await store.readE2eeOutbox()).toEqual([outbox]);
+    expect(database.e2eeRecords.size).toBe(1);
+    expect(database.e2eeOutbox.size).toBe(1);
+  });
+
+  it('is cleared, with its own key, by wipeE2ee only', async () => {
+    const store = await seeded();
+    await store.wipeE2ee();
+    expect(database.e2eeRecords.size).toBe(0);
+    expect(database.e2eeOutbox.size).toBe(0);
+    expect(secure.keystore.has('waves.e2ee.dek.v1')).toBe(false);
   });
 });

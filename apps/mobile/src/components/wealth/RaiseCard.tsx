@@ -15,20 +15,20 @@ import { skipRaise, useRaiseSkips } from '@/lib/raiseSkips';
 import { raisePrompt, type RaisePrompt } from '@/lib/wealthPlan';
 
 /** Every pending, not-dismissed increase across the active tenancies. */
-export function useRaisePrompts(today: string): RaisePrompt[] {
-  const { tenancies } = usePersonalWealth();
-  const { recurrings } = usePersonalLedger();
+export function useRaisePrompts(today: string, groupId?: string): RaisePrompt[] {
+  const { tenancies } = usePersonalWealth(groupId);
+  const { recurrings } = usePersonalLedger(groupId);
   const skips = useRaiseSkips();
   return tenancies
     .map((tn) => raisePrompt(tn, recurrings, today))
     .filter((p): p is RaisePrompt => p !== null && !skips.has(p.key));
 }
 
-export function RaiseCard({ prompt }: { prompt: RaisePrompt }) {
+export function RaiseCard({ prompt, groupId }: { prompt: RaisePrompt; groupId?: string }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const fmt = useWealthMoney();
-  const writes = useWealthWrites();
+  const writes = useWealthWrites(groupId);
   const toast = useToast();
   const inFlight = useRef(false);
   const [busy, setBusy] = useState(false);

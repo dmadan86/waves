@@ -28,6 +28,8 @@ export function activityLabels(
     importedSentence: PluralForms;
     importUndoneHeadline: string;
     importUndoneSentence: string;
+    rentRecordedHeadline: string;
+    rentRecordedSentence: string;
     group: GroupChangeStrings;
   },
   typeNames?: GroupTypeNames,
@@ -38,6 +40,10 @@ export function activityLabels(
       plural(locale, count, strings.importedSentence).replaceAll('{who}', who),
     importUndoneHeadline: strings.importUndoneHeadline,
     importUndoneSentence: (who) => strings.importUndoneSentence.replaceAll('{who}', who),
+    rentRecordedHeadline: (amount) =>
+      strings.rentRecordedHeadline.replaceAll('{amount}', amount).trim(),
+    rentRecordedSentence: (who, amount) =>
+      strings.rentRecordedSentence.replaceAll('{who}', who).replaceAll('{amount}', amount).trim(),
     group: groupChangeLabels(locale, strings.group, typeNames),
   };
 }

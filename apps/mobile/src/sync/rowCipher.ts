@@ -45,6 +45,9 @@ const NONCE_BYTES = 24;
 const KEY_BYTES = 32;
 /** The keystore slot the data-encryption key lives in. */
 const DEK_STORE_KEY = 'waves.mirror.dek.v1';
+/** A separate slot for the couple e2ee tables: `destroyKey` (sign-out of the mirror) must not
+ *  make records that live only on this phone unreadable. Only `destroyE2eeKey` removes it. */
+const E2EE_DEK_STORE_KEY = 'waves.e2ee.dek.v1';
 
 /** An opaque 256-bit key. Only this module should construct one. */
 export type MirrorKey = Uint8Array;
@@ -156,11 +159,11 @@ export function open(key: MirrorKey, stored: string, aad?: string): string {
 // permanently wedge the store (mirrors the open-retry logic in driver.ts).
 let keyPromise: Promise<MirrorKey> | null = null;
 
-async function loadOrCreateKey(): Promise<MirrorKey> {
-  const existing = await SecureStore.getItemAsync(DEK_STORE_KEY);
+async function loadOrCreateKey(slot: string = DEK_STORE_KEY): Promise<MirrorKey> {
+  const existing = await SecureStore.getItemAsync(slot);
   if (existing) return base64ToBytes(existing);
   const key = Crypto.getRandomBytes(KEY_BYTES);
-  await SecureStore.setItemAsync(DEK_STORE_KEY, bytesToBase64(key), {
+  await SecureStore.setItemAsync(slot, bytesToBase64(key), {
     // Readable after the first unlock following a boot, so background sync can
     // decrypt without the user having just unlocked — but not before first
     // unlock. The THIS_DEVICE_ONLY variant also keeps the key from ever
@@ -204,4 +207,21 @@ export function decryptWith(key: MirrorKey, stored: string, aad?: string): strin
 export async function destroyKey(): Promise<void> {
   keyPromise = null;
   await SecureStore.deleteItemAsync(DEK_STORE_KEY);
+}
+
+let e2eeKeyPromise: Promise<MirrorKey> | null = null;
+
+/** The key for the end-to-end encrypted couple tables (see {@link E2EE_DEK_STORE_KEY}). */
+export function loadE2eeKey(): Promise<MirrorKey> {
+  e2eeKeyPromise ??= loadOrCreateKey(E2EE_DEK_STORE_KEY).catch((error) => {
+    e2eeKeyPromise = null;
+    throw error;
+  });
+  return e2eeKeyPromise;
+}
+
+/** Called only when those tables are wiped (sign-out). */
+export async function destroyE2eeKey(): Promise<void> {
+  e2eeKeyPromise = null;
+  await SecureStore.deleteItemAsync(E2EE_DEK_STORE_KEY);
 }

@@ -42,6 +42,8 @@ import {
   orphanedPersonalTxnIds,
   releaseOrphanDelete,
 } from '@/lib/personalOrphans';
+import { useAllE2eeRecords, useE2eeRecords } from '@/e2ee/runtime';
+import type { GroupRecord } from '@/e2ee/space';
 import { recurringTxnLinks } from '@/lib/recurringLinks';
 import { useSync } from '@/sync';
 
@@ -94,6 +96,19 @@ export function usePersonalRecords(includeDeleted = false): readonly MirrorPerso
 }
 
 /**
+ * One couple/home group's rental rows (property, tenancy, rent rule, entry). They live
+ * only on the partners' phones, end to end encrypted (`e2ee/`). Empty without a group.
+ */
+export function useGroupRecords(groupId?: string): readonly GroupRecord[] {
+  return useE2eeRecords(groupId);
+}
+
+/** Every rental record of every group this phone knows, for the document sweep. */
+export function useAllGroupRecords(): readonly GroupRecord[] {
+  return useAllE2eeRecords();
+}
+
+/**
  * Every personal record id this device knows about, **tombstones included**.
  *
  * Only a restore wants this. A record the person deleted here must not come
@@ -115,12 +130,20 @@ export function usePersonalRecordIds(): ReadonlySet<string> {
  * The whole ledger, decoded by kind and read local-first. Txns come back newest
  * first. Empty (not an error) when signed out — personal finance is per-account.
  */
-export function usePersonalLedger(): PersonalLedger {
-  const records = usePersonalRecords(true);
+export function usePersonalLedger(groupId?: string): PersonalLedger {
+  const personalRecords = usePersonalRecords(true);
+  const groupRecords = useGroupRecords(groupId);
+  const records = (groupId
+    ? groupRecords
+    : personalRecords) as unknown as readonly MirrorPersonalRecord[];
   const remove = useDeletePersonalRecord();
   const deleteRecord = remove.mutate;
 
-  const orphanIds = useMemo(() => orphanedPersonalTxnIds(records), [records]);
+  // Orphan clean-up is Personal's own (it deletes under the owner's scope).
+  const orphanIds = useMemo(
+    () => (groupId ? [] : orphanedPersonalTxnIds(records)),
+    [records, groupId],
+  );
   useEffect(() => {
     for (const id of claimOrphanDeletes(orphanIds)) {
       deleteRecord(id, { onError: () => releaseOrphanDelete(id) });

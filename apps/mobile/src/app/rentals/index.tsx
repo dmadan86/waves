@@ -3,6 +3,7 @@
 import type { ReactElement } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 
 import { leaseEndsIn } from '@waves/core';
 import { Button, directionalIcon, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
@@ -11,11 +12,12 @@ import { PersonalGuard } from '@/components/PersonalGuard';
 import { PlainHeader, StandardCard } from '@/components/standard';
 import { StatusPill, useWealthMoney, type PillTone } from '@/components/wealth/parts';
 import { todayIso, usePersonalLedger } from '@/data/personal';
-import { usePersonalWealth } from '@/data/personalWealth';
+import { useOwnPropertyCount, usePersonalWealth, useSpaceName } from '@/data/personalWealth';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { router } from '@/lib/navigation';
+import { spaceParams } from '@/lib/rentalScope';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { PROPERTY_ICON } from '@/lib/wizardIcons';
 import { atPropertyLimit, monthRent, monthTotals, propertyView } from '@/lib/wealthPlan';
@@ -35,8 +37,11 @@ function RentalsBody() {
   const w = t.wealth;
   const fmt = useWealthMoney();
   const dc = useDefaultCurrency();
-  const ledger = usePersonalLedger();
-  const { properties, tenancies } = usePersonalWealth();
+  const { space } = useLocalSearchParams<{ space?: string }>();
+  const subtitle = useSpaceName(space);
+  const ledger = usePersonalLedger(space);
+  const { properties, tenancies } = usePersonalWealth(space);
+  const ownCount = useOwnPropertyCount(space);
   const { isPro } = useEntitlement();
   const today = todayIso();
 
@@ -50,8 +55,9 @@ function RentalsBody() {
     ledger.txns,
     today.slice(0, 7),
   );
-  const limit = atPropertyLimit(active.length, isPro);
-  const add = (): void => router.push(limit ? '/paywall' : '/rentals/add');
+  const limit = atPropertyLimit(ownCount, isPro);
+  const add = (): void =>
+    router.push(limit ? '/paywall' : { pathname: '/rentals/add', params: spaceParams(space) });
   const statusText: Record<string, string> = {
     paid: w.statusPaid,
     part: w.statusPart,
@@ -83,10 +89,20 @@ function RentalsBody() {
     </View>
   );
 
+  // Only in a couple/home space: what is said there is read by the two of them alone.
+  const lock = space ? (
+    <Row style={{ alignItems: 'center', justifyContent: 'center', gap: theme.spacing.xs }}>
+      <Ionicons name="lock-closed-outline" size={iconSize.sm} color={theme.color.textMuted} />
+      <Text variant="micro" tone="muted" style={{ flexShrink: 1, textAlign: 'center' }}>
+        {w.e2eeNote}
+      </Text>
+    </Row>
+  ) : null;
+
   if (active.length === 0) {
     return (
       <Screen edges={[]}>
-        <PlainHeader title={w.rentals} />
+        <PlainHeader title={w.rentals} subtitle={subtitle} />
         <View
           style={{
             flex: 1,
@@ -124,6 +140,7 @@ function RentalsBody() {
           <View style={{ alignSelf: 'center', width: '70%', marginTop: theme.spacing.md }}>
             <Button label={w.addProperty} fullWidth onPress={add} />
           </View>
+          {lock}
         </View>
       </Screen>
     );
@@ -133,6 +150,7 @@ function RentalsBody() {
     <Screen edges={[]}>
       <PlainHeader
         title={w.rentals}
+        subtitle={subtitle}
         trailing={
           <Pressable
             accessibilityRole="button"
@@ -155,6 +173,7 @@ function RentalsBody() {
           gap: theme.spacing.md,
         }}
       >
+        {lock}
         <StandardCard style={{ gap: theme.spacing.md }}>
           <Text variant="body" style={{ fontWeight: '700' }}>
             {w.thisMonth}
@@ -204,7 +223,12 @@ function RentalsBody() {
               key={p.id}
               accessibilityRole="button"
               accessibilityLabel={p.name}
-              onPress={() => router.push({ pathname: '/rentals/[id]', params: { id: p.id } })}
+              onPress={() =>
+                router.push({
+                  pathname: '/rentals/[id]',
+                  params: { id: p.id, ...spaceParams(space) },
+                })
+              }
             >
               <StandardCard style={{ gap: theme.spacing.md }}>
                 <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>

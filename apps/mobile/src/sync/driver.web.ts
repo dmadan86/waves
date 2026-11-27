@@ -22,13 +22,14 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { e2ee } from '@waves/core';
 import type { QueuedMutation, SyncTable } from '@waves/core';
 
 import { legacyKeysMigrated } from '@/lib/legacyKeys';
 
 import type { RetainedWork } from './retention';
 import { Serial } from './serial';
-import type { LocalStore, StoredRow } from './store';
+import type { E2eeOutboxRow, E2eeRecordRow, LocalStore, StoredRow } from './store';
 
 const WEB_KEYS = {
   rows: 'waves:mirror',
@@ -39,6 +40,9 @@ const WEB_KEYS = {
   retained: 'waves:retained',
 } as const;
 
+/** The couple e2ee tables. Kept out of WEB_KEYS: `reset` removes every WEB_KEYS entry. */
+const WEB_E2EE_KEYS = { records: 'waves:e2ee:records', outbox: 'waves:e2ee:outbox' } as const;
+
 class AsyncStorageStore implements LocalStore {
   // Every entry point below is read-modify-write, so two overlapping callers
   // lose one of the two writes. Same lock as native, for a plainer reason.
@@ -46,6 +50,18 @@ class AsyncStorageStore implements LocalStore {
 
   async ready(): Promise<void> {
     await legacyKeysMigrated;
+  }
+
+  /** `read` for values that may hold bigints (see `encodeJson`). */
+  private async readJson<T>(key: string, fallback: T): Promise<T> {
+    await legacyKeysMigrated;
+    const raw = await AsyncStorage.getItem(key);
+    if (!raw) return fallback;
+    try {
+      return e2ee.decodeJson(raw) as T;
+    } catch {
+      return fallback;
+    }
   }
 
   private async read<T>(key: string, fallback: T): Promise<T> {
@@ -193,6 +209,55 @@ class AsyncStorageStore implements LocalStore {
 
   clearRetained(): Promise<void> {
     return this.serial.run(() => AsyncStorage.removeItem(WEB_KEYS.retained));
+  }
+
+  writeE2eeRecords(
+    rows: readonly E2eeRecordRow[],
+    outbox: readonly E2eeOutboxRow[] = [],
+  ): Promise<void> {
+    return this.serial.run(async () => {
+      if (rows.length > 0) {
+        const byKey = new Map(
+          (await this.readJson<E2eeRecordRow[]>(WEB_E2EE_KEYS.records, [])).map((r) => [
+            `${r.groupId}:${r.id}`,
+            r,
+          ]),
+        );
+        for (const r of rows) byKey.set(`${r.groupId}:${r.id}`, r);
+        await AsyncStorage.setItem(WEB_E2EE_KEYS.records, e2ee.encodeJson([...byKey.values()]));
+      }
+      if (outbox.length > 0) {
+        const held = await this.readJson<E2eeOutboxRow[]>(WEB_E2EE_KEYS.outbox, []);
+        const ids = new Set(held.map((o) => o.id));
+        await AsyncStorage.setItem(
+          WEB_E2EE_KEYS.outbox,
+          e2ee.encodeJson([...held, ...outbox.filter((o) => !ids.has(o.id))]),
+        );
+      }
+    });
+  }
+
+  readE2eeRecords(): Promise<E2eeRecordRow[]> {
+    return this.serial.run(() => this.readJson<E2eeRecordRow[]>(WEB_E2EE_KEYS.records, []));
+  }
+
+  readE2eeOutbox(): Promise<E2eeOutboxRow[]> {
+    return this.serial.run(() => this.readJson<E2eeOutboxRow[]>(WEB_E2EE_KEYS.outbox, []));
+  }
+
+  deleteE2eeOutbox(ids: readonly string[]): Promise<void> {
+    return this.serial.run(async () => {
+      const gone = new Set(ids);
+      const held = await this.readJson<E2eeOutboxRow[]>(WEB_E2EE_KEYS.outbox, []);
+      await AsyncStorage.setItem(
+        WEB_E2EE_KEYS.outbox,
+        e2ee.encodeJson(held.filter((o) => !gone.has(o.id))),
+      );
+    });
+  }
+
+  wipeE2ee(): Promise<void> {
+    return this.serial.run(() => AsyncStorage.removeMany(Object.values(WEB_E2EE_KEYS)));
   }
 }
 

@@ -14,7 +14,7 @@
  * blank screen because of it. Both are exercised by the same engine.
  */
 
-import type { MirrorRow, QueuedMutation, SyncTable } from '@waves/core';
+import type { e2ee, MirrorRow, QueuedMutation, SyncTable } from '@waves/core';
 
 import type { RetainedWork } from './retention';
 
@@ -24,6 +24,22 @@ export interface StoredRow {
   groupId: string;
   seq: number;
   row: MirrorRow;
+}
+
+/** One end-to-end encrypted couple record's merge state (hlcs and tombstone included). */
+export interface E2eeRecordRow {
+  groupId: string;
+  id: string;
+  kind: string;
+  state: e2ee.RecordState;
+}
+
+/** A message waiting to be sent to the partner's devices. `msg` is opaque to the store. */
+export interface E2eeOutboxRow {
+  id: string;
+  groupId: string;
+  msg: unknown;
+  createdAt: string;
 }
 
 export interface LocalStore {
@@ -66,6 +82,20 @@ export interface LocalStore {
   readRetained(): Promise<RetainedWork | null>;
   /** Adopted: the same account came back, and the queue is theirs again. */
   clearRetained(): Promise<void>;
+  /**
+   * The couple space (end-to-end encrypted, phone-only). These tables hold the only copy
+   * of the records, so `forgetGroup`, `reset` and `retainUnsent` never touch them; only
+   * `wipeE2ee` (sign-out) does.
+   */
+  readE2eeRecords(): Promise<E2eeRecordRow[]>;
+  /** Upsert records and add outbox rows in one step. */
+  writeE2eeRecords(
+    rows: readonly E2eeRecordRow[],
+    outbox?: readonly E2eeOutboxRow[],
+  ): Promise<void>;
+  readE2eeOutbox(): Promise<E2eeOutboxRow[]>;
+  deleteE2eeOutbox(ids: readonly string[]): Promise<void>;
+  wipeE2ee(): Promise<void>;
 }
 
 /**

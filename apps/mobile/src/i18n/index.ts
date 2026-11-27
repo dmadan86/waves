@@ -4894,6 +4894,10 @@ export interface UiStrings {
     importUndoneHeadline: string;
     /** "{who} undid an import". */
     importUndoneSentence: string;
+    /** "Rent received {amount}": a couple/home group's rentals. */
+    rentRecordedHeadline: string;
+    /** "{who} recorded rent received {amount}". */
+    rentRecordedSentence: string;
     /**
      * The group's own settings and people changing (`group_updated`,
      * `member_*`, `claimed`, `merged`): each a verb-first headline with
@@ -13629,6 +13633,8 @@ const en: UiStrings = {
     importedSentence: { one: '{who} imported {n} expense', other: '{who} imported {n} expenses' },
     importUndoneHeadline: 'Import undone',
     importUndoneSentence: '{who} undid an import',
+    rentRecordedHeadline: 'Rent received {amount}',
+    rentRecordedSentence: '{who} recorded rent received {amount}',
     group: {
       renamed: 'Renamed the group to {name}',
       nameCleared: 'Cleared the group name',
@@ -21908,6 +21914,8 @@ const ta: UiStrings = {
     },
     importUndoneHeadline: 'இறக்குமதி ரத்து செய்யப்பட்டது',
     importUndoneSentence: '{who} இறக்குமதியை ரத்து செய்தார்',
+    rentRecordedHeadline: 'வாடகை பெறப்பட்டது {amount}',
+    rentRecordedSentence: '{who} வாடகை பெறப்பட்டதைப் பதிவு செய்தார் {amount}',
     group: {
       renamed: 'குழுவின் பெயர் {name} என மாற்றப்பட்டது',
       nameCleared: 'குழுவின் பெயர் நீக்கப்பட்டது',
@@ -30198,6 +30206,8 @@ const hi: UiStrings = {
     },
     importUndoneHeadline: 'इम्पोर्ट वापस लिया गया',
     importUndoneSentence: '{who} ने इम्पोर्ट वापस लिया',
+    rentRecordedHeadline: 'किराया मिला {amount}',
+    rentRecordedSentence: '{who} ने किराया मिलना दर्ज किया {amount}',
     group: {
       renamed: 'समूह का नाम बदलकर {name} रखा',
       nameCleared: 'समूह का नाम हटाया',
@@ -38627,6 +38637,8 @@ const ar: UiStrings = {
     },
     importUndoneHeadline: 'تم التراجع عن الاستيراد',
     importUndoneSentence: '{who} تراجع عن استيراد',
+    rentRecordedHeadline: 'تم استلام الإيجار {amount}',
+    rentRecordedSentence: '{who} سجّل استلام الإيجار {amount}',
     group: {
       renamed: 'غيّر اسم المجموعة إلى {name}',
       nameCleared: 'أزال اسم المجموعة',

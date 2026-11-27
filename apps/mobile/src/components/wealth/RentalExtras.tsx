@@ -61,6 +61,8 @@ function Line({
   last?: boolean;
 }) {
   const theme = useTheme();
+  const { t } = useStrings();
+  const empty = value === t.wealth.notAdded;
   return (
     <Pressable
       disabled={!onPress}
@@ -82,8 +84,9 @@ function Line({
       </Text>
       <Text
         variant="body"
+        tone={empty ? 'muted' : undefined}
         numberOfLines={2}
-        style={{ flex: 1, fontWeight: '600', textAlign: 'right' }}
+        style={{ flex: 1, fontWeight: empty ? '400' : '600', textAlign: 'right' }}
       >
         {value}
       </Text>
@@ -129,14 +132,16 @@ type Field = 'phone' | 'address' | 'note';
 export function DetailsCard({
   prop,
   tenancy,
+  groupId,
 }: {
   prop: PersonalProperty;
   tenancy: PersonalTenancy | null;
+  groupId?: string;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const w = t.wealth;
-  const writes = useWealthWrites();
+  const writes = useWealthWrites(groupId);
   const [field, setField] = useState<Field | null>(null);
   const [picking, setPicking] = useState<'start' | 'end' | null>(null);
   const none = w.notAdded;
@@ -294,7 +299,15 @@ const isImage = (d: LocalDoc): boolean => d.mime.startsWith('image/');
 const GAP = 8;
 
 /** Labelled slots for a rental's papers. Files never leave the phone and are never read. */
-export function DocumentsCard({ propertyId, region }: { propertyId: string; region: string }) {
+export function DocumentsCard({
+  propertyId,
+  region,
+  groupId,
+}: {
+  propertyId: string;
+  region: string;
+  groupId?: string;
+}) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const w = t.wealth;
@@ -577,6 +590,17 @@ export function DocumentsCard({ propertyId, region }: { propertyId: string; regi
                         onPress: () => setRenaming(menu),
                       },
                     ]),
+                // Files never leave this phone on their own; in a shared space the person
+                // can hand one to their partner through the OS share sheet.
+                ...(groupId && menu.docs.length > 0
+                  ? [
+                      {
+                        icon: 'share-outline' as const,
+                        label: w.sendToPartner,
+                        onPress: () => void open(menu.docs[0]!),
+                      },
+                    ]
+                  : []),
                 {
                   icon: 'swap-horizontal-outline' as const,
                   label: w.docReplace,

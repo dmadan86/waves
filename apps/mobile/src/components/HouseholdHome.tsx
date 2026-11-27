@@ -9,6 +9,7 @@ import { format, money, type CurrencyCode, type GroupRecurringRule } from '@wave
 import { Card, directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
+import { RentalsRow } from '@/components/household/RentalsRow';
 import { fill, useStrings } from '@/i18n';
 import { billPayer, billWhen, monthProgress } from '@/lib/householdHome';
 import { router } from '@/lib/navigation';
@@ -21,6 +22,7 @@ export function HouseholdHome({
   rules,
   nameOf,
   onWhoPaid,
+  rentals,
 }: {
   groupId: string;
   currency: string;
@@ -29,6 +31,8 @@ export function HouseholdHome({
   rules: readonly GroupRecurringRule[];
   nameOf: (memberId: string | null) => string;
   onWhoPaid: () => void;
+  /** Couple/home groups only: the group's own rentals. */
+  rentals?: { count: number; received: bigint };
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -187,6 +191,14 @@ export function HouseholdHome({
             </Pressable>
           ))}
         </Card>
+      ) : null}
+
+      {rentals ? (
+        <RentalsRow
+          groupId={groupId}
+          count={rentals.count}
+          amountText={amountText(rentals.received)}
+        />
       ) : null}
     </View>
   );
