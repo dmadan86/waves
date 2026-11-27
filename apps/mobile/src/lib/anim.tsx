@@ -201,3 +201,17 @@ export const houseEntering: EntryExitAnimationFunction = () => {
     },
   };
 };
+
+/** A picture that settles into place: rises 8px while fading in. */
+export function settleEntering(delay = 0): EntryExitAnimationFunction {
+  return () => {
+    'worklet';
+    return {
+      initialValues: { opacity: 0, transform: [{ translateY: 8 }] },
+      animations: {
+        opacity: withDelay(delay, withTiming(1, { duration: 200 })),
+        transform: [{ translateY: withDelay(delay, withSpring(0, SPRING_SETTLE)) }],
+      },
+    };
+  };
+}
