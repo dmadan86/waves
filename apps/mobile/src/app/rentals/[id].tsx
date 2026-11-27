@@ -106,7 +106,7 @@ function TintButton({
       onPress={onPress}
       style={{
         flex: 1,
-        minHeight: 40,
+        minHeight: 44,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
