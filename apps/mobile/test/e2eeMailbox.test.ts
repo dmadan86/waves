@@ -92,6 +92,27 @@ describe('mailbox send', () => {
     ]);
   });
 
+  it('retries quarantined group messages after rejoining', async () => {
+    const server = world();
+    server.groups.set(G, [{ memberId: 'mB', profileId: 'pB' }]);
+    const a = phone(server, 'pA', 'mA', 1);
+    const b = phone(server, 'pB', 'mB', 2);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await a.set(G, 'p1', 'property', prop);
+    await a.mailbox.flushOutbox();
+    expect(await a.mailbox.failedOutboxGroups()).toMatchObject([
+      { groupId: G, reason: 'membership-lost' },
+    ]);
+    server.groups.set(G, [
+      { memberId: 'mA', profileId: 'pA' },
+      { memberId: 'mB', profileId: 'pB' },
+    ]);
+    a.groups.push(G);
+    await a.mailbox.flushOutbox();
+    expect(server.mailbox).toHaveLength(1);
+    expect(await a.mailbox.failedOutboxGroups()).toEqual([]);
+  });
+
   it('expires an outbox item before receipt cleanup and reports the permanent reason', async () => {
     const server = world();
     const a = phone(server, 'pA', 'mA', 1, undefined, [G]);

@@ -65,6 +65,7 @@ const META = '__former';
 export const isFormer = (groupId: string): boolean => groupId.startsWith(FORMER);
 
 export interface SpaceIo {
+  report?(error: unknown, where: string): void;
   readE2eeRecords(): Promise<E2eeRecordRow[]>;
   readE2eePending(): Promise<[string, e2ee.PendingOp[]][]>;
   writeE2eePending(groupId: string, pending: readonly e2ee.PendingOp[]): Promise<void>;
@@ -91,7 +92,15 @@ export function snapshotOps(records: readonly e2ee.RecordState[]): e2ee.MergeOp[
   const ops: e2ee.MergeOp[] = [];
   for (const r of records) {
     if (r.createdBy !== '')
-      ops.push({ op: 'put', id: r.id, kind: r.kind, createdBy: r.createdBy, fields: r.fields });
+      ops.push({
+        op: 'put',
+        id: r.id,
+        kind: r.kind,
+        createdBy: r.createdBy,
+        fields: r.fields,
+        create: true,
+        ...(r.createdHlc ? { createdHlc: r.createdHlc } : {}),
+      });
     if (r.deleted !== undefined) ops.push({ op: 'del', id: r.id, hlc: r.deleted });
   }
   return ops;
@@ -176,6 +185,10 @@ export class E2eeSpace {
   private notify(): void {
     this.version += 1;
     for (const l of this.listeners) l();
+  }
+
+  private reportPendingOverflow(groupId: string): void {
+    this.io.report?.(new Error('E2EE_PENDING_LIMIT'), `e2ee.pending.limit:${groupId}`);
   }
 
   groupIds(): string[] {
@@ -284,7 +297,6 @@ export class E2eeSpace {
       const asLive = group.filter((c) => !c.former);
       // A former-only copy of a group this account is in again is stale: the live store has it.
       if (asLive.length === 0 && liveGroupIds.includes(groupId)) continue;
-      if (this.stores.has(FORMER + groupId)) continue;
       const ops: e2ee.MergeOp[] = [];
       for (const c of group) {
         const records = e2ee.decodeJson(c.records) as e2ee.RecordState[];
@@ -498,9 +510,13 @@ export class E2eeSpace {
           throw new e2ee.E2eeError('E2EE_DECODE_FAILED');
         }
         const remaining = e2ee.getMergeDiagnostics(replayed).pending as readonly e2ee.PendingOp[];
-        const unique = [
-          ...new Map(remaining.map((item) => [e2ee.encodeJson(item), item])).values(),
+        const deduped = [
+          ...new Map(
+            remaining.map((item) => [`${item.sender}:${e2ee.encodeJson(item.op)}`, item]),
+          ).values(),
         ];
+        const unique = deduped.slice(-500);
+        if (deduped.length > 500) this.reportPendingOverflow(e.groupId);
         pendingUpdates.set(e.groupId, unique);
         g.next = replayed;
         for (const op of e.ops) g.touched.add(op.id);

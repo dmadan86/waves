@@ -15,8 +15,8 @@ export function shouldPromptCoupleBackup(input: {
   now: number;
 }): boolean {
   if ((input.outboxCount ?? 0) > 0) return true;
-  if (input.coupleRecords + (input.formerRecords ?? 0) === 0) return false;
   if (input.lastBackupAt !== null && (input.lastLocalChangeAt ?? 0) > input.lastBackupAt)
     return true;
+  if (input.coupleRecords + (input.formerRecords ?? 0) === 0) return false;
   return input.lastBackupAt === null || input.now - input.lastBackupAt > RECENT_MS;
 }

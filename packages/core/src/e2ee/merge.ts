@@ -42,6 +42,8 @@ export interface PutOp {
   readonly fields: Readonly<Record<string, Field>>;
   /** Set only for the immutable first creation, authenticated by sender identity. */
   readonly create?: true;
+  /** Original creation clock, carried by snapshots. */
+  readonly createdHlc?: string;
 }
 export interface DelOp {
   readonly op: 'del';
@@ -301,6 +303,11 @@ export function validateOp(
       Array.isArray(op.fields)
     )
       return { ok: false, reason: 'shape' };
+    if (op.createdHlc !== undefined) {
+      if (op.create !== true || typeof op.createdHlc !== 'string')
+        return { ok: false, reason: 'createdHlc' };
+      validateHlc(op.createdHlc);
+    }
     const entries = Object.entries(op.fields as Record<string, unknown>);
     const allowedFields = FIELDS[op.kind]!;
     if (!entries.length || entries.length > 128) return { ok: false, reason: 'fields' };
@@ -441,7 +448,7 @@ export function applyOps(
       if (!Object.hasOwn(fields, k) || newer(f[1], fields[k]![1])) fields[k] = f;
     let createdBy = op.createdBy;
     // Only authenticated creates set the creation clock; an edit never lowers it.
-    let createdHlc = op.create === true ? minHlc(op.fields) : undefined;
+    let createdHlc = op.create === true ? (op.createdHlc ?? minHlc(op.fields)) : undefined;
     if (known) {
       if (op.create !== true) {
         createdBy = cur.createdBy;

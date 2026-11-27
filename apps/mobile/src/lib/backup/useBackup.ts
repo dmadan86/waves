@@ -18,6 +18,7 @@
  */
 
 import { coupleBridge } from './coupleBridge';
+import { useE2eeReady } from '@/e2ee/runtime';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { MutationKind, personalScope } from '@waves/core';
@@ -160,6 +161,7 @@ export function useBackup(): BackupState & BackupActions {
   const { session } = useAuth();
   const { mutate, flush } = useSync();
   const ownerId = session?.user?.id ?? '';
+  const e2eeReady = useE2eeReady(ownerId);
   const records = usePersonalRecords();
   const localIds = usePersonalRecordIds();
 
@@ -343,6 +345,11 @@ export function useBackup(): BackupState & BackupActions {
   const backupNow = useCallback(
     async (allowMobileData = false, replaceExisting = false): Promise<BackupOutcome> => {
       setOutcome(null);
+      if (!e2eeReady) {
+        const refused: BackupOutcome = { kind: 'refused', refusal: 'busy' };
+        setOutcome(refused);
+        return refused;
+      }
       try {
         // No key is loaded here any more. Where it comes from depends on the tier
         // and on what is in the Drive folder, and the engine is the only place
@@ -387,7 +394,16 @@ export function useBackup(): BackupState & BackupActions {
         setPhase(null);
       }
     },
-    [ownerId, records, tier, settings.network, settings.last?.at, refreshLink, startFresh],
+    [
+      ownerId,
+      records,
+      tier,
+      settings.network,
+      settings.last?.at,
+      refreshLink,
+      startFresh,
+      e2eeReady,
+    ],
   );
 
   const setFrequencyAction = useCallback(

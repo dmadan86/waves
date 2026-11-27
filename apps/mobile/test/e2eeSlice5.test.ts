@@ -234,6 +234,17 @@ describe('sign-out back-up prompt', () => {
       true,
     );
   });
+
+  it('warns when the last live record was deleted after backup', () => {
+    expect(
+      shouldPromptCoupleBackup({
+        coupleRecords: 0,
+        lastBackupAt: now - DAY,
+        now,
+        lastLocalChangeAt: now,
+      }),
+    ).toBe(true);
+  });
 });
 
 describe('snapshot trust', () => {
@@ -282,5 +293,33 @@ describe('snapshot trust', () => {
       { groupId: G, ops: snapshotOps([early]), senderMemberId: 'mB', trusted: true },
     ]);
     expect(a.space.records(G).find((r) => r.id === 'p1')!.created_by).toBe('mA');
+  });
+});
+
+describe('former restore merge', () => {
+  it('merges backup records into an existing former copy', async () => {
+    const { server, a } = await setup();
+    const entries = a.space.backupCouple(() => 'Home');
+    const c = phone(server, 'pA', 'mA', 9, { t: 1_700_000_000_000 }, []);
+    await c.space.restoreCouple(entries.slice(0, 1), []);
+    await c.space.restoreCouple(entries, []);
+    expect(c.space.records('former:' + G).map((r) => r.id)).toEqual(['p1', 'p2']);
+  });
+});
+
+describe('snapshot creation clocks', () => {
+  it('preserves createdHlc on snapshot puts', async () => {
+    const rec = {
+      id: 'x',
+      kind: 'property',
+      createdBy: 'mA',
+      createdHlc: '1700000000000:0:ckA',
+      fields: { name: ['Flat', '1700000000000:0:ckA'] },
+    };
+    expect(snapshotOps([rec as never])[0]).toMatchObject({
+      op: 'put',
+      create: true,
+      createdHlc: rec.createdHlc,
+    });
   });
 });

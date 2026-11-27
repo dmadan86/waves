@@ -234,6 +234,11 @@ export function createMailbox(deps: MailboxDeps) {
     }
     if (!current()) return [];
     const oldDevices = previous ?? (oldRaw ? (JSON.parse(oldRaw) as KnownDevice[]) : null);
+    const ownDeviceId = await keys.deviceId();
+    if (list.some((d) => d.deviceId === ownDeviceId)) {
+      const failure = await meta.get(`outbox-failed:${groupId}`);
+      if (failure?.includes('membership-lost')) await meta.set(`outbox-failed:${groupId}`, '');
+    }
     if (oldDevices) {
       const present = new Set(list.map((d) => d.deviceId));
       for (const old of oldDevices) {
@@ -469,6 +474,11 @@ export function createMailbox(deps: MailboxDeps) {
 
   async function runOutbox(): Promise<void> {
     const isCurrent = captureCurrent();
+    const joined = new Set(deps.groups?.() ?? []);
+    for (const groupId of joined) {
+      const failure = await meta.get(`outbox-failed:${groupId}`);
+      if (failure?.includes('membership-lost')) await meta.set(`outbox-failed:${groupId}`, '');
+    }
     const rows = await outbox.readE2eeOutbox();
     if (!isCurrent() || (await revoked(isCurrent)) || !isCurrent()) return;
     const blockedGroups = new Set<string>();
@@ -481,6 +491,9 @@ export function createMailbox(deps: MailboxDeps) {
           JSON.stringify({ at: deps.now(), reason: 'expired' }),
         );
         await outbox.deleteE2eeOutbox([row.id]);
+        const failure = await meta.get(`outbox-failed:${row.groupId}`);
+        if (failure?.includes('membership-lost'))
+          await meta.set(`outbox-failed:${row.groupId}`, '');
         continue;
       }
       const failureRaw = await meta.get(`outbox-failed:${row.groupId}`);
@@ -511,6 +524,9 @@ export function createMailbox(deps: MailboxDeps) {
         }
         if (!isCurrent()) return;
         await outbox.deleteE2eeOutbox([row.id]);
+        const failure = await meta.get(`outbox-failed:${row.groupId}`);
+        if (failure?.includes('membership-lost'))
+          await meta.set(`outbox-failed:${row.groupId}`, '');
         attempts.delete(row.id);
       } catch (error) {
         const cause = error instanceof TransientMailboxError ? error.cause : error;
