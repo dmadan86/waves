@@ -133,3 +133,44 @@ describe('moved vehicles and expense snapshots', () => {
     expect(t.vehicleName).toBe('Swift');
   });
 });
+
+describe('couple/home spaces carry vehicle and licence records', () => {
+  it('a partner applying our ops gets the vehicle and the licence (no kind allowlist drops them)', async () => {
+    const { applyOps, materialiseAll } = await import('../src/e2ee/merge');
+    const { encodeVehicle: ev, encodeLicence: el } = await import('../src');
+    const fields = (data: Record<string, unknown>) =>
+      Object.fromEntries(
+        Object.entries(data).map(([k, v]) => [k, [v, '1:0:dA'] as [unknown, string]]),
+      );
+    const ops = [
+      { op: 'put' as const, id: 'v1', kind: 'vehicle', createdBy: 'm1', fields: fields(ev(base)) },
+      {
+        op: 'put' as const,
+        id: 'l1',
+        kind: 'licence',
+        createdBy: 'm1',
+        fields: fields(
+          el({
+            holderName: 'A',
+            number: null,
+            licenceClass: null,
+            expiry: '2031-03-10',
+            remindDaysBefore: 15,
+            vehicleIds: ['v1'],
+          }),
+        ),
+      },
+    ];
+    const partner = applyOps({}, ops, 'm1');
+    const rows = materialiseAll(partner);
+    expect(rows).toHaveLength(2);
+    const v = rows.find((r) => r.name === 'Swift')!;
+    expect(decodeVehicle('v1', v).renewals).toHaveLength(1);
+    expect(
+      decodeLicence(
+        'l1',
+        rows.find((r) => r.holderName === 'A')!,
+      ).vehicleIds,
+    ).toEqual(['v1']);
+  });
+});
