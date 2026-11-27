@@ -219,6 +219,7 @@ describe('big bills window and fund', () => {
       amount: 3000n,
       nextDate: '2026-12-02',
       anchorDate: '2026-12-02',
+      endDate: '2026-12-02',
     });
     const insurance = src({
       id: 'i',
