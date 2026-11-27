@@ -26,8 +26,17 @@ export class FakeServer {
   mailbox: MailRow[] = [];
   /** group id -> member list {memberId, profileId} */
   groups = new Map<string, { memberId: string; profileId: string }[]>();
-  sends: { groupId: string; sender: string; items: number; hint: string | null }[] = [];
+  sends: {
+    groupId: string;
+    sender: string;
+    items: number;
+    hint: string | null;
+    ids: string[];
+    eventId: string | null;
+  }[] = [];
   failSends = 0;
+  failAfterAccept = 0;
+  failDirectory = 0;
   private n = 0;
   private clock = 0;
 
@@ -54,6 +63,10 @@ export class FakeServer {
             return { data: d.id, error: null };
           }
           if (fn === 'waves_group_devices') {
+            if (server.failDirectory > 0) {
+              server.failDirectory -= 1;
+              return { data: null, error: { message: 'directory offline' } };
+            }
             const members = server.groups.get(args.p_group_id as string) ?? [];
             if (!members.some((m) => m.profileId === profileId))
               return { data: null, error: { message: 'Not a member of this group' } };
@@ -74,15 +87,30 @@ export class FakeServer {
               server.failSends -= 1;
               return { data: null, error: { message: 'offline' } };
             }
-            const items = args.p_items as { recipient_device: string; ciphertext: string }[];
+            const items = args.p_items as {
+              recipient_device: string;
+              ciphertext: string;
+              delivery_id?: string;
+            }[];
             if (items.length > 200) return { data: null, error: { message: 'Too many items' } };
             server.sends.push({
               groupId: args.p_group_id as string,
               sender: args.p_sender_device as string,
               items: items.length,
               hint: (args.p_hint as string | null) ?? null,
+              ids: items.map((i) => i.delivery_id ?? ''),
+              eventId: (args.p_event_id as string | undefined) ?? null,
             });
             for (const i of items) {
+              if (
+                i.delivery_id &&
+                server.mailbox.some(
+                  (r) =>
+                    (r as any).delivery_id === i.delivery_id &&
+                    r.sender_device_id === (args.p_sender_device as string),
+                )
+              )
+                continue;
               const bytes = Buffer.from(i.ciphertext, 'base64');
               if (bytes.length > 65536) return { data: null, error: { message: 'too big' } };
               server.clock += 1;
@@ -93,7 +121,12 @@ export class FakeServer {
                 recipient_device_id: i.recipient_device,
                 ciphertext: `\\x${bytes.toString('hex')}`,
                 created_at: new Date(1_700_000_000_000 + server.clock).toISOString(),
+                ...(i.delivery_id ? { delivery_id: i.delivery_id } : {}),
               });
+            }
+            if (server.failAfterAccept > 0) {
+              server.failAfterAccept -= 1;
+              return { data: null, error: { message: 'response lost' } };
             }
             return { data: items.length, error: null };
           }
@@ -143,6 +176,21 @@ export class MemStore {
   records = new Map<string, E2eeRecordRow>();
   outbox = new Map<string, E2eeOutboxRow>();
   writes = 0;
+  quarantine: unknown[] = [];
+  bindings = new Map<string, { memberId: string; publicKey: Uint8Array }>();
+  async quarantineE2eeMail(row: unknown) {
+    this.quarantine.push(structuredClone(row));
+  }
+  async readE2eeSenderBindings() {
+    return [...this.bindings.entries()];
+  }
+  async writeE2eeSenderBinding(
+    groupId: string,
+    deviceId: string,
+    value: { memberId: string; publicKey: Uint8Array },
+  ) {
+    this.bindings.set(`${groupId}:${deviceId}`, structuredClone(value));
+  }
   async readE2eeRecords() {
     return [...this.records.values()];
   }
@@ -161,6 +209,9 @@ export class MemStore {
   }
   async deleteE2eeOutbox(ids: readonly string[]) {
     for (const id of ids) this.outbox.delete(id);
+  }
+  async updateE2eeOutbox(row: E2eeOutboxRow) {
+    if (this.outbox.has(row.id)) this.outbox.set(row.id, structuredClone(row));
   }
 }
 
@@ -197,6 +248,17 @@ export function phone(
   const key = newKey(seed);
   const client = server.client(profileId);
   const reports: { error: unknown; where: string }[] = [];
+  const metaValues = new Map<string, string>();
+  const meta = {
+    get: async (key: string) => metaValues.get(key) ?? null,
+    set: async (key: string, value: string) => {
+      metaValues.set(key, value);
+      if (key.startsWith('quarantine:'))
+        store.quarantine = [...metaValues.entries()]
+          .filter(([k]) => k.startsWith('quarantine:'))
+          .map(([, v]) => JSON.parse(v));
+    },
+  };
   let id: Promise<string> | null = null;
   const deviceId = () =>
     (id ??= client
@@ -211,6 +273,7 @@ export function phone(
     client,
     space,
     outbox: store,
+    meta,
     groups: () => groups,
     keys: { pair: async () => key, deviceId },
     randomBytes: (len) => new Uint8Array(len).fill(7),

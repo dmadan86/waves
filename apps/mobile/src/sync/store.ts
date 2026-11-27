@@ -96,6 +96,7 @@ export interface LocalStore {
   replaceE2eeGroup(groupId: string, rows: readonly E2eeRecordRow[]): Promise<void>;
   readE2eeOutbox(): Promise<E2eeOutboxRow[]>;
   deleteE2eeOutbox(ids: readonly string[]): Promise<void>;
+  updateE2eeOutbox(row: E2eeOutboxRow): Promise<void>;
   wipeE2ee(): Promise<void>;
 }
 

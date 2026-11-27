@@ -22,6 +22,95 @@ function world() {
 const prop = { name: 'Flat 4', currency: 'INR', status: 'active' };
 
 describe('mailbox send', () => {
+  it('retains a partially sealed message and retries the failed recipient', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1);
+    const b = phone(server, 'pB', 'mB', 2, undefined, [G]);
+    const c = phone(server, 'pB', 'mB', 3);
+    await Promise.all([a.deviceId(), b.deviceId(), c.deviceId()]);
+    await a.set(G, 'p1', 'property', prop);
+    const seal = e2ee.seal;
+    const failedRecipient = await b.deviceId();
+    vi.spyOn(e2ee, 'seal').mockImplementation((key, plaintext, aad, nonce) => {
+      if (aad.recipientDevice === failedRecipient) throw new Error('temporary key failure');
+      return seal(key, plaintext, aad, nonce);
+    });
+    await a.mailbox.flushOutbox();
+    expect(a.store.outbox.size).toBe(1);
+    expect(server.mailbox).toHaveLength(1);
+    vi.mocked(e2ee.seal).mockRestore();
+    await a.mailbox.flushOutbox();
+    expect(a.store.outbox.size).toBe(0);
+    expect(server.mailbox).toHaveLength(2);
+    expect(seal).toBeDefined();
+  });
+
+  it('keeps an outbox item when there are zero recipient devices', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1);
+    await a.deviceId();
+    await a.set(G, 'p1', 'property', prop);
+    await a.mailbox.flushOutbox();
+    expect(a.store.outbox.size).toBe(1);
+  });
+
+  it('does not let a no-recipient group block a later group', async () => {
+    const server = world();
+    server.groups.set('group-2', [
+      { memberId: 'mA', profileId: 'pA' },
+      { memberId: 'mC', profileId: 'pC' },
+    ]);
+    const a = phone(server, 'pA', 'mA', 1);
+    const c = phone(server, 'pC', 'mC', 2);
+    await Promise.all([a.deviceId(), c.deviceId()]);
+    await a.set(G, 'p1', 'property', prop);
+    await a.set('group-2', 'p2', 'property', prop);
+    await a.mailbox.flushOutbox();
+    expect(server.mailbox.map((row) => row.group_id)).toEqual(['group-2']);
+    expect(a.store.outbox.size).toBe(1);
+  });
+
+  it('isolates permanent membership loss and keeps sending other groups', async () => {
+    const server = world();
+    server.groups.set('group-lost', [{ memberId: 'mC', profileId: 'pC' }]);
+    const a = phone(server, 'pA', 'mA', 1);
+    const b = phone(server, 'pB', 'mB', 2);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await a.space.queue('group-lost', [{ op: 'resync_req' }]);
+    await a.set(G, 'p1', 'property', prop);
+    await a.mailbox.flushOutbox();
+    expect(a.store.outbox.size).toBe(1);
+    expect(server.mailbox).toHaveLength(1);
+    expect(await a.mailbox.failedOutboxGroups()).toEqual(['group-lost']);
+  });
+
+  it('rejects an oversized local edit before it is committed', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1);
+    await expect(a.set(G, 'large', 'property', { note: 'x'.repeat(70_000) })).rejects.toMatchObject(
+      { code: 'E2EE_MESSAGE_TOO_LARGE' },
+    );
+    expect(a.store.outbox.size).toBe(0);
+    expect(a.data(G).large).toBeUndefined();
+  });
+
+  it('persists and reuses delivery ids after the server accepted a lost response', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1);
+    const b = phone(server, 'pB', 'mB', 2);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await b.mailbox.sync(); // persist the authenticated device and member binding locally
+    server.failAfterAccept = 1;
+    await a.set(G, 'p1', 'property', prop);
+    await a.mailbox.flushOutbox();
+    const first = server.sends[0]!.ids;
+    a.clock.t += 60 * 60 * 1000;
+    await a.mailbox.flushOutbox();
+    expect(server.sends[1]!.ids).toEqual(first);
+    expect(server.mailbox).toHaveLength(1);
+    expect(server.sends[1]!.eventId).toBe(server.sends[0]!.eventId);
+  });
+
   it('seals one message per recipient device, own other phones included, never this one', async () => {
     const server = world();
     const a1 = phone(server, 'pA', 'mA', 1);
@@ -89,15 +178,16 @@ describe('mailbox send', () => {
     const a = phone(server, 'pA', 'mA', 1);
     const b = phone(server, 'pB', 'mB', 2);
     await Promise.all([a.deviceId(), b.deviceId()]);
-    const big = 'x'.repeat(20_000);
-    const ops = ['a', 'b', 'c', 'd'].map(
+    const big = 'x'.repeat(8_000);
+    const ops = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'].map(
       (id) =>
         ({
           op: 'put',
           id,
           kind: 'property',
           createdBy: 'mA',
-          fields: { note: [big, '1:0:x'] },
+          create: true,
+          fields: { notes: [big, e2ee.tick(null, Date.now(), 'test')] },
         }) as const,
     );
     // Four 20 KB records in one message: over 64 KiB, so it goes as several.
@@ -115,8 +205,19 @@ describe('mailbox send', () => {
     await a.mailbox.flushOutbox();
     expect(server.mailbox.length).toBeGreaterThan(1);
     expect(server.mailbox.every((r) => fromBytea(r.ciphertext).length <= 65536)).toBe(true);
-    await b.sync();
-    expect(Object.keys(b.data(G)).sort()).toEqual(['a', 'b', 'c', 'd']);
+    const got = await b.mailbox.fetch();
+    expect(got).toBeGreaterThan(0);
+    expect(Object.keys(b.data(G)).sort(), JSON.stringify(b.reports)).toEqual([
+      'a',
+      'b',
+      'c',
+      'd',
+      'e',
+      'f',
+      'g',
+      'h',
+      'i',
+    ]);
   });
 
   it('keeps a message in the outbox when sending fails, and retries after the backoff', async () => {
@@ -157,6 +258,54 @@ describe('mailbox send', () => {
 });
 
 describe('mailbox fetch', () => {
+  it('leaves mail unacked on a transient directory failure, then merges on retry', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1);
+    const b = phone(server, 'pB', 'mB', 2);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await a.set(G, 'p1', 'property', prop);
+    await a.mailbox.flushOutbox();
+    b.mailbox.forgetDevices();
+    server.failDirectory = 1;
+    await b.sync().catch(() => undefined);
+    expect(server.mailbox).toHaveLength(1);
+    await b.sync();
+    expect(b.data(G).p1).toMatchObject(prop);
+    expect(server.mailbox).toHaveLength(0);
+  });
+
+  it('quarantines invalid ciphertext durably before acknowledging it', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1);
+    const b = phone(server, 'pB', 'mB', 2);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    server.mailbox.push({
+      id: 'invalid',
+      group_id: G,
+      sender_device_id: await a.deviceId(),
+      recipient_device_id: await b.deviceId(),
+      ciphertext: '\\x00',
+      created_at: 'x',
+    });
+    await b.sync();
+    expect(server.mailbox).toHaveLength(0);
+    expect((b.store as any).quarantine).toHaveLength(1);
+  });
+
+  it('reads mail from a sender who has since left the group', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1);
+    const b = phone(server, 'pB', 'mB', 2, undefined, [G]);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await b.mailbox.sync();
+    await a.set(G, 'p1', 'property', prop);
+    await a.mailbox.flushOutbox();
+    b.clock.t += 61_000; // Expire the cached directory to exercise the persisted binding.
+    server.groups.set(G, [{ memberId: 'mB', profileId: 'pB' }]);
+    await b.sync();
+    expect(b.data(G).p1).toMatchObject(prop);
+  });
+
   it('applies the ops, then deletes only this phone’s rows', async () => {
     const server = world();
     const a1 = phone(server, 'pA', 'mA', 1);

@@ -103,6 +103,11 @@ export function syncE2ee(): Promise<void> {
   return running;
 }
 
+/** Groups whose queued mailbox messages were quarantined after permanent membership loss. */
+export function getE2eeOutboxFailures(): Promise<string[]> {
+  return mailbox.failedOutboxGroups();
+}
+
 /** Sign-in: load what is on the phone, make sure the server knows this device, then sync. */
 export async function startE2ee(): Promise<void> {
   await e2eeSpace.load();

@@ -785,6 +785,17 @@ class SqliteStore implements LocalStore {
     });
   }
 
+  updateE2eeOutbox(row: E2eeOutboxRow): Promise<void> {
+    return this.serial.run(async () => {
+      const database = await this.db();
+      const key = await loadE2eeKey();
+      await database.runAsync(`UPDATE e2ee_outbox SET msg_json = ? WHERE id = ?`, [
+        encryptWith(key, e2ee.encodeJson(row.msg), e2eeOutboxAad(row.id, row.groupId)),
+        row.id,
+      ]);
+    });
+  }
+
   /** Sign-out only. TODO(slice 5): the "back up first" prompt runs before this. */
   wipeE2ee(): Promise<void> {
     return this.serial.run(async () => {

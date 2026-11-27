@@ -13,6 +13,22 @@ import type { E2eeOutboxRow, E2eeRecordRow } from '@/sync/store';
 
 type Store = e2ee.Store;
 
+export class E2eeMessageTooLargeError extends Error {
+  readonly code = 'E2EE_MESSAGE_TOO_LARGE';
+  constructor() {
+    super('This rental update is too large to sync. Shorten the attached text and try again.');
+  }
+}
+
+function validateOpsSize(ops: readonly unknown[]): void {
+  for (const op of ops) {
+    const bytes = new TextEncoder().encode(
+      e2ee.encodeJson({ v: 1, msgId: 'x'.repeat(160), ops: [op] }),
+    ).length;
+    if (1 + 160 + 40 + bytes > e2ee.MAX_MESSAGE_BYTES) throw new E2eeMessageTooLargeError();
+  }
+}
+
 /** What the rentals screens read: the same shape as a personal ledger row. */
 export interface GroupRecord {
   readonly id: string;
@@ -38,6 +54,9 @@ export interface OutboxMsg {
   readonly hint: string | null;
   /** Seal for this one device only (a snapshot answer), not the whole group. */
   readonly to?: string;
+  /** Recipient/part deliveries already accepted by the mailbox RPC. */
+  readonly delivered?: readonly string[];
+  readonly deliveryIds?: Readonly<Record<string, string>>;
 }
 
 /** A group this phone has left (or was removed from, or that was deleted): a read-only copy. */
@@ -204,6 +223,7 @@ export class E2eeSpace {
   /** Queue a message that carries no record change (a resync request or answer). */
   queue(groupId: string, ops: readonly unknown[], to?: string): Promise<void> {
     return this.run(async () => {
+      validateOpsSize(ops);
       const msgId = this.clock.newId();
       const msg: OutboxMsg = { plaintext: { v: 1, msgId, ops }, hint: null, ...(to ? { to } : {}) };
       await this.io.writeE2eeRecords(
@@ -329,6 +349,7 @@ export class E2eeSpace {
         kind,
         createdBy: known?.createdBy ?? me.memberId,
         fields,
+        ...(!known ? { create: true as const } : {}),
       };
       const rent =
         !known && kind === 'txn' && data.kind === 'income' && data.category === 'inc.rent';
@@ -356,6 +377,7 @@ export class E2eeSpace {
     touched: string[],
     hint: string | null,
   ): Promise<void> {
+    validateOpsSize(ops);
     const next = e2ee.applyOps(store, ops, me.memberId);
     const msgId = this.clock.newId();
     const msg: OutboxMsg = { plaintext: { v: 1, msgId, ops }, hint };
