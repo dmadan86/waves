@@ -484,6 +484,17 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                         },
                       ]
                     : []),
+                  ...(hasGroupRentals(group.data.type)
+                    ? [
+                        {
+                          key: 'vehicles',
+                          icon: 'car-outline' as const,
+                          label: t.vehicles.vehicles,
+                          onPress: () =>
+                            router.push({ pathname: '/vehicles', params: { space: groupId } }),
+                        },
+                      ]
+                    : []),
                   {
                     key: 'members',
                     icon: 'people-outline' as const,

@@ -14,6 +14,7 @@ import {
   filterItems,
   monthGrid,
   summarizeDue,
+  vehicleSources,
   type DueSource,
 } from '../src/lib/moneyCalendar';
 
@@ -236,5 +237,39 @@ describe('big bills window and fund', () => {
       ['e', false],
       ['i', true],
     ]);
+  });
+});
+
+describe('vehicle renewals', () => {
+  const car = {
+    id: 'car',
+    name: 'Swift',
+    status: 'active',
+    currency: 'INR',
+    renewals: [
+      { id: 'a', kind: 'insurance', label: null, dueDate: '2026-12-18' },
+      { id: 'b', kind: 'puc', label: null, dueDate: '2026-01-01' },
+    ],
+  } as never;
+  const sold = { ...(car as object), id: 'old', status: 'sold' } as never;
+  it('become one-off renewal items that open the vehicle, skipping sold and long-past ones', () => {
+    const sources = vehicleSources([car, sold], TODAY, 'INR', (_v, r) => `${r.kind} renewal`);
+    expect(sources).toHaveLength(1);
+    const items = expandDue(sources, TODAY, '2027-03-01');
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      kind: 'renewal',
+      date: '2026-12-18',
+      title: 'Swift',
+      sub: 'insurance renewal',
+      href: '/vehicles/car',
+      amount: 0n,
+    });
+  });
+  it('adds nothing to the due total or the big bills', () => {
+    const sources = vehicleSources([car], TODAY, 'INR', () => 'x');
+    const items = expandDue(sources, TODAY, '2027-03-01');
+    expect(summarizeDue(items, 'INR').total).toBe(0n);
+    expect(bigBills(sources, TODAY, 'INR', 0n).total).toBe(0n);
   });
 });

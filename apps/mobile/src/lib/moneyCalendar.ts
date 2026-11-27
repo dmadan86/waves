@@ -3,7 +3,13 @@
  * Pure, so Personal and couple/family homes share it; the data hook builds the sources.
  */
 
-import { addPlanDays, stepOccurrence, type Cadence } from '@waves/core';
+import {
+  addPlanDays,
+  stepOccurrence,
+  type Cadence,
+  type PersonalVehicle,
+  type VehicleRenewal,
+} from '@waves/core';
 
 export type DueKind = 'bill' | 'loan' | 'renewal' | 'income' | 'rent';
 
@@ -104,7 +110,8 @@ export function summarizeDue(items: readonly DueItem[], dc: string) {
   let count = 0;
   const others = new Set<string>();
   for (const i of items) {
-    if (i.income) continue;
+    // A renewal with no price is on the calendar but is not a payment yet.
+    if (i.income || i.amount <= 0n) continue;
     if (i.currency !== dc) others.add(i.currency);
     else {
       total += i.amount;
@@ -278,3 +285,40 @@ export function fundSoFar(
 
 /** The fund rule's marker. An `inv.` category: money moved to your own fund, so Spent, Reports and Budgets skip it. */
 export const FUND_CATEGORY = 'inv.bigbills';
+
+/**
+ * Vehicle renewals as one-off due items: no price yet (so no part in totals), opening the vehicle.
+ * Sold vehicles and renewals more than 60 days past are left out.
+ */
+export function vehicleSources(
+  vehicles: readonly PersonalVehicle[],
+  today: string,
+  dc: string,
+  label: (vehicle: PersonalVehicle, renewal: VehicleRenewal) => string,
+): DueSource[] {
+  const floor = addPlanDays(today, -60);
+  return vehicles
+    .filter((v) => v.status === 'active')
+    .flatMap((v) =>
+      v.renewals
+        .filter((r) => r.dueDate >= floor)
+        .map((r): DueSource => ({
+          id: `${v.id}:${r.id}`,
+          title: v.name,
+          sub: label(v, r),
+          kind: 'renewal',
+          amount: 0n,
+          currency: v.currency || dc,
+          cadence: 'yearly',
+          interval: 1,
+          secondDay: null,
+          anchorDate: r.dueDate,
+          nextDate: r.dueDate,
+          endDate: r.dueDate,
+          autoPay: false,
+          income: false,
+          reserved: false,
+          href: `/vehicles/${v.id}`,
+        })),
+    );
+}

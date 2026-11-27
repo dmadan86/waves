@@ -9,11 +9,21 @@ import { frequencyOf, type GroupRecurringRule, type PersonalRecurring } from '@w
 
 import { todayIso, usePersonalLedger } from '@/data/personal';
 import { usePersonalWealth } from '@/data/personalWealth';
+import { usePersonalVehicles } from '@/data/vehicles';
+import { useAuth } from '@/lib/auth';
+import { kindName } from '@/lib/vehicleText';
+import { regionOf } from '@/lib/wealthPlan';
 import { useGroupRecurring } from '@/data/groupRecurring';
 import { useStrings, type UiStrings } from '@/i18n';
 import { useDefaultCurrency } from '@/lib/currency';
 import { frequencyLabel } from '@/lib/frequencyLabel';
-import { classifyKind, FUND_CATEGORY, fundSoFar, type DueSource } from '@/lib/moneyCalendar';
+import {
+  classifyKind,
+  FUND_CATEGORY,
+  fundSoFar,
+  vehicleSources,
+  type DueSource,
+} from '@/lib/moneyCalendar';
 
 const EMPTY_LEDGER = { recurrings: [], txns: [] } as const;
 
@@ -80,6 +90,9 @@ export function useComingUp(opts: { groupId?: string; ledgerGroupId?: string; cu
   const ledger = opts.groupId && !opts.ledgerGroupId ? EMPTY_LEDGER : own;
   const { rules } = useGroupRecurring(opts.groupId ?? '');
   const { tenancies } = usePersonalWealth(opts.ledgerGroupId);
+  const { vehicles } = usePersonalVehicles(opts.ledgerGroupId);
+  const { profile } = useAuth();
+  const region = regionOf(profile?.country_code);
   const today = todayIso();
   return useMemo(() => {
     const live = ledger.recurrings.filter((r) => r.active);
@@ -95,6 +108,13 @@ export function useComingUp(opts: { groupId?: string; ledgerGroupId?: string; cu
         ? rules.filter((r) => r.status === 'active').map((r) => groupSource(r, t))
         : []),
     ];
+    // Vehicles live in the same records as rent: none in a space without shared records.
+    if (!opts.groupId || opts.ledgerGroupId)
+      sources.push(
+        ...vehicleSources(vehicles, today, dc, (_v, r) =>
+          kindName(t.vehicles, r.kind, region, r.label),
+        ),
+      );
     const fundRules = new Set(live.filter((r) => r.category === FUND_CATEGORY).map((r) => r.id));
     return {
       ledgerRules: ledger.recurrings,
@@ -111,6 +131,8 @@ export function useComingUp(opts: { groupId?: string; ledgerGroupId?: string; cu
     ledger.txns,
     rules,
     tenancies,
+    vehicles,
+    region,
     opts.groupId,
     opts.ledgerGroupId,
     t,

@@ -133,8 +133,7 @@ export function DueRow({
       </View>
       <View style={{ alignItems: 'flex-end' }}>
         <Text numberOfLines={1} style={{ fontWeight: '700' }}>
-          {item.income ? '+' : ''}
-          {amount}
+          {item.amount <= 0n ? '' : `${item.income ? '+' : ''}${amount}`}
         </Text>
         <Text
           variant="caption"
