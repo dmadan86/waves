@@ -4,7 +4,7 @@
  */
 import { useState, type ReactElement } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { INVESTMENT_TYPES, type InvestmentType, type RentFrequency } from '@waves/core';
 import { Button, iconSize, Row, Screen, Sheet, Text, Toggle, useTheme } from '@waves/ui';
@@ -239,7 +239,14 @@ function AddBody() {
         ) : null}
       </ScrollView>
       <View
-        style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: clearance + theme.spacing.md }}
+        style={{
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.md,
+          paddingBottom: clearance + theme.spacing.md,
+          backgroundColor: theme.color.bg,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: theme.color.border,
+        }}
       >
         <Button
           label={w.saveInvestmentBtn}

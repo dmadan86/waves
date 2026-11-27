@@ -28,7 +28,7 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {} from 'react-native-safe-area-context';
 
 import {
   Button,
@@ -45,11 +45,12 @@ import {
   type Theme,
 } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { claimReferral, fetchMyReferral } from '@/data/api';
 import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
-import { router } from '@/lib/navigation';
+import {} from '@/lib/navigation';
 import {
   normalizeReferralCode,
   referralLink,
@@ -79,7 +80,6 @@ function refusalText(reason: Extract<ClaimOutcome, { ok: false }>['reason'], t: 
 
 export default function InviteFriendsScreen() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const live = useReferralsLive();
@@ -164,35 +164,22 @@ export default function InviteFriendsScreen() {
 
   return (
     <Screen edges={[]}>
+      <PlainHeader title={t.referral.title} />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: clearance }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ paddingTop: insets.top }}>
-          <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
-            <IconButton label={t.common.back} onPress={() => router.back()}>
-              <Ionicons
-                name={directionalIcon('chevron-back')}
-                size={iconSize.lg}
-                color={theme.color.text}
-              />
-            </IconButton>
-            <View style={{ gap: theme.spacing.xs }}>
-              <Text style={{ fontSize: 24, lineHeight: 30, fontWeight: '800' }}>
-                {t.referral.title}
-              </Text>
-              <View style={{ gap: 2 }}>
-                <Text variant="subheading" style={{ fontWeight: '700' }}>
-                  {t.referral.headline}
-                </Text>
-                <Text variant="caption" tone="muted">
-                  {t.referral.body}
-                </Text>
-              </View>
-            </View>
-          </View>
+        <View
+          style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm, gap: 2 }}
+        >
+          <Text variant="subheading" style={{ fontWeight: '700' }}>
+            {t.referral.headline}
+          </Text>
+          <Text variant="caption" tone="muted">
+            {t.referral.body}
+          </Text>
         </View>
 
         {!live ? null : (

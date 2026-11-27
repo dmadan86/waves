@@ -16,21 +16,19 @@ import { FlatList, ScrollView, View } from 'react-native';
 import {
   Card,
   Chip,
-  directionalIcon,
   IconButton,
   iconSize,
-  Row,
   Screen,
   Text,
   useTabBarClearance,
   useTheme,
 } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { ListRow } from '@/components/standard';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
 import { DEFAULT_TILE_URL } from '@/lib/mapTiles';
-import { router } from '@/lib/navigation';
 import { clearNetLog, useNetLog, useSyncStats } from '@/lib/netLog';
 import {
   callLabel,
@@ -266,22 +264,15 @@ export default function NetworkActivityScreen() {
   );
 
   return (
-    <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.netlog.title}</Text>
-        </View>
-        <IconButton label={t.netlog.clear} onPress={() => void onClear()}>
-          <Ionicons name="trash-outline" size={iconSize.lg} color={theme.color.text} />
-        </IconButton>
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader
+        title={t.netlog.title}
+        trailing={
+          <IconButton label={t.netlog.clear} onPress={() => void onClear()}>
+            <Ionicons name="trash-outline" size={iconSize.lg} color={theme.color.text} />
+          </IconButton>
+        }
+      />
 
       <FlatList
         style={{ flex: 1 }}

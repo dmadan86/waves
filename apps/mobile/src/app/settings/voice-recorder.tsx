@@ -17,8 +17,6 @@ import {
   Button,
   Card,
   Chip,
-  directionalIcon,
-  IconButton,
   iconSize,
   Row,
   Screen,
@@ -29,10 +27,10 @@ import {
 
 import { useExpenseGroups, useHomeSummary } from '@/data/hooks';
 import { displayName, isViewer } from '@/data/types';
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { deviceLocale, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useDialog } from '@/lib/dialog';
-import { router } from '@/lib/navigation';
 import {
   createSession,
   deleteAllRecordings,
@@ -287,20 +285,8 @@ export default function VoiceRecorderScreen() {
   const consent = profile && !profile.consented;
 
   return (
-    <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.voiceRecorder.title}</Text>
-        </View>
-        <View style={{ width: 44 }} />
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={t.voiceRecorder.title} />
 
       <ScrollView
         style={{ flex: 1 }}

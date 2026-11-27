@@ -21,9 +21,7 @@ import { Pressable, TextInput, View } from 'react-native';
 import {
   Button,
   Card,
-  directionalIcon,
   EmptyState,
-  IconButton,
   iconSize,
   Row,
   Screen,
@@ -33,6 +31,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { useInstalledPacks, usePacks, useRequestPack, type ShelfPack } from '@/data/packs';
 import { plural, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
@@ -48,26 +47,8 @@ export default function PacksScreen() {
   const installedIds = new Set(installed.map((row) => row.packId));
 
   return (
-    <Screen>
-      <Row
-        style={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.md,
-          alignItems: 'center',
-        }}
-      >
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.packs.title}</Text>
-        </View>
-        <View style={{ width: iconSize.lg + theme.spacing.md }} />
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={t.packs.title} />
 
       <FlashList
         data={packs.data ?? []}

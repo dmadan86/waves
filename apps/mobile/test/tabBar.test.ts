@@ -160,12 +160,16 @@ it.each(['transactions', 'recurring', 'spending', 'budgets', 'loans', 'entry', '
 it.each(['investments', 'rentals'])('uses Personal mode for %s', (route) => {
   expect(isPersonalMode([route])).toBe(true);
 });
-it.each([
-  ['captures', 'statement'],
-  ['settings', 'categories'],
-])('keeps %s/%s in Personal without highlighting a tab', (root, screen) => {
-  expect(isPersonalMode([root, screen])).toBe(true);
-  expect(personalActiveKey([root, screen])).toBe('');
+it.each([['captures', 'statement']])(
+  'keeps %s/%s in Personal without highlighting a tab',
+  (root, screen) => {
+    expect(isPersonalMode([root, screen])).toBe(true);
+    expect(personalActiveKey([root, screen])).toBe('');
+  },
+);
+it('keeps categories in the space it was opened from', () => {
+  expect(isPersonalMode(['settings', 'categories'])).toBe(false);
+  expect(isPersonalMode(['settings', 'categories'], 'personal')).toBe(true);
 });
 it('keeps profile and other settings outside Personal', () => {
   expect(isPersonalMode(['profile'])).toBe(false);
@@ -217,7 +221,7 @@ describe('personal mode: linked features', () => {
   it('Me settings keep the Personal tab bar', () => {
     expect(isPersonalMode(['captures', 'statement'])).toBe(true);
     expect(isPersonalMode(['captures', 'paste'])).toBe(false);
-    expect(isPersonalMode(['settings', 'categories'])).toBe(true);
+    expect(isPersonalMode(['settings', 'categories'], 'personal')).toBe(true);
     // Opened from Me: stays in Personal. Opened from Groups: stays in Groups.
     for (const page of ['backup', 'scene', 'lock']) {
       expect(isPersonalMode(['settings', page], 'personal')).toBe(true);

@@ -8,23 +8,13 @@
  * container that clears the tab bar.
  */
 
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { ScrollView, View } from 'react-native';
+import { ScrollView } from 'react-native';
 
-import {
-  directionalIcon,
-  IconButton,
-  iconSize,
-  Row,
-  Screen,
-  Text,
-  useTabBarClearance,
-  useTheme,
-} from '@waves/ui';
+import { Screen, useTabBarClearance, useTheme } from '@waves/ui';
 
 import { LanguageChoiceList } from '@/components/LanguageChoiceList';
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { useStrings } from '@/i18n';
-import { router } from '@/lib/navigation';
 
 export default function LanguageSettingsScreen() {
   const theme = useTheme();
@@ -32,20 +22,8 @@ export default function LanguageSettingsScreen() {
   const { t } = useStrings();
 
   return (
-    <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.language}</Text>
-        </View>
-        <View style={{ width: 44 }} />
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={t.language} />
 
       <ScrollView
         style={{ flex: 1 }}

@@ -14,10 +14,8 @@ import { ActivityIndicator, Image, Linking, RefreshControl, ScrollView, View } f
 import {
   Button,
   Card,
-  directionalIcon,
   Divider,
   EmptyState,
-  IconButton,
   iconSize,
   Row,
   Screen,
@@ -26,6 +24,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { fill, useStrings } from '@/i18n';
 import {
   CONNECT_GUIDE_URL,
@@ -37,7 +36,6 @@ import { backend } from '@/lib/backend';
 import { CONNECTED_APPS_QUERY_KEY as QUERY_KEY, useConnectedApps } from '@/lib/useConnectedApps';
 import { useDialog } from '@/lib/dialog';
 import { friendlyError } from '@/lib/errors';
-import { router } from '@/lib/navigation';
 
 export default function ConnectedAppsScreen() {
   const theme = useTheme();
@@ -87,20 +85,8 @@ export default function ConnectedAppsScreen() {
   }
 
   return (
-    <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.connectedApps.title}</Text>
-        </View>
-        <View style={{ width: 44 }} />
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={t.connectedApps.title} />
 
       <ScrollView
         style={{ flex: 1 }}

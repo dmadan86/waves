@@ -20,8 +20,6 @@ import {
   directionalIcon,
   Divider,
   EmptyState,
-  IconButton,
-  iconSize,
   Row,
   Screen,
   Text,
@@ -39,6 +37,7 @@ import {
   resolveCurrency,
 } from '@waves/core';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { CountryCodePicker } from '@/components/CountryCodePicker';
 import { DismissibleCallout } from '@/components/DismissibleCallout';
 import { CurrencySheet } from '@/components/expense/CurrencySheet';
@@ -446,7 +445,7 @@ function AccountForm() {
   const actionDisabled = busy || (sent ? code.trim().length < 6 : !looksValid);
 
   return (
-    <Screen>
+    <Screen edges={[]}>
       {/* Two faint lavender washes behind the portrait, as on the mockup. */}
       <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
         <View
@@ -475,21 +474,7 @@ function AccountForm() {
         />
       </View>
 
-      <Row
-        style={{
-          paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.sm,
-          alignItems: 'center',
-          gap: theme.spacing.xs,
-        }}
-      >
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
-        </IconButton>
-        <Text style={{ flex: 1, fontSize: 21, lineHeight: 27, fontWeight: '800', color: ink }}>
-          {t.contact.title}
-        </Text>
-      </Row>
+      <PlainHeader title={t.contact.title} />
 
       <ScrollView
         style={{ flex: 1 }}

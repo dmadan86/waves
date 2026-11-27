@@ -1,13 +1,11 @@
 import { useEffect, useState, type ComponentProps, type ReactNode } from 'react';
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, AppState, Linking, Pressable, ScrollView, View } from 'react-native';
 
 import {
-  directionalIcon,
   Divider,
-  IconButton,
-  iconSize,
   Row,
   Screen,
   Text,
@@ -31,7 +29,6 @@ import { loadPlanPrefs, savePlanPref } from '@/lib/planNudge/settings';
 import { DEFAULT_PLAN_PREFS, type PlanPrefs } from '@/lib/planNudge/plan';
 import { usePlanNudgePass } from '@/lib/planNudge/PlanNudge';
 import { useCaptureNudgePass, useNudgePassInputs } from '@/lib/captureNudge/useNudgePass';
-import { router } from '@/lib/navigation';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import {
   enablePush,
@@ -371,22 +368,8 @@ export default function NotificationSettingsScreen() {
       : t.notifications.turnOn;
 
   return (
-    <Screen>
-      <Row
-        style={{
-          paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.sm,
-          alignItems: 'center',
-          gap: theme.spacing.xs,
-        }}
-      >
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
-        </IconButton>
-        <Text style={{ flex: 1, fontSize: 26, lineHeight: 32, fontWeight: '800', color: ink }}>
-          {t.notifications.title}
-        </Text>
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={t.notifications.title} />
 
       <ScrollView
         style={{ flex: 1 }}

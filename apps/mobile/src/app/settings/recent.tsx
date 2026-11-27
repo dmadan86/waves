@@ -10,21 +10,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { RECENT_COUNT_OPTIONS, type RecentCount } from '@waves/core';
-import {
-  Card,
-  Divider,
-  IconButton,
-  Row,
-  Screen,
-  Text,
-  directionalIcon,
-  iconSize,
-  useTabBarClearance,
-  useTheme,
-} from '@waves/ui';
+import { Card, Divider, Screen, Text, iconSize, useTabBarClearance, useTheme } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { useStrings } from '@/i18n';
-import { router } from '@/lib/navigation';
 import { useRecentCount } from '@/lib/recentCount';
 
 export default function RecentSettingsScreen() {
@@ -34,20 +23,8 @@ export default function RecentSettingsScreen() {
   const { count, setCount } = useRecentCount();
 
   return (
-    <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.recent.title}</Text>
-        </View>
-        <View style={{ width: 44 }} />
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={t.recent.title} />
 
       <ScrollView
         style={{ flex: 1 }}

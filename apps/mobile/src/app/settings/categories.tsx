@@ -35,6 +35,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { CategoryBadge, useLabelledCategoryCatalog } from '@/components/Category';
 import { TagEditorSheet } from '@/components/TagEditorSheet';
 import { useUpsertTag, type TagUpsertInput } from '@/data/hooks';
@@ -189,26 +190,19 @@ export default function CategoriesSettingsScreen() {
   );
 
   return (
-    <Screen>
+    <Screen edges={[]}>
       <View style={{ flex: 1 }}>
         {/* The nav header is a fixed sibling above the drag list, so only the
             tags scroll under it. Padded to line up with the rows below. */}
         <View style={{ paddingHorizontal: theme.spacing.xl }}>
-          <Row style={{ paddingTop: theme.spacing.md, alignItems: 'center' }}>
-            <IconButton label={t.common.back} onPress={() => router.back()}>
-              <Ionicons
-                name={directionalIcon('chevron-back')}
-                size={iconSize.lg}
-                color={theme.color.text}
-              />
-            </IconButton>
-            <View style={{ flex: 1, alignItems: 'center' }}>
-              <Text variant="heading">{t.tags.manageTitle}</Text>
-            </View>
-            <IconButton label={t.tags.newTag} onPress={() => setCreating(true)}>
-              <Ionicons name="add" size={iconSize.xxl} color={theme.color.brand} />
-            </IconButton>
-          </Row>
+          <PlainHeader
+            title={t.tags.manageTitle}
+            trailing={
+              <IconButton label={t.tags.newTag} onPress={() => setCreating(true)}>
+                <Ionicons name="add" size={iconSize.xxl} color={theme.color.brand} />
+              </IconButton>
+            }
+          />
         </View>
         <DraggableFlatList
           data={order}

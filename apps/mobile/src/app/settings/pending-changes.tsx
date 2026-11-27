@@ -6,7 +6,6 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { blockedBy, isStaleOverlay, type QueuedMutation } from '@waves/core';
 import {
   directionalIcon,
-  IconButton,
   iconSize,
   Row,
   Screen,
@@ -15,11 +14,11 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { IconDisc } from '@/components/company/dashboard/overviewKit';
 import { StandardCard } from '@/components/standard';
 import { plural, useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
-import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
 
 const short = (id: string) => id.slice(0, 8);
@@ -155,19 +154,8 @@ export default function PendingChangesScreen() {
   );
 
   return (
-    <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <Text variant="heading" accessibilityRole="header" style={{ flex: 1 }}>
-          {p.row}
-        </Text>
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={p.row} />
 
       <ScrollView
         style={{ flex: 1 }}

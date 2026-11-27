@@ -13,6 +13,7 @@ import {
 import { useSingleAction } from '@waves/ui/useSingleAction';
 
 import { createNavigationGuard } from './navigationGuard';
+import { inheritSettingsSpace } from './settingsRoute';
 
 /**
  * The app's router.
@@ -64,11 +65,18 @@ export function setBackOverride(fn: (() => void) | null): void {
   backOverride = fn;
 }
 
+/** The space ('personal') of the settings page on screen, set by the bottom bar; undefined elsewhere. */
+let settingsSpace: string | undefined;
+export function setSettingsSpace(space: string | undefined): void {
+  settingsSpace = space;
+}
+
 export const router: ImperativeRouter = {
   ...expoRouter,
 
   push: (href, options) => {
-    if (guard.allow('push', href)) expoRouter.push(href, options);
+    const target = inheritSettingsSpace(href, settingsSpace);
+    if (guard.allow('push', target)) expoRouter.push(target, options);
   },
   navigate: (href, options) => {
     if (guard.allow('navigate', href)) expoRouter.navigate(href, options);

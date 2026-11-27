@@ -8,7 +8,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { Button, IconButton, Sheet, Text, iconSize, useTheme } from '@waves/ui';
 
-import { fill, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useEntitlement } from '@/lib/useEntitlement';
 import {
@@ -44,7 +44,7 @@ const ILL_H = 112;
 export function useAdGate(options?: { offerCredit?: boolean }) {
   const viewerId = useViewerId();
   const { isPaid } = useEntitlement();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const toast = useToast();
   const theme = useTheme();
   const [placement, setPlacement] = useState<Placement | null>(null);
@@ -378,7 +378,7 @@ export function useAdGate(options?: { offerCredit?: boolean }) {
         )}
         {balance !== null && (
           <Text variant="caption" tone="muted" style={{ textAlign: 'center', marginBottom: 8 }}>
-            {fill(t.credits.balance, { n: balance })}
+            {plural(locale, balance, t.credits.balance)}
           </Text>
         )}
         {busy ? (

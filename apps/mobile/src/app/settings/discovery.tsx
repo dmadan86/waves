@@ -28,9 +28,7 @@ import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 
 import {
   Card,
-  directionalIcon,
   Divider,
-  IconButton,
   iconSize,
   Row,
   Screen,
@@ -47,10 +45,10 @@ import {
   saveDiscoverySettings,
   type DiscoverySettings,
 } from '@/data/api';
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
-import { router } from '@/lib/navigation';
 
 export default function DiscoveryScreen() {
   const theme = useTheme();
@@ -94,22 +92,8 @@ export default function DiscoveryScreen() {
   };
 
   return (
-    <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading" numberOfLines={1}>
-            {t.person.discoveryTitle}
-          </Text>
-        </View>
-        <View style={{ width: 44 }} />
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={t.person.discoveryTitle} />
 
       <ScrollView
         style={{ flex: 1 }}

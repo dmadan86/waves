@@ -138,6 +138,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { coupleRecordCount } from '@/e2ee/runtime';
 import { plural, useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
@@ -155,7 +156,7 @@ import { coupleBridge } from '@/lib/backup/coupleBridge';
 import type { RestoreScan } from '@/lib/backup/engine';
 import { CloudAuthError } from '@/lib/cloud/oauth';
 import { friendlyError } from '@/lib/errors';
-import { router } from '@/lib/navigation';
+import {} from '@/lib/navigation';
 import { SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { SyncNetworkPreference } from '@/lib/syncNetwork';
 
@@ -959,27 +960,16 @@ export default function BackupSettingsScreen() {
     settled && !setup.unavailable && !checklist && setup.outstanding === BackupStep.Account;
 
   return (
-    <Screen>
-      {/* A left-set title with the line on what the screen is for under it,
-          the back arrow before it and "How this works" after. */}
-      <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm }}>
-        <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-          <IconButton label={t.common.back} onPress={() => router.back()}>
-            <Ionicons name={directionalIcon('arrow-back')} size={iconSize.lg} color={inks.ink} />
-          </IconButton>
-          <Text
-            style={{ flex: 1, fontSize: 26, lineHeight: 32, fontWeight: '800', color: inks.ink }}
-          >
-            {t.backup.title}
-          </Text>
+    <Screen edges={[]}>
+      <PlainHeader
+        title={t.backup.title}
+        subtitle={t.backup.subtitle}
+        trailing={
           <IconButton label={t.backup.aboutLabel} onPress={() => setAbout(true)}>
             <Ionicons name="help-circle-outline" size={iconSize.lg} color={inks.ink} />
           </IconButton>
-        </Row>
-        <Text style={{ marginStart: 48, fontSize: 13, lineHeight: 18, color: inks.muted }}>
-          {t.backup.subtitle}
-        </Text>
-      </View>
+        }
+      />
 
       <ScrollView
         style={{ flex: 1 }}

@@ -20,8 +20,6 @@ import Reanimated from 'react-native-reanimated';
 import {
   Button,
   Card,
-  directionalIcon,
-  IconButton,
   iconSize,
   Row,
   Screen,
@@ -31,6 +29,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard/PlainHeader';
 import { canUploadGroupPhoto, myStorageUsage } from '@/data/api';
 import { formatBytes } from '@/lib/bytes';
 import { useStrings } from '@/i18n';
@@ -71,17 +70,7 @@ export default function StorageUsageScreen() {
     enabled: shouldMeasure,
   });
 
-  const header = (
-    <Row style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.xs }}>
-      <IconButton label={t.common.back} onPress={() => router.back()}>
-        <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
-      </IconButton>
-      <View style={{ flex: 1, alignItems: 'center' }}>
-        <Text style={{ fontSize: 18, fontWeight: '700', color: ink }}>{t.storage.title}</Text>
-      </View>
-      <View style={{ width: 44 }} />
-    </Row>
-  );
+  const header = <PlainHeader title={t.storage.title} />;
 
   const body = () => {
     // Paid, or R2 not yet live: no ceiling applies, so state it plainly rather
@@ -213,7 +202,7 @@ export default function StorageUsageScreen() {
   };
 
   return (
-    <Screen>
+    <Screen edges={[]}>
       {header}
       <ScrollView
         style={{ flex: 1 }}

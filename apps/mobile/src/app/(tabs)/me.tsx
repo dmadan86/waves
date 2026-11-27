@@ -453,7 +453,7 @@ function MeLedger() {
           {
             icon: 'pricetags-outline',
             label: t.personal.dash.toolCategories,
-            route: '/settings/categories',
+            route: '/settings/categories?space=personal',
           },
           {
             icon: 'lock-closed-outline',
