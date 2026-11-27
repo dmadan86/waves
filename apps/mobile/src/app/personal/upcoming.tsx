@@ -27,7 +27,7 @@ import { todayIso, usePersonalLedger } from '@/data/personal';
 import { useDateOccurrences } from '@/data/personalDates';
 import { usePostRecurring } from '@/data/postRecurring';
 import { plural, useStrings } from '@/i18n';
-import { SlidingHighlight } from '@/lib/anim';
+import { SlidingHighlight } from '@/lib/SlidingHighlight';
 import { useAuth } from '@/lib/auth';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useDefaultCurrency } from '@/lib/currency';

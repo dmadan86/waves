@@ -43,6 +43,10 @@ vi.mock('react-native-reanimated', async () => {
       };
     },
     useAnimatedStyle: (fn: () => unknown) => ({ animated: fn }),
+    Easing: { bezier: () => 'bezier' },
+    FadeInDown: { duration: () => ({ easing: () => ({ delay: () => ({}) }) }) },
+    withDelay: (_d: number, v: unknown) => v,
+    withSpring: (v: number) => v,
     withTiming,
   };
 });

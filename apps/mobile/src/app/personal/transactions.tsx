@@ -58,7 +58,7 @@ import { monthlySpendEntries } from '@/lib/monthlySpend';
 import { deviceCountry, plural, useStrings } from '@/i18n';
 import { paymentMethodLabel } from '@/lib/paymentMethodLabel';
 import { PersonalGuard } from '@/components/PersonalGuard';
-import { SlidingHighlight } from '@/lib/anim';
+import { SlidingHighlight } from '@/lib/SlidingHighlight';
 import { useBottomClearance } from '@/lib/clearance';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { loanScope } from '@/lib/personalLoanScope';
