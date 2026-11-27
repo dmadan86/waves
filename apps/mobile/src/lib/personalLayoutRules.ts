@@ -18,7 +18,9 @@ const HEADER_ADD_SCREENS = new Set(['loans', 'recurring', 'budgets', 'upcoming',
 export function personalShowsAddFab(segments: readonly string[]): boolean {
   return !(
     (segments[0] === 'personal' &&
-      (HEADER_ADD_SCREENS.has(segments[1] ?? '') || segments[1] === 'setup')) ||
+      (HEADER_ADD_SCREENS.has(segments[1] ?? '') ||
+        segments[1] === 'setup' ||
+        segments[1] === 'ask')) ||
     segments[0] === 'rentals' ||
     segments[0] === 'vehicles' ||
     segments[0] === 'investments' ||

@@ -67,6 +67,7 @@ import { useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { monthLabel, shiftMonth } from '@/lib/monthNav';
+import { PlainHeader } from '@/components/standard';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
@@ -95,31 +96,16 @@ function BudgetsScreenBody() {
 
   return (
     <Screen>
-      <Row
-        style={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.md,
-          alignItems: 'center',
-        }}
-      >
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.personal.budgets}</Text>
-        </View>
-        {budgets.length > 0 ? (
-          <IconButton label={t.personal.addBudget} onPress={() => setCreating(true)}>
-            <Ionicons name="add" size={iconSize.xxl} color={theme.color.brand} />
-          </IconButton>
-        ) : (
-          <View style={{ width: 44 }} />
-        )}
-      </Row>
+      <PlainHeader
+        title={t.personal.budgets}
+        trailing={
+          budgets.length > 0 ? (
+            <IconButton label={t.personal.addBudget} onPress={() => setCreating(true)}>
+              <Ionicons name="add" size={iconSize.xxl} color={theme.color.brand} />
+            </IconButton>
+          ) : undefined
+        }
+      />
 
       <ScrollView
         contentContainerStyle={{

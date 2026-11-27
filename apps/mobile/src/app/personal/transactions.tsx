@@ -461,6 +461,8 @@ function PersonalTransactionsScreenBody() {
             />
             {tabs.map((item) => {
               const on = item.value === tab;
+              // On a narrow phone the icon disc is dropped so the label keeps its full width.
+              const showIcon = !tabsWidth || tabsWidth / tabs.length >= 80;
               return (
                 <Pressable
                   key={item.value}
@@ -478,23 +480,27 @@ function PersonalTransactionsScreenBody() {
                     justifyContent: 'center',
                   }}
                 >
-                  <View
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 11,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: on ? '#FFFFFF26' : `${item.color}18`,
-                    }}
-                  >
-                    <Ionicons
-                      name={item.icon}
-                      size={14}
-                      color={on ? '#FFFFFF' : item.color}
-                      style={item.rotation ? { transform: [{ rotate: item.rotation }] } : undefined}
-                    />
-                  </View>
+                  {showIcon ? (
+                    <View
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: 11,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: on ? '#FFFFFF26' : `${item.color}18`,
+                      }}
+                    >
+                      <Ionicons
+                        name={item.icon}
+                        size={14}
+                        color={on ? '#FFFFFF' : item.color}
+                        style={
+                          item.rotation ? { transform: [{ rotate: item.rotation }] } : undefined
+                        }
+                      />
+                    </View>
+                  ) : null}
                   <Text
                     style={{
                       flexShrink: 1,
@@ -503,6 +509,8 @@ function PersonalTransactionsScreenBody() {
                       color: on ? '#FFFFFF' : muted,
                     }}
                     numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.75}
                   >
                     {item.label}
                   </Text>

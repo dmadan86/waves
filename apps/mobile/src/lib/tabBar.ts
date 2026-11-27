@@ -137,10 +137,15 @@ export function personalActiveKey(segments: readonly string[], space?: string): 
   if (segments[0] === '(tabs)') return segments[1] === 'me' ? 'home' : '';
   if (segments[0] !== 'personal') return '';
   const leaf = segments[1] ?? '';
-  if (leaf === 'upcoming') return 'home';
   if (leaf === 'entry' || leaf === 'transactions') return 'transactions';
   // A recurring bill's page is opened from Planning (and Home), never the ledger.
-  if (leaf === 'recurring' || leaf === 'source' || leaf === 'budgets' || leaf === 'loans')
+  if (
+    leaf === 'recurring' ||
+    leaf === 'upcoming' ||
+    leaf === 'source' ||
+    leaf === 'budgets' ||
+    leaf === 'loans'
+  )
     return 'planning';
   return leaf === 'spending' ? 'reports' : '';
 }

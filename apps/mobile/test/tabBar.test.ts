@@ -130,7 +130,7 @@ describe('personal mode', () => {
     expect(personalActiveKey(['personal', 'spending'])).toBe('reports');
     expect(personalActiveKey(['personal', 'recurring'])).toBe('planning');
     expect(personalActiveKey(['personal', 'budgets'])).toBe('planning');
-    expect(personalActiveKey(['personal', 'upcoming'])).toBe('home');
+    expect(personalActiveKey(['personal', 'upcoming'])).toBe('planning');
   });
 
   it('routes the five bar taps', () => {
