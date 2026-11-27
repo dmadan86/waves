@@ -32,7 +32,12 @@ import { headOf, rollUpByFamily, unitIdOf, unitName, type Units } from './famili
 import { buildExpenseWriteBody, expenseParticipants, type AgentSplit } from './expense';
 import { findPair, foldName, pairIds, type PairGroup } from './pair';
 import { registerCompanyTools } from './companyTools';
-import { pairwiseTransfers, simplifyNet, type Transfer } from './settle';
+import {
+  pairwiseTransfers,
+  simplifyNet,
+  simplifyNetKeepingGhostsDirect,
+  type Transfer,
+} from './settle';
 
 type ToolResult = {
   content: { type: 'text'; text: string }[];
@@ -433,7 +438,19 @@ export function buildWavesServer(
           .select('member_id, currency, balance')
           .eq('group_id', groupId);
         if (error) return fail(error.message);
-        transfers = simplifyNet(by === 'family' ? rollUpByFamily(data ?? [], units) : (data ?? []));
+        const ghosts = new Set(members.filter((m) => m.isGhost).map((m) => m.memberId));
+        if (by === 'family' || ghosts.size === 0) {
+          transfers = simplifyNet(
+            by === 'family' ? rollUpByFamily(data ?? [], units) : (data ?? []),
+          );
+        } else {
+          const pairs = await supabase
+            .from('pairwise_balances')
+            .select('from_member_id, to_member_id, currency, amount')
+            .eq('group_id', groupId);
+          if (pairs.error) return fail(pairs.error.message);
+          transfers = simplifyNetKeepingGhostsDirect(data ?? [], pairs.data ?? [], ghosts);
+        }
       } else {
         const { data, error } = await supabase
           .from('pairwise_balances')

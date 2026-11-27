@@ -117,7 +117,7 @@ export function useSettleFlow(
   // The row being confirmed stays put after the dialog closes, and only the
   // open flag flips, so the dialog keeps its words through its fade-out.
   const [settleAsk, setSettleAsk] = useState<{
-    kind: 'received' | 'paid';
+    kind: 'received' | 'paid' | 'pay';
     transfer: PlanTransfer;
   } | null>(null);
   const [settleAskOpen, setSettleAskOpen] = useState(false);
@@ -230,13 +230,22 @@ export function useSettleFlow(
    * Either way Waves never moves the money (ADR-007); it records that somebody
    * says they did.
    */
-  const pay = async (transfer: PlanTransfer): Promise<void> => {
+  const pay = (transfer: PlanTransfer): void => {
     const payee = lookup.get(transfer.to);
-    const payable = payee ? payableAt(payee) : null;
-    if (!payee || !payable) {
+    if (!payee || !payableAt(payee)) {
       markPaid(transfer);
       return;
     }
+    // Ask how much first (it may be part of what is owed): the hand-off below
+    // then opens their payment app with exactly that amount.
+    setSettleAsk({ kind: 'pay', transfer });
+    setSettleAskOpen(true);
+  };
+
+  const handOff = async (transfer: PlanTransfer): Promise<void> => {
+    const payee = lookup.get(transfer.to);
+    const payable = payee ? payableAt(payee) : null;
+    if (!payee || !payable) return;
     const railInfo = railById(payable.rail);
     const uri = buildPaymentUri(
       {
@@ -315,12 +324,15 @@ export function useSettleFlow(
     : null;
   const settleAskName = settleAskOtherId ? nameOf(settleAskOtherId) : '';
   const settleAskMember = settleAskOtherId ? lookup.get(settleAskOtherId) : undefined;
-  const settleAskTitle = settleAsk
-    ? fill(settleAskReceived ? t.misc.settleReceivedTitle : t.misc.settleConfirmPaidTitle, {
-        amount: fmt(settleAsk.transfer.amount, settleAsk.transfer.currency),
-        name: settleAskName,
-      })
-    : '';
+  const settleAskTitle = (amount: bigint): string =>
+    settleAsk?.kind === 'pay'
+      ? t.misc.settlePayTitle.replace('{name}', settleAskName)
+      : settleAsk
+        ? fill(settleAskReceived ? t.misc.settleReceivedTitle : t.misc.settleConfirmPaidTitle, {
+            amount: fmt(amount, settleAsk.transfer.currency),
+            name: settleAskName,
+          })
+        : '';
 
   // One row per person, their currencies stacked (a person owing in two
   // currencies used to be two rows, and got two reminders). A debt with no rate
@@ -385,6 +397,7 @@ export function useSettleFlow(
     ghostFor,
     group,
     groupName,
+    handOff,
     history,
     historyExpandable,
     isPending,
@@ -845,6 +858,7 @@ export function SettleHistory({ flow }: { flow: SettleFlow }) {
 export function SettleConfirm({ flow }: { flow: SettleFlow }) {
   const { t } = useStrings();
   const {
+    handOff,
     record,
     setSettleAskOpen,
     settleAsk,
@@ -864,12 +878,23 @@ export function SettleConfirm({ flow }: { flow: SettleFlow }) {
             handoff: false,
             payeeHasUpi: settleAskMember ? payableAt(settleAskMember)?.rail === 'upi' : false,
           })}
-          onConfirm={(method) => {
+          editable
+          hideMethods={settleAsk.kind === 'pay'}
+          onConfirm={(method, amount) => {
             setSettleAskOpen(false);
-            void record(settleAsk.transfer, method);
+            // A part payment is the same settlement, just for less.
+            const part = { ...settleAsk.transfer, amount };
+            if (settleAsk.kind === 'pay') void handOff(part);
+            else void record(part, method);
           }}
           title={settleAskTitle}
-          body={settleAskReceived ? t.misc.settleConfirmReceivedBody : t.misc.settleConfirmPaidBody}
+          body={
+            settleAsk.kind === 'pay'
+              ? ''
+              : settleAskReceived
+                ? t.misc.settleConfirmReceivedBody
+                : t.misc.settleConfirmPaidBody
+          }
           avatar={
             <MemberAvatar
               name={settleAskName}
@@ -883,7 +908,11 @@ export function SettleConfirm({ flow }: { flow: SettleFlow }) {
           amount={settleAsk.transfer.amount}
           currency={settleAsk.transfer.currency as CurrencyCode}
           confirmLabel={
-            settleAskReceived ? t.misc.settleReceivedConfirm : t.misc.settleConfirmPaidYes
+            settleAskReceived
+              ? t.misc.settleReceivedConfirm
+              : settleAsk.kind === 'pay'
+                ? t.misc.settlePay
+                : t.misc.settleConfirmPaidYes
           }
         />
       ) : null}

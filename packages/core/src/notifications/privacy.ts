@@ -69,7 +69,7 @@ export function renderPrivateNotification(
   const template = copyFor(locale).notifications[kind as NotificationKind];
   // An unknown kind only has the stored English row, which may hold the amount.
   if (!template) return { title: kind, body: '' };
-  if (!/\{(amount|description)\}/.test(template.title + template.body)) {
+  if (!/\{(amount|amountOf|description)\}/.test(template.title + template.body)) {
     return renderNotification(kind, stripped, locale, fallback);
   }
   const words = GENERIC[locale] ?? GENERIC.en;

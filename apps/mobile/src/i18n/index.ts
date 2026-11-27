@@ -6604,6 +6604,8 @@ export interface UiStrings {
     settleConfirmPaidBody: string;
     settleConfirmPaidYou: string;
     settleConfirmYouPaid: string;
+    settleLeft: string;
+    settleAmountOver: string;
     settleConfirmPaidYes: string;
     settleRemindA11y: string;
     settlePayA11y: string;
@@ -14946,6 +14948,8 @@ const en: UiStrings = {
       "This will record your payment in the group and update everyone's balances.",
     settleConfirmPaidYou: 'Paid you',
     settleConfirmYouPaid: 'You paid',
+    settleLeft: '{amount} left',
+    settleAmountOver: 'More than the {amount} owed',
     settleConfirmPaidYes: 'Yes, paid',
     settleRemindA11y: 'Remind {name} about {amount}',
     settlePayA11y: 'Pay {name} {amount}',
@@ -23254,6 +23258,8 @@ const ta: UiStrings = {
       'இது குழுவில் உங்கள் கட்டணத்தைப் பதிவு செய்து, அனைவரின் இருப்புகளையும் புதுப்பிக்கும்.',
     settleConfirmPaidYou: 'உங்களுக்குச் செலுத்தினார்',
     settleConfirmYouPaid: 'நீங்கள் செலுத்தினீர்கள்',
+    settleLeft: '{amount} மீதம்',
+    settleAmountOver: 'பாக்கி {amount}ஐ விட அதிகம்',
     settleConfirmPaidYes: 'ஆம், செலுத்தினேன்',
     settleRemindA11y: '{amount} பற்றி {name}க்கு நினைவூட்டு',
     settlePayA11y: '{name}க்கு {amount} செலுத்து',
@@ -31509,6 +31515,8 @@ const hi: UiStrings = {
     settleConfirmPaidBody: 'इससे ग्रुप में आपका भुगतान दर्ज होगा और सबके बैलेंस अपडेट होंगे।',
     settleConfirmPaidYou: 'आपको चुकाया',
     settleConfirmYouPaid: 'आपने चुकाया',
+    settleLeft: '{amount} बाकी',
+    settleAmountOver: 'बाकी {amount} से ज़्यादा',
     settleConfirmPaidYes: 'हाँ, चुकाया',
     settleRemindA11y: '{name} को {amount} के बारे में याद दिलाएँ',
     settlePayA11y: '{name} को {amount} चुकाएँ',
@@ -40126,6 +40134,8 @@ const ar: UiStrings = {
     settleConfirmPaidBody: 'سيُسجَّل دفعك في المجموعة وتُحدَّث أرصدة الجميع.',
     settleConfirmPaidYou: 'دفع لك',
     settleConfirmYouPaid: 'دفعت',
+    settleLeft: 'المتبقي {amount}',
+    settleAmountOver: 'أكثر من {amount} المستحق',
     settleConfirmPaidYes: 'نعم، دفعت',
     settleRemindA11y: 'ذكّر {name} بمبلغ {amount}',
     settlePayA11y: 'ادفع {amount} إلى {name}',

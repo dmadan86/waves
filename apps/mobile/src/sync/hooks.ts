@@ -14,7 +14,8 @@ import {
   liveExpenses,
   materialiseExpenses,
   rowsFor,
-  simplify,
+  computePairwiseBalances,
+  simplifyKeepingGhostsDirect,
   SyncTable,
   toExpenseSnapshot,
   toLedgerSnapshots,
@@ -124,7 +125,11 @@ export function useOfflineLedger(groupId: string, myProfileId: string | null): O
 
     return {
       balances,
-      transfers: simplify(new Map([[currency, balances]])),
+      transfers: simplifyKeepingGhostsDirect(
+        new Map([[currency, balances]]),
+        computePairwiseBalances(snapshots, settlementSnapshots),
+        new Set(local.members.filter((member) => !member.profile_id).map((member) => member.id)),
+      ),
       myMemberId,
       myBalance: myMemberId ? (balances.get(myMemberId) ?? 0n) : 0n,
       expenses: local.expenses,

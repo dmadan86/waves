@@ -15,7 +15,12 @@
 
 import type Ionicons from '@expo/vector-icons/Ionicons';
 
-import { format as formatMoney, getDefaultLocale, isCurrencyCode } from '@waves/core';
+import {
+  format as formatMoney,
+  getDefaultLocale,
+  isCurrencyCode,
+  partPaymentText,
+} from '@waves/core';
 
 import { formatShortDateRange } from '@/lib/tripDateRange';
 import { familiesHeadline, type FamiliesStrings } from '@/lib/familyChanges';
@@ -517,8 +522,10 @@ export function describeActivity(
       const author = typeof payload.author === 'string' && payload.author ? payload.author : null;
       return `${who} deleted ${author ? `${author}'s` : 'a'} comment on ${description ?? 'an expense'}`;
     }
-    case 'settled':
-      return `${who} recorded a settlement`;
+    case 'settled': {
+      const part = partPaymentText(payload, getDefaultLocale());
+      return part ? `${who} paid ${part}` : `${who} recorded a settlement`;
+    }
     case 'confirmed':
       return `${who} confirmed a settlement`;
     case 'cancelled':
@@ -639,8 +646,10 @@ export function activityHeadline(
       return 'Correction accepted';
     case 'rejected_dispute':
       return 'Marked correct';
-    case 'settled':
-      return 'Settlement recorded';
+    case 'settled': {
+      const part = partPaymentText(payload, getDefaultLocale());
+      return part ? `Part payment: ${part}` : 'Settlement recorded';
+    }
     case 'confirmed':
       return 'Settlement confirmed';
     case 'auto_confirmed':

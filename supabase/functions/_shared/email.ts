@@ -369,6 +369,7 @@ export function factsOf(payload: Record<string, unknown>): Record<string, string
     // is where the two are reconciled.
     group: text('group') ?? text('group_name'),
     description: text('description'),
+    owed: text('owed'),
     count: text('count'),
     device: text('device'),
     name: text('name') ?? text('ghost_name'),

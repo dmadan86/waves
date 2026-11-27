@@ -30,6 +30,8 @@ export interface NotificationFacts {
   readonly counterparty?: string;
   readonly group?: string;
   readonly description?: string;
+  /** A part payment: what was owed before it, minor units. Shows as "{amount} of {owed}". */
+  readonly owed?: string;
   readonly count?: string;
   /** The ghost member being claimed — used by the ghost-claim kinds. */
   readonly name?: string;
@@ -73,6 +75,9 @@ export function renderNotification(
 
   const amount = formatAmount(facts, locale);
   if (amount) values.amount = amount;
+  const owed = formatAmount({ ...facts, amount: facts.owed }, locale);
+  const partial = owed && facts.owed && facts.amount && BigInt(facts.owed) > BigInt(facts.amount);
+  if (amount) values.amountOf = partial ? interpolate(copy.partialOf, { amount, owed }) : amount;
 
   return {
     title: fill(template.title, values),

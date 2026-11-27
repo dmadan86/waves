@@ -200,6 +200,8 @@ export interface CopyStrings {
    * no description, or a 1:1 group nobody named. Without these the reader got
    * the template itself — "{description} · ₹100.00 in {group}".
    */
+  /** "{amount} of {owed}": a part payment in a notice. */
+  readonly partialOf: string;
   readonly notificationFallbacks: { readonly description: string; readonly group: string };
   readonly email: EmailChrome;
 }
@@ -212,6 +214,7 @@ const en: CopyStrings = {
     netPositive: 'You are owed {amount} overall',
     netNegative: 'Your balance is {amount}',
   },
+  partialOf: '{amount} of {owed}',
   notificationFallbacks: { description: 'An expense', group: 'your group' },
   notifications: {
     [NotificationKind.ExpenseAdded]: {
@@ -232,7 +235,7 @@ const en: CopyStrings = {
       body: 'Tap to confirm you received it',
     },
     [NotificationKind.SettlementConfirmRequest]: {
-      title: '{actor} says they paid you {amount}',
+      title: '{actor} says they paid you {amountOf}',
       body: 'Confirm so your balance stays right',
     },
     [NotificationKind.SettlementConfirmed]: {
@@ -438,6 +441,7 @@ const ta: CopyStrings = {
     netPositive: 'மொத்தம் உங்களுக்கு {amount} வர வேண்டும்',
     netNegative: 'உங்கள் பாக்கி {amount}',
   },
+  partialOf: '{owed} இல் {amount}',
   notificationFallbacks: { description: 'ஒரு செலவு', group: 'உங்கள் குழு' },
   notifications: {
     [NotificationKind.ExpenseAdded]: {
@@ -461,7 +465,7 @@ const ta: CopyStrings = {
       body: 'கிடைத்ததா என உறுதிப்படுத்தவும்',
     },
     [NotificationKind.SettlementConfirmRequest]: {
-      title: '{actor} {amount} கொடுத்ததாகச் சொல்கிறார்',
+      title: '{actor} {amountOf} கொடுத்ததாகச் சொல்கிறார்',
       body: 'உறுதிப்படுத்தினால் பாக்கி சரியாக இருக்கும்',
     },
     [NotificationKind.SettlementConfirmed]: {
@@ -670,6 +674,7 @@ const hi: CopyStrings = {
     netPositive: 'कुल मिलाकर आपको {amount} मिलने हैं',
     netNegative: 'आपकी बाकी {amount} है',
   },
+  partialOf: '{owed} में से {amount}',
   notificationFallbacks: { description: 'एक खर्च', group: 'आपका ग्रुप' },
   notifications: {
     [NotificationKind.ExpenseAdded]: {
@@ -690,7 +695,7 @@ const hi: CopyStrings = {
       body: 'मिलने की पुष्टि करें',
     },
     [NotificationKind.SettlementConfirmRequest]: {
-      title: '{actor} कहते हैं उन्होंने {amount} भेजे',
+      title: '{actor} कहते हैं उन्होंने {amountOf} भेजे',
       body: 'पुष्टि करें ताकि बाकी सही रहे',
     },
     [NotificationKind.SettlementConfirmed]: {
@@ -898,6 +903,7 @@ const ar: CopyStrings = {
     netPositive: 'لك {amount} في المجمل',
     netNegative: 'باقيك {amount}',
   },
+  partialOf: '{amount} من {owed}',
   notificationFallbacks: { description: 'مصروف', group: 'مجموعتك' },
   notifications: {
     [NotificationKind.ExpenseAdded]: {
@@ -918,7 +924,7 @@ const ar: CopyStrings = {
       body: 'اضغط لتأكيد استلامه',
     },
     [NotificationKind.SettlementConfirmRequest]: {
-      title: 'يقول {actor} إنه دفع لك {amount}',
+      title: 'يقول {actor} إنه دفع لك {amountOf}',
       body: 'أكّد حتى يبقى باقيك صحيحًا',
     },
     [NotificationKind.SettlementConfirmed]: {
