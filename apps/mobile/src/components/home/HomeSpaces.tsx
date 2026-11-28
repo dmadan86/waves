@@ -351,7 +351,7 @@ function MoneyTile({
             <Ionicons name={icon} size={iconSize.md} color={ink} />
           </View>
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-            <Text variant="bodyStrong" numberOfLines={1}>
+            <Text variant="subheading" numberOfLines={1}>
               {title}
             </Text>
             <Text
