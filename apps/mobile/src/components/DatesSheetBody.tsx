@@ -22,7 +22,7 @@ import {
   addMonths,
   dayAt,
   firstOfMonth,
-  firstWeekday,
+  WEEK_START,
   gregorianFormatter,
   sameDay,
   startOfDay,
@@ -102,7 +102,7 @@ export function DatesSheetBody({
     };
   }, [locale, t]);
 
-  const weekStart = useMemo(() => firstWeekday(locale), [locale]);
+  const weekStart = WEEK_START;
   const weekdays = Array.from({ length: 7 }, (_, i) =>
     fmt.weekday(dayAt(2023, 0, 1 + ((weekStart + i) % 7))),
   );

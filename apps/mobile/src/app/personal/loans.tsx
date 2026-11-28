@@ -156,7 +156,7 @@ function LoansScreenBody() {
   });
 
   return (
-    <Screen>
+    <Screen edges={[]}>
       <PlanningHeader
         title={t.personal.loans}
         subtitle={t.personal.loansSub}
@@ -187,7 +187,11 @@ function LoansScreenBody() {
               colors={[theme.color.brandPressed, theme.color.brand]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={{ borderRadius: theme.radius.lg, padding: theme.spacing.md, gap: 12 }}
+              style={{
+                borderRadius: theme.radius.lg,
+                padding: theme.spacing.md,
+                gap: theme.spacing.sm,
+              }}
             >
               <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.xs }}>
                 <View style={{ flex: 1, minWidth: 0 }}>
@@ -198,8 +202,8 @@ function LoansScreenBody() {
                     numberOfLines={1}
                     adjustsFontSizeToFit
                     style={{
-                      fontSize: 30,
-                      lineHeight: 38,
+                      fontSize: 26,
+                      lineHeight: 32,
                       fontWeight: '800',
                       color: theme.color.onBrand,
                     }}
@@ -212,14 +216,14 @@ function LoansScreenBody() {
                   resizeMode="contain"
                   accessibilityElementsHidden
                   importantForAccessibility="no-hide-descendants"
-                  style={{ width: 84, height: 66 }}
+                  style={{ width: 64, height: 50 }}
                 />
               </Row>
               <Row
                 style={{
                   backgroundColor: theme.color.surface,
                   borderRadius: theme.radius.md,
-                  padding: theme.spacing.md,
+                  padding: theme.spacing.sm,
                   gap: theme.spacing.sm,
                 }}
               >
@@ -245,7 +249,7 @@ function LoansScreenBody() {
               horizontal
               accessibilityLabel={t.personalHome.filterLabel}
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: theme.spacing.sm }}
+              contentContainerStyle={{ gap: theme.spacing.xs }}
             >
               {(
                 [
@@ -268,8 +272,8 @@ function LoansScreenBody() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 4,
-                      minHeight: 44,
-                      paddingHorizontal: theme.spacing.lg,
+                      minHeight: 32,
+                      paddingHorizontal: theme.spacing.md,
                       borderRadius: theme.radius.pill,
                       borderWidth: 1,
                       borderColor: on ? theme.color.brand : theme.color.border,
@@ -284,7 +288,7 @@ function LoansScreenBody() {
                       />
                     ) : null}
                     <Text
-                      variant="body"
+                      variant="caption"
                       numberOfLines={1}
                       style={{
                         fontWeight: '600',
@@ -365,31 +369,37 @@ function LoansScreenBody() {
                   },
                 ];
                 return (
-                  <StandardCard key={loan.id} style={{ gap: theme.spacing.sm }}>
+                  <StandardCard
+                    key={loan.id}
+                    style={{ gap: theme.spacing.sm, padding: theme.spacing.md }}
+                  >
                     <Row style={{ alignItems: 'center' }}>
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={`${name}, ${settled ? t.personal.paidOff : t.personal.outstanding} ${fmt(left)}`}
                         onPress={() => setEditing(loan)}
+                        style={{ flex: 1, minWidth: 0 }}
                       >
-                        <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+                        <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
                           <View
                             style={{
-                              width: 48,
-                              height: 48,
+                              width: 40,
+                              height: 40,
                               borderRadius: theme.radius.md,
                               alignItems: 'center',
                               justifyContent: 'center',
-                              backgroundColor: theme.color.brandSoft,
+                              backgroundColor: borrowed
+                                ? theme.color.negativeSoft
+                                : theme.color.positiveSoft,
                             }}
                           >
                             <Ionicons
-                              name={borrowed ? 'arrow-down' : 'arrow-up'}
+                              name="cash-outline"
                               size={iconSize.md}
-                              color={theme.color.brand}
+                              color={borrowed ? theme.color.negativeText : theme.color.positive}
                             />
                           </View>
-                          <View style={{ flex: 1 }}>
+                          <View style={{ flex: 1, minWidth: 0 }}>
                             <Text variant="body" numberOfLines={1} style={{ fontWeight: '800' }}>
                               {name}
                             </Text>
@@ -517,8 +527,9 @@ function LoansScreenBody() {
                             flex: 1,
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 4,
-                            paddingVertical: theme.spacing.sm,
+                            gap: 2,
+                            minHeight: 56,
+                            paddingVertical: theme.spacing.xs,
                             borderRadius: theme.radius.md,
                             backgroundColor: a.primary ? theme.color.brandSoft : 'transparent',
                           }}
