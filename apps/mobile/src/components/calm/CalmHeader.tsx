@@ -5,7 +5,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { iconSize, Row, Text, useTheme } from '@waves/ui';
+import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
+
+import { useStrings } from '@/i18n';
 
 import { useHeroStatusBar } from '@/components/ScreenHero';
 
@@ -14,14 +16,18 @@ export function CalmHeader({
   title,
   children,
   topInset = true,
+  onBack,
 }: {
   dateLine: string;
   title: string;
   children?: ReactNode;
   /** False when a navigator header already clears the status bar. */
   topInset?: boolean;
+  /** Pushed screens only: a back arrow before the title. */
+  onBack?: () => void;
 }) {
   const theme = useTheme();
+  const { t } = useStrings();
   const insets = useSafeAreaInsets();
   useHeroStatusBar(theme.scheme === 'dark' ? 'light' : 'dark');
   return (
@@ -34,6 +40,21 @@ export function CalmHeader({
         paddingHorizontal: theme.spacing.lg,
       }}
     >
+      {onBack ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.common.back}
+          hitSlop={10}
+          onPress={onBack}
+          style={{ minWidth: 28, minHeight: 40, justifyContent: 'center' }}
+        >
+          <Ionicons
+            name={directionalIcon('arrow-back')}
+            size={iconSize.lg}
+            color={theme.color.text}
+          />
+        </Pressable>
+      ) : null}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text variant="caption" tone="muted" numberOfLines={1}>
           {dateLine}

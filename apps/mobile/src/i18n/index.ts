@@ -8533,6 +8533,16 @@ export interface UiStrings {
     spentOfCap: string;
     rowOver: string;
     rowLeft: string;
+    dueNow: string;
+    rentCollected: string;
+    rentRowTitle: string;
+    rentRowDue: string;
+    paidInFull: string;
+    andMore: string;
+    leaseEnds: string;
+    leaseAway: PluralForms;
+    renew: string;
+    properties: string;
     daysLeft: PluralForms;
     later: string;
     remindMessage: string;
@@ -16965,6 +16975,16 @@ const en: UiStrings = {
     spentOfCap: 'of {cap}',
     rowOver: '{amount} over · {pct}%',
     rowLeft: '{amount} left · {pct}%',
+    dueNow: 'Due now · {total}',
+    rentCollected: '{received} of {expected} collected · {paid} of {count} paid',
+    rentRowTitle: '{tenant} · {unit}',
+    rentRowDue: '{amount} · due {date}',
+    paidInFull: '{names} paid in full',
+    andMore: '{n} more',
+    leaseEnds: '{unit} lease ends {date}',
+    leaseAway: { one: '{tenant} · {n} day away', other: '{tenant} · {n} days away' },
+    renew: 'Renew',
+    properties: 'Properties · {n}',
     daysLeft: { one: '{n} day left', other: '{n} days left' },
     later: 'Later this week',
     remindMessage:
@@ -25485,6 +25505,16 @@ const ta: UiStrings = {
     spentOfCap: '{cap} இல்',
     rowOver: '{amount} அதிகம் · {pct}%',
     rowLeft: '{amount} மீதம் · {pct}%',
+    dueNow: 'இப்போது செலுத்த வேண்டியது · {total}',
+    rentCollected: '{expected} இல் {received} வசூல் · {count} இல் {paid} செலுத்தினர்',
+    rentRowTitle: '{tenant} · {unit}',
+    rentRowDue: '{amount} · {date} அன்று செலுத்த வேண்டும்',
+    paidInFull: '{names} முழுமையாகச் செலுத்தினர்',
+    andMore: 'மேலும் {n}',
+    leaseEnds: '{unit} குத்தகை {date} அன்று முடிகிறது',
+    leaseAway: { one: '{tenant} · {n} நாள் உள்ளது', other: '{tenant} · {n} நாட்கள் உள்ளன' },
+    renew: 'புதுப்பி',
+    properties: 'சொத்துகள் · {n}',
     daysLeft: { one: '{n} நாள் மீதம்', other: '{n} நாட்கள் மீதம்' },
     later: 'இந்த வாரத்தின் பிறகு',
     remindMessage:
@@ -33820,6 +33850,16 @@ const hi: UiStrings = {
     spentOfCap: '{cap} में से',
     rowOver: '{amount} ज़्यादा · {pct}%',
     rowLeft: '{amount} बाकी · {pct}%',
+    dueNow: 'अभी देय · {total}',
+    rentCollected: '{expected} में से {received} वसूल · {count} में से {paid} ने चुकाया',
+    rentRowTitle: '{tenant} · {unit}',
+    rentRowDue: '{amount} · {date} को देय',
+    paidInFull: '{names} ने पूरा चुकाया',
+    andMore: '{n} और',
+    leaseEnds: '{unit} का पट्टा {date} को खत्म',
+    leaseAway: { one: '{tenant} · {n} दिन बाकी', other: '{tenant} · {n} दिन बाकी' },
+    renew: 'नवीनीकरण',
+    properties: 'संपत्तियाँ · {n}',
     daysLeft: { one: '{n} दिन बाकी', other: '{n} दिन बाकी' },
     later: 'इस हफ़्ते आगे',
     remindMessage: 'नमस्ते {tenant}, एक छोटी याद: {unit} का {amount} किराया {date} को देय था। धन्यवाद!',
@@ -42981,7 +43021,13 @@ const ar: UiStrings = {
   },
 
   calm: {
-    needsTitle: { one: 'يحتاجك · {n} أمر', other: 'يحتاجك · {n} أمور' },
+    needsTitle: {
+      one: 'يحتاجك · {n} أمر',
+      two: 'يحتاجك · أمران',
+      few: 'يحتاجك · {n} أمور',
+      many: 'يحتاجك · {n} أمرًا',
+      other: 'يحتاجك · {n} أمر',
+    },
     showMore: 'عرض {n} أخرى',
     showLess: 'عرض أقل',
     allSet: 'كل شيء جاهز',
@@ -42995,17 +43041,41 @@ const ar: UiStrings = {
     onTrack: 'على المسار',
     overPace: 'أعلى من الوتيرة',
     paidOne: '{title} {amount} تم دفعه {when}',
-    paidMany: { one: 'فاتورة {n} دُفعت مؤخرًا', other: '{n} فواتير دُفعت مؤخرًا' },
+    paidMany: {
+      one: 'فاتورة {n} دُفعت مؤخرًا',
+      two: 'فاتورتان دُفعتا مؤخرًا',
+      few: '{n} فواتير دُفعت مؤخرًا',
+      many: '{n} فاتورة دُفعت مؤخرًا',
+      other: '{n} فاتورة دُفعت مؤخرًا',
+    },
     whenToday: 'اليوم',
     whenYesterday: 'أمس',
     rentTitle: 'إيجار {unit} · {amount}',
-    rentOverdue: { one: '{tenant} · متأخر {n} يوم', other: '{tenant} · متأخر {n} أيام' },
+    rentOverdue: {
+      one: '{tenant} · متأخر {n} يوم',
+      two: '{tenant} · متأخر يومين',
+      few: '{tenant} · متأخر {n} أيام',
+      many: '{tenant} · متأخر {n} يومًا',
+      other: '{tenant} · متأخر {n} يوم',
+    },
     rentDueToday: '{tenant} · مستحق اليوم',
     uncatTitle: { one: '{n} بلا فئة', other: '{n} بلا فئة' },
     billDueToday: 'مستحق اليوم · {amount}',
-    billOverdue: { one: '{amount} · متأخر {n} يوم', other: '{amount} · متأخر {n} أيام' },
+    billOverdue: {
+      one: '{amount} · متأخر {n} يوم',
+      two: '{amount} · متأخر يومين',
+      few: '{amount} · متأخر {n} أيام',
+      many: '{amount} · متأخر {n} يومًا',
+      other: '{amount} · متأخر {n} يوم',
+    },
     budgetUsed: 'ميزانية {name} استُخدم منها {pct}%',
-    budgetLeftDays: { one: 'المتبقي {amount} ليوم {n}', other: 'المتبقي {amount} لـ {n} أيام' },
+    budgetLeftDays: {
+      one: 'المتبقي {amount} ليوم واحد',
+      two: 'المتبقي {amount} ليومين',
+      few: 'المتبقي {amount} لـ {n} أيام',
+      many: 'المتبقي {amount} لـ {n} يومًا',
+      other: 'المتبقي {amount} لـ {n} يوم',
+    },
     budgetLeft: 'المتبقي {amount} هذا الشهر',
     budgetOver: 'تجاوز {amount} هذا الشهر',
     budgetsPlanned: 'أُنفق من {amount} مخططة',
@@ -43022,7 +43092,29 @@ const ar: UiStrings = {
     spentOfCap: 'من {cap}',
     rowOver: 'تجاوز {amount} · {pct}%',
     rowLeft: 'المتبقي {amount} · {pct}%',
-    daysLeft: { one: 'بقي {n} يوم', other: 'بقيت {n} أيام' },
+    dueNow: 'مستحق الآن · {total}',
+    rentCollected: 'تم تحصيل {received} من {expected} · دفع {paid} من {count}',
+    rentRowTitle: '{tenant} · {unit}',
+    rentRowDue: '{amount} · مستحق في {date}',
+    paidInFull: '{names} دفعوا بالكامل',
+    andMore: '{n} آخرين',
+    leaseEnds: 'ينتهي عقد {unit} في {date}',
+    leaseAway: {
+      one: '{tenant} · بعد {n} يوم',
+      two: '{tenant} · بعد يومين',
+      few: '{tenant} · بعد {n} أيام',
+      many: '{tenant} · بعد {n} يومًا',
+      other: '{tenant} · بعد {n} يوم',
+    },
+    renew: 'تجديد',
+    properties: 'العقارات · {n}',
+    daysLeft: {
+      one: 'بقي {n} يوم',
+      two: 'بقي يومان',
+      few: 'بقيت {n} أيام',
+      many: 'بقي {n} يومًا',
+      other: 'بقي {n} يوم',
+    },
     later: 'لاحقًا هذا الأسبوع',
     remindMessage:
       'مرحبًا {tenant}، تذكير لطيف: إيجار {amount} لـ {unit} كان مستحقًا في {date}. شكرًا!',

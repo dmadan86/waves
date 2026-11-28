@@ -67,8 +67,11 @@ export function NeedRow({
   subtitle,
   subtitleTone = 'muted',
   actions,
+  leading,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
+  /** Replaces the icon tile (initials, a photo). */
+  leading?: ReactNode;
   title: string;
   subtitle?: string;
   subtitleTone?: 'muted' | 'negative';
@@ -79,18 +82,20 @@ export function NeedRow({
   return (
     <View style={{ gap: theme.spacing.sm }}>
       <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-        <View
-          style={{
-            width: LIST_TILE,
-            height: LIST_TILE,
-            borderRadius: theme.radius.md,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.brandSoft,
-          }}
-        >
-          <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
-        </View>
+        {leading ?? (
+          <View
+            style={{
+              width: LIST_TILE,
+              height: LIST_TILE,
+              borderRadius: theme.radius.md,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.brandSoft,
+            }}
+          >
+            <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
+          </View>
+        )}
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Text variant="subheading">{title}</Text>
           {subtitle ? (
