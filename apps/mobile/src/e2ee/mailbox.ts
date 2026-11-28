@@ -179,6 +179,9 @@ export function createMailbox(deps: MailboxDeps) {
   const { client, space, outbox, keys } = deps;
   const meta = deps.meta ?? memoryMeta();
   const notices = new NoticeStore(meta);
+  /** The server says this phone is not in the group: keep a read-only former copy and stop polling it. */
+  const leaveGroup = (groupId: string, isCurrent: () => boolean): Promise<void> =>
+    space.retire(groupId, deps.groupName?.(groupId) ?? '', isCurrent).catch(() => undefined);
   /** Groups to keep up: a group retired to a read-only former copy is no longer polled. */
   const liveGroups = (): string[] => {
     const live = new Set(space.liveGroupIds());
@@ -581,18 +584,14 @@ export function createMailbox(deps: MailboxDeps) {
           await meta.set(`outbox-failed:${row.groupId}`, '');
         attempts.delete(row.id);
       } catch (error) {
-        const cause = error instanceof TransientMailboxError ? error.cause : error;
-        const message = String((cause as { message?: unknown })?.message ?? cause).toLowerCase();
-        if (message.includes('not a member') || message.includes('not_member')) {
+        if (isNotMember(error)) {
           if (!isCurrent()) return;
-          await meta.set(
-            `outbox-failed:${row.groupId}`,
-            JSON.stringify({ at: deps.now(), reason: 'membership-lost' }),
-          );
-          blockedGroups.add(row.groupId);
-          // Not reported: it is a handled state (a group this phone left or was removed from) that
-          // clears itself on rejoin or expiry, and an alert on every launch is noise. It is
-          // readable through failedOutboxGroups().
+          // Not reported: a handled state (a group this phone left or was removed from). Retire
+          // keeps a read-only copy; the row itself is dropped so nothing sits blocked.
+          await leaveGroup(row.groupId, isCurrent);
+          if (!isCurrent()) return;
+          await outbox.deleteE2eeOutbox([row.id]);
+          attempts.delete(row.id);
           continue;
         }
         const n = (state?.n ?? 0) + 1;
@@ -1005,10 +1004,7 @@ export function createMailbox(deps: MailboxDeps) {
       } catch (error) {
         // A group the server no longer lets this phone into (left, removed): nothing to keep up.
         if (isNotMember(error)) {
-          // Keep what this phone holds as a read-only former copy; liveGroups() then stops polling it.
-          await space
-            .retire(groupId, deps.groupName?.(groupId) ?? '', current)
-            .catch(() => undefined);
+          await leaveGroup(groupId, current);
           continue;
         }
         failed = error;

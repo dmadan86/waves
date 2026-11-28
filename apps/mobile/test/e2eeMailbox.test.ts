@@ -220,48 +220,31 @@ describe('mailbox send', () => {
     expect(a.store.outbox.size).toBe(1);
   });
 
-  it('isolates permanent membership loss and keeps sending other groups', async () => {
+  it('a send refused as not-a-member retires the group and leaves nothing blocked', async () => {
     const server = world();
     server.groups.set('group-lost', [{ memberId: 'mC', profileId: 'pC' }]);
     const a = phone(server, 'pA', 'mA', 1);
     const b = phone(server, 'pB', 'mB', 2);
     await Promise.all([a.deviceId(), b.deviceId()]);
-    await a.space.queue('group-lost', [{ op: 'resync_req' }]);
+    await a.set('group-lost', 'l1', 'property', prop);
     await a.set(G, 'p1', 'property', prop);
     await a.mailbox.flushOutbox();
-    expect(a.store.outbox.size).toBe(1);
+    // The other group still went out; the lost one is a read-only former copy with an empty outbox.
     expect(server.mailbox).toHaveLength(1);
-    expect(await a.mailbox.failedOutboxGroups()).toEqual([
-      { groupId: 'group-lost', reason: 'membership-lost' },
-    ]);
-    // A handled, self-healing state: never an alert on a test build.
+    expect(a.store.outbox.size).toBe(0);
+    expect(a.space.hasFormer('group-lost')).toBe(true);
+    expect(await a.mailbox.failedOutboxGroups()).toEqual([]);
     expect(a.reports.map((r) => r.where)).not.toContain('e2ee.send.membership:group-lost');
   });
 
-  it('retries quarantined group messages after rejoining', async () => {
+  it('drops queued messages of a refused group even when it holds no records', async () => {
     const server = world();
-    server.groups.set(G, [{ memberId: 'mB', profileId: 'pB' }]);
+    server.groups.set('group-lost', [{ memberId: 'mC', profileId: 'pC' }]);
     const a = phone(server, 'pA', 'mA', 1);
-    const b = phone(server, 'pB', 'mB', 2);
-    await Promise.all([a.deviceId(), b.deviceId()]);
-    await a.set(G, 'p1', 'property', prop);
+    await a.deviceId();
+    await a.space.queue('group-lost', [{ op: 'resync_req' }]);
     await a.mailbox.flushOutbox();
-    expect(await a.mailbox.failedOutboxGroups()).toMatchObject([
-      { groupId: G, reason: 'membership-lost' },
-    ]);
-    a.groups.push(G); // the phone still lists the group while the server refuses it
-    await a.mailbox.flushOutbox();
-    const attempts = server.directoryCalls;
-    for (let i = 0; i < 4; i++) await a.mailbox.flushOutbox();
-    expect(server.directoryCalls).toBe(attempts);
-    expect(server.sendAttempts).toBe(0);
-    server.groups.set(G, [
-      { memberId: 'mA', profileId: 'pA' },
-      { memberId: 'mB', profileId: 'pB' },
-    ]);
-    a.clock.t += 61_000; // past the directory cache
-    await a.mailbox.flushOutbox();
-    expect(server.mailbox).toHaveLength(1);
+    expect(a.store.outbox.size).toBe(0);
     expect(await a.mailbox.failedOutboxGroups()).toEqual([]);
   });
 
