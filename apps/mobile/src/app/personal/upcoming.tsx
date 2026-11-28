@@ -317,7 +317,7 @@ export default function PersonalUpcomingScreen() {
                   borderRadius: 22,
                   backgroundColor: theme.color.brand,
                   borderWidth: 3,
-                  borderColor: theme.color.background,
+                  borderColor: theme.color.bg,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
