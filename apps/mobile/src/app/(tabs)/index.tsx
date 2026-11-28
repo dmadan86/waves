@@ -1,6 +1,6 @@
 import { DEMO_GROUP_ID } from '@/demo/ids';
 import { headlineGroupCounts } from '@/lib/homeDashboard';
-import { otherCurrencyChips } from '@/data/totals';
+import { collectPay } from '@/lib/homeCollectPay';
 import { useQueryClient } from '@tanstack/react-query';
 import { withScenic } from '@/components/ScenicScope';
 import { adGateQuery } from '@/lib/adGateQuery';
@@ -16,7 +16,12 @@ import { InteractionManager, RefreshControl, View } from 'react-native';
 import { fallbackCurrency, type GuestGate } from '@waves/core';
 import { Button, Popup, Row, Screen, Text, useTheme } from '@waves/ui';
 
-import { useGroups, useHomeSummary, useNewestActivityFromOthers } from '@/data/hooks';
+import {
+  useGroups,
+  useHomeSummary,
+  useNewestActivityFromOthers,
+  usePeopleBalances,
+} from '@/data/hooks';
 import { useSync } from '@/sync';
 import { useHouseholdBillReminders, useRecurringCatchUp } from '@/data/groupRecurring';
 import { hasUnseenActivity, useActivitySeenAt } from '@/lib/activitySeen';
@@ -53,7 +58,8 @@ import { TabIconButton } from '@/components/home/TabHeader';
 import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { NewGroupMenu, type MenuAnchor } from '@/components/home/NewGroupMenu';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
-import { ComingUpChips, NeedsYouCard } from '@/components/home/HomeToday';
+import { NeedsYouCard } from '@/components/home/HomeToday';
+import { CollectPayTiles } from '@/components/home/CollectPayTiles';
 import { SpacesGrid } from '@/components/home/HomeSpaces';
 import { useHomeSpaceFigures } from '@/data/homeSpaces';
 import { todayIso, usePersonalLedger } from '@/data/personal';
@@ -295,7 +301,6 @@ function HomeScreen() {
   // the profile tab.
   const [menuOpen, setMenuOpen] = useState(false);
   // Personal bills Needs you is showing, so Coming up leaves them out.
-  const [needsBills, setNeedsBills] = useState('');
   // Same test the Upgrade screen uses for `plansLive`: the paywall flag is on
   // and this build can buy. A guest signs up first, so the row waits for that.
   const canUpgrade = useReferralsLive() && !isGuest;
@@ -410,11 +415,12 @@ function HomeScreen() {
         }
       : liveHeadline;
 
-  // The other currencies, as chips under each side (nothing while the stored snapshot stands in).
-  const chips =
-    showStale && stored
-      ? { owed: [], owing: [] }
-      : otherCurrencyChips(summary.totals, headline.currency);
+  // The hero's tiles come from the same per-person rows as "Needs you".
+  const peopleRows = usePeopleBalances(viewerId).data;
+  const tiles = useMemo(
+    () => collectPay(peopleRows ?? [], headline.currency),
+    [peopleRows, headline.currency],
+  );
 
   // Which photograph the hero wears: the clock's (and region's), or the one
   // picked on the Background screen.
@@ -492,10 +498,9 @@ function HomeScreen() {
   const parts = useRef<{
     needs: SnapRow[];
     needsTotal: number;
-    comingUp: SnapRow[];
     personal: SnapRow | null;
     groups: SnapRow[];
-  }>({ needs: [], needsTotal: 0, comingUp: [], personal: null, groups: [] });
+  }>({ needs: [], needsTotal: 0, personal: null, groups: [] });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSaved = useRef('');
   const frame = {
@@ -531,6 +536,7 @@ function HomeScreen() {
         v: 1,
         viewerId: f.viewerId,
         headline: f.headline,
+        comingUp: [], // kept in the stored shape; Home no longer draws Coming up
         ...parts.current,
         personal,
       };
@@ -626,8 +632,17 @@ function HomeScreen() {
               owing={headline.owing}
               owedGroups={owedGroups}
               owingGroups={owingGroups}
-              owedChips={chips.owed}
-              owingChips={chips.owing}
+              hideFigure
+              label={catchUp ? undefined : t.homeDash.withPeople}
+              sides={
+                <CollectPayTiles
+                  data={tiles}
+                  currency={headline.currency}
+                  locale={locale}
+                  hidden={balanceHidden || !balanceReady}
+                  loading={showSkeleton || !balanceReady || showStale || !peopleRows}
+                />
+              }
               currency={headline.currency}
               locale={locale}
               hidden={balanceHidden || !balanceReady}
@@ -691,21 +706,9 @@ function HomeScreen() {
                 ledger={todayLedger}
                 viewerId={viewerId}
                 hidden={amountsHidden}
-                onShownBills={setNeedsBills}
                 onSnapshot={(rows, total) => {
                   parts.current.needs = rows;
                   parts.current.needsTotal = total;
-                  scheduleSave();
-                }}
-              />
-            )}
-            {newUser ? null : (
-              <ComingUpChips
-                ledger={todayLedger}
-                hidden={amountsHidden}
-                exclude={needsBills}
-                onSnapshot={(rows) => {
-                  parts.current.comingUp = rows;
                   scheduleSave();
                 }}
               />

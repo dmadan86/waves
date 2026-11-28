@@ -3,10 +3,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   isAutoPostOverdue,
-  notExcluded,
   personalNeedKey,
   rankNeeds,
-  shownPersonalKeys,
   SOON_DAYS,
   type BillNeed,
   type PersonNeed,
@@ -151,49 +149,6 @@ describe('auto-post overdue skip', () => {
 });
 
 describe('Needs you / Coming up de-duplication', () => {
-  it('Coming up leaves out exactly the personal bills Needs you shows', () => {
-    const today = '2026-11-20';
-    const rules = [
-      rule('rent', { nextDate: '2026-11-21' }),
-      rule('gym', { nextDate: '2026-11-28' }),
-    ];
-    const rows = billRows([], rules, 'INR', today, 14);
-    const needs = rankNeeds({
-      bills: rows.map((row) => ({
-        ...bill(personalNeedKey(row.key), row.inDays),
-        ruleId: row.ruleId ?? '',
-      })),
-      owedToYou: [],
-      youOwe: [],
-      reviewCount: 0,
-    });
-    const exclude = shownPersonalKeys(needs.items);
-    const coming = rows.filter((r) => r.inDays >= 0 && notExcluded(r.key, exclude));
-    const shownInNeeds = needs.items.map((n) => n.bill!.key.slice(2));
-    expect(shownInNeeds.length).toBeGreaterThan(0);
-    for (const r of coming) expect(shownInNeeds).not.toContain(r.key);
-    // and a bill beyond Needs you's window still appears in Coming up
-    expect(coming.map((r) => r.ruleId)).toContain('gym');
-    expect(coming.filter((r) => r.ruleId === 'rent').every((r) => r.inDays > SOON_DAYS)).toBe(true);
-  });
-
-  it('shownPersonalKeys skips group bills and non-bill needs', () => {
-    const r = rankNeeds({
-      bills: [bill('p:r1:2026-11', 0), bill('g:r2:2026-11-21', 0, 'group')],
-      owedToYou: [person('a', 1n)],
-      youOwe: [],
-      reviewCount: 1,
-    });
-    expect(shownPersonalKeys(r.items)).toBe('r1:2026-11');
-  });
-
-  it('notExcluded matches whole keys only, and an empty exclude hides nothing', () => {
-    expect(notExcluded('r1:2026-11', '')).toBe(true);
-    expect(notExcluded('r1:2026-11', 'r1:2026-11|r2:2026-11')).toBe(false);
-    expect(notExcluded('r1:2026-11', 'r1:2026-11x|r2:2026-11')).toBe(true);
-    expect(notExcluded('r2', 'r22')).toBe(true);
-  });
-
   it('the Needs key is the Coming up key with a p: prefix', () => {
     expect(personalNeedKey('r1:2026-11')).toBe('p:r1:2026-11');
   });

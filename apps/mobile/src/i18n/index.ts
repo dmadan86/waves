@@ -364,7 +364,6 @@ export interface UiStrings {
     owesYouSub: string;
     youOweSub: string;
     reviewTitle: string;
-    comingUp: string;
     addReminder: string;
     /** Quick action on All groups: open the join-by-code/QR screen. */
     joinGroupShort: string;
@@ -5038,6 +5037,16 @@ export interface UiStrings {
     acrossGroups: PluralForms;
     /** "From 3 people", under each side of the Friends balance card. */
     acrossPeople: PluralForms;
+    /** "To 2 people", under the To pay tile. */
+    toPeople: PluralForms;
+    /** Hero label, tiles and the muted lines for other currencies. */
+    withPeople: string;
+    toCollect: string;
+    toPay: string;
+    allSettled: string;
+    /** "Also owed {amount}" / "Also owe {amount}". */
+    alsoOwed: string;
+    alsoOwe: string;
   };
   /** The rotating "did you know" tips card on the dashboard — one useful,
    *  app-specific hint at a time, dismissible for good. */
@@ -9438,7 +9447,6 @@ const en: UiStrings = {
     owesYouSub: 'Owes you {amount}',
     youOweSub: 'You owe {amount}',
     reviewTitle: 'Items to review: {n}',
-    comingUp: 'Coming up',
     addReminder: 'Add a reminder',
     spaces: 'Groups',
     family: 'Family',
@@ -13930,6 +13938,13 @@ const en: UiStrings = {
     settleAllGroups: 'All groups',
     acrossGroups: { one: 'Across {n} group', other: 'Across {n} groups' },
     acrossPeople: { one: 'From {n} person', other: 'From {n} people' },
+    toPeople: { one: 'To {n} person', other: 'To {n} people' },
+    withPeople: 'With people',
+    toCollect: 'To collect',
+    toPay: 'To pay',
+    allSettled: 'All settled',
+    alsoOwed: 'Also owed {amount}',
+    alsoOwe: 'Also owe {amount}',
   },
   tips: {
     label: 'Tip',
@@ -17884,7 +17899,6 @@ const ta: UiStrings = {
     owesYouSub: '{amount} உங்களுக்கு தர வேண்டும்',
     youOweSub: 'நீங்கள் {amount} தர வேண்டும்',
     reviewTitle: 'பார்க்க வேண்டியவை: {n}',
-    comingUp: 'விரைவில்',
     addReminder: 'நினைவூட்டல் சேர்',
     spaces: 'குழுக்கள்',
     family: 'குடும்பம்',
@@ -22387,6 +22401,13 @@ const ta: UiStrings = {
     settleAllGroups: 'எல்லா குழுக்களும்',
     acrossGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
     acrossPeople: { one: '{n} நபரிடம்', other: '{n} நபர்களிடம்' },
+    toPeople: { one: '{n} நபருக்கு', other: '{n} நபர்களுக்கு' },
+    withPeople: 'மக்களுடன்',
+    toCollect: 'வர வேண்டியது',
+    toPay: 'தர வேண்டியது',
+    allSettled: 'எல்லாம் தீர்ந்தது',
+    alsoOwed: 'மேலும் வர வேண்டியது {amount}',
+    alsoOwe: 'மேலும் தர வேண்டியது {amount}',
   },
   tips: {
     label: 'உதவிக்குறிப்பு',
@@ -26402,7 +26423,6 @@ const hi: UiStrings = {
     owesYouSub: 'उन पर आपके {amount} बाकी हैं',
     youOweSub: 'आप पर {amount} बाकी हैं',
     reviewTitle: 'देखने वाली चीज़ें: {n}',
-    comingUp: 'आने वाला',
     addReminder: 'रिमाइंडर जोड़ें',
     spaces: 'ग्रुप',
     family: 'परिवार',
@@ -30856,6 +30876,13 @@ const hi: UiStrings = {
     settleAllGroups: 'सभी समूह',
     acrossGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
     acrossPeople: { one: '{n} व्यक्ति से', other: '{n} लोगों से' },
+    toPeople: { one: '{n} व्यक्ति को', other: '{n} लोगों को' },
+    withPeople: 'लोगों के साथ',
+    toCollect: 'लेना है',
+    toPay: 'देना है',
+    allSettled: 'सब चुकता',
+    alsoOwed: 'और मिलने हैं {amount}',
+    alsoOwe: 'और देने हैं {amount}',
   },
   tips: {
     label: 'सुझाव',
@@ -34754,7 +34781,6 @@ const ar: UiStrings = {
     owesYouSub: 'مدين لك بـ {amount}',
     youOweSub: 'أنت مدين بـ {amount}',
     reviewTitle: 'عناصر للمراجعة: {n}',
-    comingUp: 'قريبًا',
     addReminder: 'أضف تذكيرًا',
     spaces: 'المجموعات',
     family: 'العائلة',
@@ -39478,6 +39504,20 @@ const ar: UiStrings = {
       many: 'من {n} شخصًا',
       other: 'من {n} شخص',
     },
+    toPeople: {
+      zero: 'إلى {n} شخص',
+      one: 'إلى شخص واحد',
+      two: 'إلى شخصين',
+      few: 'إلى {n} أشخاص',
+      many: 'إلى {n} شخصًا',
+      other: 'إلى {n} شخص',
+    },
+    withPeople: 'مع الناس',
+    toCollect: 'للتحصيل',
+    toPay: 'للدفع',
+    allSettled: 'كل شيء مسدّد',
+    alsoOwed: 'مستحق لك أيضًا {amount}',
+    alsoOwe: 'عليك أيضًا {amount}',
   },
   tips: {
     label: 'نصيحة',

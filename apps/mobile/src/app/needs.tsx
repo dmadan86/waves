@@ -1,6 +1,7 @@
 /** Every need Home's "Needs you" card ranks, with the same rows and actions. */
 
 import { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import { useTabBarClearance, useTheme } from '@waves/ui';
@@ -17,6 +18,8 @@ export default function NeedsScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t } = useStrings();
+  const params = useLocalSearchParams<{ only?: string; currency?: string }>();
+  const only = params.only === 'owed' || params.only === 'owe' ? params.only : undefined;
   const viewerId = useViewerId();
   const ledger = usePersonalLedger();
   const currency = useDefaultCurrency();
@@ -25,7 +28,15 @@ export default function NeedsScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <PlainHeader title={t.homeToday.needsYou} />
+      <PlainHeader
+        title={
+          only === 'owed'
+            ? t.homeDash.toCollect
+            : only === 'owe'
+              ? t.homeDash.toPay
+              : t.homeToday.needsYou
+        }
+      />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
@@ -34,6 +45,8 @@ export default function NeedsScreen() {
       >
         <NeedsYouCard
           all
+          only={only}
+          currency={params.currency}
           ledger={{ txns: ledger.txns, recurrings: ledger.recurrings, currency, today }}
           viewerId={viewerId}
           hidden={hidden}

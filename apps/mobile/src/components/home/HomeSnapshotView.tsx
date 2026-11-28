@@ -170,37 +170,6 @@ export function HomeSnapshotView({
           )}
         </Card>
       </View>
-      <View style={{ gap: theme.spacing.sm }}>
-        <CardTitle
-          title={h.comingUp}
-          action={h.seeAll}
-          onAction={() => router.push('/personal/upcoming')}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={h.addReminder}
-            onPress={() => router.push('/dates/edit')}
-            hitSlop={8}
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 14,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.color.brandSoft,
-            }}
-          >
-            <Ionicons name="add" size={iconSize.md} color={theme.color.brand} />
-          </Pressable>
-        </CardTitle>
-        {snapshot.comingUp.length ? (
-          rowsOf(snapshot.comingUp, () => hidden)
-        ) : (
-          <Text variant="caption" tone="muted">
-            {t.dates.empty}
-          </Text>
-        )}
-      </View>
       {snapshot.personal ? rowsOf([snapshot.personal], () => hidden || personalHidden) : null}
       {sections.map((section, index) => (
         <View key={section.title} style={{ gap: theme.spacing.sm }}>
