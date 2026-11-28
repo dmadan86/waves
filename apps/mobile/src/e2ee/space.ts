@@ -375,6 +375,31 @@ export class E2eeSpace {
     });
   }
 
+  /**
+   * The account is back in a group it left (same id): fold the read-only copy into the live
+   * group, so nothing is lost and the group is writable again. A snapshot from the partner
+   * fills in what happened meanwhile.
+   */
+  async revive(groupId: string, isCurrent: () => boolean = () => true): Promise<void> {
+    const fid = FORMER + groupId;
+    const records = this.snapshot(fid);
+    if (!this.stores.has(fid) || !isCurrent()) return;
+    if (
+      records.length > 0 &&
+      !(await this.applyIncoming(
+        [{ groupId, ops: snapshotOps(records), senderMemberId: '', trusted: true }],
+        isCurrent,
+      ))
+    )
+      return;
+    await this.run(async () => {
+      if (!isCurrent()) return;
+      await this.io.replaceE2eeGroup(fid, []);
+      this.stores.delete(fid);
+      this.notify();
+    });
+  }
+
   private run<T>(fn: () => Promise<T>): Promise<T> {
     const next = this.chain.then(fn, fn);
     this.chain = next.catch(() => undefined);

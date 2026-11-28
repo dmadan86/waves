@@ -179,6 +179,9 @@ export function createMailbox(deps: MailboxDeps) {
   const { client, space, outbox, keys } = deps;
   const meta = deps.meta ?? memoryMeta();
   const notices = new NoticeStore(meta);
+  /** The server says this phone is not in the group: keep a read-only former copy and stop polling it. */
+  const leaveGroup = (groupId: string, isCurrent: () => boolean): Promise<void> =>
+    space.retire(groupId, deps.groupName?.(groupId) ?? '', isCurrent).catch(() => undefined);
   /** Groups to keep up: a group retired to a read-only former copy is no longer polled. */
   const liveGroups = (): string[] => {
     const live = new Set(space.liveGroupIds());
@@ -186,7 +189,6 @@ export function createMailbox(deps: MailboxDeps) {
   };
   const answered = new Map<string, number>();
   const parts = new Map<string, Set<number>>();
-  const probedAt = new Map<string, number>();
   const directoryFresh = new Set<string>();
   let housekeepingStreak = 0;
   const devicesCache = new Map<string, { at: number; list: GroupDevice[] }>();
@@ -257,17 +259,6 @@ export function createMailbox(deps: MailboxDeps) {
     }
     if (!current()) return [];
     const oldDevices = previous ?? (oldRaw ? (JSON.parse(oldRaw) as KnownDevice[]) : null);
-    let ownDeviceId: string;
-    try {
-      ownDeviceId = await keys.deviceId();
-    } catch (cause) {
-      throw new TransientMailboxError(cause);
-    }
-    if (list.some((d) => d.deviceId === ownDeviceId)) {
-      const failure = await metaRead(meta, `outbox-failed:${groupId}`);
-      if (failure?.includes('membership-lost'))
-        await metaWrite(meta, `outbox-failed:${groupId}`, '');
-    }
     if (oldDevices) {
       const present = new Set(list.map((d) => d.deviceId));
       for (const old of oldDevices) {
@@ -527,27 +518,13 @@ export function createMailbox(deps: MailboxDeps) {
           JSON.stringify({ at: deps.now(), reason: 'expired' }),
         );
         await outbox.deleteE2eeOutbox([row.id]);
-        const failure = await meta.get(`outbox-failed:${row.groupId}`);
-        if (failure?.includes('membership-lost'))
-          await meta.set(`outbox-failed:${row.groupId}`, '');
         continue;
       }
       let failureRaw = await meta.get(`outbox-failed:${row.groupId}`);
       if (failureRaw?.includes('membership-lost')) {
-        // Quarantined: no send attempts. Only the (cached, ~1/min) directory can lift it:
-        // it clears the marker when this device is listed again.
-        if (deps.now() - (probedAt.get(row.groupId) ?? -Infinity) < DEVICES_TTL_MS) {
-          blockedGroups.add(row.groupId);
-          continue;
-        }
-        probedAt.set(row.groupId, deps.now());
-        try {
-          await groupDevices(row.groupId, false, isCurrent);
-        } catch {
-          /* still not a member */
-        }
-        if (!isCurrent()) return;
-        failureRaw = await meta.get(`outbox-failed:${row.groupId}`);
+        // A marker an older build left: a refusal now retires the group instead, so drop it.
+        await meta.set(`outbox-failed:${row.groupId}`, '');
+        failureRaw = null;
       }
       if (failureRaw) {
         let reason = 'unknown';
@@ -576,23 +553,16 @@ export function createMailbox(deps: MailboxDeps) {
         }
         if (!isCurrent()) return;
         await outbox.deleteE2eeOutbox([row.id]);
-        const failure = await meta.get(`outbox-failed:${row.groupId}`);
-        if (failure?.includes('membership-lost'))
-          await meta.set(`outbox-failed:${row.groupId}`, '');
         attempts.delete(row.id);
       } catch (error) {
-        const cause = error instanceof TransientMailboxError ? error.cause : error;
-        const message = String((cause as { message?: unknown })?.message ?? cause).toLowerCase();
-        if (message.includes('not a member') || message.includes('not_member')) {
+        if (isNotMember(error)) {
           if (!isCurrent()) return;
-          await meta.set(
-            `outbox-failed:${row.groupId}`,
-            JSON.stringify({ at: deps.now(), reason: 'membership-lost' }),
-          );
-          blockedGroups.add(row.groupId);
-          // Not reported: it is a handled state (a group this phone left or was removed from) that
-          // clears itself on rejoin or expiry, and an alert on every launch is noise. It is
-          // readable through failedOutboxGroups().
+          // Not reported: a handled state (a group this phone left or was removed from). Retire
+          // keeps a read-only copy; the row itself is dropped so nothing sits blocked.
+          await leaveGroup(row.groupId, isCurrent);
+          if (!isCurrent()) return;
+          await outbox.deleteE2eeOutbox([row.id]);
+          attempts.delete(row.id);
           continue;
         }
         const n = (state?.n ?? 0) + 1;
@@ -953,6 +923,17 @@ export function createMailbox(deps: MailboxDeps) {
     const fetchedAt = Number((await meta.get('fetchedAt')) ?? NaN);
     if (!current()) return;
     const now = deps.now();
+    // Listed again but still a former copy: if the server lets this phone in, bring it back live.
+    for (const g of deps.groups?.() ?? []) {
+      if (!space.hasFormer(g)) continue;
+      try {
+        await groupDevices(g, true, current);
+        if (!current()) return;
+        await space.revive(g, current);
+      } catch {
+        /* still refused (or offline): stays a former copy, retried next round */
+      }
+    }
     for (const groupId of liveGroups()) {
       try {
         step = 'resync';
@@ -1005,10 +986,7 @@ export function createMailbox(deps: MailboxDeps) {
       } catch (error) {
         // A group the server no longer lets this phone into (left, removed): nothing to keep up.
         if (isNotMember(error)) {
-          // Keep what this phone holds as a read-only former copy; liveGroups() then stops polling it.
-          await space
-            .retire(groupId, deps.groupName?.(groupId) ?? '', current)
-            .catch(() => undefined);
+          await leaveGroup(groupId, current);
           continue;
         }
         failed = error;
