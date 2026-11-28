@@ -160,7 +160,7 @@ export function SectionHeader({
       <Text
         variant="heading"
         accessibilityRole="header"
-        style={{ fontSize: 17, lineHeight: 22, fontWeight: '700' }}
+        style={{ flexShrink: 1, fontSize: 17, lineHeight: 22, fontWeight: '700' }}
       >
         {title}
       </Text>
