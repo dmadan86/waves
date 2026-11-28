@@ -18,7 +18,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useLocalSearchParams } from 'expo-router';
 import {
-  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -84,9 +83,8 @@ import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { settleHref } from '@/lib/groupTab';
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { AddReminderSheet } from '@/components/personal/AddReminderSheet';
-import { ListCard, ListItem, StandardCard } from '@/components/standard';
+import { ListCard, ListItem, StandardCard, SummaryCard } from '@/components/standard';
 import { PlanningHeader, PlanningTabs } from '@/components/PlanningTabs';
-import { LinearGradient } from 'expo-linear-gradient';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { loanTotals, matchesLoanFilter, repaid, type LoanFilter } from '@/lib/loansSummary';
 import { formatLoanPaymentDate, loanPaymentDefaults } from '@/lib/loanPayment';
@@ -147,6 +145,8 @@ function LoansScreenBody() {
 
   const show = (n: bigint, cur: string = dc): string =>
     hidden ? BALANCE_MASK : format(money(n, cur), { locale });
+  const heroShow = (n: bigint): string =>
+    hidden ? BALANCE_MASK : format(money(n, dc), { locale, trimZeros: true });
   const totals = loanTotals(
     loans.map((l) => ({ direction: l.direction, left: leftOf(l), status: l.status })),
   );
@@ -183,67 +183,12 @@ function LoansScreenBody() {
           />
         ) : (
           <>
-            <LinearGradient
-              colors={[theme.color.brandPressed, theme.color.brand]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{
-                borderRadius: theme.radius.lg,
-                padding: theme.spacing.md,
-                gap: theme.spacing.sm,
-              }}
-            >
-              <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.xs }}>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text variant="body" style={{ color: theme.color.onBrand }} numberOfLines={1}>
-                    {t.personal.loansTotal}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    style={{
-                      fontSize: 26,
-                      lineHeight: 32,
-                      fontWeight: '800',
-                      color: theme.color.onBrand,
-                    }}
-                  >
-                    {show(totals.total)}
-                  </Text>
-                </View>
-                <Image
-                  source={require('../../../assets/images/personal-loans.webp')}
-                  resizeMode="contain"
-                  accessibilityElementsHidden
-                  importantForAccessibility="no-hide-descendants"
-                  style={{ width: 64, height: 50 }}
-                />
-              </Row>
-              <Row
-                style={{
-                  backgroundColor: theme.color.surface,
-                  borderRadius: theme.radius.md,
-                  padding: theme.spacing.sm,
-                  gap: theme.spacing.sm,
-                }}
-              >
-                <TotalHalf
-                  icon="arrow-down"
-                  tone="negative"
-                  label={t.personal.youOwe}
-                  value={show(totals.owe)}
-                />
-                <View
-                  style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }}
-                />
-                <TotalHalf
-                  icon="arrow-up"
-                  tone="positive"
-                  label={t.personal.youAreOwed}
-                  value={show(totals.owed)}
-                />
-              </Row>
-            </LinearGradient>
+            <SummaryCard
+              title={t.personal.loansTotal}
+              headline={heroShow(totals.total)}
+              money={{ label: t.personal.youOwe, value: heroShow(totals.owe) }}
+              expense={{ label: t.personal.youAreOwed, value: heroShow(totals.owed) }}
+            />
 
             <ScrollView
               horizontal
@@ -1279,48 +1224,5 @@ export default function LoansScreen() {
     <PersonalGuard>
       <LoansScreenBody />
     </PersonalGuard>
-  );
-}
-
-function TotalHalf({
-  icon,
-  tone,
-  label,
-  value,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  tone: 'positive' | 'negative';
-  label: string;
-  value: string;
-}) {
-  const theme = useTheme();
-  const bad = tone === 'negative';
-  return (
-    <Row style={{ flex: 1, minWidth: 0, alignItems: 'center', gap: theme.spacing.sm }}>
-      <View
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: theme.radius.sm,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: bad ? theme.color.negativeSoft : theme.color.positiveSoft,
-        }}
-      >
-        <Ionicons
-          name={icon}
-          size={iconSize.md}
-          color={bad ? theme.color.negativeText : '#15803D'}
-        />
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text variant="caption" tone="muted" numberOfLines={1}>
-          {label}
-        </Text>
-        <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontWeight: '800' }}>
-          {value}
-        </Text>
-      </View>
-    </Row>
   );
 }

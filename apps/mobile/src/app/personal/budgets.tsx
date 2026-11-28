@@ -64,7 +64,7 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { fill, plural, useStrings } from '@/i18n';
 import { CalmBar } from '@/components/calm/SummaryLine';
 import { NudgeRow } from '@/components/calm/NudgeRow';
-import { ListCard, ListItem, LIST_TILE } from '@/components/standard';
+import { ListCard, ListItem, LIST_TILE, SummaryCard } from '@/components/standard';
 import { daysLeftInMonth, percentUsed, sortCategories, topOver } from '@/lib/calm/budgetSummary';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
@@ -152,6 +152,22 @@ function BudgetsScreenBody() {
         showsVerticalScrollIndicator={false}
       >
         <PlanningTabs value="budgets" />
+        {overview ? (
+          <SummaryCard
+            title={monthLabel(month, locale)}
+            money={{ label: t.planned, value: fmt(overview.limit, summaryCurrency) }}
+            expense={{ label: t.personal.spent, value: fmt(overview.spent, summaryCurrency) }}
+            net={{
+              label: t.personal.leftLabel,
+              value: overview.over
+                ? `${t.personal.over} ${fmt(-overview.remaining, summaryCurrency)}`
+                : fmt(overview.remaining, summaryCurrency),
+            }}
+            negative={overview.over}
+            progress={{ ratio: overview.percent / 100, over: overview.over }}
+            footnote={summarySentence}
+          />
+        ) : null}
         {budgets.length > 0 ? (
           <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
             <IconButton
@@ -180,39 +196,7 @@ function BudgetsScreenBody() {
         ) : null}
 
         {overview ? (
-          <View style={{ ...flat, padding: theme.spacing.md, gap: theme.spacing.sm }}>
-            <Pressable
-              accessibilityRole={overview.overall ? 'button' : undefined}
-              disabled={!overview.overall}
-              onPress={() => overview.overall && setEditing(overview.overall)}
-              style={{ gap: theme.spacing.sm }}
-            >
-              <Text variant="caption" tone="muted">
-                {fill(c.budgetsPlanned, { amount: fmt(overview.limit, summaryCurrency) })}
-              </Text>
-              <Text>
-                <Text
-                  style={{
-                    fontSize: 24,
-                    lineHeight: 30,
-                    fontWeight: '800',
-                    color: overview.over ? theme.color.negativeText : theme.color.text,
-                  }}
-                >
-                  {fmt(overview.spent, summaryCurrency)}
-                </Text>
-                <Text style={{ fontSize: 15, color: theme.color.textMuted }}>
-                  {` ${fill(c.budgetsOfBudget, { pct: String(overview.percent) })}`}
-                </Text>
-              </Text>
-              <CalmBar ratio={overview.percent / 100} over={overview.over} />
-              <Text
-                variant="caption"
-                style={{ color: overview.over ? theme.color.negativeText : theme.color.textMuted }}
-              >
-                {summarySentence}
-              </Text>
-            </Pressable>
+          <View style={{ ...flat, padding: theme.spacing.md }}>
             <NudgeRow
               title={c.spendingTitle}
               body={c.spendingBody}
