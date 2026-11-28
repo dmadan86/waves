@@ -25,7 +25,13 @@ export function ProfileRing({
   const colors = ringColors(solid, theme);
   return (
     <View
-      style={{ width: RING, height: RING, marginBottom: 6, alignItems: 'center', justifyContent: 'center' }}
+      style={{
+        width: RING,
+        height: RING,
+        marginBottom: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
     >
       <Svg width={RING} height={RING} style={{ position: 'absolute' }}>
         <Circle
