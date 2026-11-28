@@ -5,20 +5,18 @@
  */
 
 import { useState } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { View } from 'react-native';
 
-import { iconSize, Sheet, Text, useTheme } from '@waves/ui';
+import { Sheet, Text, useTheme } from '@waves/ui';
 import type { PersonalTxn } from '@waves/core';
 
-import { ListCard, ListItem, LIST_TILE, SectionHeader } from '@/components/standard';
 import { CategoryPicker } from '@/components/Category';
 import { DoneLine } from '@/components/calm/DoneLine';
 import { NeedRow, NeedsYouCard } from '@/components/calm/NeedsYouCard';
 import { NudgeRow } from '@/components/calm/NudgeRow';
-import { SummaryLine } from '@/components/calm/SummaryLine';
 import { useRentActions } from '@/components/calm/useRentActions';
-import { WeekStrip } from '@/components/calm/WeekStrip';
+import { TodayWeek } from '@/components/calm/TodayWeek';
+import { ComingUpList } from '@/components/calm/ComingUpList';
 import { useWealthMoney } from '@/components/wealth/parts';
 import { usePersonalWealth } from '@/data/personalWealth';
 import { usePersonalLedger, useUpsertPersonalRecord } from '@/data/personal';
@@ -28,7 +26,7 @@ import { budgetNudge } from '@/lib/calm/budgetNudge';
 import { recentlyPaid } from '@/lib/calm/doneLine';
 import { needsYou, uncategorizedTxns, visibleNeeds } from '@/lib/calm/needsYou';
 import { rentItems } from '@/lib/calm/rentDue';
-import { dailyPace, spendByDate, weekDays, weekSummary, weekStartDate } from '@/lib/calm/weekPace';
+import { dailyPace, spendByDate, weekStartDate } from '@/lib/calm/weekPace';
 import { WEEK_START } from '@/lib/calendarGrid';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { router } from '@/lib/navigation';
@@ -69,26 +67,6 @@ export function PersonalToday({ today, currency }: { today: string; currency: st
   const dueDates = new Set(
     upcoming.filter((r) => r.kind === 'bill' && !r.income && r.date).map((r) => r.date!),
   );
-  const days = weekDays({
-    today,
-    weekStart: WEEK_START,
-    spent: spendByDate(ledger.txns, currency, start, end),
-    pace,
-    dueDates,
-  });
-  const week = weekSummary(days, pace);
-  const letter = (weekday: number): string =>
-    dateTimeFormat(locale, { weekday: 'narrow', timeZone: 'UTC' }).format(
-      new Date(Date.UTC(2026, 10, 22 + weekday)),
-    );
-  const longDay = (iso: string): string =>
-    dateTimeFormat(locale, {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      timeZone: 'UTC',
-    }).format(new Date(`${iso}T00:00:00Z`));
-
   // What needs the person.
   const rent = rentItems({
     properties: wealth.properties,
@@ -123,15 +101,13 @@ export function PersonalToday({ today, currency }: { today: string; currency: st
 
   return (
     <View style={{ paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md }}>
-      <WeekStrip
-        days={days}
-        weekdayLetter={letter}
-        dayLabel={(d) => `${longDay(d.date)}, ${fmt(d.spent, currency)}`}
-      />
-      <SummaryLine
-        text={fill(c.weekSpent, { amount: fmt(week.spent, currency) })}
-        verdict={week.verdict === null ? null : week.verdict === 'onTrack' ? c.onTrack : c.overPace}
-        warn={week.verdict === 'overPace'}
+      <TodayWeek
+        today={today}
+        currency={currency}
+        spent={spendByDate(ledger.txns, currency, start, end)}
+        pace={pace}
+        dueDates={dueDates}
+        fmt={fmt}
       />
       {done ? (
         <DoneLine
@@ -259,54 +235,19 @@ export function PersonalToday({ today, currency }: { today: string; currency: st
         />
       ) : null}
 
-      {later.length > 0 ? (
-        <View style={{ gap: theme.spacing.sm }}>
-          <SectionHeader
-            title={t.calendar.comingUp}
-            action={{
-              label: t.calendar.seeAll,
-              onPress: () => router.push('/personal/calendar'),
-            }}
-          />
-          <ListCard>
-            {later.map((row, i) => (
-              <ListItem
-                key={row.key}
-                divider={i > 0}
-                leading={
-                  <View
-                    style={{
-                      width: LIST_TILE,
-                      height: LIST_TILE,
-                      borderRadius: theme.radius.md,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: theme.color.brandSoft,
-                    }}
-                  >
-                    <Ionicons
-                      name={row.income ? 'arrow-down-outline' : 'calendar-outline'}
-                      size={iconSize.md}
-                      color={theme.color.brand}
-                    />
-                  </View>
-                }
-                title={
-                  row.item
-                    ? titleOf(row.item, t.dates)
-                    : row.title || sourceLabel(row.category ?? null) || t.personal.expense
-                }
-                subtitle={
-                  row.amount !== undefined && row.currency
-                    ? fmt(row.amount, row.currency)
-                    : undefined
-                }
-                caption={rowDate(row.date ?? today)}
-              />
-            ))}
-          </ListCard>
-        </View>
-      ) : null}
+      <ComingUpList
+        onSeeAll={() => router.push('/personal/calendar')}
+        rows={later.map((row) => ({
+          key: row.key,
+          income: row.income,
+          title: row.item
+            ? titleOf(row.item, t.dates)
+            : row.title || sourceLabel(row.category ?? null) || t.personal.expense,
+          subtitle:
+            row.amount !== undefined && row.currency ? fmt(row.amount, row.currency) : undefined,
+          caption: rowDate(row.date ?? today),
+        }))}
+      />
 
       <Sheet
         visible={categorizing !== null}

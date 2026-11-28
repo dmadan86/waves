@@ -107,8 +107,8 @@ describe('Personal Home header', () => {
 });
 
 describe('household home', () => {
-  it('has a labelled mic in the header and no floating button', () => {
-    expect(read('src/components/household/HouseholdScreen.tsx')).toContain('icon="mic-outline"');
+  it('has a labelled mic reachable from the header menu and no floating button', () => {
+    expect(read('src/components/household/HouseholdScreen.tsx')).toContain("icon: 'mic-outline'");
     expect(read('src/components/AppTabBar.tsx')).toContain('company && showFab(segments, company)');
   });
 });

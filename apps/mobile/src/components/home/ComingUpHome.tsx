@@ -1,24 +1,18 @@
 /**
- * Home, coming up first: what is due, the next few payments, one row of small buttons, the
- * big bills of the year and the month in three numbers. One component for Personal and for a
- * couple/family space (`groupId`).
+ * A space's Home below the Today pieces: the next few payments (Coming up), one row of small
+ * buttons, the big bills of the year and the month in three numbers.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
 import { addPlanDays, format, money, type CurrencyCode } from '@waves/core';
-import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { iconSize, Row, Text, useTheme } from '@waves/ui';
 
-import {
-  EmptyCard,
-  LIST_TILE,
-  ListCard,
-  ListItem,
-  SectionHeader,
-  StandardCard,
-} from '@/components/standard';
+import { EmptyCard, LIST_TILE, ListItem, SectionHeader, StandardCard } from '@/components/standard';
+import { ComingUpList } from '@/components/calm/ComingUpList';
+import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { useComingUp } from '@/data/useComingUp';
 import { plural, fill, useStrings } from '@/i18n';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
@@ -29,12 +23,12 @@ import {
   bigBillsStatus,
   dueTag,
   expandDue,
-  summarizeDue,
   type DueItem,
   type DueTag,
 } from '@/lib/moneyCalendar';
 
 /** A one-off cost counts as big from this many whole units of the currency. */
+const UPCOMING_DAYS = 30;
 export const BIG_ONE_OFF_UNITS = 10000n;
 
 export interface ComingUpTile {
@@ -147,15 +141,13 @@ export function ComingUpHome({
   const theme = useTheme();
   const { t, locale } = useStrings();
   const c = t.comingUp;
-  const { sources, dc, today, fund, fundRules } = useComingUp({ groupId, ledgerGroupId, currency });
+  const { sources, dc, today, fund } = useComingUp({ groupId, ledgerGroupId, currency });
   const fmt = useDueMoney(dc);
-  const [horizon, setHorizon] = useState<30 | 90>(30);
 
   const items = useMemo(
-    () => expandDue(sources, today, addPlanDays(today, horizon)).filter((i) => !i.income),
-    [sources, today, horizon],
+    () => expandDue(sources, today, addPlanDays(today, UPCOMING_DAYS)).filter((i) => !i.income),
+    [sources, today],
   );
-  const total = summarizeDue(items, dc);
   const big = useMemo(
     () => bigBills(sources, today, dc, BIG_ONE_OFF_UNITS * 100n),
     [sources, today, dc],
@@ -170,146 +162,28 @@ export function ComingUpHome({
     [items, dc, fund, big.occurrences],
   );
   const next = covered.slice(0, 4);
-  const hasFund = fundRules.size > 0 || fund > 0n;
   const status = bigBillsStatus(big.occurrences, fund);
-  const fundShare = total.total > 0n ? Math.min(1, Number((fund * 1000n) / total.total) / 1000) : 0;
-  const onBrand = '#FFFFFF';
+  const rowDate = (iso: string): string =>
+    dateTimeFormat(locale, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
+    }).format(new Date(`${iso}T00:00:00Z`));
 
   return (
     <View style={{ gap: theme.spacing.md }}>
-      <View
-        style={{
-          backgroundColor: theme.color.brand,
-          borderRadius: theme.radius.lg,
-          padding: theme.spacing.lg,
-          gap: theme.spacing.sm,
-        }}
-      >
-        <Row
-          style={{ alignItems: 'center', justifyContent: 'space-between', gap: theme.spacing.sm }}
-        >
-          <Text
-            accessibilityRole="header"
-            numberOfLines={2}
-            style={{ flex: 1, color: onBrand, opacity: 0.9, fontSize: 13 }}
-          >
-            {fill(c.dueTitle, { days: horizon })}
-          </Text>
-          <Row style={{ gap: 6 }}>
-            {([30, 90] as const).map((d) => (
-              <Pressable
-                key={d}
-                accessibilityRole="button"
-                accessibilityState={{ selected: horizon === d }}
-                accessibilityLabel={d === 30 ? c.days30 : c.days90}
-                onPress={() => setHorizon(d)}
-                hitSlop={{ top: 8, bottom: 8 }}
-                style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 12,
-                  backgroundColor: horizon === d ? 'rgba(255,255,255,0.22)' : 'transparent',
-                }}
-              >
-                <Text
-                  style={{
-                    color: onBrand,
-                    fontSize: 12,
-                    fontWeight: '600',
-                    opacity: horizon === d ? 1 : 0.8,
-                  }}
-                >
-                  {d === 30 ? c.days30 : c.days90}
-                </Text>
-              </Pressable>
-            ))}
-          </Row>
-        </Row>
-        <Text
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.6}
-          style={{ color: onBrand, fontSize: 34, lineHeight: 40, fontWeight: '800' }}
-        >
-          {fmt(total.total)}
-        </Text>
-        <Text style={{ color: onBrand, opacity: 0.9, fontSize: 13 }}>
-          {[
-            fill(plural(locale, total.count, c.paymentsCount), { n: total.count }),
-            hasFund ? fill(c.alreadySetAside, { amount: fmt(fund) }) : null,
-            total.others.length > 0 ? c.otherCurrencies : null,
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-        </Text>
-        {hasFund ? (
-          <View
-            accessible
-            accessibilityRole="progressbar"
-            accessibilityValue={{ min: 0, max: 100, now: Math.round(fundShare * 100) }}
-            style={{
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: 'rgba(255,255,255,0.25)',
-              overflow: 'hidden',
-            }}
-          >
-            <View
-              style={{
-                width: `${Math.round(fundShare * 100)}%`,
-                height: 8,
-                backgroundColor: onBrand,
-              }}
-            />
-          </View>
-        ) : null}
-      </View>
-
-      <ListCard>
-        {next.length === 0 ? (
-          <EmptyCard
-            icon="calendar-outline"
-            title={t.personalHome.emptyUpcomingTitle}
-            helper={t.personalHome.emptyUpcomingHelp}
-            action={{
-              label: t.personalHome.addBill,
-              onPress: () => router.push(addBillRoute(groupId)),
-            }}
-          />
-        ) : (
-          next.map((item, i) => (
-            <DueRow
-              key={item.key}
-              item={item}
-              fmt={fmt}
-              first={i === 0}
-              onPress={() => router.push(item.href as never)}
-            />
-          ))
-        )}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={c.seeCalendar}
-          onPress={() => router.push(calendarRoute(groupId) as never)}
-          style={{
-            alignItems: 'center',
-            paddingVertical: theme.spacing.md,
-            borderTopWidth: next.length ? 1 : 0,
-            borderTopColor: theme.color.border,
-          }}
-        >
-          <Row style={{ alignItems: 'center', gap: 2 }}>
-            <Text tone="brand" style={{ fontWeight: '600' }}>
-              {c.seeCalendar}
-            </Text>
-            <Ionicons
-              name={directionalIcon('chevron-forward')}
-              size={iconSize.sm}
-              color={theme.color.brand}
-            />
-          </Row>
-        </Pressable>
-      </ListCard>
+      <ComingUpList
+        onSeeAll={() => router.push(calendarRoute(groupId) as never)}
+        rows={next.map((item) => ({
+          key: item.key,
+          title: item.title,
+          subtitle: item.sub,
+          caption: rowDate(item.date),
+          income: item.income,
+          onPress: () => router.push(item.href as never),
+        }))}
+      />
 
       <Row style={{ gap: theme.spacing.sm }}>
         {tiles.map((tile) => (

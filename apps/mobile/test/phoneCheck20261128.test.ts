@@ -34,8 +34,10 @@ describe('Today week', () => {
   });
   it('names the later section Coming up with See all to the calendar', () => {
     expect(today).not.toMatch(/c\.later/);
-    expect(today).toMatch(/t\.calendar\.comingUp/);
-    expect(today).toMatch(/t\.calendar\.seeAll/);
+    const list = read('src/components/calm/ComingUpList.tsx');
+    expect(today).toMatch(/<ComingUpList/);
+    expect(list).toMatch(/t\.calendar\.comingUp/);
+    expect(list).toMatch(/t\.calendar\.seeAll/);
     expect(today).toMatch(/\/personal\/calendar/);
   });
 });
