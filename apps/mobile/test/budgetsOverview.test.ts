@@ -66,10 +66,10 @@ describe('budgetsOverview', () => {
 
 describe('budgets screen shape', () => {
   const src = readFileSync(join(__dirname, '../src/app/personal/budgets.tsx'), 'utf8');
-  it('matches the mockup structure', () => {
+  it('matches the calm After structure', () => {
     expect(src).toMatch(/<PlanningTabs/);
-    expect(src).toMatch(/t\.personal\.categoryBudgets/);
-    expect(src).toMatch(/t\.personal\.manageCategories/);
+    expect(src).toMatch(/c\.categories/);
+    expect(src).toMatch(/c\.manage/);
     expect(src).toMatch(/'\/personal\/spending'/);
     expect(src).toMatch(/'\/settings\/categories'/);
   });

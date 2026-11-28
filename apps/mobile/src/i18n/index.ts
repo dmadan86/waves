@@ -8519,6 +8519,21 @@ export interface UiStrings {
     budgetLeftDays: PluralForms;
     budgetLeft: string;
     budgetOver: string;
+    budgetsPlanned: string;
+    budgetsOfBudget: string;
+    budgetsOverOne: string;
+    budgetsOverTwo: string;
+    budgetsOverOnly: string;
+    budgetsLeft: string;
+    spendingTitle: string;
+    spendingBody: string;
+    open: string;
+    categories: string;
+    manage: string;
+    spentOfCap: string;
+    rowOver: string;
+    rowLeft: string;
+    daysLeft: PluralForms;
     later: string;
     remindMessage: string;
     menuRentals: string;
@@ -16936,6 +16951,21 @@ const en: UiStrings = {
     budgetLeftDays: { one: '{amount} left for {n} day', other: '{amount} left for {n} days' },
     budgetLeft: '{amount} left this month',
     budgetOver: '{amount} over this month',
+    budgetsPlanned: 'Spent of {amount} planned',
+    budgetsOfBudget: '· {pct}% of budget',
+    budgetsOverOne: '{amount} over, mostly {a}',
+    budgetsOverTwo: '{amount} over, mostly {a} and {b}',
+    budgetsOverOnly: '{amount} over budget',
+    budgetsLeft: '{amount} left this month',
+    spendingTitle: 'Spending this month',
+    spendingBody: 'See where it all went',
+    open: 'Open',
+    categories: 'Categories',
+    manage: 'Manage',
+    spentOfCap: 'of {cap}',
+    rowOver: '{amount} over · {pct}%',
+    rowLeft: '{amount} left · {pct}%',
+    daysLeft: { one: '{n} day left', other: '{n} days left' },
     later: 'Later this week',
     remindMessage:
       'Hi {tenant}, a gentle reminder: rent of {amount} for {unit} was due on {date}. Thank you!',
@@ -25441,6 +25471,21 @@ const ta: UiStrings = {
     budgetLeftDays: { one: '{n} நாளுக்கு {amount} மீதம்', other: '{n} நாட்களுக்கு {amount} மீதம்' },
     budgetLeft: 'இந்த மாதம் {amount} மீதம்',
     budgetOver: 'இந்த மாதம் {amount} அதிகம்',
+    budgetsPlanned: '{amount} திட்டத்தில் செலவு',
+    budgetsOfBudget: '· பட்ஜெட்டில் {pct}%',
+    budgetsOverOne: '{amount} அதிகம், பெரும்பாலும் {a}',
+    budgetsOverTwo: '{amount} அதிகம், பெரும்பாலும் {a} மற்றும் {b}',
+    budgetsOverOnly: '{amount} பட்ஜெட்டை மீறியது',
+    budgetsLeft: 'இந்த மாதம் {amount} மீதம்',
+    spendingTitle: 'இந்த மாத செலவு',
+    spendingBody: 'எல்லாம் எங்கே போனது என்று பார்க்க',
+    open: 'திற',
+    categories: 'வகைகள்',
+    manage: 'நிர்வகி',
+    spentOfCap: '{cap} இல்',
+    rowOver: '{amount} அதிகம் · {pct}%',
+    rowLeft: '{amount} மீதம் · {pct}%',
+    daysLeft: { one: '{n} நாள் மீதம்', other: '{n} நாட்கள் மீதம்' },
     later: 'இந்த வாரத்தின் பிறகு',
     remindMessage:
       'வணக்கம் {tenant}, அன்பான நினைவூட்டல்: {unit}க்கான {amount} வாடகை {date} அன்று செலுத்த வேண்டியிருந்தது. நன்றி!',
@@ -33761,6 +33806,21 @@ const hi: UiStrings = {
     budgetLeftDays: { one: '{n} दिन के लिए {amount} बाकी', other: '{n} दिन के लिए {amount} बाकी' },
     budgetLeft: 'इस महीने {amount} बाकी',
     budgetOver: 'इस महीने {amount} ज़्यादा',
+    budgetsPlanned: '{amount} की योजना में से खर्च',
+    budgetsOfBudget: '· बजट का {pct}%',
+    budgetsOverOne: '{amount} ज़्यादा, ज़्यादातर {a}',
+    budgetsOverTwo: '{amount} ज़्यादा, ज़्यादातर {a} और {b}',
+    budgetsOverOnly: '{amount} बजट से ज़्यादा',
+    budgetsLeft: 'इस महीने {amount} बाकी',
+    spendingTitle: 'इस महीने का खर्च',
+    spendingBody: 'देखें सब कहाँ गया',
+    open: 'खोलें',
+    categories: 'श्रेणियाँ',
+    manage: 'प्रबंधित करें',
+    spentOfCap: '{cap} में से',
+    rowOver: '{amount} ज़्यादा · {pct}%',
+    rowLeft: '{amount} बाकी · {pct}%',
+    daysLeft: { one: '{n} दिन बाकी', other: '{n} दिन बाकी' },
     later: 'इस हफ़्ते आगे',
     remindMessage: 'नमस्ते {tenant}, एक छोटी याद: {unit} का {amount} किराया {date} को देय था। धन्यवाद!',
     menuRentals: 'किराये',
@@ -42948,6 +43008,21 @@ const ar: UiStrings = {
     budgetLeftDays: { one: 'المتبقي {amount} ليوم {n}', other: 'المتبقي {amount} لـ {n} أيام' },
     budgetLeft: 'المتبقي {amount} هذا الشهر',
     budgetOver: 'تجاوز {amount} هذا الشهر',
+    budgetsPlanned: 'أُنفق من {amount} مخططة',
+    budgetsOfBudget: '· {pct}% من الميزانية',
+    budgetsOverOne: 'تجاوز {amount}، غالبًا {a}',
+    budgetsOverTwo: 'تجاوز {amount}، غالبًا {a} و{b}',
+    budgetsOverOnly: 'تجاوز {amount} الميزانية',
+    budgetsLeft: 'المتبقي {amount} هذا الشهر',
+    spendingTitle: 'الإنفاق هذا الشهر',
+    spendingBody: 'شاهد أين ذهب كل شيء',
+    open: 'فتح',
+    categories: 'الفئات',
+    manage: 'إدارة',
+    spentOfCap: 'من {cap}',
+    rowOver: 'تجاوز {amount} · {pct}%',
+    rowLeft: 'المتبقي {amount} · {pct}%',
+    daysLeft: { one: 'بقي {n} يوم', other: 'بقيت {n} أيام' },
     later: 'لاحقًا هذا الأسبوع',
     remindMessage:
       'مرحبًا {tenant}، تذكير لطيف: إيجار {amount} لـ {unit} كان مستحقًا في {date}. شكرًا!',
