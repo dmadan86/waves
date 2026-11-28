@@ -32,7 +32,7 @@ import { trialDaysLeft } from '@/lib/proTrial';
 import { useProTrial } from '@/lib/useProTrial';
 import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
-import { router, switchTab } from '@/lib/navigation';
+import { router } from '@/lib/navigation';
 import { useNavigation } from 'expo-router';
 import { usePromptSlot } from '@/lib/promptQueue';
 import { TourTarget, useTour } from '@/lib/tour';
@@ -699,7 +699,7 @@ function HomeScreen() {
                   onSettleUp={() => router.push('/settle-up')}
                   onReview={() => router.navigate('/captures')}
                   onScan={() => router.push(`/capture?scan=${Date.now()}`)}
-                  onRemind={() => switchTab('/(tabs)/friends')}
+                  onRemind={() => router.navigate('/groups')}
                   // Remind only makes sense when somebody owes you; otherwise
                   // the slot offers joining a group, which a new person can use.
                   onJoin={canRemind ? undefined : () => router.push('/scan?mode=paste')}
