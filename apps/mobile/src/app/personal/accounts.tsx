@@ -20,6 +20,7 @@ import { fill, plural, useStrings, type PluralForms } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { router } from '@/lib/navigation';
+import { openPlanning } from '@/lib/openPlanning';
 import {
   accountLine,
   otherCurrenciesLine,
@@ -192,14 +193,14 @@ function AccountsBody() {
             title={h.accBudgets}
             line={lines.budgets.line}
             note={lines.budgets.note}
-            onPress={() => router.push('/personal/budgets')}
+            onPress={() => openPlanning('budgets')}
           />
           <AccountCard
             icon="people-outline"
             title={h.accLoans}
             line={lines.loans.line}
             note={lines.loans.note}
-            onPress={() => router.push('/personal/loans')}
+            onPress={() => openPlanning('loans')}
           />
           <AccountCard
             icon="trending-up-outline"

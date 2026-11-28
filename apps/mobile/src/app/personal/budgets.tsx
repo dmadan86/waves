@@ -137,7 +137,6 @@ function BudgetsScreenBody() {
   return (
     <Screen edges={[]}>
       <PlanningHeader
-        tab="budgets"
         title={t.personal.budgets}
         subtitle={t.personal.budgetsPlanSub}
         addLabel={t.personal.addBudget}

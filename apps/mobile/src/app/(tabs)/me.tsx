@@ -71,6 +71,7 @@ import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { shouldAutoOfferSetup } from '@/lib/personalSetup';
 import { router } from '@/lib/navigation';
+import { openPlanning } from '@/lib/openPlanning';
 import { useSync } from '@/sync';
 import { useStrings } from '@/i18n';
 
@@ -305,7 +306,7 @@ function MeLedger() {
           {
             icon: 'speedometer-outline',
             label: t.comingUp.tileBudgets,
-            route: '/personal/budgets',
+            onPress: () => openPlanning('budgets'),
             section: 'views',
           },
           {

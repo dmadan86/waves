@@ -91,6 +91,7 @@ import {
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateFrom, showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
+import { planningHref } from '@/lib/openPlanning';
 import { routeAmount } from '@/lib/routeAmount';
 import { useSync } from '@/sync';
 import { useViewerId } from '@/lib/auth';
@@ -314,7 +315,7 @@ function EntryForm({
           // A new repeating item lands on the list that shows it, even when
           // the form was opened from somewhere else.
           if (repeat) recurringTabMemory.tab = kind;
-          if (repeat && !editingRule && !startRepeating) router.replace('/personal/recurring');
+          if (repeat && !editingRule && !startRepeating) router.replace(planningHref('recurring'));
           else router.back();
         },
       },
