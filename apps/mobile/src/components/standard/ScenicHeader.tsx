@@ -9,16 +9,13 @@
  */
 
 import type { ReactNode } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View } from 'react-native';
 
-import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { Row, useTheme } from '@waves/ui';
 
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { PHOTO_OVERLAP, PhotoBody, PhotoHeader } from '@/components/standard/PhotoHeader';
-import { useStrings } from '@/i18n';
-import { router } from '@/lib/navigation';
+import { HeaderBar } from '@/components/standard/HeaderBar';
 
 /** The body no longer rides over the header; kept at 0 for the screens that read it. */
 export const SCENIC_OVERLAP = 0;
@@ -73,92 +70,35 @@ function PlainBar({
   identity?: ReactNode;
 }) {
   const theme = useTheme();
-  const { t } = useStrings();
-  const insets = useSafeAreaInsets();
   useHeroStatusBar(theme.scheme === 'dark' ? 'light' : 'dark');
-  const ink = theme.color.text;
   return (
-    <View
-      style={{
-        paddingTop: insets.top + theme.spacing.xs,
-        paddingHorizontal: theme.spacing.sm,
-        paddingBottom: theme.spacing.sm,
-      }}
-    >
-      <Row style={{ alignItems: 'center', minHeight: 44 }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.common.back}
-          onPress={onBack ?? (() => router.back())}
-          hitSlop={8}
-          style={{ width: 40, height: 44, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xl} color={ink} />
-        </Pressable>
-        {identity ? (
-          <View style={{ flex: 1, marginStart: theme.spacing.xs }}>{identity}</View>
-        ) : (
-          <Pressable
-            disabled={!onTitlePress}
-            accessibilityRole={onTitlePress ? 'button' : undefined}
-            accessibilityLabel={onTitlePress ? titleHint : undefined}
-            onPress={onTitlePress}
+    <HeaderBar
+      title={title}
+      subtitle={subtitle}
+      onBack={onBack}
+      action={action}
+      identity={identity}
+      onTitlePress={onTitlePress}
+      titleHint={titleHint}
+      below={
+        children || trailing ? (
+          <Row
             style={{
-              flex: 1,
-              flexDirection: 'row',
               alignItems: 'center',
-              gap: 4,
-              marginStart: theme.spacing.xs,
+              flexWrap: 'wrap',
+              justifyContent: 'space-between',
+              columnGap: theme.spacing.sm,
+              rowGap: theme.spacing.sm,
             }}
           >
-            <Text
-              variant="heading"
-              accessibilityRole="header"
-              numberOfLines={1}
-              style={{ flexShrink: 1, fontSize: 20, lineHeight: 26 }}
-            >
-              {title}
-            </Text>
-            {onTitlePress ? (
-              <Ionicons name="chevron-down" size={iconSize.base} color={theme.color.textMuted} />
-            ) : null}
-          </Pressable>
-        )}
-        {action ? (
-          <View style={{ minWidth: 40, alignItems: 'flex-end', marginEnd: theme.spacing.sm }}>
-            {action}
-          </View>
-        ) : null}
-      </Row>
-      {subtitle ? (
-        <Text
-          variant="caption"
-          tone="muted"
-          numberOfLines={2}
-          style={{ marginStart: 40 + theme.spacing.xs, marginEnd: theme.spacing.sm }}
-        >
-          {subtitle}
-        </Text>
-      ) : null}
-      {children || trailing ? (
-        <Row
-          style={{
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            justifyContent: 'space-between',
-            columnGap: theme.spacing.sm,
-            rowGap: theme.spacing.sm,
-            marginTop: theme.spacing.md,
-            paddingHorizontal: theme.spacing.sm,
-          }}
-        >
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexShrink: 1 }}>
-            {children}
+            <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexShrink: 1 }}>
+              {children}
+            </Row>
+            {trailing}
           </Row>
-          {trailing}
-        </Row>
-      ) : null}
-    </View>
+        ) : undefined
+      }
+    />
   );
 }
 

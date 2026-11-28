@@ -113,7 +113,7 @@ import { useSync } from '@/sync';
 import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
 import { PersonAvatar } from '@/components/PersonAvatar';
-import { LIST_TILE, ListCard, ListItem, ListPill } from '@/components/standard';
+import { LIST_TILE, ListCard, ListItem, ListPill, PlainHeader } from '@/components/standard';
 
 /**
  * How much of the hand-pick roster is drawn before asking. It is every ghost in
@@ -493,34 +493,8 @@ export default function MergePeopleScreen() {
   const showFooter = showBar || error !== null || merge.isPending;
 
   return (
-    <Screen>
-      {/* Compact header: back, title, and a one-line subtitle that wraps
-          rather than truncates. No art — the list is the point of the screen. */}
-      <Row
-        style={{
-          paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.sm,
-          paddingBottom: theme.spacing.sm,
-          alignItems: 'flex-start',
-          gap: theme.spacing.sm,
-        }}
-      >
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, minWidth: 0, paddingTop: theme.spacing.xs }}>
-          <Text variant="heading" numberOfLines={1}>
-            {t.mergePeople.title}
-          </Text>
-          <Text variant="caption" tone="muted">
-            {t.mergePeople.subtitle}
-          </Text>
-        </View>
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={t.mergePeople.title} subtitle={t.mergePeople.subtitle} />
 
       <ScrollView
         style={{ flex: 1 }}

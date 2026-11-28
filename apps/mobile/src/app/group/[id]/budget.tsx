@@ -5,24 +5,13 @@
  */
 
 import { useState } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import { ScrollView, View } from 'react-native';
+import { ScrollView } from 'react-native';
 
 import { formatMinorInput, type CurrencyCode } from '@waves/core';
-import {
-  AmountField,
-  Button,
-  Card,
-  directionalIcon,
-  IconButton,
-  iconSize,
-  Row,
-  Screen,
-  Text,
-  useTheme,
-} from '@waves/ui';
+import { AmountField, Button, Card, Row, Screen, Text, useTheme } from '@waves/ui';
 
+import { PlainHeader } from '@/components/standard';
 import { CategoryBudgets } from '@/components/CategoryBudgets';
 import { withScenicGroup } from '@/components/ScenicScope';
 import { useGroup, useGroupBudget, useSetGroupBudget } from '@/data/hooks';
@@ -32,7 +21,6 @@ import { useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { friendlyError } from '@/lib/errors';
-import { router } from '@/lib/navigation';
 
 function HouseholdBudgetScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -74,22 +62,8 @@ function HouseholdBudgetScreen() {
   };
 
   return (
-    <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading" accessibilityRole="header">
-            {t.household.budgetTitle}
-          </Text>
-        </View>
-        <View style={{ width: 44 }} />
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={t.household.budgetTitle} />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,

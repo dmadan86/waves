@@ -54,7 +54,8 @@ function ownHeader(text: string): boolean {
 const EXCEPTION =
   'not a list row: a form, editor, wizard, summary or hero card that matches the heuristic';
 const PARTIAL = 'partly migrated: the rest needs a ListItem radio role, dimming or tint support';
-const HEADER = 'own header: moves to the standard header in the headers PR';
+const HEADER =
+  'own header on purpose: a photo/hero header, a wizard stepper or a full-screen flow with no back bar';
 const IN_FLIGHT =
   'owned by an in-flight branch (planning-compact or calm redesign): migrate after it merges';
 
@@ -106,10 +107,8 @@ const RULES: Record<string, { test: (text: string) => boolean; legacy: Record<st
     test: ownHeader,
     legacy: {
       'app/(tabs)/captures.tsx': HEADER,
-      'app/friends/merge.tsx': HEADER,
       'app/friends/person/[key]/settle.tsx': HEADER,
       'app/group/[id]/add-expense.tsx': HEADER,
-      'app/group/[id]/budget.tsx': HEADER,
       'app/new-group.tsx': HEADER,
       'app/personal/setup.tsx': HEADER,
       'app/start.tsx': HEADER,
