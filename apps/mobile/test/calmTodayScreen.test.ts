@@ -16,7 +16,14 @@ describe('Personal Today screen', () => {
     expect(me).toMatch(/icon="notifications-outline"/);
   });
   it('lays out strip, summary, done, one Needs-you card, nudge, later', () => {
-    const order = ['<WeekStrip', '<SummaryLine', '<DoneLine', '<NeedsYouCard', '<NudgeRow', 'c.later'];
+    const order = [
+      '<WeekStrip',
+      '<SummaryLine',
+      '<DoneLine',
+      '<NeedsYouCard',
+      '<NudgeRow',
+      'c.later',
+    ];
     const at = order.map((k) => today.indexOf(k));
     expect(at.every((i) => i > 0)).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);

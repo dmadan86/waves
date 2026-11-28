@@ -16912,7 +16912,7 @@ const en: UiStrings = {
     needsTitle: { one: 'Needs you · {n} thing', other: 'Needs you · {n} things' },
     showMore: 'Show {n} more',
     showLess: 'Show less',
-    allSet: 'You\'re all set',
+    allSet: "You're all set",
     allSetHelp: 'Nothing needs you right now.',
     remind: 'Remind',
     markReceived: 'Mark received',
@@ -16937,7 +16937,8 @@ const en: UiStrings = {
     budgetLeft: '{amount} left this month',
     budgetOver: '{amount} over this month',
     later: 'Later this week',
-    remindMessage: 'Hi {tenant}, a gentle reminder: rent of {amount} for {unit} was due on {date}. Thank you!',
+    remindMessage:
+      'Hi {tenant}, a gentle reminder: rent of {amount} for {unit} was due on {date}. Thank you!',
     menuRentals: 'Rentals',
     menuTransactions: 'All transactions',
   },
@@ -25441,7 +25442,8 @@ const ta: UiStrings = {
     budgetLeft: 'இந்த மாதம் {amount} மீதம்',
     budgetOver: 'இந்த மாதம் {amount} அதிகம்',
     later: 'இந்த வாரத்தின் பிறகு',
-    remindMessage: 'வணக்கம் {tenant}, அன்பான நினைவூட்டல்: {unit}க்கான {amount} வாடகை {date} அன்று செலுத்த வேண்டியிருந்தது. நன்றி!',
+    remindMessage:
+      'வணக்கம் {tenant}, அன்பான நினைவூட்டல்: {unit}க்கான {amount} வாடகை {date} அன்று செலுத்த வேண்டியிருந்தது. நன்றி!',
     menuRentals: 'வாடகைகள்',
     menuTransactions: 'எல்லா பரிவர்த்தனைகள்',
   },
@@ -42947,7 +42949,8 @@ const ar: UiStrings = {
     budgetLeft: 'المتبقي {amount} هذا الشهر',
     budgetOver: 'تجاوز {amount} هذا الشهر',
     later: 'لاحقًا هذا الأسبوع',
-    remindMessage: 'مرحبًا {tenant}، تذكير لطيف: إيجار {amount} لـ {unit} كان مستحقًا في {date}. شكرًا!',
+    remindMessage:
+      'مرحبًا {tenant}، تذكير لطيف: إيجار {amount} لـ {unit} كان مستحقًا في {date}. شكرًا!',
     menuRentals: 'الإيجارات',
     menuTransactions: 'كل المعاملات',
   },

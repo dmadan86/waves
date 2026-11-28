@@ -13,7 +13,14 @@ export type NeedItem =
       tenancyId: string;
       propertyId: string;
     }
-  | { kind: 'bill'; key: string; rank: number; inDays: number; rule: PersonalRecurring; date: string }
+  | {
+      kind: 'bill';
+      key: string;
+      rank: number;
+      inDays: number;
+      rule: PersonalRecurring;
+      date: string;
+    }
   | { kind: 'uncategorized'; key: string; rank: number; inDays: number; txns: PersonalTxn[] };
 
 /** 0 overdue, 1 uncategorised, 2 due today: the owner's order. */

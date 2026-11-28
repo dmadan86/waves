@@ -73,7 +73,13 @@ describe('week strip', () => {
   });
   it('says on track or over pace; no verdict without a budget', () => {
     const mk = (pace: bigint | null) =>
-      weekDays({ today: '2026-11-24', weekStart: 1, spent: { '2026-11-23': 900n, '2026-11-24': 900n }, pace, dueDates: new Set() });
+      weekDays({
+        today: '2026-11-24',
+        weekStart: 1,
+        spent: { '2026-11-23': 900n, '2026-11-24': 900n },
+        pace,
+        dueDates: new Set(),
+      });
     expect(weekSummary(mk(1000n), 1000n)).toEqual({ spent: 1800n, verdict: 'onTrack' });
     expect(weekSummary(mk(800n), 800n).verdict).toBe('overPace');
     expect(weekSummary(mk(null), null)).toEqual({ spent: 1800n, verdict: null });
@@ -94,7 +100,12 @@ const bill = (key: string, inDays: number, ruleId: string, income = false): Upco
 
 describe('needs you', () => {
   const items = needsYou({
-    bills: [bill('b-today', 0, 'r1'), bill('b-late', -2, 'r2'), bill('b-auto', 0, 'r3'), bill('soon', 2, 'r1')],
+    bills: [
+      bill('b-today', 0, 'r1'),
+      bill('b-late', -2, 'r2'),
+      bill('b-auto', 0, 'r3'),
+      bill('soon', 2, 'r1'),
+    ],
     recurrings: [rule('r1'), rule('r2'), rule('r3', true)],
     rent: [{ key: 'rent', tenancyId: 't', propertyId: 'p', inDays: -3 }],
     uncategorized: [txn({ id: 'u1', date: '2026-11-27', category: null })],
@@ -132,7 +143,14 @@ describe('budget nudge and done line', () => {
       '2026-11-28',
     );
     expect(n).toMatchObject({ category: 'food', percent: 90, remaining: 1000n, daysLeft: 2 });
-    expect(budgetNudge([b('food', 10000n)], [txn({ id: 'y', date: '2026-11-10', amount: 8000n })], 'INR', '2026-11-28')).toBeNull();
+    expect(
+      budgetNudge(
+        [b('food', 10000n)],
+        [txn({ id: 'y', date: '2026-11-10', amount: 8000n })],
+        'INR',
+        '2026-11-28',
+      ),
+    ).toBeNull();
   });
   it('reads yesterday and today bills as one line', () => {
     const t = [
