@@ -640,7 +640,7 @@ function HomeScreen() {
                   currency={headline.currency}
                   locale={locale}
                   hidden={balanceHidden || !balanceReady}
-                  loading={showSkeleton || !balanceReady || showStale || !peopleRows}
+                  loading={showSkeleton || !balanceReady || showStale || !!catchUp || !peopleRows}
                 />
               }
               currency={headline.currency}
