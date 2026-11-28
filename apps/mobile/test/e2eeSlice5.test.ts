@@ -121,6 +121,18 @@ describe('leaving', () => {
   });
 });
 
+describe('former copy names', () => {
+  it('keeps who was in the group, with the left flag, across a reload', async () => {
+    const { b1 } = await setup();
+    await b1.space.retire(G, 'Asha', () => true, { mA: ['Guest', 1], mB: ['You', 0] });
+    expect(b1.space.formerGroups()).toEqual([
+      { groupId: 'former:' + G, name: 'Asha', members: { mA: ['Guest', 1], mB: ['You', 0] } },
+    ]);
+    await b1.space.load();
+    expect(b1.space.formerGroups()[0]!.members).toEqual({ mA: ['Guest', 1], mB: ['You', 0] });
+  });
+});
+
 describe('new phone notice', () => {
   it('shows once per new partner device, never for my own phone or a first device', async () => {
     const server = world();

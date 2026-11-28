@@ -539,6 +539,10 @@ function InviteScreenInner() {
 
             {/* Everything else the phone can do with an invitation, and the one
                 path that sends the code as a picture. */}
+            {offerNewInviteLink(everyone.data ?? [], iAmAdmin) ? (
+              // Said up front: the old link is refused on purpose for someone who was removed.
+              <Callout tone="info">{t.people.removedHint}</Callout>
+            ) : null}
             <Button
               label={t.people.shareInvite}
               variant="brand"
@@ -555,7 +559,7 @@ function InviteScreenInner() {
             {offerNewInviteLink(everyone.data ?? [], iAmAdmin) ? (
               <Button
                 label={t.people.newLink}
-                variant="ghost"
+                variant="secondary"
                 fullWidth
                 disabled={busy}
                 onPress={() => void newLink()}

@@ -6188,6 +6188,7 @@ export interface UiStrings {
     /** Admin button after someone was removed: their old link no longer lets them back in. */
     newLink: string;
     newLinkConfirm: string;
+    removedHint: string;
     expires: string;
     usesBadge: string;
     shareMessage: string;
@@ -14795,6 +14796,8 @@ const en: UiStrings = {
     newLink: 'Create a new link',
     newLinkConfirm:
       'Create a new link? The old link stops working. Use it to invite back someone you removed.',
+    removedHint:
+      'Someone was removed from this group. The old link stops working for them: tap Create a new link to invite them back.',
     expires: 'expires {when}',
     usesBadge: '{count} uses',
     shareMessage: 'Join {group} on Waves to split expenses together. Tap to join: {link}',
@@ -23274,6 +23277,8 @@ const ta: UiStrings = {
     newLink: 'புதிய இணைப்பை உருவாக்கு',
     newLinkConfirm:
       'புதிய இணைப்பை உருவாக்கவா? பழைய இணைப்பு வேலை செய்யாது. நீக்கிய ஒருவரை மீண்டும் அழைக்க இதைப் பயன்படுத்துங்கள்.',
+    removedHint:
+      'இந்தக் குழுவிலிருந்து ஒருவர் நீக்கப்பட்டார். பழைய இணைப்பு அவருக்கு வேலை செய்யாது: மீண்டும் அழைக்க “புதிய இணைப்பை உருவாக்கு” தட்டுங்கள்.',
     expires: '{when} க்கு காலாவதி',
     usesBadge: '{count} பயன்பாடுகள்',
     shareMessage: 'செலவுகளை ஒன்றாகப் பிரிக்க Waves-ல் {group} குழுவில் சேரவும். சேர தட்டவும்: {link}',
@@ -31713,6 +31718,8 @@ const hi: UiStrings = {
     newLink: 'नया लिंक बनाएँ',
     newLinkConfirm:
       'नया लिंक बनाएँ? पुराना लिंक काम नहीं करेगा। हटाए गए व्यक्ति को वापस बुलाने के लिए इसका इस्तेमाल करें।',
+    removedHint:
+      'इस समूह से किसी को हटाया गया है। पुराना लिंक उनके लिए काम नहीं करेगा: वापस बुलाने के लिए “नया लिंक बनाएँ” दबाएँ।',
     expires: '{when} को खत्म',
     usesBadge: '{count} उपयोग',
     shareMessage: 'साथ मिलकर खर्च बाँटने के लिए Waves पर {group} में शामिल हों। जुड़ने के लिए टैप करें: {link}',
@@ -40467,6 +40474,8 @@ const ar: UiStrings = {
     createLink: 'أنشئ رابط دعوة',
     newLink: 'أنشئ رابطًا جديدًا',
     newLinkConfirm: 'إنشاء رابط جديد؟ سيتوقف الرابط القديم. استخدمه لدعوة شخص أزلته مرة أخرى.',
+    removedHint:
+      'تمت إزالة شخص من هذه المجموعة. الرابط القديم لن يعمل معه: اضغط «أنشئ رابطًا جديدًا» لدعوته مرة أخرى.',
     expires: 'ينتهي {when}',
     usesBadge: '{count} استخدامات',
     shareMessage: 'انضم إلى {group} على Waves لتقسيم المصروفات معًا. اضغط للانضمام: {link}',
