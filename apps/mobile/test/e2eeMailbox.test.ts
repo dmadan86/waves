@@ -116,6 +116,24 @@ describe('housekeeping failures', () => {
     );
   });
 
+  it('turns a group the server no longer lets this phone into a read-only former copy', async () => {
+    const server = world();
+    server.groups.set('group-lost', [{ memberId: 'mC', profileId: 'pC' }]);
+    const a = phone(server, 'pA', 'mA', 1, undefined, [G, 'group-lost']);
+    await a.deviceId();
+    await a.set('group-lost', 'p1', 'property', prop);
+    for (let i = 0; i < 3; i++) {
+      a.clock.t += 120_000;
+      await a.sync().catch(() => undefined);
+    }
+    expect(a.space.hasFormer('group-lost')).toBe(true);
+    expect(a.space.formerGroups().map((g) => g.groupId)).toEqual(['former:group-lost']);
+    expect(a.space.liveGroupIds()).not.toContain('group-lost');
+    expect(a.reports.map((r) => r.where).filter((w) => w.startsWith('e2ee.housekeeping'))).toEqual(
+      [],
+    );
+  });
+
   it('a transient failure is retried silently, a persistent one is reported', async () => {
     const server = world();
     const b = phone(server, 'pB', 'mB', 2, undefined, [G]);

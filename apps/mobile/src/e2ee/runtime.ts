@@ -201,6 +201,7 @@ syncEngine.beforeGroupDropped = (groupId, name) => e2eeSpace.retire(groupId, nam
 const mailbox = createMailbox({
   client: backend as never,
   groups: coupleGroupIds,
+  groupName,
   meta,
   space: e2eeSpace,
   outbox: syncEngine.localStore,

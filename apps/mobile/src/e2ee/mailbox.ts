@@ -43,6 +43,8 @@ export interface MailboxDeps {
   keys: { pair(): Promise<e2ee.DeviceKeyPair>; deviceId(): Promise<string> };
   /** The couple/home groups this account is in right now (from the sync mirror). */
   groups?(): readonly string[];
+  /** Display name of a group, kept on its read-only copy once the phone leaves it. */
+  groupName?(groupId: string): string;
   /** Small durable key-value (last fetch, last ask, known devices, notices). In memory when absent. */
   meta?: Meta;
   randomBytes(length: number): Uint8Array;
@@ -177,6 +179,11 @@ export function createMailbox(deps: MailboxDeps) {
   const { client, space, outbox, keys } = deps;
   const meta = deps.meta ?? memoryMeta();
   const notices = new NoticeStore(meta);
+  /** Groups to keep up: a group retired to a read-only former copy is no longer polled. */
+  const liveGroups = (): string[] => {
+    const live = new Set(space.liveGroupIds());
+    return (deps.groups?.() ?? []).filter((g) => live.has(g) || !space.hasFormer(g));
+  };
   const answered = new Map<string, number>();
   const parts = new Map<string, Set<number>>();
   const probedAt = new Map<string, number>();
@@ -634,7 +641,7 @@ export function createMailbox(deps: MailboxDeps) {
     const refreshed = new Set<string>();
     const asked = new Set<string>();
     const closed = new Set<string>();
-    for (const g of deps.groups?.() ?? []) {
+    for (const g of liveGroups()) {
       const at = Number((await meta.get(`open:${g}`)) ?? 0);
       if (!isCurrent()) return applied;
       if (deps.now() - at < 24 * RESYNC_GAP_MS) asked.add(g);
@@ -946,7 +953,7 @@ export function createMailbox(deps: MailboxDeps) {
     const fetchedAt = Number((await meta.get('fetchedAt')) ?? NaN);
     if (!current()) return;
     const now = deps.now();
-    for (const groupId of deps.groups?.() ?? []) {
+    for (const groupId of liveGroups()) {
       try {
         step = 'resync';
         const asked = Number((await meta.get(`asked:${groupId}`)) ?? 0);
@@ -997,7 +1004,13 @@ export function createMailbox(deps: MailboxDeps) {
         if (!current()) return;
       } catch (error) {
         // A group the server no longer lets this phone into (left, removed): nothing to keep up.
-        if (isNotMember(error)) continue;
+        if (isNotMember(error)) {
+          // Keep what this phone holds as a read-only former copy; liveGroups() then stops polling it.
+          await space
+            .retire(groupId, deps.groupName?.(groupId) ?? '', current)
+            .catch(() => undefined);
+          continue;
+        }
         failed = error;
         failedStep = step;
       }
