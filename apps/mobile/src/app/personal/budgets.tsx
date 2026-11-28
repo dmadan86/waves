@@ -25,7 +25,9 @@
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, View } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 
 import {
   budgetSpendWindow,
@@ -43,8 +45,6 @@ import {
 import {
   AmountField,
   Button,
-  Card,
-  ChipRow,
   directionalIcon,
   IconButton,
   iconSize,
@@ -67,7 +67,8 @@ import { useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { monthLabel, shiftMonth } from '@/lib/monthNav';
-import { PlainHeader } from '@/components/standard';
+import { PlanningHeader, PlanningTabs } from '@/components/PlanningTabs';
+import { budgetsOverview } from '@/lib/budgetsOverview';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
@@ -94,52 +95,58 @@ function BudgetsScreenBody() {
   const labelFor = (id: string | null): string =>
     id ? (t.categories[id as keyof typeof t.categories] ?? id) : t.personal.overall;
 
+  const summaryCurrency = budgets.some((x) => x.currency === dc)
+    ? dc
+    : (budgets[0]?.currency ?? dc);
+  const overview = budgetsOverview(budgets, txns, month, summaryCurrency);
+  const fmt = (amount: bigint, currency: string): string =>
+    format(money(amount, currency), { locale, trimZeros: true });
+  const categoryBudgets = budgets.filter((x) => x.category !== null);
+  const card = {
+    backgroundColor: theme.color.surface,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.color.border,
+  } as const;
+
   return (
     <Screen>
-      <PlainHeader
+      <PlanningHeader
         title={t.personal.budgets}
-        trailing={
-          budgets.length > 0 ? (
-            <IconButton label={t.personal.addBudget} onPress={() => setCreating(true)}>
-              <Ionicons name="add" size={iconSize.xxl} color={theme.color.brand} />
-            </IconButton>
-          ) : undefined
-        }
+        subtitle={t.personal.budgetsPlanSub}
+        addLabel={t.personal.addBudget}
+        onAdd={() => setCreating(true)}
       />
 
       <ScrollView
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
+          paddingHorizontal: theme.spacing.lg,
           paddingBottom: clearance,
           gap: theme.spacing.md,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <ChipRow<'recurring' | 'budgets' | 'loans'>
-          value="budgets"
-          onChange={(v) => {
-            if (v !== 'budgets')
-              router.push(v === 'loans' ? '/personal/loans' : '/personal/recurring');
-          }}
-          variant="brand"
-          onCard
-          options={[
-            { value: 'recurring', label: t.personal.recurring },
-            { value: 'budgets', label: t.personal.budgets },
-            { value: 'loans', label: t.personal.loans },
-          ]}
-        />
-        <Text
-          variant="caption"
-          tone="muted"
-          align="center"
-          style={{ marginBottom: theme.spacing.sm }}
-        >
-          {t.personal.budgetsSub}
-        </Text>
+        <PlanningTabs value="budgets" />
+        <Row style={{ alignItems: 'center', justifyContent: 'center', gap: theme.spacing.sm }}>
+          <Ionicons name="disc-outline" size={iconSize.md} color={theme.color.brand} />
+          <Text variant="body" tone="muted" numberOfLines={2}>
+            {t.personal.budgetsSub.replace(/\.$/, '')}
+          </Text>
+        </Row>
 
         {budgets.length > 0 ? (
-          <Row style={{ alignItems: 'center', justifyContent: 'center', gap: theme.spacing.md }}>
+          <Row
+            style={{
+              ...card,
+              alignSelf: 'center',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderRadius: theme.radius.pill,
+              paddingHorizontal: theme.spacing.xs,
+              width: '88%',
+              maxWidth: 360,
+            }}
+          >
             <IconButton
               label={t.personal.prevMonth}
               onPress={month > earliest ? () => setMonth(shiftMonth(month, -1)) : undefined}
@@ -150,9 +157,12 @@ function BudgetsScreenBody() {
                 color={month > earliest ? theme.color.text : theme.color.textFaint}
               />
             </IconButton>
-            <Text variant="body" style={{ fontWeight: '700', minWidth: 120, textAlign: 'center' }}>
-              {monthLabel(month, locale)}
-            </Text>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexShrink: 1 }}>
+              <Ionicons name="calendar-outline" size={iconSize.md} color={theme.color.textMuted} />
+              <Text variant="body" numberOfLines={1} style={{ fontWeight: '800', flexShrink: 1 }}>
+                {monthLabel(month, locale)}
+              </Text>
+            </Row>
             <IconButton label={t.personal.nextMonth} onPress={() => setMonth(shiftMonth(month, 1))}>
               <Ionicons
                 name={directionalIcon('chevron-forward')}
@@ -161,6 +171,130 @@ function BudgetsScreenBody() {
               />
             </IconButton>
           </Row>
+        ) : null}
+
+        {overview ? (
+          <View style={{ ...card, overflow: 'hidden' }}>
+            <LinearGradient
+              colors={[theme.color.surface, theme.color.brandSoft]}
+              start={{ x: 0.3, y: 0 }}
+              end={{ x: 1, y: 0.6 }}
+              style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }}
+            />
+            <Pressable
+              accessibilityRole={overview.overall ? 'button' : undefined}
+              disabled={!overview.overall}
+              onPress={() => overview.overall && setEditing(overview.overall)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.spacing.md,
+                padding: theme.spacing.lg,
+              }}
+            >
+              <BudgetRing
+                percent={overview.percent}
+                over={overview.over}
+                label={t.personal.ofBudget}
+              />
+              <View
+                style={{
+                  width: 1,
+                  alignSelf: 'stretch',
+                  backgroundColor: theme.color.border,
+                }}
+              />
+              <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.sm }}>
+                <Text variant="subheading" style={{ fontWeight: '800' }} numberOfLines={1}>
+                  {t.personal.overall}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  style={{
+                    fontSize: 22,
+                    lineHeight: 28,
+                    fontWeight: '800',
+                    color: overview.over ? theme.color.negativeText : theme.color.text,
+                  }}
+                >
+                  {fmt(overview.spent, summaryCurrency)}
+                  <Text style={{ fontSize: 15, fontWeight: '500', color: theme.color.textMuted }}>
+                    {' / '}
+                    {fmt(overview.limit, summaryCurrency)}
+                  </Text>
+                </Text>
+                <BudgetBar ratio={overview.percent / 100} over={overview.over} height={10} />
+                <View
+                  style={{
+                    alignSelf: 'flex-start',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: theme.spacing.xs,
+                    borderRadius: theme.radius.pill,
+                    paddingHorizontal: theme.spacing.sm,
+                    paddingVertical: 4,
+                    backgroundColor: overview.over
+                      ? theme.color.negativeSoft
+                      : theme.color.brandSoft,
+                  }}
+                >
+                  {overview.over ? (
+                    <Ionicons
+                      name="trending-up"
+                      size={iconSize.sm}
+                      color={theme.color.negativeText}
+                    />
+                  ) : null}
+                  <Text
+                    variant="caption"
+                    style={{
+                      flexShrink: 1,
+                      fontWeight: '600',
+                      color: overview.over ? theme.color.negativeText : theme.color.brand,
+                    }}
+                  >
+                    {(overview.over ? t.personal.overBudgetAmount : t.personal.leftAmount).replace(
+                      '{amount}',
+                      fmt(
+                        overview.over ? -overview.remaining : overview.remaining,
+                        summaryCurrency,
+                      ),
+                    )}
+                  </Text>
+                </View>
+              </View>
+            </Pressable>
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => router.push('/personal/spending')}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.spacing.md,
+                marginHorizontal: theme.spacing.md,
+                marginBottom: theme.spacing.md,
+                paddingHorizontal: theme.spacing.md,
+                minHeight: 48,
+                borderRadius: theme.radius.sm,
+                backgroundColor: theme.color.brandSoft,
+              }}
+            >
+              <Ionicons name="stats-chart" size={iconSize.md} color={theme.color.brand} />
+              <Text
+                variant="body"
+                numberOfLines={1}
+                style={{ flex: 1, fontWeight: '700', color: theme.color.brand }}
+              >
+                {t.personal.viewMonthSpending}
+              </Text>
+              <Ionicons
+                name={directionalIcon('chevron-forward')}
+                size={iconSize.md}
+                color={theme.color.brand}
+              />
+            </Pressable>
+          </View>
         ) : null}
 
         {budgets.length === 0 ? (
@@ -183,80 +317,96 @@ function BudgetsScreenBody() {
             <Button label={t.personal.addBudget} onPress={() => setCreating(true)} />
           </View>
         ) : (
-          budgets.map((budget) => {
-            const progress = personalBudgetProgress(budget, txns, month);
-            const over = progress.remaining < 0n;
-            const pct = Math.min(1, Math.max(0, progress.ratio));
-            const barColor = over
-              ? theme.color.negative
-              : pct > 0.85
-                ? theme.color.warning
-                : theme.color.brand;
-            return (
-              <Pressable
-                key={budget.id}
-                accessibilityRole="button"
-                onPress={() => setEditing(budget)}
+          <>
+            <Row style={{ alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <Text
+                variant="heading"
+                numberOfLines={1}
+                style={{ fontWeight: '800', flexShrink: 1 }}
               >
-                <Card style={{ gap: theme.spacing.sm }}>
-                  <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                    <CategoryBadge category={budget.category ?? 'other'} meta={null} size={28} />
-                    <Text variant="body" style={{ flex: 1, fontWeight: '600' }} numberOfLines={1}>
+                {t.personal.categoryBudgets}
+              </Text>
+              <Pressable
+                accessibilityRole="link"
+                hitSlop={8}
+                onPress={() => router.push('/settings/categories')}
+                style={{ flexShrink: 1 }}
+              >
+                <Text
+                  variant="caption"
+                  numberOfLines={2}
+                  align="right"
+                  style={{ color: theme.color.brand, fontWeight: '600' }}
+                >
+                  {t.personal.manageCategories}
+                </Text>
+              </Pressable>
+            </Row>
+            {categoryBudgets.map((budget) => {
+              const progress = personalBudgetProgress(budget, txns, month);
+              const over = progress.remaining < 0n;
+              const tone = over ? theme.color.negativeText : theme.color.brand;
+              return (
+                <Pressable
+                  key={budget.id}
+                  accessibilityRole="button"
+                  onPress={() => setEditing(budget)}
+                  style={{
+                    ...card,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: theme.spacing.md,
+                    padding: theme.spacing.md,
+                  }}
+                >
+                  <CategoryBadge
+                    category={budget.category ?? 'other'}
+                    meta={null}
+                    size={44}
+                    shape="square"
+                  />
+                  <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                    <Text variant="body" style={{ fontWeight: '700' }} numberOfLines={1}>
                       {labelFor(budget.category)}
                     </Text>
-                    <Text variant="caption" tone={over ? 'negative' : 'muted'}>
-                      {format(money(progress.spent, budget.currency), {
-                        locale,
-                        trimZeros: true,
-                      })}
-                      {' / '}
-                      {format(money(budget.limit, budget.currency), {
-                        locale,
-                        trimZeros: true,
-                      })}
+                    <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 14 }}>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: '700',
+                          color: over ? theme.color.negativeText : theme.color.text,
+                        }}
+                      >
+                        {fmt(progress.spent, budget.currency)}
+                      </Text>
+                      <Text style={{ fontSize: 14, color: theme.color.textMuted }}>
+                        {' / '}
+                        {fmt(budget.limit, budget.currency)}
+                      </Text>
                     </Text>
-                  </Row>
+                    <BudgetBar ratio={progress.ratio} over={over} height={6} />
+                  </View>
                   <View
                     style={{
-                      height: 8,
-                      borderRadius: 4,
-                      backgroundColor: theme.color.surfaceMuted,
-                      overflow: 'hidden',
+                      borderRadius: theme.radius.pill,
+                      paddingHorizontal: theme.spacing.sm,
+                      paddingVertical: 4,
+                      backgroundColor: over ? theme.color.negativeSoft : theme.color.brandSoft,
                     }}
                   >
-                    <View
-                      style={{ width: `${pct * 100}%`, height: 8, backgroundColor: barColor }}
-                    />
-                  </View>
-                  <Text variant="micro" tone={over ? 'negative' : 'muted'}>
-                    {over
-                      ? `${format(money(-progress.remaining, budget.currency), { locale, trimZeros: true })} ${t.personal.over}`
-                      : `${format(money(progress.remaining, budget.currency), { locale, trimZeros: true })} ${t.personal.left}`}
-                  </Text>
-                  <Pressable
-                    accessibilityRole="link"
-                    accessibilityLabel={t.personal.viewMonthSpending}
-                    hitSlop={8}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/personal/transactions',
-                        params: {
-                          kind: 'expense',
-                          month,
-                          ...(budget.category ? { category: budget.category } : { loans: 'none' }),
-                          returnTo: '/personal/budgets',
-                        },
-                      })
-                    }
-                  >
-                    <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
-                      {t.personal.viewMonthSpending}
+                    <Text variant="caption" style={{ fontWeight: '700', color: tone }}>
+                      {Math.round(progress.ratio * 100)}%
                     </Text>
-                  </Pressable>
-                </Card>
-              </Pressable>
-            );
-          })
+                  </View>
+                  <Ionicons
+                    name={directionalIcon('chevron-forward')}
+                    size={iconSize.md}
+                    color={theme.color.textMuted}
+                  />
+                </Pressable>
+              );
+            })}
+          </>
         )}
       </ScrollView>
 
@@ -832,5 +982,77 @@ export default function BudgetsScreen() {
     <PersonalGuard>
       <BudgetsScreenBody />
     </PersonalGuard>
+  );
+}
+
+/** A thin rounded bar: red once over the cap, brand blue under it. */
+function BudgetBar({ ratio, over, height }: { ratio: number; over: boolean; height: number }) {
+  const theme = useTheme();
+  const pct = Math.min(1, Math.max(0, ratio));
+  return (
+    <View
+      style={{
+        height,
+        borderRadius: height / 2,
+        overflow: 'hidden',
+        backgroundColor: theme.color.surfaceMuted,
+      }}
+    >
+      <View
+        style={{
+          width: `${pct * 100}%`,
+          height,
+          backgroundColor: over ? theme.color.negative : theme.color.brand,
+        }}
+      />
+    </View>
+  );
+}
+
+/** The overall ring: arc of the cap used, the whole-number percent inside. */
+function BudgetRing({ percent, over, label }: { percent: number; over: boolean; label: string }) {
+  const theme = useTheme();
+  const size = 96;
+  const stroke = 10;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const color = over ? theme.color.negative : theme.color.brand;
+  const arc = Math.min(1, Math.max(0, percent / 100));
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size} style={{ position: 'absolute' }}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={over ? theme.color.negativeSoft : theme.color.brandSoft}
+          strokeWidth={stroke}
+          fill="none"
+        />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={color}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={`${c * arc} ${c}`}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <View style={{ width: size - 2 * stroke - 6, alignItems: 'center' }}>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          style={{ fontSize: 22, lineHeight: 26, fontWeight: '800', color }}
+        >
+          {percent}%
+        </Text>
+        <Text variant="micro" tone="muted" numberOfLines={1} adjustsFontSizeToFit>
+          {label}
+        </Text>
+      </View>
+    </View>
   );
 }

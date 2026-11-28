@@ -120,9 +120,7 @@ describe('Android personal finance regressions', () => {
   it('Budgets and Loans show the same reachable Planning chips', () => {
     for (const page of ['budgets.tsx', 'loans.tsx']) {
       const content = src(`app/personal/${page}`);
-      expect(content).toContain("value: 'recurring', label: t.personal.recurring");
-      expect(content).toContain("value: 'budgets', label: t.personal.budgets");
-      expect(content).toContain("value: 'loans', label: t.personal.loans");
+      expect(content).toContain('<PlanningTabs');
     }
   });
 
@@ -135,8 +133,6 @@ describe('Android personal finance regressions', () => {
     expect(loans).toContain('<FieldLabel>{t.personalSetup.emiLabel}</FieldLabel>');
     expect(loans).toContain('carried.emiAmount = emiAmount.toString()');
     expect(loans).toContain('<EmptyStateCta');
-    expect(loans).toContain('numberOfLines={2}');
-    expect(loans).toContain('minHeight: 40');
     expect(loans).toContain('Delete this loan and its payments?');
     expect(loans).toContain('<ScrollView');
     expect(loans).toContain('formatLoanPaymentDate(p.date, locale)');

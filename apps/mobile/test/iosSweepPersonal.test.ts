@@ -10,8 +10,8 @@ describe('iOS sweep fixes (Personal)', () => {
   it('Upcoming highlights Planning, like its siblings', () => {
     expect(personalActiveKey(['personal', 'upcoming'])).toBe('planning');
   });
-  it('Budgets uses the shared PlainHeader', () => {
-    expect(src('app/personal/budgets.tsx')).toContain('<PlainHeader');
+  it('Budgets uses the shared Planning header', () => {
+    expect(src('app/personal/budgets.tsx')).toContain('<PlanningHeader');
   });
   it('quick-action labels wrap instead of shrinking', () => {
     expect(src('components/home/QuickActionsRow.tsx')).not.toContain('adjustsFontSizeToFit');
