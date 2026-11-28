@@ -230,7 +230,17 @@ export function ListItem({
           {body}
         </Pressable>
         {trailing}
-        {chevronNode}
+        {chevronNode ? (
+          <Pressable
+            accessible={false}
+            importantForAccessibility="no"
+            disabled={!onPress}
+            onPress={onPress}
+            hitSlop={8}
+          >
+            {chevronNode}
+          </Pressable>
+        ) : null}
       </View>
     );
   }

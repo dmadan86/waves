@@ -51,6 +51,12 @@ describe('headers', () => {
     expect(li.indexOf('{trailing}')).toBeGreaterThan(-1);
     expect(li.indexOf('{trailing}')).toBeLessThan(li.lastIndexOf('{chevronNode}'));
   });
+  it('keeps the chevron tappable beside a trailing pill', () => {
+    const li = read('src/components/standard/ListItem.tsx');
+    expect(li).toMatch(
+      /<Pressable[^>]*onPress=\{onPress\}[^>]*>\s*\{chevronNode\}\s*<\/Pressable>/,
+    );
+  });
   it('Transactions, Recurring, Budgets, Loans and Planning share one HeaderBar family', () => {
     const planning = read('src/components/PlanningTabs.tsx');
     expect(planning).toMatch(/<HeaderBar/);
