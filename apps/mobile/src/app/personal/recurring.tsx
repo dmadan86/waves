@@ -104,7 +104,6 @@ function RecurringScreenBody() {
   return (
     <Screen edges={[]}>
       <PlanningHeader
-        hideBack
         title={t.personal.recurring}
         subtitle={t.personal.recurringSub}
         addLabel={t.personal.addRecurringItem.replace(/^\+\s*/, '')}

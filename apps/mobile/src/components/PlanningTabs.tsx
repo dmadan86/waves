@@ -25,20 +25,17 @@ export function PlanningHeader({
   subtitle,
   addLabel,
   onAdd,
-  hideBack = false,
 }: {
   title: string;
   subtitle: string;
   addLabel?: string;
   onAdd?: () => void;
-  hideBack?: boolean;
 }) {
   const theme = useTheme();
   return (
     <HeaderBar
       title={title}
       subtitle={subtitle}
-      hideBack={hideBack}
       action={
         onAdd ? (
           <Pressable

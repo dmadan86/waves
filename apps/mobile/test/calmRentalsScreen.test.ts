@@ -7,7 +7,7 @@ const i18n = readFileSync(join(__dirname, '../src/i18n/index.ts'), 'utf8');
 
 describe('calm Rentals list', () => {
   it('leads with the date line, summary, Due now card, done line and lease nudge', () => {
-    const order = ['<CalmHeader', '<SummaryLine', '<NeedsYouCard', '<DoneLine', '<NudgeRow'];
+    const order = ['<PlainHeader', '<SummaryLine', '<NeedsYouCard', '<DoneLine', '<NudgeRow'];
     const at = order.map((k) => src.indexOf(k));
     expect(at.every((i) => i > 0)).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
@@ -16,7 +16,7 @@ describe('calm Rentals list', () => {
     expect(src).toMatch(/useRentActions\(space, today\)/);
     expect(src).toMatch(/actions\.markReceived\(r\)/);
     expect(src).toMatch(/readOnly\s*\?\s*\[\]/);
-    expect(src).toMatch(/readOnly \? null : <CalmIconButton/);
+    expect(src).toMatch(/readOnly \? undefined : \(\s*<Pressable/);
     expect(src).toMatch(/const lease = readOnly \? null/);
   });
   it('keeps couple spaces scoped through the space param', () => {

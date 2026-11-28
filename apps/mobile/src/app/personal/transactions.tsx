@@ -29,6 +29,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { LIST_TILE, ListItem } from '@/components/standard/ListItem';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PlainHeader } from '@/components/standard/PlainHeader';
 
 import {
   format,
@@ -90,6 +92,7 @@ const EXPENSE_INK = '#C8283E';
 
 function PersonalTransactionsScreenBody() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { txns } = usePersonalLedger();
@@ -354,34 +357,22 @@ function PersonalTransactionsScreenBody() {
     </>
   );
 
-  const titleBlock = (
-    <View style={{ flexGrow: 1, flexShrink: 1, minWidth: 0, gap: 2 }}>
-      <Text
-        style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: ink }}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.6}
-      >
-        {t.personal.transactions}
-      </Text>
-      <Text style={{ fontSize: 13, lineHeight: 18, color: muted }} numberOfLines={3}>
-        {t.personal.transactionsSubtitle}
-      </Text>
-      {filter ? (
-        <Text style={{ fontSize: 12, color: muted }}>{labelFor(filter) ?? filter}</Text>
-      ) : null}
-      {fromDate && toDate ? (
-        <Text style={{ fontSize: 12, color: muted }} numberOfLines={1}>
-          {fromDate === toDate ? fromDate : `${fromDate} – ${toDate}`}
-        </Text>
-      ) : null}
-    </View>
-  );
+  const rangeLabel =
+    fromDate && toDate ? (fromDate === toDate ? fromDate : `${fromDate} – ${toDate}`) : null;
+  const subtitle =
+    [filter ? (labelFor(filter) ?? filter) : null, rangeLabel].filter(Boolean).join(' · ') ||
+    t.personal.transactionsSubtitle;
 
   return (
-    <Screen>
-      <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm, gap: 10 }}>
-        {search.open ? (
+    <Screen edges={[]}>
+      {search.open ? (
+        <View
+          style={{
+            paddingHorizontal: theme.spacing.lg,
+            paddingTop: insets.top + theme.spacing.sm,
+            paddingBottom: theme.spacing.sm,
+          }}
+        >
           <SearchField
             value={query}
             onChange={setQuery}
@@ -392,33 +383,21 @@ function PersonalTransactionsScreenBody() {
             placeholder={t.personal.searchTransactions}
             trailing={filterButton}
           />
-        ) : drillIn ? (
-          // Pushed with a back arrow: the title gets its own full-width line, so it
-          // never shares a row with four buttons and truncates.
-          <>
-            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-              <IconButton
-                label={t.common.back}
-                onPress={() =>
-                  params.returnTo && !router.canGoBack()
-                    ? router.replace(params.returnTo as never)
-                    : router.back()
-                }
-              >
-                <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
-              </IconButton>
-              <View style={{ flex: 1 }} />
-              {actions}
-            </Row>
-            {titleBlock}
-          </>
-        ) : (
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            {titleBlock}
-            {actions}
-          </Row>
-        )}
-
+        </View>
+      ) : (
+        <PlainHeader
+          title={t.personal.transactions}
+          subtitle={subtitle}
+          hideBack={!drillIn}
+          onBack={() =>
+            params.returnTo && !router.canGoBack()
+              ? router.replace(params.returnTo as never)
+              : router.back()
+          }
+          trailing={<Row style={{ alignItems: 'center' }}>{actions}</Row>}
+        />
+      )}
+      <View style={{ paddingHorizontal: theme.spacing.lg, gap: 10 }}>
         <Row style={{ alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           <IconButton
             label={t.personal.prevMonth}
@@ -618,8 +597,8 @@ function PersonalTransactionsScreenBody() {
                 style={{
                   alignItems: 'center',
                   gap: theme.spacing.sm,
-                  paddingTop: theme.spacing.lg,
-                  paddingBottom: theme.spacing.sm,
+                  paddingTop: theme.spacing.md,
+                  paddingBottom: theme.spacing.xs,
                   paddingHorizontal: theme.spacing.sm,
                 }}
               >

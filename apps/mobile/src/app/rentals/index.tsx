@@ -12,7 +12,7 @@ import { FormerCouples, NewPhoneNotice } from '@/components/couple/CoupleRentals
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { isFormer } from '@/e2ee/space';
 import { ListCard, ListItem, LIST_TILE, PlainHeader } from '@/components/standard';
-import { CalmHeader, CalmIconButton } from '@/components/calm/CalmHeader';
+import { HEADER_BUTTON } from '@/components/standard/HeaderBar';
 import { DoneLine } from '@/components/calm/DoneLine';
 import { NeedRow, NeedsYouCard } from '@/components/calm/NeedsYouCard';
 import { NudgeRow } from '@/components/calm/NudgeRow';
@@ -218,13 +218,29 @@ function RentalsBody() {
 
   return (
     <Screen edges={[]}>
-      <CalmHeader
-        dateLine={monthLabel(today.slice(0, 7), locale)}
+      <PlainHeader
         title={w.rentals}
-        onBack={() => router.back()}
-      >
-        {readOnly ? null : <CalmIconButton icon="add" label={w.addRental} onPress={add} />}
-      </CalmHeader>
+        subtitle={monthLabel(today.slice(0, 7), locale)}
+        trailing={
+          readOnly ? undefined : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={w.addRental}
+              onPress={add}
+              style={{
+                width: HEADER_BUTTON,
+                height: HEADER_BUTTON,
+                borderRadius: HEADER_BUTTON / 2,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.brandSoft,
+              }}
+            >
+              <Ionicons name="add" size={iconSize.xl} color={theme.color.brand} />
+            </Pressable>
+          )
+        }
+      />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,

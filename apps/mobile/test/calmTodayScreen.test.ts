@@ -22,14 +22,14 @@ describe('Personal Today screen', () => {
       '<DoneLine',
       '<NeedsYouCard',
       '<NudgeRow',
-      'c.later',
+      't.calendar.comingUp',
     ];
     const at = order.map((k) => today.indexOf(k));
     expect(at.every((i) => i > 0)).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
   });
   it('uses the locale first weekday, the existing picker, the same writes and a calm empty state', () => {
-    expect(today).toMatch(/firstWeekday\(locale\)/);
+    expect(today).toMatch(/WEEK_START/);
     expect(today).toMatch(/<CategoryPicker/);
     expect(today).toMatch(/entryRecord\(/);
     expect(today).toMatch(/usePostRecurring/);

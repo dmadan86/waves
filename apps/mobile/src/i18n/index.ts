@@ -8544,7 +8544,6 @@ export interface UiStrings {
     renew: string;
     properties: string;
     daysLeft: PluralForms;
-    later: string;
     remindMessage: string;
     menuRentals: string;
     menuTransactions: string;
@@ -16986,7 +16985,6 @@ const en: UiStrings = {
     renew: 'Renew',
     properties: 'Properties · {n}',
     daysLeft: { one: '{n} day left', other: '{n} days left' },
-    later: 'Later this week',
     remindMessage:
       'Hi {tenant}, a gentle reminder: rent of {amount} for {unit} was due on {date}. Thank you!',
     menuRentals: 'Rentals',
@@ -17325,7 +17323,7 @@ const en: UiStrings = {
     pickName: 'Pick someone from earlier loans',
     all: 'All',
     transfers: 'Transfers',
-    transactionsSubtitle: 'All your expenses, income and transfers in one place.',
+    transactionsSubtitle: 'Expenses, income and transfers',
     collapseDay: 'Collapse day',
     expandDay: 'Expand day',
     searchTransactions: 'Search transactions…',
@@ -25516,7 +25514,6 @@ const ta: UiStrings = {
     renew: 'புதுப்பி',
     properties: 'சொத்துகள் · {n}',
     daysLeft: { one: '{n} நாள் மீதம்', other: '{n} நாட்கள் மீதம்' },
-    later: 'இந்த வாரத்தின் பிறகு',
     remindMessage:
       'வணக்கம் {tenant}, அன்பான நினைவூட்டல்: {unit}க்கான {amount} வாடகை {date} அன்று செலுத்த வேண்டியிருந்தது. நன்றி!',
     menuRentals: 'வாடகைகள்',
@@ -25855,7 +25852,7 @@ const ta: UiStrings = {
     pickName: 'முந்தைய கடன்களில் இருந்து ஒருவரைத் தேர்ந்தெடுக்கவும்',
     all: 'அனைத்தும்',
     transfers: 'பரிமாற்றங்கள்',
-    transactionsSubtitle: 'உங்கள் செலவுகள், வருமானம் மற்றும் பணப் பரிமாற்றங்கள் அனைத்தும் ஒரே இடத்தில்.',
+    transactionsSubtitle: 'செலவு, வருமானம், பரிமாற்றங்கள்',
     collapseDay: 'நாளைச் சுருக்கு',
     expandDay: 'நாளை விரி',
     searchTransactions: 'பரிவர்த்தனைகளைத் தேடுங்கள்…',
@@ -33861,7 +33858,6 @@ const hi: UiStrings = {
     renew: 'नवीनीकरण',
     properties: 'संपत्तियाँ · {n}',
     daysLeft: { one: '{n} दिन बाकी', other: '{n} दिन बाकी' },
-    later: 'इस हफ़्ते आगे',
     remindMessage: 'नमस्ते {tenant}, एक छोटी याद: {unit} का {amount} किराया {date} को देय था। धन्यवाद!',
     menuRentals: 'किराये',
     menuTransactions: 'सभी लेन-देन',
@@ -34193,7 +34189,7 @@ const hi: UiStrings = {
     pickName: 'पिछले लोन से किसी को चुनें',
     all: 'सभी',
     transfers: 'ट्रांसफ़र',
-    transactionsSubtitle: 'आपके सभी खर्च, आय और पैसे के हस्तांतरण एक ही जगह पर।',
+    transactionsSubtitle: 'खर्च, आय और ट्रांसफ़र',
     collapseDay: 'दिन का विवरण समेटें',
     expandDay: 'दिन का विवरण खोलें',
     searchTransactions: 'लेन-देन खोजें…',
@@ -43115,7 +43111,6 @@ const ar: UiStrings = {
       many: 'بقي {n} يومًا',
       other: 'بقي {n} يوم',
     },
-    later: 'لاحقًا هذا الأسبوع',
     remindMessage:
       'مرحبًا {tenant}، تذكير لطيف: إيجار {amount} لـ {unit} كان مستحقًا في {date}. شكرًا!',
     menuRentals: 'الإيجارات',
@@ -43495,7 +43490,7 @@ const ar: UiStrings = {
     pickName: 'اختر شخصًا من قروض سابقة',
     all: 'الكل',
     transfers: 'التحويلات',
-    transactionsSubtitle: 'كل نفقاتك ودخلك وتحويلاتك في مكان واحد.',
+    transactionsSubtitle: 'النفقات والدخل والتحويلات',
     collapseDay: 'طي تفاصيل اليوم',
     expandDay: 'عرض تفاصيل اليوم',
     searchTransactions: 'ابحث في المعاملات…',
