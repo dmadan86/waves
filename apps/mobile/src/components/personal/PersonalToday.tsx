@@ -32,6 +32,7 @@ import { dailyPace, spendByDate, weekDays, weekSummary, weekStartDate } from '@/
 import { WEEK_START } from '@/lib/calendarGrid';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { router } from '@/lib/navigation';
+import { openPlanning } from '@/lib/openPlanning';
 import { budgetsOverview } from '@/lib/budgetsOverview';
 import { entryRecord } from '@/lib/personalEntry';
 import { billRows } from '@/lib/personalUpcoming';
@@ -254,7 +255,7 @@ export function PersonalToday({ today, currency }: { today: string; currency: st
                 : fill(c.budgetLeft, { amount: fmt(nudge.remaining, currency) })
           }
           action={c.review}
-          onAction={() => router.push('/personal/budgets')}
+          onAction={() => openPlanning('budgets')}
         />
       ) : null}
 

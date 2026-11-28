@@ -25,6 +25,7 @@ import { usePersonalLedger } from '@/data/personal';
 import type { AssistantAnswer, PeriodChip, SpendingLink } from '@/lib/assistantAnswers';
 import { matchingTransactions } from '@/lib/assistantInline';
 import { router } from '@/lib/navigation';
+import { openPlanning } from '@/lib/openPlanning';
 import { useAssistantAnswerer } from '@/lib/useAssistantAnswerer';
 
 export interface AssistantAnswerCardProps {
@@ -180,7 +181,8 @@ export function AssistantMoneyAnswer({ query, onNavigate }: AssistantMoneyAnswer
         }
         // The budget link opens the Budgets screen, where a budget is set.
         onNavigate?.();
-        router.push({ pathname: link.pathname, params: link.params });
+        if (link.kind === 'budget') openPlanning('budgets', link.params);
+        else router.push({ pathname: link.pathname, params: link.params });
       }}
     >
       <InlineSpendingList rows={rows} />

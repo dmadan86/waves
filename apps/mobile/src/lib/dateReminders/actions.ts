@@ -19,18 +19,10 @@ export function actionFor(item: UpcomingItem): DateAction | null {
   }
 }
 
-/** Where the action goes. `giftName` is the localised "<Name>'s birthday gift". */
-export function routeForAction(action: DateAction, giftName: string): Href {
-  switch (action) {
-    case 'giftCollection':
-      return {
-        pathname: '/new-group',
-        params: { type: 'event', template: 'birthday', name: giftName },
-      };
-    case 'updatePay':
-      // No /personal/setup on this branch: recurring rules are where pay lives.
-      return '/personal/recurring';
-    default:
-      return '/personal/budgets';
-  }
+/** The gift-collection form (the only action that is not a Planning link). `giftName` is the localised "<Name>'s birthday gift". */
+export function giftCollectionRoute(giftName: string): Href {
+  return {
+    pathname: '/new-group',
+    params: { type: 'event', template: 'birthday', name: giftName },
+  };
 }

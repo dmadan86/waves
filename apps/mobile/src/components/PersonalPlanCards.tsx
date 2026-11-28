@@ -22,6 +22,7 @@ import { Card, directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui'
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { router } from '@/lib/navigation';
+import { openPlanning } from '@/lib/openPlanning';
 import { markRecapOpened, openedRecaps, pauseTip, pausedTips } from '@/lib/personalPlanPrefs';
 import { fill, plural, useStrings } from '@/i18n';
 
@@ -102,12 +103,9 @@ export function PersonalPlanCards({
   };
 
   const setLimit = (x: SaveTip): void =>
-    router.push({
-      pathname: '/personal/budgets',
-      params: {
-        category: x.category ?? '',
-        ...(x.params.usual !== undefined ? { limit: String(x.params.usual) } : {}),
-      },
+    openPlanning('budgets', {
+      category: x.category ?? '',
+      ...(x.params.usual !== undefined ? { limit: String(x.params.usual) } : {}),
     });
 
   return (
@@ -155,7 +153,7 @@ export function PersonalPlanCards({
             accessibilityLabel={`${tip.kind === 'subscriptions' ? p.review : p.setLimit}. ${tipText(tip)}`}
             hitSlop={8}
             onPress={() =>
-              tip.kind === 'subscriptions' ? router.push('/personal/recurring') : setLimit(tip)
+              tip.kind === 'subscriptions' ? openPlanning('recurring') : setLimit(tip)
             }
           >
             <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>

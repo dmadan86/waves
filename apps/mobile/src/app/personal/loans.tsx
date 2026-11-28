@@ -158,7 +158,6 @@ function LoansScreenBody() {
   return (
     <Screen edges={[]}>
       <PlanningHeader
-        tab="loans"
         title={t.personal.loans}
         subtitle={t.personal.loansSub}
         addLabel={t.personal.addLoan}

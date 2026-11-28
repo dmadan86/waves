@@ -5,7 +5,6 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useLocalSearchParams } from 'expo-router';
 import { Pressable } from 'react-native';
 
 import { iconSize, Row, Text, useTheme } from '@waves/ui';
@@ -13,37 +12,26 @@ import { iconSize, Row, Text, useTheme } from '@waves/ui';
 import { HEADER_BUTTON, HeaderBar } from '@/components/standard/HeaderBar';
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
+import { PLANNING_ROUTE, type PlanningSegment } from '@/lib/openPlanning';
 
-type Tab = 'recurring' | 'budgets' | 'loans';
-const HREF = {
-  recurring: '/personal/recurring',
-  budgets: '/personal/budgets',
-  loans: '/personal/loans',
-} as const;
+type Tab = PlanningSegment;
 
-/**
- * Recurring is the Planning bar's root and the switch (which replaces with `from=plan`) never
- * shows a back button, so the three siblings match. Budgets and Loans pushed from elsewhere
- * (Today, Me, Accounts) have no `from` and keep the round back button.
- */
+/** The three siblings are the Planning tab, however they were opened: never a back button. */
 export function PlanningHeader({
-  tab,
   title,
   subtitle,
   addLabel,
   onAdd,
 }: {
-  tab: Tab;
   title: string;
   subtitle: string;
   addLabel?: string;
   onAdd?: () => void;
 }) {
   const theme = useTheme();
-  const { from } = useLocalSearchParams<{ from?: string }>();
   return (
     <HeaderBar
-      hideBack={tab === 'recurring' || from === 'plan'}
+      hideBack
       title={title}
       subtitle={subtitle}
       action={
@@ -95,7 +83,7 @@ export function PlanningTabs({ value }: { value: Tab }) {
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
             onPress={() => {
-              if (!on) router.replace({ pathname: HREF[key], params: { from: 'plan' } });
+              if (!on) router.replace(PLANNING_ROUTE[key]);
             }}
             style={{
               flex: 1,

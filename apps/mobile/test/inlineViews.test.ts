@@ -40,6 +40,7 @@ vi.mock('@/i18n', async () => {
 const w = vi.hoisted(() => ({
   share: vi.fn(),
   push: vi.fn(),
+  navigate: vi.fn(),
   answer: null as any,
   txns: [] as any[],
   transfers: [] as any[],
@@ -47,7 +48,7 @@ const w = vi.hoisted(() => ({
 }));
 vi.mock('@/data/syncedLoans', () => ({ useShareLoan: () => ({ mutateAsync: w.share }) }));
 vi.mock('@/data/personal', () => ({ usePersonalLedger: () => ({ txns: w.txns }) }));
-vi.mock('@/lib/navigation', () => ({ router: { push: w.push } }));
+vi.mock('@/lib/navigation', () => ({ router: { push: w.push, navigate: w.navigate } }));
 vi.mock('@/lib/useAssistantAnswerer', () => ({
   useAssistantAnswerer: () => ({ answer: () => w.answer, answerFor: () => w.answer }),
 }));
@@ -199,7 +200,11 @@ it('IN-V-04 budget link navigates and calls onNavigate', () => {
   const navigate = vi.fn();
   const r = renderHook(() => AssistantMoneyAnswer({ query: {} as any, onNavigate: navigate }));
   (r.result.current as any).props.onLink(w.answer.link);
-  expect(w.push).toHaveBeenCalledWith({ pathname: '/budgets', params: { category: 'food' } });
+  // The budget link opens the Planning tab (Budgets segment), not a stacked push.
+  expect(w.navigate).toHaveBeenCalledWith({
+    pathname: '/personal/budgets',
+    params: { category: 'food' },
+  });
   expect(navigate).toHaveBeenCalledOnce();
   r.unmount();
 });
