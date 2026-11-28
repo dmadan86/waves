@@ -367,8 +367,8 @@ export function CompanyPeople({
                       paddingVertical: 6,
                       marginStart: level * 18,
                       paddingStart: level > 0 ? 10 : 0,
-                      borderLeftWidth: level > 0 ? 1 : 0,
-                      borderLeftColor: theme.color.border,
+                      borderStartWidth: level > 0 ? 1 : 0,
+                      borderStartColor: theme.color.border,
                     }}
                   >
                     <PersonAvatar member={m} name={name} ghost={isGhost(m)} size={36} />
