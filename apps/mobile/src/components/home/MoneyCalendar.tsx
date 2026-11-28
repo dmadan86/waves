@@ -20,6 +20,7 @@ import { usePostRecurring } from '@/data/postRecurring';
 import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
+import { firstWeekday } from '@/lib/calendarGrid';
 import { shiftMonth } from '@/lib/monthNav';
 import {
   expandDue,
@@ -88,12 +89,18 @@ export function MoneyCalendar({
       ),
     [sources, today, month, current],
   );
-  const grid = useMemo(() => monthGrid(month, monthItems), [month, monthItems]);
+  const weekStart = useMemo(() => firstWeekday(locale), [locale]);
+  const grid = useMemo(
+    () => monthGrid(month, monthItems, weekStart),
+    [month, monthItems, weekStart],
+  );
   const shown = filterItems(monthItems, filter).filter((i) => (picked ? i.date === picked : true));
   const weekdays = useMemo(() => {
     const fmtDay = new Intl.DateTimeFormat(locale, { weekday: 'narrow', timeZone: 'UTC' });
-    return Array.from({ length: 7 }, (_, i) => fmtDay.format(new Date(Date.UTC(2024, 0, 1 + i))));
-  }, [locale]);
+    return Array.from({ length: 7 }, (_, i) =>
+      fmtDay.format(new Date(Date.UTC(2023, 0, 1 + ((weekStart + i) % 7)))),
+    );
+  }, [locale, weekStart]);
   const label = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(
     new Date(`${month}-01T00:00:00`),
   );
