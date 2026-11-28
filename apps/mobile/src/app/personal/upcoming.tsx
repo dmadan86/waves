@@ -4,14 +4,23 @@ import { Pressable, ScrollView, View } from 'react-native';
 import Animated, { FadeOut, LinearTransition } from 'react-native-reanimated';
 
 import { format, money, pickUpcoming } from '@waves/core';
-import { Badge, Button, iconSize, Row, Sheet, Text, useTabBarClearance, useTheme } from '@waves/ui';
+import {
+  Badge,
+  Button,
+  IconButton,
+  iconSize,
+  Row,
+  Sheet,
+  Text,
+  useTabBarClearance,
+  useTheme,
+} from '@waves/ui';
 
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { GroupRow } from '@/components/home/GroupRow';
 import { AddReminderSheet } from '@/components/personal/AddReminderSheet';
 import { ICON_FOR, useWealthRows } from '@/components/personal/PersonalHomeParts';
 import { ListCard, PlainHeader, RowTile } from '@/components/standard';
-import { HEADER_BUTTON } from '@/components/standard/HeaderBar';
 import { RaiseCard } from '@/components/wealth/RaiseCard';
 import { todayIso, usePersonalLedger } from '@/data/personal';
 import { useDateOccurrences } from '@/data/personalDates';
@@ -94,14 +103,6 @@ export default function PersonalUpcomingScreen() {
   });
   const rows = filterUpcoming(view, tab);
   const empty = emptyCopy(tab);
-  const roundBtn = (backgroundColor: string) => ({
-    width: HEADER_BUTTON,
-    height: HEADER_BUTTON,
-    borderRadius: HEADER_BUTTON / 2,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    backgroundColor,
-  });
   const fmt = (amount: bigint, cur: string): string =>
     hidden ? BALANCE_MASK : format(money(amount, cur), { locale, trimZeros: true });
   const grouped = groupUpcoming(rows, today);
@@ -188,22 +189,12 @@ export default function PersonalUpcomingScreen() {
         subtitle={h.upcomingSubtitle}
         trailing={
           <Row style={{ gap: theme.spacing.xs }}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.dates.title}
-              onPress={() => router.push('/dates')}
-              style={roundBtn(theme.color.brandSoft)}
-            >
+            <IconButton label={t.dates.title} onPress={() => router.push('/dates')}>
               <Ionicons name="calendar-outline" size={iconSize.lg} color={theme.color.brand} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={h.addReminder}
-              onPress={() => setAdding(true)}
-              style={roundBtn(theme.color.brand)}
-            >
+            </IconButton>
+            <IconButton tone="brand" label={h.addReminder} onPress={() => setAdding(true)}>
               <Ionicons name="add" size={iconSize.xl} color={theme.color.onBrand} />
-            </Pressable>
+            </IconButton>
           </Row>
         }
       />
@@ -314,7 +305,7 @@ export default function PersonalUpcomingScreen() {
                   bottom: 18,
                   width: 44,
                   height: 44,
-                  borderRadius: 22,
+                  borderRadius: 999,
                   backgroundColor: theme.color.brand,
                   borderWidth: 3,
                   borderColor: theme.color.bg,
