@@ -13,7 +13,7 @@ import { Callout, Screen, Sheet, Text, useTheme } from '@waves/ui';
 import { SaveButton } from '@/components/company/EntryForm';
 import { ScenicBody, ScenicHeader, StandardCard } from '@/components/standard';
 import { findPerson } from '@/data/api';
-import { useSetVendor } from '@/data/companyVendors';
+import { useCompanyVendors, useSetVendor } from '@/data/companyVendors';
 import { useStrings } from '@/i18n';
 import { channelFor } from '@/lib/linkMember';
 import { router } from '@/lib/navigation';
@@ -98,6 +98,8 @@ export default function AddVendorScreen() {
   const { t } = useStrings();
   const s = t.companyVendors;
   const save = useSetVendor(groupId);
+  // Only an admin writes vendors; a deep link must not hand an employee a form the server refuses.
+  const { canManage } = useCompanyVendors(groupId);
   const [mode, setMode] = useState<Mode>('scan');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -146,7 +148,7 @@ export default function AddVendorScreen() {
       setBusy(false);
     }
   };
-  const valid = name.trim().length > 0 && !save.isPending;
+  const valid = canManage && name.trim().length > 0 && !save.isPending;
   const modeLabel = { scan: s.scanQr, link: s.useLink, id: s.findId }[mode];
 
   return (
