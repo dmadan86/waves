@@ -27,16 +27,7 @@ import {
   type CurrencyCode,
   type HouseholdUpcoming,
 } from '@waves/core';
-import {
-  Card,
-  directionalIcon,
-  iconSize,
-  Row,
-  Screen,
-  Text,
-  useTabBarClearance,
-  useTheme,
-} from '@waves/ui';
+import { directionalIcon, iconSize, Screen, Text, useTabBarClearance, useTheme } from '@waves/ui';
 
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import {
@@ -46,7 +37,12 @@ import {
   UpcomingTab,
   type HouseholdData,
 } from '@/components/household/HouseholdTabs';
-import { TabHeader, TabIconButton } from '@/components/home/TabHeader';
+import { CalmHeader, CalmIconButton } from '@/components/calm/CalmHeader';
+import { NeedRow, NeedsYouCard } from '@/components/calm/NeedsYouCard';
+import { NudgeRow } from '@/components/calm/NudgeRow';
+import { TodayWeek } from '@/components/calm/TodayWeek';
+import { StandardCard } from '@/components/standard';
+import { useWealthMoney } from '@/components/wealth/parts';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { MonthPill } from '@/components/personal/PersonalHomeParts';
 import { useBlockedUsers } from '@/data/blocked';
@@ -63,10 +59,14 @@ import {
 } from '@/data/hooks';
 import { todayIso, useGroupRecords } from '@/data/personal';
 import { groupLabel, isGhost } from '@/data/types';
-import { useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useViewerId } from '@/lib/auth';
+import { dailyPace, weekStartDate } from '@/lib/calm/weekPace';
+import { WEEK_START } from '@/lib/calendarGrid';
+import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { compactAmount, needsCompactTile } from '@/lib/householdHome';
+import { householdBudgetNudge, householdNeeds, spendByDateRows } from '@/lib/householdToday';
 import { memberNameById } from '@/lib/memberName';
 import {
   barMove,
@@ -101,6 +101,8 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const h = t.hhome;
+  const c = t.calm;
+  const wmoney = useWealthMoney();
   const viewerId = useViewerId();
   const pull = usePullRefresh();
   const clearance = useTabBarClearance();
@@ -356,6 +358,24 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
   ];
   const menuItems: OverflowMenuItem[] = [
     {
+      icon: 'search-outline',
+      label: t.group.searchExpenses,
+      section: 'find',
+      onPress: go(pick(buttons, 'search')),
+    },
+    {
+      icon: 'calendar-outline',
+      label: t.comingUp.seeCalendar,
+      section: 'find',
+      route: `/group/${groupId}/calendar` as never,
+    },
+    {
+      icon: 'mic-outline',
+      label: t.personalHome.moreVoice,
+      section: 'find',
+      onPress: () => router.push({ pathname: '/voice', params: { group: groupId } }),
+    },
+    {
       icon: 'people-outline',
       label: t.members,
       section: 'people',
@@ -401,52 +421,44 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
       : myBalance > 0n
         ? t.youAreOwed
         : t.youOwe;
+  const settled = ledger.groupSettled || myBalance === 0n;
+  const needs = householdNeeds({ upcoming: openUpcoming, settled });
+  const nudge = householdBudgetNudge(monthsBack === 0 ? budgetMinor : null, spent, today);
+  const weekFrom = weekStartDate(today, WEEK_START);
+  const weekTo = new Date(Date.parse(`${weekFrom}T00:00:00Z`) + 6 * 864e5)
+    .toISOString()
+    .slice(0, 10);
   const title = group.data?.name?.trim() || groupLabel(group.data, everyone.data ?? [], viewerId);
 
   return (
     <Screen edges={[]}>
-      <TabHeader
-        left={
-          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-            <TabIconButton
-              icon={directionalIcon('arrow-back')}
-              label={t.common.goBack}
-              onPress={() =>
-                tab === 'overview' ? goBack() : hh ? router.back() : setTab('overview')
-              }
-            />
-            <Text
-              accessibilityRole="header"
-              numberOfLines={1}
-              style={{ flex: 1, minWidth: 0, fontSize: 18, lineHeight: 23, fontWeight: '700' }}
-            >
-              {title}
-            </Text>
-          </Row>
-        }
+      <CalmHeader
+        dateLine={dateTimeFormat(locale, {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          timeZone: 'UTC',
+        }).format(new Date(`${today}T00:00:00Z`))}
+        title={title}
+        onBack={() => (tab === 'overview' ? goBack() : hh ? router.back() : setTab('overview'))}
       >
-        <TabIconButton
-          icon="search-outline"
-          label={t.group.searchExpenses}
-          onPress={go(pick(buttons, 'search'))}
+        <CalmIconButton
+          icon="add"
+          label={t.personal.addExpense}
+          onPress={() => router.push(`/group/${groupId}/add-expense` as never)}
         />
-        <TabIconButton
+        <CalmIconButton
           icon="notifications-outline"
           label={h.tabUpcoming}
           dot={upcomingDot}
           onPress={go(pick(buttons, 'bell'))}
         />
-        <TabIconButton
-          icon="mic-outline"
-          label={t.personalHome.moreVoice}
-          onPress={() => router.push({ pathname: '/voice', params: { group: groupId } })}
-        />
-        <TabIconButton
+        <CalmIconButton
           icon="ellipsis-vertical"
           label={t.group.settings}
           onPress={() => setMenuOpen(true)}
         />
-      </TabHeader>
+      </CalmHeader>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: clearance + 96 }}
@@ -468,6 +480,89 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
         >
           {tab === 'overview' ? (
             <>
+              <TodayWeek
+                today={today}
+                currency={currency}
+                spent={spendByDateRows(
+                  live.map((row) => ({
+                    date: row.currentVersion!.expense_date,
+                    amount: BigInt(row.currentVersion!.amount),
+                    currency: row.currentVersion!.currency,
+                  })),
+                  currency,
+                  weekFrom,
+                  weekTo,
+                )}
+                pace={dailyPace(budgetMinor, currentMonth)}
+                dueDates={new Set(openUpcoming.map((row) => row.date))}
+                fmt={(minor, cur) => wmoney(minor, cur as CurrencyCode)}
+              />
+              {needs.length > 0 ? (
+                <NeedsYouCard title={plural(locale, needs.length, c.needsTitle)}>
+                  {needs.map((need) =>
+                    need.kind === 'settle' ? (
+                      <NeedRow
+                        key={need.key}
+                        icon="swap-horizontal-outline"
+                        title={`${balanceText} ${fmt(myBalance < 0n ? -myBalance : myBalance)}`}
+                        subtitle={t.household.whoPaid}
+                        actions={[{ label: t.settleUp, onPress: go(pick(buttons, 'balance')) }]}
+                      />
+                    ) : (
+                      <NeedRow
+                        key={need.key}
+                        icon="receipt-outline"
+                        title={need.title}
+                        subtitle={
+                          need.inDays < 0
+                            ? plural(locale, -need.inDays, c.billOverdue).replaceAll(
+                                '{amount}',
+                                wmoney(need.amount, need.currency as CurrencyCode),
+                              )
+                            : fill(c.billDueToday, {
+                                amount: wmoney(need.amount, need.currency as CurrencyCode),
+                              })
+                        }
+                        subtitleTone={need.inDays < 0 ? 'negative' : 'muted'}
+                        actions={[
+                          {
+                            label: c.markPaid,
+                            accessibilityLabel: `${c.markPaid}, ${need.title}`,
+                            onPress: () => void onMarkPaid(need),
+                          },
+                        ]}
+                      />
+                    ),
+                  )}
+                </NeedsYouCard>
+              ) : (
+                <View style={{ gap: 2, paddingVertical: theme.spacing.sm }}>
+                  <Text variant="subheading">{c.allSet}</Text>
+                  <Text variant="caption" tone="muted">
+                    {c.allSetHelp}
+                  </Text>
+                </View>
+              )}
+              {nudge ? (
+                <NudgeRow
+                  title={fill(c.budgetUsed, {
+                    name: t.personal.overall,
+                    pct: String(nudge.percent),
+                  })}
+                  body={
+                    nudge.remaining < 0n
+                      ? fill(c.budgetOver, { amount: fmt(-nudge.remaining) })
+                      : nudge.daysLeft > 0
+                        ? plural(locale, nudge.daysLeft, c.budgetLeftDays).replaceAll(
+                            '{amount}',
+                            fmt(nudge.remaining),
+                          )
+                        : fill(c.budgetLeft, { amount: fmt(nudge.remaining) })
+                  }
+                  action={c.review}
+                  onAction={go(pick(tiles, 'budget'))}
+                />
+              ) : null}
               <ComingUpHome
                 groupId={groupId}
                 ledgerGroupId={hasGroupRentals(group.data.type) ? groupId : undefined}
@@ -524,7 +619,7 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
               />
 
               {/* Who owes whom: the one thing a shared ledger has that a personal one cannot. */}
-              <Card style={{ padding: 0 }}>
+              <StandardCard style={{ padding: 0 }}>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`${t.household.whoPaid}. ${balanceText}${myBalance === 0n ? '' : ` ${fmt(myBalance < 0n ? -myBalance : myBalance)}`}`}
@@ -567,7 +662,7 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                     color={theme.color.textMuted}
                   />
                 </Pressable>
-              </Card>
+              </StandardCard>
             </>
           ) : null}
           {tab === 'planning' ? <PlanningTab data={data} /> : null}
