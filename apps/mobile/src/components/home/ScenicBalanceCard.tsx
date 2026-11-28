@@ -53,6 +53,7 @@ export function HomeBalanceCard({
   owingChips,
   owedDetail,
   owingDetail,
+  hideFigure = false,
 }: {
   net: bigint;
   /** Everything owed to you, and everything you owe, before the net. */
@@ -92,6 +93,8 @@ export function HomeBalanceCard({
   /** Override the side captions when the count represents people rather than groups. */
   owedDetail?: string;
   owingDetail?: string;
+  /** No headline figure: the label row and `sides` carry the card (Home). */
+  hideFigure?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -145,48 +148,50 @@ export function HomeBalanceCard({
           gap: theme.spacing.sm,
         }}
       >
-        <Row
-          style={{
-            // Centred so the sync spinner sits level with the figure, not in the corner.
-            alignItems: 'center',
-            gap: theme.spacing.sm,
-            paddingHorizontal: theme.spacing.lg,
-          }}
-        >
-          <View style={{ flex: 1, gap: 2 }}>
-            {loading || catchUp ? (
-              <Skeleton width={180} height={32} radius={10} />
-            ) : hidden ? (
-              <Text style={AMOUNT_STYLE} numberOfLines={1}>
-                {BALANCE_MASK}
-              </Text>
-            ) : amountText !== undefined ? (
-              <Text
-                style={AMOUNT_STYLE}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.6}
-              >
-                {amountText}
-              </Text>
-            ) : (
-              <SplitMoney
-                amount={figure}
-                currency={currency}
-                locale={locale}
-                color={theme.color.text}
-                fontSize={AMOUNT_STYLE.fontSize}
-                weight="800"
-                wholeUnits
-              />
-            )}
-          </View>
-          {/* Beside the figure, not the label: the folder tab is half the card wide,
+        {hideFigure ? null : (
+          <Row
+            style={{
+              // Centred so the sync spinner sits level with the figure, not in the corner.
+              alignItems: 'center',
+              gap: theme.spacing.sm,
+              paddingHorizontal: theme.spacing.lg,
+            }}
+          >
+            <View style={{ flex: 1, gap: 2 }}>
+              {loading || catchUp ? (
+                <Skeleton width={180} height={32} radius={10} />
+              ) : hidden ? (
+                <Text style={AMOUNT_STYLE} numberOfLines={1}>
+                  {BALANCE_MASK}
+                </Text>
+              ) : amountText !== undefined ? (
+                <Text
+                  style={AMOUNT_STYLE}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.6}
+                >
+                  {amountText}
+                </Text>
+              ) : (
+                <SplitMoney
+                  amount={figure}
+                  currency={currency}
+                  locale={locale}
+                  color={theme.color.text}
+                  fontSize={AMOUNT_STYLE.fontSize}
+                  weight="800"
+                  wholeUnits
+                />
+              )}
+            </View>
+            {/* Beside the figure, not the label: the folder tab is half the card wide,
               and a spinner next to the label cut it to "Total you are o…". */}
-          {settling || catchUp ? (
-            <ActivityIndicator size="small" color={theme.color.brand} />
-          ) : null}
-        </Row>
+            {settling || catchUp ? (
+              <ActivityIndicator size="small" color={theme.color.brand} />
+            ) : null}
+          </Row>
+        )}
 
         {sides === undefined ? (
           <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>

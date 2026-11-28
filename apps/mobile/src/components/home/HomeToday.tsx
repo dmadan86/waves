@@ -5,39 +5,28 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
 import { iconSize, Text, useTheme } from '@waves/ui';
-import {
-  pickUpcoming,
-  type PersonalRecurring,
-  type PersonalTxn,
-  type UpcomingItem,
-} from '@waves/core';
+import type { PersonalRecurring, PersonalTxn } from '@waves/core';
 
 import { useSourceLabel } from '@/components/IncomeSource';
 import { PersonAvatar } from '@/components/PersonAvatar';
-import { CardTitle, ICON_FOR } from '@/components/personal/PersonalHomeParts';
-import { GroupRow } from '@/components/home/GroupRow';
+import { CardTitle } from '@/components/personal/PersonalHomeParts';
 import type { SnapRow } from '@/lib/homeSnapshot';
 import { LIST_TILE, ListCard, ListPill, ListItem, RowTile } from '@/components/standard';
 import { BALANCE_MASK } from '@/components/home/ScenicBalanceCard';
 import { useCaptures, usePeopleBalances } from '@/data/hooks';
 import { useHomeSpaceFigures } from '@/data/homeSpaces';
-import { useDateOccurrences } from '@/data/personalDates';
 import { usePostRecurring } from '@/data/postRecurring';
-import { fill, plural, useStrings } from '@/i18n';
-import { useAuth } from '@/lib/auth';
+import { fill, useStrings } from '@/i18n';
 import { foldedCaptureCount } from '@/lib/captureBatch';
-import { subtitleOf, titleOf } from '@/lib/dateReminders/text';
-import { billRows, daysBetween, dateRows } from '@/lib/personalUpcoming';
+import { billRows, daysBetween } from '@/lib/personalUpcoming';
 import {
   isAutoPostOverdue,
-  notExcluded,
   personalNeedKey,
   plainAmount,
   rankNeeds,
-  shownPersonalKeys,
   SOON_DAYS,
   type BillNeed,
   type Need,
@@ -65,17 +54,19 @@ export function NeedsYouCard({
   ledger,
   viewerId,
   hidden,
-  onShownBills,
   onSnapshot,
   all = false,
+  only,
+  currency,
 }: {
   ledger: Ledger;
   viewerId: string | null;
   hidden: boolean;
   /** The full list on its own screen: every need, no title or "See all". */
   all?: boolean;
-  /** The personal bill rows this card shows, so Coming up can leave them out. */
-  onShownBills?: (keys: string) => void;
+  /** Only the people on one side (To collect / To pay), in one currency. */
+  only?: 'owed' | 'owe';
+  currency?: string;
   /** Reports the rows as drawn (unmasked), for Home's stored snapshot. */
   onSnapshot?: (rows: SnapRow[], total: number) => void;
 }) {
@@ -138,24 +129,19 @@ export function NeedsYouCard({
       if (net > 0n) owedToYou.push(need);
       else if (net < 0n) youOwe.push(need);
     }
+    const ofCurrency = (p: PersonNeed): boolean => !currency || p.currency === currency;
     return rankNeeds(
       {
-        bills: [...personal, ...shared],
-        owedToYou,
-        youOwe,
-        reviewCount: foldedCaptureCount(captures.data ?? []),
+        bills: only ? [] : [...personal, ...shared],
+        owedToYou: only === 'owe' ? [] : owedToYou.filter(ofCurrency),
+        youOwe: only === 'owed' ? [] : youOwe.filter(ofCurrency),
+        reviewCount: only ? 0 : foldedCaptureCount(captures.data ?? []),
       },
       all ? Infinity : undefined,
     );
     // sourceLabel/t are stable per render of the same strings; keyed on the data.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ledger, myBills, people, captures.data, t, all]);
-
-  // Tell Home which personal bills are here; a stable string so it settles.
-  const shownBills = shownPersonalKeys(items);
-  useEffect(() => {
-    onShownBills?.(shownBills);
-  }, [onShownBills, shownBills]);
+  }, [ledger, myBills, people, captures.data, t, all, only, currency]);
 
   const rowsJson = onSnapshot
     ? JSON.stringify(
@@ -413,177 +399,3 @@ function NeedRow({
     />
   );
 }
-
-// ───────────────────────────────────────────────────────────── Coming up ──
-
-interface Chip {
-  readonly key: string;
-  readonly top: string;
-  /** The day, ISO, for the date badge. */
-  readonly iso: string;
-  /** Days from today: 0 is today. */
-  readonly inDays: number;
-  /** The right-hand figure: a bill's amount, empty for a date. */
-  readonly amount: string;
-  /** The same figure unmasked, for the stored snapshot. */
-  readonly rawAmount: string;
-  /** The grey line under the title. */
-  readonly detail: string;
-  readonly title: string;
-  readonly sub: string;
-  readonly emoji: keyof typeof Ionicons.glyphMap | null;
-  readonly onPress: () => void;
-}
-
-export function ComingUpChips({
-  ledger,
-  hidden,
-  exclude = '',
-  onSnapshot,
-}: {
-  /** Reports the rows as drawn (unmasked), for Home's stored snapshot. */
-  onSnapshot?: (rows: SnapRow[]) => void;
-  ledger: Ledger;
-  hidden: boolean;
-  /** Bill row keys already in Needs you, joined with '|': each item shows once. */
-  exclude?: string;
-}) {
-  const theme = useTheme();
-  const { t, locale } = useStrings();
-  const { session, isGuest } = useAuth();
-  const sourceLabel = useSourceLabel();
-  const occurrences = useDateOccurrences();
-  const signedOut = !session || isGuest;
-
-  const dates: UpcomingItem[] = pickUpcoming(occurrences, 6);
-  const rows = [
-    ...billRows(ledger.txns, ledger.recurrings, ledger.currency, ledger.today, 14),
-    ...dateRows(dates),
-  ]
-    .filter((r) => r.inDays >= 0 && notExcluded(r.key, exclude))
-    .sort((a, b) => a.inDays - b.inDays || (a.key < b.key ? -1 : 1))
-    .slice(0, 6);
-  const chips: Chip[] = rows.map((row) => {
-    const iso = row.date ?? ledger.today;
-    const top = shortDate(iso, locale).toUpperCase();
-    if (row.item) {
-      const item = row.item;
-      return {
-        key: row.key,
-        top,
-        iso,
-        inDays: row.inDays,
-        amount: '',
-        rawAmount: '',
-        detail: subtitleOf(item, t.dates, locale),
-        title: titleOf(item, t.dates),
-        sub: subtitleOf(item, t.dates, locale),
-        emoji: ICON_FOR[item.kind] ?? null,
-        onPress: () =>
-          item.source === 'date'
-            ? router.push({ pathname: '/dates/edit', params: { id: item.id } })
-            : router.push('/dates'),
-      };
-    }
-    return {
-      key: row.key,
-      top,
-      iso,
-      inDays: row.inDays,
-      amount: hidden
-        ? BALANCE_MASK
-        : plainAmount(row.amount ?? 0n, row.currency ?? ledger.currency, locale),
-      rawAmount: plainAmount(row.amount ?? 0n, row.currency ?? ledger.currency, locale),
-      detail: new Date(`${iso}T12:00:00`).toLocaleDateString(locale, {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
-      }),
-      title: row.title || sourceLabel(row.category ?? null) || t.personal.expense,
-      sub: hidden
-        ? BALANCE_MASK
-        : plainAmount(row.amount ?? 0n, row.currency ?? ledger.currency, locale),
-      emoji: 'receipt-outline',
-      onPress: () => router.push('/personal/upcoming'),
-    };
-  });
-
-  // A short list, nearest first; the full view is one tap away.
-  const shown = chips.slice(0, COMING_UP_ROWS);
-
-  const rowsJson = onSnapshot
-    ? JSON.stringify(
-        shown.map((chip): SnapRow => ({
-          key: chip.key,
-          title: chip.title,
-          memberLabel: chip.detail,
-          amountText: chip.rawAmount,
-          directionLabel:
-            chip.inDays === 0 ? t.dates.today : plural(locale, chip.inDays, t.dates.inDays),
-          icon: chip.emoji ?? 'calendar-outline',
-          href: '/personal/upcoming',
-        })),
-      )
-    : null;
-  useEffect(() => {
-    if (rowsJson && !signedOut) onSnapshot?.(JSON.parse(rowsJson) as SnapRow[]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the rows' content
-  }, [rowsJson, signedOut]);
-  if (signedOut) return null;
-
-  return (
-    <View style={{ gap: theme.spacing.sm }}>
-      <CardTitle
-        title={t.homeToday.comingUp}
-        action={t.homeToday.seeAll}
-        onAction={() => router.push('/personal/upcoming')}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.homeToday.addReminder}
-          onPress={() => router.push('/dates/edit')}
-          hitSlop={8}
-          style={({ pressed }) => ({
-            width: 28,
-            height: 28,
-            borderRadius: 14,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.brandSoft,
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <Ionicons name="add" size={iconSize.md} color={theme.color.brand} />
-        </Pressable>
-      </CardTitle>
-      {shown.length ? (
-        // The same card and rows as Groups below, so the two read as one design.
-        <ListCard>
-          {shown.map((chip, index) => (
-            <GroupRow
-              key={chip.key}
-              icon={chip.emoji ?? 'calendar-outline'}
-              iconColor={theme.color.brand}
-              title={chip.title}
-              memberLabel={chip.detail}
-              amountText={chip.amount}
-              directionLabel={
-                chip.inDays === 0 ? t.dates.today : plural(locale, chip.inDays, t.dates.inDays)
-              }
-              locale={locale}
-              divider={index > 0}
-              onPress={chip.onPress}
-            />
-          ))}
-        </ListCard>
-      ) : (
-        <Text variant="caption" tone="muted">
-          {t.dates.empty}
-        </Text>
-      )}
-    </View>
-  );
-}
-
-/** How many upcoming items Home lists before "See all". */
-const COMING_UP_ROWS = 4;
