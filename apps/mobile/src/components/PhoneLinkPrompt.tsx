@@ -12,7 +12,7 @@
  * never disagree about what counts as a linked number.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image, Pressable, TextInput, useWindowDimensions, View } from 'react-native';
 
@@ -30,8 +30,10 @@ import {
   localDay,
   PhonePromptMode,
   phonePromptMode,
+  readPhonePromptShown,
   readPhonePromptState,
   withLater,
+  writePhonePromptShown,
   writePhonePromptState,
   type PhonePromptState,
 } from '@/lib/phonePrompt';
@@ -72,13 +74,19 @@ export function PhoneLinkPrompt() {
 
   // `null` until storage has answered for the current account, so the card never
   // flashes up and vanishes when a same-day "Later" loads a beat later.
-  const [answer, setAnswer] = useState<{ owner: string; state: PhonePromptState } | null>(null);
+  const [answer, setAnswer] = useState<{
+    owner: string;
+    state: PhonePromptState;
+    shownOn: string | null;
+  } | null>(null);
   useEffect(() => {
     if (!ownerId) return;
     let cancelled = false;
-    void readPhonePromptState(ownerId).then((state) => {
-      if (!cancelled) setAnswer({ owner: ownerId, state });
-    });
+    void Promise.all([readPhonePromptState(ownerId), readPhonePromptShown(ownerId)]).then(
+      ([state, shownOn]) => {
+        if (!cancelled) setAnswer({ owner: ownerId, state, shownOn });
+      },
+    );
     return () => {
       cancelled = true;
     };
@@ -106,6 +114,7 @@ export function PhoneLinkPrompt() {
           { hasPhone, isGuest, canVerify: phoneSignInAvailable(), enabled },
           state,
           localDay(),
+          answer?.shownOn ?? null,
         )
       : PhonePromptMode.Hidden;
 
@@ -122,6 +131,15 @@ export function PhoneLinkPrompt() {
     delayMs: 400,
   });
 
+  // Once it is on screen, today is spent, however it is closed. The answer read at mount is kept,
+  // so the card stays up for this launch.
+  const markedShown = useRef(false);
+  useEffect(() => {
+    if (!granted || !wants || !ownerId || markedShown.current) return;
+    markedShown.current = true;
+    void writePhonePromptShown(ownerId, localDay());
+  }, [granted, wants, ownerId]);
+
   const number = `${dialingCodeForCountry(country) ?? ''}${local.replace(/[^\d]/g, '')}`;
   const looksValid = /^\+?[0-9]{8,15}$/.test(number);
 
@@ -131,9 +149,9 @@ export function PhoneLinkPrompt() {
     setStage(Stage.Ask);
     setLocal('');
     setError(null);
-    setAnswer({ owner: ownerId, state: next });
+    setAnswer({ owner: ownerId, state: next, shownOn: answer?.shownOn ?? null });
     void writePhonePromptState(ownerId, next);
-  }, [ownerId, state]);
+  }, [ownerId, state, answer]);
 
   const send = async (): Promise<void> => {
     setError(null);

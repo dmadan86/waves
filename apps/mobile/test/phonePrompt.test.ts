@@ -8,7 +8,9 @@ import {
   localDay,
   PhonePromptMode,
   phonePromptMode,
+  readPhonePromptShown,
   readPhonePromptState,
+  writePhonePromptShown,
   withLater,
   writePhonePromptState,
 } from '@/lib/phonePrompt';
@@ -148,5 +150,27 @@ describe('"Later" holds on every runtime', () => {
     later.setDate(later.getDate() + 2);
     expect(phonePromptMode(ASKABLE, state, localDay(later))).toBe(PhonePromptMode.Soft);
     expect(await readPhonePromptState('u1')).toEqual(state);
+  });
+});
+
+describe('shown today', () => {
+  beforeEach(async () => AsyncStorage.clear());
+
+  it('stays quiet for the rest of the day once shown, even if never answered', () => {
+    expect(phonePromptMode(ASKABLE, EMPTY_PHONE_PROMPT_STATE, TODAY, TODAY)).toBe(
+      PhonePromptMode.Hidden,
+    );
+    expect(phonePromptMode(ASKABLE, EMPTY_PHONE_PROMPT_STATE, TODAY, YESTERDAY)).toBe(
+      PhonePromptMode.Soft,
+    );
+  });
+
+  it('remembers the day per account and ignores junk', async () => {
+    expect(await readPhonePromptShown('alice')).toBeNull();
+    await writePhonePromptShown('alice', TODAY);
+    expect(await readPhonePromptShown('alice')).toBe(TODAY);
+    expect(await readPhonePromptShown('bob')).toBeNull();
+    await AsyncStorage.setItem('waves.phone_prompt_shown.alice', 'garbage');
+    expect(await readPhonePromptShown('alice')).toBeNull();
   });
 });
