@@ -6,7 +6,7 @@
 export const meEn = {
   nav: 'Me',
   title: 'Me',
-  sub: 'Your private ledger. Only you can see it.',
+  sub: 'Your private ledger. Never shared with your friends or groups.',
   signInNeeded: 'Sign in with your account to see your private ledger. Guests cannot use it.',
   loading: 'Loading your ledger…',
   month: 'Month',

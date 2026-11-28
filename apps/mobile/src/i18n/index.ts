@@ -1408,8 +1408,9 @@ export interface UiStrings {
     action: string;
   };
   /** The wall in front of the two things a guest account cannot hold: the
-   *  private ledger and the bank-message reader. Both keep their data on this
-   *  phone under an identity a guest has no way back into, so the honest answer
+   *  private ledger and the bank-message reader. Both keep their data under an
+   *  identity (the ledger syncs to the server, owner-only, not end-to-end
+   *  encrypted; bank messages stay on this phone) a guest has no way back into, so the honest answer
    *  is to ask for one before either is opened, not after. */
   signInWall: {
     title: string;
@@ -14062,7 +14063,7 @@ const en: UiStrings = {
     atGroupRate: "Counted at {group}'s own rate for {currency}.",
     keptInCurrency: 'Saved in {currency}. Add a rate to count it towards {group}.',
     keptForGroup: 'Kept for {group} — open it to say who paid and how it splits.',
-    justMeHint: 'Goes to your private ledger — not split, and nobody sees it.',
+    justMeHint: 'Goes to your private ledger — not split, and not shared with anyone.',
     onlyYouPersonal: 'Only you · Personal',
     saveDraft: 'Draft',
     saveDraftLong: 'Keep as a draft',
@@ -17087,7 +17088,7 @@ const en: UiStrings = {
   },
   personalSetup: {
     title: 'Set up Personal',
-    privateLine: 'Private to you — only you see this',
+    privateLine: 'Private to you — never shared with your groups',
     skip: 'Skip',
     cont: 'Continue',
     stepOf: 'Step {n} of {total}',
@@ -22462,7 +22463,7 @@ const ta: UiStrings = {
     atGroupRate: '{currency} க்கு {group} குழுவின் சொந்த விகிதத்தில் கணக்கிடப்பட்டது.',
     keptInCurrency: '{currency} இல் சேமிக்கப்பட்டது. {group} இல் சேர்க்க ஒரு விகிதத்தைச் சேர்.',
     keptForGroup: '{group} க்காக வைக்கப்பட்டது — யார் செலுத்தினார், எப்படிப் பிரிப்பது என்பதைச் சொல்ல திறக்கவும்.',
-    justMeHint: 'உங்கள் தனிப்பட்ட கணக்கில் சேரும் — பிரிக்கப்படாது, யாருக்கும் தெரியாது.',
+    justMeHint: 'உங்கள் தனிப்பட்ட கணக்கில் சேரும் — பிரிக்கப்படாது, யாருடனும் பகிரப்படாது.',
     onlyYouPersonal: 'நீங்கள் மட்டும் · தனிப்பட்டது',
     saveDraft: 'வரைவு',
     saveDraftLong: 'வரைவாக வை',
@@ -25557,7 +25558,7 @@ const ta: UiStrings = {
   },
   personalSetup: {
     title: 'தனிப்பட்டதை அமைக்கவும்',
-    privateLine: 'உங்களுக்கு மட்டும் — நீங்கள் மட்டுமே பார்க்கலாம்',
+    privateLine: 'உங்களுக்கு மட்டும் — உங்கள் குழுக்களுடன் பகிரப்படாது',
     skip: 'தவிர்',
     cont: 'தொடரவும்',
     stepOf: 'படி {n} / {total}',
@@ -30865,7 +30866,7 @@ const hi: UiStrings = {
     atGroupRate: '{currency} के लिए {group} की अपनी दर पर गिना गया।',
     keptInCurrency: '{currency} में सेव हुआ। इसे {group} में गिनने के लिए दर जोड़ें।',
     keptForGroup: '{group} के लिए रखा गया — खोलकर बताएँ कि किसने दिया और कैसे बँटेगा।',
-    justMeHint: 'यह आपके निजी खाते में जाता है — बँटता नहीं, और किसी को दिखता नहीं।',
+    justMeHint: 'यह आपके निजी खाते में जाता है — बँटता नहीं, और किसी के साथ साझा नहीं होता।',
     onlyYouPersonal: 'केवल आप · निजी',
     saveDraft: 'ड्राफ़्ट',
     saveDraftLong: 'ड्राफ़्ट के रूप में रखें',
@@ -33839,7 +33840,7 @@ const hi: UiStrings = {
   },
   personalSetup: {
     title: 'पर्सनल सेट करें',
-    privateLine: 'सिर्फ़ आपके लिए — इसे केवल आप देखते हैं',
+    privateLine: 'सिर्फ़ आपके लिए — आपके ग्रुप्स के साथ कभी साझा नहीं',
     skip: 'छोड़ें',
     cont: 'आगे',
     stepOf: 'चरण {n} / {total}',
@@ -39460,7 +39461,7 @@ const ar: UiStrings = {
     atGroupRate: 'حُسب بسعر {group} الخاص لـ {currency}.',
     keptInCurrency: 'حُفظ بعملة {currency}. أضف سعر صرف لاحتسابه ضمن {group}.',
     keptForGroup: 'محفوظ لـ {group} — افتحه لتحدد من دفع وكيف يُقسَّم.',
-    justMeHint: 'يذهب إلى سجلّك الخاص — لا يُقسَّم ولا يراه أحد.',
+    justMeHint: 'يذهب إلى سجلّك الخاص — لا يُقسَّم ولا يُشارَك مع أحد.',
     onlyYouPersonal: 'أنت فقط · شخصي',
     saveDraft: 'مسودة',
     saveDraftLong: 'احتفظ به كمسودة',
@@ -43026,7 +43027,7 @@ const ar: UiStrings = {
   },
   personalSetup: {
     title: 'إعداد الشخصي',
-    privateLine: 'خاص بك — أنت وحدك من يراه',
+    privateLine: 'خاص بك — لا يُشارَك مع مجموعاتك أبدًا',
     skip: 'تخطي',
     cont: 'متابعة',
     stepOf: 'الخطوة {n} من {total}',
