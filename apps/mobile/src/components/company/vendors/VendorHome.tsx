@@ -50,7 +50,7 @@ export function VendorHome({ groupId }: { groupId: string }) {
                     { amount: fmt(balance < 0n ? -balance : balance) },
                   )}
                 </Text>
-                <Button label={s.addBill} onPress={() => setAdding(true)} />
+                <Button fullWidth label={s.addBill} onPress={() => setAdding(true)} />
               </StandardCard>
               {bankNotice.show ? (
                 <BankChangedNotice

@@ -135,6 +135,7 @@ export default function CompanyVendorOrderDetailScreen() {
           <View style={{ gap: theme.spacing.sm }}>
             {actions.includes('accepted') ? (
               <Button
+                fullWidth
                 label={s.accept}
                 variant="brand"
                 disabled={change.isPending}
@@ -143,6 +144,7 @@ export default function CompanyVendorOrderDetailScreen() {
             ) : null}
             {actions.includes('rejected') ? (
               <Button
+                fullWidth
                 label={s.reject}
                 disabled={change.isPending}
                 onPress={() => run('rejected')}
@@ -150,6 +152,7 @@ export default function CompanyVendorOrderDetailScreen() {
             ) : null}
             {actions.includes('delivered') ? (
               <Button
+                fullWidth
                 label={s.markDelivered}
                 variant="brand"
                 disabled={change.isPending}
@@ -158,12 +161,14 @@ export default function CompanyVendorOrderDetailScreen() {
             ) : null}
             {canEdit && !order.pending ? (
               <Button
+                fullWidth
                 label={s.editOrder}
                 onPress={() => router.push(`/group/${id}/company-vendor-order?orderId=${order.id}`)}
               />
             ) : null}
             {actions.includes('cancelled') ? (
               <Button
+                fullWidth
                 label={s.cancelOrder}
                 disabled={change.isPending}
                 onPress={() =>
@@ -177,7 +182,7 @@ export default function CompanyVendorOrderDetailScreen() {
                 }
               />
             ) : null}
-            <Button label={s.orderPdf} onPress={() => void pdf()} />
+            <Button fullWidth label={s.orderPdf} onPress={() => void pdf()} />
             {pdfError ? (
               <Text variant="caption" tone="negative">
                 {s.pdfFailed}

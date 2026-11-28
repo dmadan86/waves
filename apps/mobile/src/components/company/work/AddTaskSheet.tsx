@@ -243,7 +243,7 @@ export function AddTaskSheet({
               );
             })}
           </ScrollView>
-          <Button label={t.common.done} onPress={() => setPanel('form')} />
+          <Button fullWidth label={t.common.done} onPress={() => setPanel('form')} />
         </View>
       ) : panel === 'helpers' ? (
         <HelpersPanel
@@ -267,7 +267,7 @@ export function AddTaskSheet({
             }}
           />
           {Platform.OS === 'ios' ? (
-            <Button label={t.common.done} onPress={() => setPanel('form')} />
+            <Button fullWidth label={t.common.done} onPress={() => setPanel('form')} />
           ) : null}
         </View>
       ) : (

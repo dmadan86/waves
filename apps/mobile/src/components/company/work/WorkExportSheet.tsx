@@ -281,7 +281,7 @@ export function WorkExportSheet({
               }}
             />
             {Platform.OS === 'ios' ? (
-              <Button label={t.common.done} onPress={() => setPicking(null)} />
+              <Button fullWidth label={t.common.done} onPress={() => setPicking(null)} />
             ) : null}
           </View>
         ) : (
@@ -380,6 +380,7 @@ export function WorkExportSheet({
             </View>
             {error ? <Text tone="negative">{error}</Text> : null}
             <Button
+              fullWidth
               label={busy ? t.groupExport.preparing : c.workGenerate}
               variant="brand"
               disabled={busy}

@@ -365,10 +365,10 @@ export function CompanyPeople({
                       alignItems: 'center',
                       gap: 10,
                       paddingVertical: 6,
-                      marginLeft: level * 18,
-                      paddingLeft: level > 0 ? 10 : 0,
-                      borderLeftWidth: level > 0 ? 1 : 0,
-                      borderLeftColor: theme.color.border,
+                      marginStart: level * 18,
+                      paddingStart: level > 0 ? 10 : 0,
+                      borderStartWidth: level > 0 ? 1 : 0,
+                      borderStartColor: theme.color.border,
                     }}
                   >
                     <PersonAvatar member={m} name={name} ghost={isGhost(m)} size={36} />

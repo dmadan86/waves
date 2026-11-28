@@ -149,6 +149,7 @@ export function CompanyActivityScreen({ groupId }: { groupId: string }) {
           <View style={{ gap: theme.spacing.sm }}>
             {options.map((o) => (
               <Button
+                fullWidth
                 key={o.value}
                 variant={filter === o.value ? 'primary' : 'secondary'}
                 label={o.label}

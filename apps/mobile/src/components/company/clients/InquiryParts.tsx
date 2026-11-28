@@ -239,6 +239,7 @@ export function InquirySheet({
           </Text>
         ) : null}
         <Button
+          fullWidth
           label={s.inqSave}
           variant="brand"
           disabled={!title.trim() || save.isPending}
@@ -321,6 +322,7 @@ export function AssigneeSheet({
           </Text>
         ) : null}
         <Button
+          fullWidth
           label={s.assignSave}
           variant="brand"
           disabled={assign.isPending}

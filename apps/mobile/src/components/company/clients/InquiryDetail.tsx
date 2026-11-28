@@ -203,6 +203,7 @@ export function InquiryDetail({ groupId, inquiryId }: { groupId: string; inquiry
                 {/* Won: the bill above is the next step, so no new estimate and no rejecting. */}
                 {docsAllowed && status !== 'rejected' && status !== 'won' ? (
                   <Button
+                    fullWidth
                     label={s.inqCreateEstimate}
                     variant="brand"
                     onPress={() =>
@@ -214,6 +215,7 @@ export function InquiryDetail({ groupId, inquiryId }: { groupId: string; inquiry
                 ) : null}
                 {canWrite && status !== 'rejected' && status !== 'won' ? (
                   <Button
+                    fullWidth
                     label={s.inqReject}
                     variant="secondary"
                     disabled={reject.isPending}
@@ -222,6 +224,7 @@ export function InquiryDetail({ groupId, inquiryId }: { groupId: string; inquiry
                 ) : null}
                 {canWrite && status === 'rejected' ? (
                   <Button
+                    fullWidth
                     label={s.inqReopen}
                     variant="secondary"
                     disabled={reject.isPending}

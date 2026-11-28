@@ -155,6 +155,7 @@ export function CompanyEmploymentControl({
     <>
       {autoOpen ? null : (
         <Button
+          fullWidth
           label={currentlyEmployed ? t.company.markNotEmployed : t.company.markEmployed}
           onPress={() => (currentlyEmployed ? setOpen(true) : void submit())}
           disabled={mutation.isPending}
@@ -185,6 +186,7 @@ export function CompanyEmploymentControl({
                   )}
                 </Text>
                 <Button
+                  fullWidth
                   label={t.company.restoreWithoutId}
                   onPress={() => void restore('clear')}
                   disabled={mutation.isPending || checkingId}
@@ -207,6 +209,7 @@ export function CompanyEmploymentControl({
                 />
                 {newIdError ? <Text variant="body">{newIdError}</Text> : null}
                 <Button
+                  fullWidth
                   label={t.company.pickNewId}
                   onPress={() => void restore('new')}
                   disabled={mutation.isPending || checkingId || !newEmployeeId.trim()}
@@ -216,6 +219,7 @@ export function CompanyEmploymentControl({
               <>
                 <Text variant="heading">{t.company.markEmployed}</Text>
                 <Button
+                  fullWidth
                   label={t.company.markEmployed}
                   onPress={() => void submit()}
                   disabled={mutation.isPending}
@@ -254,6 +258,7 @@ export function CompanyEmploymentControl({
                 }}
               />
               <Button
+                fullWidth
                 label={t.company.markNotEmployed}
                 onPress={() => void submit()}
                 disabled={mutation.isPending}

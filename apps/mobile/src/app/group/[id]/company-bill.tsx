@@ -740,6 +740,7 @@ export default function CompanyBillScreen() {
             </Text>
           ) : null}
           <Button
+            fullWidth
             label={c.markReceived}
             variant="brand"
             disabled={busy}
