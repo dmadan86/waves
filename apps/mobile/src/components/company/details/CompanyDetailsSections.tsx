@@ -6,7 +6,7 @@ import { maskValue, type DetailsCard } from '../../../../../../packages/core/src
 import { Text, directionalIcon, iconSize, useTheme } from '@waves/ui';
 
 import { IconDisc } from '@/components/company/dashboard/overviewKit';
-import { StandardCard } from '@/components/standard';
+import { SectionHeader, StandardCard } from '@/components/standard';
 import { useGroup } from '@/data/hooks';
 import { plural, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
@@ -185,9 +185,33 @@ export function CompanyDetailsSections({
         ) : null}
       </LinearGradient>
 
-      <Text variant="body" style={{ fontWeight: '700' }}>
-        {s.companyInfo}
-      </Text>
+      <SectionHeader
+        title={s.companyInfo}
+        trailing={
+          canEdit ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={s.addDetails}
+              onPress={onEdit}
+              hitSlop={8}
+              style={{
+                minHeight: 32,
+                paddingHorizontal: theme.spacing.md,
+                borderRadius: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                backgroundColor: theme.color.brandSoft,
+              }}
+            >
+              <Ionicons name="add" size={iconSize.sm} color={theme.color.brand} />
+              <Text variant="caption" style={{ fontWeight: '700', color: theme.color.brand }}>
+                {s.addDetails}
+              </Text>
+            </Pressable>
+          ) : undefined
+        }
+      />
       <StandardCard style={{ gap: theme.spacing.sm }}>
         <Row icon="document-text-outline" title={s.legalName} value={name} />
         <Row
@@ -204,29 +228,9 @@ export function CompanyDetailsSections({
           onPress={edit}
           last
         />
-        {canEdit ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={s.addMore}
-            onPress={onEdit}
-            style={{
-              minHeight: 44,
-              borderRadius: theme.radius.md,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.color.brandSoft,
-            }}
-          >
-            <Text variant="body" style={{ fontWeight: '700', color: theme.color.brand }}>
-              + {s.addMore}
-            </Text>
-          </Pressable>
-        ) : null}
       </StandardCard>
 
-      <Text variant="body" style={{ fontWeight: '700' }}>
-        {s.peopleAccess}
-      </Text>
+      <SectionHeader title={s.peopleAccess} />
       <StandardCard>
         <SetupRow
           icon="people-outline"
@@ -236,9 +240,7 @@ export function CompanyDetailsSections({
         />
       </StandardCard>
 
-      <Text variant="body" style={{ fontWeight: '700' }}>
-        {s.businessSetup}
-      </Text>
+      <SectionHeader title={s.businessSetup} />
       <StandardCard style={{ gap: theme.spacing.sm }}>
         <SetupRow
           icon="wallet-outline"
