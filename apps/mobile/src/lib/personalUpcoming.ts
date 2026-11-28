@@ -396,3 +396,13 @@ export function filterUpcoming(view: UpcomingView, tab: UpcomingTab): readonly U
       ? view.rows.filter((r) => r.kind === 'date')
       : view.rows;
 }
+
+/** Which empty-state copy to show for a tab, and whether "Clear filters" has anywhere to go. */
+export function emptyCopy(tab: UpcomingTab): {
+  title: 'emptyAllTitle' | 'emptyBillsTitle' | 'emptyRemindersTitle';
+  body: 'emptyAllBody' | 'emptyBillsBody' | 'emptyRemindersBody';
+  canClear: boolean;
+} {
+  const k = tab === 'bills' ? 'Bills' : tab === 'reminders' ? 'Reminders' : 'All';
+  return { title: `empty${k}Title`, body: `empty${k}Body`, canClear: tab !== 'all' } as never;
+}

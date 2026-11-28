@@ -8738,6 +8738,14 @@ export interface UiStrings {
     filterAll: string;
     filterBills: string;
     filterReminders: string;
+    upcomingSubtitle: string;
+    emptyAllTitle: string;
+    emptyAllBody: string;
+    emptyBillsTitle: string;
+    emptyBillsBody: string;
+    emptyRemindersTitle: string;
+    emptyRemindersBody: string;
+    clearFilters: string;
     filterLabel: string;
     thisMonth: string;
     addReminder: string;
@@ -17260,6 +17268,14 @@ const en: UiStrings = {
     filterAll: 'All',
     filterBills: 'Bills',
     filterReminders: 'Reminders',
+    upcomingSubtitle: 'Bills, renewals and reminders',
+    emptyAllTitle: 'Nothing coming up',
+    emptyAllBody: 'Nothing upcoming matches your current filters.',
+    emptyBillsTitle: 'No bills found',
+    emptyBillsBody: 'No upcoming bills match your current filters.',
+    emptyRemindersTitle: 'No reminders found',
+    emptyRemindersBody: 'No upcoming reminders match your current filters.',
+    clearFilters: 'Clear filters',
     filterLabel: 'Show',
     thisMonth: 'This Month',
     addReminder: 'Add Reminder',
@@ -25862,6 +25878,14 @@ const ta: UiStrings = {
     filterAll: 'அனைத்தும்',
     filterBills: 'பில்கள்',
     filterReminders: 'நினைவூட்டல்கள்',
+    upcomingSubtitle: 'பில்கள், புதுப்பிப்புகள் மற்றும் நினைவூட்டல்கள்',
+    emptyAllTitle: 'வரவிருப்பது எதுவும் இல்லை',
+    emptyAllBody: 'உங்கள் வடிகட்டிகளுக்கு பொருந்தும் வரவிருப்பவை இல்லை.',
+    emptyBillsTitle: 'பில்கள் எதுவும் இல்லை',
+    emptyBillsBody: 'உங்கள் வடிகட்டிகளுக்கு பொருந்தும் பில்கள் இல்லை.',
+    emptyRemindersTitle: 'நினைவூட்டல்கள் எதுவும் இல்லை',
+    emptyRemindersBody: 'உங்கள் வடிகட்டிகளுக்கு பொருந்தும் நினைவூட்டல்கள் இல்லை.',
+    clearFilters: 'வடிகட்டிகளை அழி',
     filterLabel: 'காட்டு',
     thisMonth: 'இந்த மாதம்',
     addReminder: 'நினைவூட்டலைச் சேர்',
@@ -34272,6 +34296,14 @@ const hi: UiStrings = {
     filterAll: 'सभी',
     filterBills: 'बिल',
     filterReminders: 'रिमाइंडर',
+    upcomingSubtitle: 'बिल, नवीनीकरण और रिमाइंडर',
+    emptyAllTitle: 'कुछ आने वाला नहीं है',
+    emptyAllBody: 'आपके फ़िल्टर से मेल खाता कुछ नहीं है।',
+    emptyBillsTitle: 'कोई बिल नहीं मिला',
+    emptyBillsBody: 'आपके फ़िल्टर से मेल खाता कोई बिल नहीं है।',
+    emptyRemindersTitle: 'कोई रिमाइंडर नहीं मिला',
+    emptyRemindersBody: 'आपके फ़िल्टर से मेल खाता कोई रिमाइंडर नहीं है।',
+    clearFilters: 'फ़िल्टर हटाएँ',
     filterLabel: 'दिखाएँ',
     thisMonth: 'इस महीने',
     addReminder: 'रिमाइंडर जोड़ें',
@@ -43606,6 +43638,14 @@ const ar: UiStrings = {
     filterAll: 'الكل',
     filterBills: 'الفواتير',
     filterReminders: 'التذكيرات',
+    upcomingSubtitle: 'الفواتير والتجديدات والتذكيرات',
+    emptyAllTitle: 'لا شيء قادم',
+    emptyAllBody: 'لا شيء قادم يطابق عوامل التصفية الحالية.',
+    emptyBillsTitle: 'لا توجد فواتير',
+    emptyBillsBody: 'لا توجد فواتير قادمة تطابق عوامل التصفية الحالية.',
+    emptyRemindersTitle: 'لا توجد تذكيرات',
+    emptyRemindersBody: 'لا توجد تذكيرات قادمة تطابق عوامل التصفية الحالية.',
+    clearFilters: 'مسح عوامل التصفية',
     filterLabel: 'عرض',
     thisMonth: 'هذا الشهر',
     addReminder: 'أضف تذكيرًا',
