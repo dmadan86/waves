@@ -30,6 +30,7 @@ import {
 } from '@waves/ui';
 import type { CurrencyCode } from '@waves/core';
 
+import { ListCard } from '@/components/standard';
 import { withScenic } from '@/components/ScenicScope';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import {
@@ -173,7 +174,7 @@ function PairSettleScreen() {
                   style={{
                     width: 40,
                     height: 40,
-                    borderRadius: 20,
+                    borderRadius: theme.radius.pill,
                     alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor: theme.color.surface,
@@ -264,27 +265,28 @@ function PairSettleScreen() {
               {owingGroups.length > 0 ? (
                 <>
                   <Text variant="heading">{t.person.viewDetails}</Text>
-                  {owingGroups.map((group) => (
-                    <PairGroupCard
-                      key={group.groupId}
-                      group={group}
-                      onPress={() => settleIn(group)}
-                    />
-                  ))}
+                  <ListCard>
+                    {owingGroups.map((group, index) => (
+                      <PairGroupCard
+                        key={group.groupId}
+                        group={group}
+                        divider={index > 0}
+                        onPress={() => settleIn(group)}
+                      />
+                    ))}
+                  </ListCard>
                 </>
               ) : null}
 
               {groups.length > 0 ? (
-                <Card
-                  style={{ paddingVertical: theme.spacing.xs, paddingHorizontal: theme.spacing.md }}
-                >
+                <ListCard>
                   <NavRow
                     icon="document-text-outline"
                     title={t.person.fullLedger}
                     body={fill(t.person.fullLedgerBody, { name: title })}
                     onPress={openLedger}
                   />
-                </Card>
+                </ListCard>
               ) : null}
             </>
           )}

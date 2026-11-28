@@ -7,20 +7,18 @@ import { useLocalSearchParams } from 'expo-router';
 import { useSharedValue } from 'react-native-reanimated';
 
 import type { PersonalVehicle, VehicleRenewal } from '@waves/core';
-import {
-  Button,
-  directionalIcon,
-  IconButton,
-  iconSize,
-  Row,
-  Screen,
-  Text,
-  useTheme,
-} from '@waves/ui';
+import { Button, IconButton, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonalGuard } from '@/components/PersonalGuard';
-import { PlainHeader, SectionHeader, StandardCard } from '@/components/standard';
+import {
+  ListCard,
+  ListItem,
+  PlainHeader,
+  RowTile,
+  SectionHeader,
+  StandardCard,
+} from '@/components/standard';
 import { StatusPill, RenameSheet, useWealthMoney } from '@/components/wealth/parts';
 import { DocumentsCard } from '@/components/wealth/RentalExtras';
 import { ExpenseSheet, FieldsSheet, RenewalSheet } from '@/components/wealth/VehicleSheets';
@@ -91,42 +89,33 @@ function Line({
   label,
   value,
   onPress,
-  last,
+  divider = true,
 }: {
   icon: IconName;
   label: string;
   value: string;
   onPress?: () => void;
-  last?: boolean;
+  divider?: boolean;
 }) {
   const theme = useTheme();
   return (
-    <Pressable
-      disabled={!onPress}
-      accessibilityRole={onPress ? 'button' : undefined}
+    <ListItem
+      divider={divider}
       accessibilityLabel={`${label} ${value}`}
       onPress={onPress}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.md,
-        paddingBottom: last ? 0 : theme.spacing.md,
-        borderBottomWidth: last ? 0 : 1,
-        borderBottomColor: theme.color.border,
-      }}
-    >
-      <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
-      <Text variant="caption" tone="muted">
-        {label}
-      </Text>
-      <Text
-        variant="body"
-        numberOfLines={3}
-        style={{ flex: 1, fontWeight: '600', textAlign: 'right' }}
-      >
-        {value}
-      </Text>
-    </Pressable>
+      leading={
+        <RowTile tint={theme.color.surfaceMuted}>
+          <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
+        </RowTile>
+      }
+      title={label}
+      subtitle={
+        <Text variant="caption" tone="muted" numberOfLines={3}>
+          {value}
+        </Text>
+      }
+      chevron={!!onPress}
+    />
   );
 }
 
@@ -374,8 +363,9 @@ function DetailBody() {
         </StandardCard>
 
         <SectionHeader title={v.detailsTitle} />
-        <StandardCard style={card}>
+        <ListCard>
           <Line
+            divider={false}
             icon="id-card-outline"
             label={v.registrationLabel}
             value={veh.registration ?? none}
@@ -415,18 +405,18 @@ function DetailBody() {
             value={veh.notes ?? none}
             onPress={() => setSheet({ k: 'notes' })}
           />
-          <Pressable
-            accessibilityRole="button"
+          <ListItem
+            divider
             accessibilityLabel={v.addDetail}
             onPress={() => setSheet({ k: 'detail', i: null })}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}
-          >
-            <Ionicons name="add" size={iconSize.md} color={theme.color.brand} />
-            <Text variant="body" style={{ color: theme.color.brand, fontWeight: '700' }}>
-              {v.addDetail}
-            </Text>
-          </Pressable>
-        </StandardCard>
+            leading={
+              <RowTile tint={theme.color.brandSoft}>
+                <Ionicons name="add" size={iconSize.md} color={theme.color.brand} />
+              </RowTile>
+            }
+            title={v.addDetail}
+          />
+        </ListCard>
 
         <SectionHeader
           title={v.renewalsTitle}
@@ -441,50 +431,36 @@ function DetailBody() {
             </Pressable>
           }
         />
-        <StandardCard style={card}>
-          {[...veh.renewals]
-            .sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1))
-            .map((r, i, all) => (
-              <Pressable
-                key={r.id}
-                accessibilityRole="button"
-                accessibilityLabel={`${kindName(v, r.kind, region, r.label)} ${showDate(r.dueDate, locale)}`}
-                onPress={() => setSheet({ k: 'renewal', r })}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: theme.spacing.md,
-                  paddingBottom: i < all.length - 1 ? theme.spacing.md : 0,
-                }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text variant="body" style={{ fontWeight: '600' }}>
-                    {kindName(v, r.kind, region, r.label)}
-                  </Text>
-                  {r.provider || r.policyNumber ? (
-                    <Text variant="caption" tone="muted" numberOfLines={1}>
-                      {[r.provider, r.policyNumber].filter(Boolean).join(' · ')}
-                    </Text>
-                  ) : null}
-                </View>
-                <Text variant="body" style={{ fontWeight: '700' }}>
-                  {showDate(r.dueDate, locale)}
-                </Text>
-                <Ionicons
-                  name={directionalIcon('chevron-forward')}
-                  size={iconSize.sm}
-                  color={theme.color.textMuted}
-                />
-              </Pressable>
-            ))}
-          {veh.renewals.length === 0 ? (
+        {veh.renewals.length === 0 ? (
+          <StandardCard>
             <Button
               label={v.addRenewal}
               variant="secondary"
               onPress={() => setSheet({ k: 'renewal', r: null })}
             />
-          ) : null}
-        </StandardCard>
+          </StandardCard>
+        ) : (
+          <ListCard>
+            {[...veh.renewals]
+              .sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1))
+              .map((r, i) => (
+                <ListItem
+                  key={r.id}
+                  divider={i > 0}
+                  accessibilityLabel={`${kindName(v, r.kind, region, r.label)} ${showDate(r.dueDate, locale)}`}
+                  onPress={() => setSheet({ k: 'renewal', r })}
+                  title={kindName(v, r.kind, region, r.label)}
+                  subtitle={
+                    r.provider || r.policyNumber
+                      ? [r.provider, r.policyNumber].filter(Boolean).join(' · ')
+                      : undefined
+                  }
+                  amount={showDate(r.dueDate, locale)}
+                  chevron
+                />
+              ))}
+          </ListCard>
+        )}
 
         <View onLayout={(e) => docsY.set(e.nativeEvent.layout.y)}>
           <DocumentsCard
@@ -501,34 +477,33 @@ function DetailBody() {
         </View>
 
         <SectionHeader title={v.recentExpenses} />
-        <StandardCard style={card}>
-          {veh.movedFrom ? (
-            <Text variant="caption" tone="muted">
-              {fill(v.earlierExpenses, { where: veh.movedFrom })}
-            </Text>
-          ) : null}
-          {txns.length === 0 ? (
-            <Text variant="caption" tone="muted">
-              {v.noExpenses}
-            </Text>
-          ) : (
-            txns.slice(0, 8).map((x) => (
-              <Row key={x.id} style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                <View style={{ flex: 1 }}>
-                  <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
-                    {v.expenseKinds[x.vehicleKind ?? 'other']}
-                  </Text>
-                  <Text variant="caption" tone="muted" numberOfLines={1}>
-                    {showDate(x.date, locale)}
-                  </Text>
-                </View>
-                <Text variant="body" style={{ fontWeight: '700' }}>
-                  {fmt(x.amount, x.currency)}
-                </Text>
-              </Row>
-            ))
-          )}
-        </StandardCard>
+        {veh.movedFrom || txns.length === 0 ? (
+          <StandardCard style={card}>
+            {veh.movedFrom ? (
+              <Text variant="caption" tone="muted">
+                {fill(v.earlierExpenses, { where: veh.movedFrom })}
+              </Text>
+            ) : null}
+            {txns.length === 0 ? (
+              <Text variant="caption" tone="muted">
+                {v.noExpenses}
+              </Text>
+            ) : null}
+          </StandardCard>
+        ) : null}
+        {txns.length > 0 ? (
+          <ListCard>
+            {txns.slice(0, 8).map((x, i) => (
+              <ListItem
+                key={x.id}
+                divider={i > 0}
+                title={v.expenseKinds[x.vehicleKind ?? 'other']}
+                subtitle={showDate(x.date, locale)}
+                amount={fmt(x.amount, x.currency)}
+              />
+            ))}
+          </ListCard>
+        ) : null}
       </ScrollView>
 
       {sheet?.k === 'expense' ? (

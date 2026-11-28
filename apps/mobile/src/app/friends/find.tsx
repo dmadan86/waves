@@ -24,7 +24,6 @@ import {
   Image,
   Keyboard,
   Platform,
-  Pressable,
   ScrollView,
   TextInput,
   useWindowDimensions,
@@ -48,6 +47,7 @@ import {
 import { findPerson, type FoundPerson } from '@/data/api';
 import { FindSomeoneFooter } from '@/components/FindSomeoneFooter';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { LIST_TILE, ListCard, ListItem } from '@/components/standard';
 import { useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { channelFor } from '@/lib/linkMember';
@@ -180,7 +180,7 @@ export default function FindPersonScreen() {
                 style={{
                   width: 36,
                   height: 36,
-                  borderRadius: 18,
+                  borderRadius: theme.radius.pill,
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: theme.color.brandSoft,
@@ -278,30 +278,20 @@ export default function FindPersonScreen() {
           ) : null}
 
           {outcome.state === 'found' ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={outcome.person.display_name}
-              onPress={() =>
-                router.push({
-                  pathname: '/friends/person/[key]',
-                  params: { key: outcome.person.profile_id, name: outcome.person.display_name },
-                })
-              }
-              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-            >
-              <Card>
-                <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+            <ListCard>
+              <ListItem
+                title={outcome.person.display_name}
+                leading={
                   <ProfileAvatar
                     name={outcome.person.display_name}
                     avatarUrl={outcome.person.avatar_url}
-                    size={48}
+                    size={LIST_TILE}
                   />
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <Text variant="subheading" numberOfLines={1}>
-                      {outcome.person.display_name}
-                    </Text>
-                    {/* What you typed, given back. It reveals nothing and it is
-                      the only way to be sure this is the right person. */}
+                }
+                // What you typed, given back. It reveals nothing and it is
+                // the only way to be sure this is the right person.
+                subtitle={
+                  <>
                     <Text
                       variant="caption"
                       tone="muted"
@@ -315,15 +305,17 @@ export default function FindPersonScreen() {
                         <Badge label={t.person.alreadyShared} tone="brand" />
                       </Row>
                     ) : null}
-                  </View>
-                  <Ionicons
-                    name={directionalIcon('chevron-forward')}
-                    size={iconSize.md}
-                    color={theme.color.textFaint}
-                  />
-                </Row>
-              </Card>
-            </Pressable>
+                  </>
+                }
+                chevron
+                onPress={() =>
+                  router.push({
+                    pathname: '/friends/person/[key]',
+                    params: { key: outcome.person.profile_id, name: outcome.person.display_name },
+                  })
+                }
+              />
+            </ListCard>
           ) : null}
         </View>
       </ScrollView>

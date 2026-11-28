@@ -432,7 +432,7 @@ export default function NotificationSettingsScreen() {
               style={{
                 paddingHorizontal: 10,
                 paddingVertical: 4,
-                borderRadius: 12,
+                borderRadius: theme.radius.pill,
                 backgroundColor: pill.bg,
               }}
             >
@@ -577,12 +577,13 @@ function SoftCard({ children, style }: { children: ReactNode; style?: object }) 
 
 /** A glyph on its own soft disc. */
 function Disc({ icon, color, bg }: { icon: IconName; color: string; bg: string }) {
+  const theme = useTheme();
   return (
     <View
       style={{
         width: 42,
         height: 42,
-        borderRadius: 21,
+        borderRadius: theme.radius.pill,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: bg,

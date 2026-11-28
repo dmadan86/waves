@@ -229,7 +229,7 @@ export default function DeleteAccountScreen() {
                     style={{
                       width: 36,
                       height: 36,
-                      borderRadius: 18,
+                      borderRadius: theme.radius.pill,
                       backgroundColor: theme.tint[stat.tint].bg,
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -401,7 +401,7 @@ function SectionHead({
         style={{
           width: 40,
           height: 40,
-          borderRadius: 20,
+          borderRadius: theme.radius.pill,
           backgroundColor: tint.bg,
           alignItems: 'center',
           justifyContent: 'center',
@@ -451,7 +451,7 @@ function BasketArt() {
         style={{
           position: 'absolute',
           inset: 0,
-          borderRadius: 16,
+          borderRadius: theme.radius.md,
           backgroundColor: theme.color.negativeSoft,
           opacity: 0.6,
         }}
@@ -493,7 +493,7 @@ function BasketArt() {
           bottom: 0,
           width: 34,
           height: 34,
-          borderRadius: 17,
+          borderRadius: theme.radius.pill,
           backgroundColor: theme.color.surface,
           alignItems: 'center',
           justifyContent: 'center',

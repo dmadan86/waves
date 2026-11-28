@@ -30,6 +30,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Callout, Gradient, IconButton, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
 
+import { RowTile, StandardCard } from '@/components/standard';
 import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
@@ -192,7 +193,7 @@ function ReadIllustration({ draftLabel }: { draftLabel: string }): React.JSX.Ele
             style={{
               width: 24,
               height: 24,
-              borderRadius: 12,
+              borderRadius: theme.radius.pill,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: theme.color.brandSoft,
@@ -223,18 +224,9 @@ function Pledge({
   const theme = useTheme();
   return (
     <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-      <View
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.color.surfaceMuted,
-        }}
-      >
+      <RowTile tint={theme.color.surfaceMuted}>
         <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
-      </View>
+      </RowTile>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={{ fontSize: 15, fontWeight: '700', color: theme.color.text }}>{title}</Text>
         <Text variant="caption" tone="muted">
@@ -342,16 +334,7 @@ export default function ReadMessagesScreen(): React.JSX.Element | null {
           <ReadIllustration draftLabel={d.draftLabel} />
         </Row>
 
-        <View
-          style={{
-            gap: theme.spacing.lg,
-            padding: theme.spacing.lg,
-            borderRadius: theme.radius.xl,
-            backgroundColor: theme.color.surface,
-            borderWidth: 1,
-            borderColor: theme.color.border,
-          }}
-        >
+        <StandardCard style={{ gap: theme.spacing.lg }}>
           <Pledge icon="search-outline" title={d.readsWhatTitle}>
             {d.readsWhat}
           </Pledge>
@@ -361,7 +344,7 @@ export default function ReadMessagesScreen(): React.JSX.Element | null {
           <Pledge icon="lock-closed-outline" title={d.neverSentTitle}>
             {d.neverSent}
           </Pledge>
-        </View>
+        </StandardCard>
 
         {/* How far back, for the paste flow only. A month by default: far
             enough to be worth doing, near enough that the answer is about this

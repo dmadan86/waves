@@ -43,6 +43,7 @@ import { useSync } from '@/sync';
 import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
 import { useAuth } from '@/lib/auth';
 import { fill, plural, useStrings } from '@/i18n';
+import { RowTile, StandardCard } from '@/components/standard';
 import { InviteQr } from '@/components/invite/InviteQr';
 import { inviteTypeWordKey, TYPE_ICON } from '@/components/invite/inviteCardModel';
 import {
@@ -309,33 +310,16 @@ function InviteScreenInner() {
 
             {/* The invitation. One object: whose group, who is in it, and the
                 code to join, then the link under it. */}
-            <View
-              style={{
-                marginTop: -theme.spacing.lg,
-                padding: theme.spacing.md,
-                borderRadius: theme.radius.xl,
-                backgroundColor: theme.color.surface,
-                ...theme.shadow.soft,
-              }}
-            >
+            <StandardCard style={{ marginTop: -theme.spacing.lg }}>
               <View style={{ backgroundColor: theme.color.surface, gap: theme.spacing.sm }}>
                 <Row style={{ gap: theme.spacing.md, paddingEnd: PILL_RESERVE }}>
-                  <View
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 22,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: theme.color.brandSoft,
-                    }}
-                  >
+                  <RowTile tint={theme.color.brandSoft}>
                     <Ionicons
                       name={TYPE_ICON[group.data?.type ?? ''] ?? 'people'}
                       size={iconSize.xl}
                       color={theme.color.brand}
                     />
-                  </View>
+                  </RowTile>
                   <View style={{ flex: 1 }}>
                     <Text variant="subheading" numberOfLines={1}>
                       {label}
@@ -491,7 +475,7 @@ function InviteScreenInner() {
                   </Text>
                 </Pressable>
               </Row>
-            </View>
+            </StandardCard>
 
             {/* "Share via": the quick roads. Each one opens an app with the link
                 already written; a named channel beats the OS sheet when you
@@ -543,18 +527,9 @@ function InviteScreenInner() {
                   {/* An explicit square. `width: '100%'` with `aspectRatio`
                       resolved against the column and came out a tall oval on a
                       real screen; a circle is one number, not a proportion. */}
-                  <View
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 22,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: option.color,
-                    }}
-                  >
+                  <RowTile tint={option.color}>
                     <Ionicons name={option.icon} size={iconSize.xl} color="#ffffff" />
-                  </View>
+                  </RowTile>
                   <Text variant="caption" tone="muted" align="center" numberOfLines={1}>
                     {option.label}
                   </Text>

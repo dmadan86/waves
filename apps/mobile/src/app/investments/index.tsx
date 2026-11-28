@@ -14,7 +14,14 @@ import {
 import { Button, IconButton, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { PersonalGuard } from '@/components/PersonalGuard';
-import { ListRow, PlainHeader, SectionHeader, StandardCard } from '@/components/standard';
+import {
+  ListCard,
+  ListItem,
+  PlainHeader,
+  RowTile,
+  SectionHeader,
+  StandardCard,
+} from '@/components/standard';
 import { StatusPill, useWealthMoney } from '@/components/wealth/parts';
 import { todayIso, usePersonalLedger } from '@/data/personal';
 import { usePersonalWealth } from '@/data/personalWealth';
@@ -152,11 +159,17 @@ function InvestmentsBody() {
           <Stagger key={g.type} index={gi}>
             <View style={{ gap: theme.spacing.sm }}>
               <SectionHeader title={w.types[g.type as InvestmentType]} />
-              <StandardCard>
+              <ListCard>
                 {g.rows.map((inv, i) => (
-                  <ListRow
+                  <ListItem
                     key={inv.id}
+                    divider={i > 0}
                     title={inv.name}
+                    leading={
+                      <RowTile tint={theme.color.brandSoft}>
+                        <Ionicons name="trending-up" size={iconSize.lg} color={theme.color.brand} />
+                      </RowTile>
+                    }
                     subtitle={inv.status === 'closed' ? w.closed : nextLabel(inv)}
                     amount={fmt(
                       investedSoFar({ ...inv, currency: cur(inv) }, ledger.txns),
@@ -170,10 +183,9 @@ function InvestmentsBody() {
                     onPress={() =>
                       router.push({ pathname: '/investments/[id]', params: { id: inv.id } })
                     }
-                    divider={i < g.rows.length - 1}
                   />
                 ))}
-              </StandardCard>
+              </ListCard>
             </View>
           </Stagger>
         ))}

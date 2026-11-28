@@ -18,7 +18,7 @@ import {
 import { AmountField, Screen, Sheet, Text, useTheme } from '@waves/ui';
 import { useGroupPhotoUrl } from '@/components/GroupPhoto';
 import { OverflowMenu } from '@/components/OverflowMenu';
-import { ListRow, PlainHeader } from '@/components/standard';
+import { ListRow, PlainHeader, RowTile } from '@/components/standard';
 import { useCompanyClients } from '@/data/companyClients';
 import {
   useCompanyDocs,
@@ -93,18 +93,9 @@ type IconName = ComponentProps<typeof Ionicons>['name'];
 function IconCircle({ name }: { name: IconName }) {
   const theme = useTheme();
   return (
-    <View
-      style={{
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: theme.color.brandSoft,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
+    <RowTile tint={theme.color.brandSoft}>
       <Ionicons name={name} size={18} color={theme.color.brand} />
-    </View>
+    </RowTile>
   );
 }
 

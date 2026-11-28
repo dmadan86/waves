@@ -14,7 +14,6 @@ import {
   directionalIcon,
   IconButton,
   iconSize,
-  ListRow,
   MoneyText,
   Row,
   Screen,
@@ -25,6 +24,7 @@ import {
 import { EMPLOYEE_ID_MAX, fallbackCurrency } from '@waves/core';
 
 import { withScenicGroup } from '@/components/ScenicScope';
+import { LIST_TILE, ListCard, ListItem } from '@/components/standard';
 import { familyOf } from '@/lib/families';
 import { balanceWord, directionForViewer } from '@/lib/groupBalanceList';
 import { useFlagEnabled } from '@/lib/flags';
@@ -394,111 +394,91 @@ function MembersScreen() {
           </Card>
         ) : null}
 
-        <Card padded={false} style={{ paddingHorizontal: theme.spacing.md }}>
+        <ListCard>
           {(members.data ?? []).map((member, index) => (
-            <View key={member.id}>
-              <ListRow
-                title={displayName(member, profile?.id, blockedIds, t.misc.someone)}
-                subtitle={
-                  [
-                    isCompany ? member.employee_id : null,
-                    isCompany && isViewer(member, profile?.id)
-                      ? // A company roster shows the address, not a payment handle.
-                        (session?.user?.email ?? undefined)
-                      : isCompany && !isBlockedMember(member, blockedIds)
-                        ? (member.invite_email ?? member.invite_phone ?? undefined) ||
-                          (isGhost(member) ? t.notJoinedYet : undefined)
-                        : isGhost(member)
-                          ? t.notJoinedYet
-                          : isBlockedMember(member, blockedIds)
-                            ? // A payment handle carries a name, an address or a
-                              // phone number — masked for a blocked person.
-                              t.misc.noUpiYet
-                            : // `payableAt`, not the legacy column alone: the rail
-                              // pair is where a handle lives now, and reading only
-                              // `vpa`/`default_vpa` told everybody on Pix, PayID or
-                              // Venmo that they had given nothing.
-                              (payableAt(member)?.handle ?? t.misc.noUpiYet),
-                  ]
-                    .filter(Boolean)
-                    .join(' · ') || undefined
-                }
-                leading={
-                  <PersonAvatar
-                    member={member}
-                    name={displayName(member, null, blockedIds, t.misc.someone)}
-                    ghost={isGhost(member) || isBlockedMember(member, blockedIds)}
-                  />
-                }
-                onPress={() => router.push(`/group/${groupId}/member/${member.id}`)}
-                trailing={
-                  <Row style={{ gap: theme.spacing.sm }}>
-                    {familiesOn && familyOf(group.data?.units, member.id) ? (
-                      <Badge label={familyOf(group.data?.units, member.id)?.name ?? ''} />
-                    ) : null}
-                    {member.role === 'manager' ? (
-                      <Badge label={t.company.manager} tone="brand" />
-                    ) : null}
-                    {member.role === 'admin' && !isGhost(member) ? (
-                      <Badge
-                        label={t.people.admin}
-                        tone="brand"
-                        icon={(color) => (
-                          <MaterialCommunityIcons name="crown" size={12} color={color} />
-                        )}
-                      />
-                    ) : null}
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text variant="micro" tone="muted">
-                        {balanceWord(
-                          ledger.balances.get(member.id) ?? 0n,
-                          member.id === ledger.myMemberId,
-                          {
-                            youAreOwed: t.youAreOwed,
-                            youOwe: t.youOwe,
-                            isOwed: t.misc.balanceIsOwed,
-                            owes: t.misc.balanceOwes,
-                            allSquare: t.tabs.allSquare,
-                          },
-                        )}
-                      </Text>
-                      <MoneyText
-                        amount={ledger.balances.get(member.id) ?? 0n}
-                        currency={currency}
-                        locale={locale}
-                        mode="balance"
-                        direction={directionForViewer(
-                          ledger.balances.get(member.id) ?? 0n,
-                          member.id === ledger.myMemberId,
-                        )}
-                      />
-                    </View>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={displayName(
-                        member,
-                        profile?.id,
-                        blockedIds,
-                        t.misc.someone,
+            <ListItem
+              key={member.id}
+              divider={index > 0}
+              title={displayName(member, profile?.id, blockedIds, t.misc.someone)}
+              subtitle={
+                [
+                  isCompany ? member.employee_id : null,
+                  isCompany && isViewer(member, profile?.id)
+                    ? // A company roster shows the address, not a payment handle.
+                      (session?.user?.email ?? undefined)
+                    : isCompany && !isBlockedMember(member, blockedIds)
+                      ? (member.invite_email ?? member.invite_phone ?? undefined) ||
+                        (isGhost(member) ? t.notJoinedYet : undefined)
+                      : isGhost(member)
+                        ? t.notJoinedYet
+                        : isBlockedMember(member, blockedIds)
+                          ? // A payment handle carries a name, an address or a
+                            // phone number — masked for a blocked person.
+                            t.misc.noUpiYet
+                          : // `payableAt`, not the legacy column alone: the rail
+                            // pair is where a handle lives now, and reading only
+                            // `vpa`/`default_vpa` told everybody on Pix, PayID or
+                            // Venmo that they had given nothing.
+                            (payableAt(member)?.handle ?? t.misc.noUpiYet),
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || undefined
+              }
+              leading={
+                <PersonAvatar
+                  member={member}
+                  name={displayName(member, null, blockedIds, t.misc.someone)}
+                  ghost={isGhost(member) || isBlockedMember(member, blockedIds)}
+                  size={LIST_TILE}
+                />
+              }
+              onPress={() => router.push(`/group/${groupId}/member/${member.id}`)}
+              titleAccessory={
+                <Row style={{ gap: theme.spacing.xs }}>
+                  {familiesOn && familyOf(group.data?.units, member.id) ? (
+                    <Badge label={familyOf(group.data?.units, member.id)?.name ?? ''} />
+                  ) : null}
+                  {member.role === 'manager' ? (
+                    <Badge label={t.company.manager} tone="brand" />
+                  ) : null}
+                  {member.role === 'admin' && !isGhost(member) ? (
+                    <Badge
+                      label={t.people.admin}
+                      tone="brand"
+                      icon={(color) => (
+                        <MaterialCommunityIcons name="crown" size={12} color={color} />
                       )}
-                      hitSlop={12}
-                      onPress={() => router.push(`/group/${groupId}/member/${member.id}`)}
-                    >
-                      <Ionicons
-                        name="ellipsis-vertical"
-                        size={iconSize.md}
-                        color={theme.color.textMuted}
-                      />
-                    </Pressable>
-                  </Row>
-                }
-              />
-              {index < (members.data?.length ?? 0) - 1 ? (
-                <View style={{ height: 1, backgroundColor: theme.color.border }} />
-              ) : null}
-            </View>
+                    />
+                  ) : null}
+                </Row>
+              }
+              caption={balanceWord(
+                ledger.balances.get(member.id) ?? 0n,
+                member.id === ledger.myMemberId,
+                {
+                  youAreOwed: t.youAreOwed,
+                  youOwe: t.youOwe,
+                  isOwed: t.misc.balanceIsOwed,
+                  owes: t.misc.balanceOwes,
+                  allSquare: t.tabs.allSquare,
+                },
+              )}
+              amount={
+                <MoneyText
+                  amount={ledger.balances.get(member.id) ?? 0n}
+                  currency={currency}
+                  locale={locale}
+                  mode="balance"
+                  direction={directionForViewer(
+                    ledger.balances.get(member.id) ?? 0n,
+                    member.id === ledger.myMemberId,
+                  )}
+                />
+              }
+              chevron
+            />
           ))}
-        </Card>
+        </ListCard>
 
         {/* Adding somebody, with the two doors first and the typing second.
             

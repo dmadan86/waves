@@ -21,7 +21,7 @@ import { GroupRow } from '@/components/home/GroupRow';
 import { EmptyStateCta } from '@/components/EmptyStateCta';
 import { AddReminderSheet } from '@/components/personal/AddReminderSheet';
 import { ICON_FOR, useWealthRows } from '@/components/personal/PersonalHomeParts';
-import { PlainHeader } from '@/components/standard';
+import { ListCard, PlainHeader, RowTile } from '@/components/standard';
 import { RaiseCard } from '@/components/wealth/RaiseCard';
 import { todayIso, usePersonalLedger } from '@/data/personal';
 import { useDateOccurrences } from '@/data/personalDates';
@@ -269,17 +269,7 @@ export default function PersonalUpcomingScreen() {
               >
                 {label}
               </Text>
-              <View
-                style={{
-                  borderRadius: theme.radius.lg,
-                  borderWidth: 1,
-                  borderColor: theme.color.border,
-                  backgroundColor: theme.color.surface,
-                  overflow: 'hidden',
-                }}
-              >
-                {items.map(render)}
-              </View>
+              <ListCard>{items.map(render)}</ListCard>
             </View>
           ) : null,
         )}
@@ -306,18 +296,9 @@ export default function PersonalUpcomingScreen() {
         {acting ? (
           <View style={{ gap: theme.spacing.sm }}>
             <Row style={{ gap: theme.spacing.md, marginBottom: theme.spacing.sm }}>
-              <View
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: theme.radius.lg,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: theme.color.brandSoft,
-                }}
-              >
-                <Ionicons name={acting.icon} size={iconSize.xl} color={theme.color.brand} />
-              </View>
+              <RowTile tint={theme.color.brandSoft}>
+                <Ionicons name={acting.icon} size={iconSize.lg} color={theme.color.brand} />
+              </RowTile>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text variant="heading" numberOfLines={2}>
                   {acting.title}

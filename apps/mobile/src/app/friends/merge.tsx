@@ -69,11 +69,9 @@ import {
   Callout,
   Card,
   directionalIcon,
-  Divider,
   EmptyState,
   IconButton,
   iconSize,
-  ListRow,
   Row,
   Screen,
   Sheet,
@@ -115,6 +113,7 @@ import { useSync } from '@/sync';
 import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
 import { PersonAvatar } from '@/components/PersonAvatar';
+import { LIST_TILE, ListCard, ListItem, ListPill } from '@/components/standard';
 
 /**
  * How much of the hand-pick roster is drawn before asking. It is every ghost in
@@ -546,20 +545,19 @@ export default function MergePeopleScreen() {
             {duplicateSets.length > 0 ? (
               <>
                 <SectionLabel label={t.mergePeople.likelyDuplicates} />
-                <Card padded={false}>
+                <ListCard>
                   {duplicateSets.map((set, index) => (
-                    <View key={set.key}>
-                      <SuggestionRow
-                        set={set}
-                        locale={locale}
-                        t={t}
-                        disabled={merge.isPending}
-                        onMerge={() => openConfirm({ kind: 'set', set })}
-                      />
-                      {index < duplicateSets.length - 1 ? <Divider /> : null}
-                    </View>
+                    <SuggestionRow
+                      key={set.key}
+                      set={set}
+                      locale={locale}
+                      t={t}
+                      divider={index > 0}
+                      disabled={merge.isPending}
+                      onMerge={() => openConfirm({ kind: 'set', set })}
+                    />
                   ))}
-                </Card>
+                </ListCard>
               </>
             ) : null}
 
@@ -889,36 +887,35 @@ export default function MergePeopleScreen() {
             </Text>
 
             {inviteFor ? (
-              <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+              <ListCard>
                 {inviteFor.groups.map((group, index) => (
-                  <View key={group.id}>
-                    <ListRow
-                      title={group.name ?? t.captures.group}
-                      leading={
-                        <Avatar
-                          name={group.name ?? t.captures.group}
-                          emoji={group.emoji ?? undefined}
-                          size={40}
+                  <ListItem
+                    key={group.id}
+                    divider={index > 0}
+                    title={group.name ?? t.captures.group}
+                    leading={
+                      <Avatar
+                        name={group.name ?? t.captures.group}
+                        emoji={group.emoji ?? undefined}
+                        size={LIST_TILE}
+                      />
+                    }
+                    onPress={shareBusyId ? undefined : () => void shareGroupInvite(group)}
+                    trailing={
+                      shareBusyId === group.id ? (
+                        <ActivityIndicator color={theme.color.brand} />
+                      ) : (
+                        <Ionicons
+                          name="share-outline"
+                          size={iconSize.md}
+                          color={theme.color.brand}
+                          accessibilityLabel={t.mergePeople.inviteShare}
                         />
-                      }
-                      onPress={shareBusyId ? undefined : () => void shareGroupInvite(group)}
-                      trailing={
-                        shareBusyId === group.id ? (
-                          <ActivityIndicator color={theme.color.brand} />
-                        ) : (
-                          <Ionicons
-                            name="share-outline"
-                            size={iconSize.md}
-                            color={theme.color.brand}
-                            accessibilityLabel={t.mergePeople.inviteShare}
-                          />
-                        )
-                      }
-                    />
-                    {index < inviteFor.groups.length - 1 ? <Divider /> : null}
-                  </View>
+                      )
+                    }
+                  />
                 ))}
-              </Card>
+              </ListCard>
             ) : null}
 
             {inviteError ? <Callout tone="negative">{inviteError}</Callout> : null}
@@ -1188,43 +1185,33 @@ function SuggestionRow({
   set,
   locale,
   t,
+  divider,
   disabled,
   onMerge,
 }: {
   set: DuplicateSet;
   locale: string;
   t: UiStrings;
+  divider: boolean;
   disabled: boolean;
   onMerge: () => void;
 }): React.JSX.Element {
-  const theme = useTheme();
   const names = duplicateNames(set);
   return (
-    <Row
-      style={{
-        minHeight: 56,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        gap: theme.spacing.sm,
-      }}
-    >
-      <AvatarStack names={set.people.map((row) => row.display_name)} max={3} size={32} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text variant="subheading" numberOfLines={1}>
-          {names}
-        </Text>
-        <Text variant="caption" tone="muted" numberOfLines={1}>
-          {duplicateReason(set, locale, t.mergePeople)}
-        </Text>
-      </View>
-      <Pill
-        label={t.mergePeople.cta}
-        accessibilityLabel={fill(t.mergePeople.mergeSetLabel, { people: names })}
-        tone="soft"
-        disabled={disabled}
-        onPress={onMerge}
-      />
-    </Row>
+    <ListItem
+      divider={divider}
+      title={names}
+      subtitle={duplicateReason(set, locale, t.mergePeople)}
+      leading={<AvatarStack names={set.people.map((row) => row.display_name)} max={3} size={32} />}
+      trailing={
+        <ListPill
+          label={t.mergePeople.cta}
+          accessibilityLabel={fill(t.mergePeople.mergeSetLabel, { people: names })}
+          disabled={disabled}
+          onPress={onMerge}
+        />
+      }
+    />
   );
 }
 

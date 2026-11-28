@@ -576,7 +576,7 @@ function CategoryQuickPick({
         style={{
           width: 40,
           height: 40,
-          borderRadius: 20,
+          borderRadius: theme.radius.pill,
           alignItems: 'center',
           justifyContent: 'center',
           borderWidth: selected ? 2 : 0,

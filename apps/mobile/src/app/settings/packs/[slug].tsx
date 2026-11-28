@@ -161,7 +161,7 @@ function Section({ title, entries }: { title: string; entries: readonly PackEntr
             style={{
               width: 36,
               height: 36,
-              borderRadius: 18,
+              borderRadius: theme.radius.pill,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: theme.tint[entry.tint].bg,

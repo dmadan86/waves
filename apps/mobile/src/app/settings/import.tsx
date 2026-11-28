@@ -53,6 +53,7 @@ import {
 } from '@waves/ui';
 
 import { PlainHeader } from '@/components/standard/PlainHeader';
+import { ListCard, StandardCard } from '@/components/standard';
 import { createGroup, fetchMembers, importLedger, type ImportPerson } from '@/data/api';
 import { beginImport } from '@/lib/importProgress';
 import { friendlyError } from '@/lib/errors';
@@ -697,7 +698,7 @@ export default function ImportScreen() {
                 <SectionTitle>{t.importLedger.whereItGoes}</SectionTitle>
                 {/* Two choices, not a list of every group: a new group is the
                     usual answer, and the rest wait behind one tap in a sheet. */}
-                <SoftCard style={{ padding: 6, gap: 0 }}>
+                <ListCard>
                   <TargetRow
                     label={t.importLedger.aNewGroup}
                     hint={t.importLedger.nameItBelow}
@@ -722,7 +723,7 @@ export default function ImportScreen() {
                       onPress={() => setPickerOpen(true)}
                     />
                   ) : null}
-                </SoftCard>
+                </ListCard>
 
                 {/* Name the new group here rather than accept the file's default.
                     Only for a new group — an existing target already has a name. */}
@@ -789,14 +790,10 @@ export default function ImportScreen() {
                     ? t.importLedger.weThinkYou
                     : t.importLedger.tapYourName}
                 </Text>
-                <SoftCard
-                  style={{
-                    paddingVertical: 4,
-                    paddingHorizontal: 14,
-                    gap: 0,
-                    borderWidth: needYou ? 2 : 0,
-                    borderColor: needYou ? theme.color.negative : 'transparent',
-                  }}
+                <ListCard
+                  style={
+                    needYou ? { borderWidth: 2, borderColor: theme.color.negative } : undefined
+                  }
                 >
                   {parsed.people.map((person, index) => {
                     const isMe = mapping[person]?.kind === 'me';
@@ -862,7 +859,7 @@ export default function ImportScreen() {
                             style={{
                               paddingHorizontal: 10,
                               paddingVertical: 5,
-                              borderRadius: 12,
+                              borderRadius: theme.radius.pill,
                               backgroundColor: accent,
                             }}
                           >
@@ -938,7 +935,7 @@ export default function ImportScreen() {
                       {t.importLedger.notInFile}
                     </Text>
                   </Pressable>
-                </SoftCard>
+                </ListCard>
                 {needYou ? (
                   <Row style={{ alignItems: 'center', gap: 8, paddingHorizontal: 4 }}>
                     <Ionicons name="arrow-up-circle" size={20} color={theme.color.negative} />
@@ -1118,26 +1115,9 @@ const DISC_TINTS: readonly { fg?: string; bg?: string }[] = [
   { fg: '#D6457E', bg: '#FDE8F1' },
 ];
 
-/** A white card with the redesign's soft corners and lift. */
-function SoftCard({ children, style }: { children: ReactNode; style?: object }) {
-  const theme = useTheme();
-  return (
-    <View
-      style={[
-        {
-          backgroundColor: theme.color.surface,
-          borderWidth: 1,
-          borderColor: theme.color.border,
-          borderRadius: 12,
-          padding: 14,
-          gap: 10,
-        },
-        style,
-      ]}
-    >
-      {children}
-    </View>
-  );
+/** The import screen's plain card: a standard card with its content spaced out. */
+function SoftCard({ children }: { children: ReactNode }) {
+  return <StandardCard style={{ gap: 10 }}>{children}</StandardCard>;
 }
 
 function SectionTitle({ children }: { children: string }) {
@@ -1283,7 +1263,7 @@ function TargetRow({
         style={{
           width: 38,
           height: 38,
-          borderRadius: 19,
+          borderRadius: theme.radius.pill,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: dark ? theme.color.surfaceMuted : (disc.bg ?? theme.color.brandSoft),

@@ -84,7 +84,7 @@ import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { settleHref } from '@/lib/groupTab';
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { AddReminderSheet } from '@/components/personal/AddReminderSheet';
-import { StandardCard } from '@/components/standard';
+import { ListCard, ListItem, StandardCard } from '@/components/standard';
 import { PlanningHeader, PlanningTabs } from '@/components/PlanningTabs';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
@@ -1031,33 +1031,21 @@ function LoanEditor({
             <Animated.View
               entering={reduce ? FadeIn.duration(160) : dropdownIn}
               exiting={FadeOut.duration(120)}
-              style={{
-                transformOrigin: 'top',
-                borderRadius: 14,
-                backgroundColor: theme.color.surface,
-                borderWidth: 1,
-                borderColor: dark ? theme.color.border : '#E7E3F7',
-              }}
+              style={{ transformOrigin: 'top' }}
             >
-              {others.map((name, index) => (
-                <Pressable
-                  key={name}
-                  accessibilityRole="button"
-                  onPress={() => {
-                    setCounterpart(name);
-                    setNamesOpen(false);
-                  }}
-                  style={({ pressed }) => ({
-                    paddingVertical: 12,
-                    paddingHorizontal: 16,
-                    borderTopWidth: index > 0 ? 1 : 0,
-                    borderTopColor: dark ? theme.color.border : '#F0EEF7',
-                    opacity: pressed ? 0.6 : 1,
-                  })}
-                >
-                  <Text style={{ fontSize: 15, color: ink }}>{name}</Text>
-                </Pressable>
-              ))}
+              <ListCard>
+                {others.map((name, index) => (
+                  <ListItem
+                    key={name}
+                    divider={index > 0}
+                    title={name}
+                    onPress={() => {
+                      setCounterpart(name);
+                      setNamesOpen(false);
+                    }}
+                  />
+                ))}
+              </ListCard>
             </Animated.View>
           ) : null}
         </View>
@@ -1122,33 +1110,26 @@ function LoanEditor({
         ) : null}
 
         {payments.length > 0 ? (
-          <View style={{ gap: 2 }}>
+          <View style={{ gap: theme.spacing.xs }}>
             <Text variant="caption" tone="muted">
               {t.personal.payments}
             </Text>
-            {payments.map((p) => (
-              <Pressable
-                key={p.id}
-                accessibilityRole="button"
-                accessibilityLabel={`${formatLoanPaymentDate(p.date, locale)} ${format(money(p.amount, p.currency), { locale })}`}
-                onPress={() => {
-                  // Leave first: a sheet left over the pushed screen has to be dismissed twice.
-                  onClose();
-                  router.push({ pathname: '/personal/entry', params: { id: p.id } });
-                }}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  minHeight: 44,
-                }}
-              >
-                <Text variant="body">{formatLoanPaymentDate(p.date, locale)}</Text>
-                <Text variant="body" style={{ fontWeight: '700' }}>
-                  {format(money(p.amount, p.currency), { locale, trimZeros: true })}
-                </Text>
-              </Pressable>
-            ))}
+            <ListCard>
+              {payments.map((p, index) => (
+                <ListItem
+                  key={p.id}
+                  divider={index > 0}
+                  accessibilityLabel={`${formatLoanPaymentDate(p.date, locale)} ${format(money(p.amount, p.currency), { locale })}`}
+                  onPress={() => {
+                    // Leave first: a sheet left over the pushed screen has to be dismissed twice.
+                    onClose();
+                    router.push({ pathname: '/personal/entry', params: { id: p.id } });
+                  }}
+                  title={formatLoanPaymentDate(p.date, locale)}
+                  amount={format(money(p.amount, p.currency), { locale, trimZeros: true })}
+                />
+              ))}
+            </ListCard>
           </View>
         ) : null}
 

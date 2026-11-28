@@ -114,6 +114,7 @@ import { ReviewHeroBackground } from '@/components/ReviewHeroBackground';
 import { useHeroCrossfade, useHeroStatusBar } from '@/components/ScenicScreenHero';
 import { InboxSkeleton } from '@/components/Skeletons';
 import { WatchingLine } from '@/components/WatchingLine';
+import { ListCard, ListItem, RowTile } from '@/components/standard';
 import { dayHeading } from '@/data/activity';
 import { useFiledThisWeek, useSuggestionIndex } from '@/data/reviewSources';
 import {
@@ -2071,49 +2072,29 @@ function CapturesScreen() {
   // person's own work down the screen to advertise a different pile.
   const bankMessagesRow =
     smsReader && ticking ? (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${t.smsInbox.entryTitle}. ${
-          bankWaiting > 0
-            ? plural(locale, bankWaiting, t.smsInbox.entryWaiting)
-            : t.smsInbox.entryNothing
-        }`}
-        onPress={() => router.push('/captures/sms')}
-        style={({ pressed }) => ({
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.spacing.md,
-          paddingVertical: theme.spacing.md,
-          opacity: pressed ? 0.7 : 1,
-        })}
-      >
-        <View
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: 12,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.brandSoft,
-          }}
-        >
-          <Ionicons name="chatbubbles" size={iconSize.md} color={theme.color.brand} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text variant="body">{t.smsInbox.entryTitle}</Text>
-          <Text variant="micro" tone="muted">
-            {t.smsInbox.onDevice}
-          </Text>
-        </View>
-        {bankWaiting > 0 ? (
-          <Badge label={plural(locale, bankWaiting, t.smsInbox.entryWaiting)} tone="brand" />
-        ) : null}
-        <Ionicons
-          name={directionalIcon('chevron-forward')}
-          size={iconSize.md}
-          color={theme.color.textMuted}
+      <ListCard style={{ marginBottom: theme.spacing.sm }}>
+        <ListItem
+          accessibilityLabel={`${t.smsInbox.entryTitle}. ${
+            bankWaiting > 0
+              ? plural(locale, bankWaiting, t.smsInbox.entryWaiting)
+              : t.smsInbox.entryNothing
+          }`}
+          onPress={() => router.push('/captures/sms')}
+          leading={
+            <RowTile tint={theme.color.brandSoft}>
+              <Ionicons name="chatbubbles" size={iconSize.md} color={theme.color.brand} />
+            </RowTile>
+          }
+          title={t.smsInbox.entryTitle}
+          subtitle={t.smsInbox.onDevice}
+          amount={
+            bankWaiting > 0 ? (
+              <Badge label={plural(locale, bankWaiting, t.smsInbox.entryWaiting)} tone="brand" />
+            ) : undefined
+          }
+          chevron
         />
-      </Pressable>
+      </ListCard>
     ) : null;
 
   // The sort pill, over whichever day heading the first visible row would
@@ -2644,22 +2625,13 @@ function CapturesScreen() {
                 : batchPreview
                   ? {
                       leading: (
-                        <View
-                          style={{
-                            width: 38,
-                            height: 38,
-                            borderRadius: 12,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: theme.color.brandSoft,
-                          }}
-                        >
+                        <RowTile tint={theme.color.brandSoft}>
                           <Ionicons
                             name="layers-outline"
                             size={iconSize.md}
                             color={theme.color.brand}
                           />
-                        </View>
+                        </RowTile>
                       ),
                       title:
                         batchPreview.total !== null ? (

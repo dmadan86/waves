@@ -23,6 +23,7 @@ import { iconSize, Row, Screen, Text, useTabBarClearance, useTheme } from '@wave
 
 import { fill, useStrings } from '@/i18n';
 import { PlainHeader } from '@/components/standard/PlainHeader';
+import { RowTile, StandardCard } from '@/components/standard';
 import { quietAdsFor } from '@/lib/adSensitiveMoment';
 import { openLegal } from '@/lib/legal';
 import { router } from '@/lib/navigation';
@@ -236,30 +237,12 @@ export default function UpgradeScreen() {
         </View>
 
         {/* ── Free card ─────────────────────────────────────────────── */}
-        <View
-          style={{
-            backgroundColor: theme.color.surface,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: theme.color.border,
-            padding: theme.spacing.md,
-            gap: theme.spacing.sm,
-          }}
-        >
+        <StandardCard style={{ gap: theme.spacing.sm }}>
           {/* Card header */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
-                backgroundColor: theme.color.brandSoft,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+            <RowTile tint={theme.color.brandSoft}>
               <Ionicons name="wallet-outline" size={20} color={theme.color.brand} />
-            </View>
+            </RowTile>
             <View style={{ flex: 1, gap: 2 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
                 <Text style={{ fontWeight: '800', fontSize: 17, flex: 1 }}>Free</Text>
@@ -297,7 +280,7 @@ export default function UpgradeScreen() {
                   style={{
                     width: 20,
                     height: 20,
-                    borderRadius: 10,
+                    borderRadius: theme.radius.pill,
                     backgroundColor: feat.dimmed ? theme.color.surfaceMuted : theme.color.brand,
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -321,17 +304,10 @@ export default function UpgradeScreen() {
               </View>
             ))}
           </View>
-        </View>
+        </StandardCard>
 
         {/* ── Pro card ──────────────────────────────────────────────── */}
-        <View
-          style={{
-            borderRadius: 12,
-            borderWidth: 1.5,
-            borderColor: theme.color.brand,
-            overflow: 'hidden',
-          }}
-        >
+        <StandardCard flush style={{ borderColor: theme.color.brand, borderWidth: 1.5 }}>
           <View
             style={[
               { backgroundColor: theme.color.surface },
@@ -340,18 +316,9 @@ export default function UpgradeScreen() {
           >
             {/* Card header */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
-              <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  backgroundColor: theme.color.brand,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
+              <RowTile tint={theme.color.brand}>
                 <MaterialCommunityIcons name="crown" size={20} color={theme.color.onBrand} />
-              </View>
+              </RowTile>
               <View style={{ flex: 1, gap: 2 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
                   <Text style={{ fontWeight: '800', fontSize: 17 }}>Pro</Text>
@@ -430,7 +397,7 @@ export default function UpgradeScreen() {
                         style={{
                           width: 20,
                           height: 20,
-                          borderRadius: 10,
+                          borderRadius: theme.radius.pill,
                           backgroundColor: theme.color.brand,
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -531,7 +498,7 @@ export default function UpgradeScreen() {
               </>
             )}
           </View>
-        </View>
+        </StandardCard>
 
         {/* ── Renewal note ──────────────────────────────────────────── */}
         {plansLive && !isPaid ? (

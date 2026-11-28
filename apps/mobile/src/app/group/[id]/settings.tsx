@@ -757,18 +757,9 @@ function GroupSettingsScreen() {
 
   /** The tinted circle on a row's left, as in the mockup. */
   const chip = (icon: keyof typeof Ionicons.glyphMap, hex: string | null): ReactNode => (
-    <View
-      style={{
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: hex ? tint(hex) : theme.color.brandSoft,
-      }}
-    >
+    <RowTile tint={hex ? tint(hex) : theme.color.brandSoft}>
       <Ionicons name={icon} size={iconSize.lg} color={hex ?? theme.color.brand} />
-    </View>
+    </RowTile>
   );
 
   /** The ⓘ beside a title; the explanation opens under the row. */
@@ -1188,7 +1179,7 @@ function GroupSettingsScreen() {
                       bottom: -2,
                       width: 28,
                       height: 28,
-                      borderRadius: 14,
+                      borderRadius: theme.radius.pill,
                       alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: '#2B2B3A',

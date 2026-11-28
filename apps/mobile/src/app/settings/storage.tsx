@@ -471,7 +471,7 @@ function Perk({
         style={{
           width: 32,
           height: 32,
-          borderRadius: 16,
+          borderRadius: theme.radius.pill,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: dark ? theme.color.surfaceMuted : bg,
