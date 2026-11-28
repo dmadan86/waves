@@ -4,24 +4,14 @@ import { Pressable, ScrollView, View } from 'react-native';
 import Animated, { FadeOut, LinearTransition } from 'react-native-reanimated';
 
 import { format, money, pickUpcoming } from '@waves/core';
-import {
-  Badge,
-  Button,
-  IconButton,
-  iconSize,
-  Row,
-  Sheet,
-  Text,
-  useTabBarClearance,
-  useTheme,
-} from '@waves/ui';
+import { Badge, Button, iconSize, Row, Sheet, Text, useTabBarClearance, useTheme } from '@waves/ui';
 
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { GroupRow } from '@/components/home/GroupRow';
-import { EmptyStateCta } from '@/components/EmptyStateCta';
 import { AddReminderSheet } from '@/components/personal/AddReminderSheet';
 import { ICON_FOR, useWealthRows } from '@/components/personal/PersonalHomeParts';
 import { ListCard, PlainHeader, RowTile } from '@/components/standard';
+import { HEADER_BUTTON } from '@/components/standard/HeaderBar';
 import { RaiseCard } from '@/components/wealth/RaiseCard';
 import { todayIso, usePersonalLedger } from '@/data/personal';
 import { useDateOccurrences } from '@/data/personalDates';
@@ -38,6 +28,7 @@ import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import {
   dateRows,
+  emptyCopy,
   filterUpcoming,
   groupUpcoming,
   upcomingView,
@@ -47,10 +38,14 @@ import {
 import { nextDateLabel } from '@/lib/recurringList';
 import { shouldAnimatePostedLayout } from '@/lib/rentalExtrasBehavior';
 
-const TABS: { value: UpcomingTab; label: 'filterAll' | 'filterBills' | 'filterReminders' }[] = [
-  { value: 'all', label: 'filterAll' },
-  { value: 'bills', label: 'filterBills' },
-  { value: 'reminders', label: 'filterReminders' },
+const TABS: {
+  value: UpcomingTab;
+  label: 'filterAll' | 'filterBills' | 'filterReminders';
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { value: 'all', label: 'filterAll', icon: 'layers-outline' },
+  { value: 'bills', label: 'filterBills', icon: 'receipt-outline' },
+  { value: 'reminders', label: 'filterReminders', icon: 'notifications-outline' },
 ];
 
 export default function PersonalUpcomingScreen() {
@@ -98,6 +93,15 @@ export default function PersonalUpcomingScreen() {
     dates: [...dateRows(session && !isGuest ? pickUpcoming(occurrences, 50) : []), ...wealth],
   });
   const rows = filterUpcoming(view, tab);
+  const empty = emptyCopy(tab);
+  const roundBtn = (backgroundColor: string) => ({
+    width: HEADER_BUTTON,
+    height: HEADER_BUTTON,
+    borderRadius: HEADER_BUTTON / 2,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    backgroundColor,
+  });
   const fmt = (amount: bigint, cur: string): string =>
     hidden ? BALANCE_MASK : format(money(amount, cur), { locale, trimZeros: true });
   const grouped = groupUpcoming(rows, today);
@@ -181,17 +185,25 @@ export default function PersonalUpcomingScreen() {
     <View style={{ flex: 1 }}>
       <PlainHeader
         title={h.upcomingTitle}
+        subtitle={h.upcomingSubtitle}
         trailing={
           <Row style={{ gap: theme.spacing.xs }}>
-            {/* Birthdays, anniversaries and festival switches live here (moved out of Settings). */}
-            <IconButton label={t.dates.title} onPress={() => router.push('/dates')}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.dates.title}
+              onPress={() => router.push('/personal/calendar')}
+              style={roundBtn(theme.color.brandSoft)}
+            >
               <Ionicons name="calendar-outline" size={iconSize.lg} color={theme.color.brand} />
-            </IconButton>
-            {view.rows.length > 0 ? (
-              <IconButton label={h.addReminder} onPress={() => setAdding(true)}>
-                <Ionicons name="add" size={iconSize.xl} color={theme.color.brand} />
-              </IconButton>
-            ) : null}
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={h.addReminder}
+              onPress={() => setAdding(true)}
+              style={roundBtn(theme.color.brand)}
+            >
+              <Ionicons name="add" size={iconSize.xl} color={theme.color.onBrand} />
+            </Pressable>
           </Row>
         }
       />
@@ -225,7 +237,7 @@ export default function PersonalUpcomingScreen() {
             gap={2}
             height={36}
           />
-          {TABS.map(({ value, label }) => {
+          {TABS.map(({ value, label, icon }) => {
             const selected = value === tab;
             return (
               <Pressable
@@ -239,12 +251,19 @@ export default function PersonalUpcomingScreen() {
                 }}
                 style={{
                   flex: 1,
+                  flexDirection: 'row',
+                  gap: theme.spacing.xs,
                   height: 36,
                   borderRadius: theme.radius.pill,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
+                <Ionicons
+                  name={icon}
+                  size={iconSize.base}
+                  color={selected ? theme.color.onBrand : theme.color.text}
+                />
                 <Text
                   variant="caption"
                   style={{
@@ -274,22 +293,55 @@ export default function PersonalUpcomingScreen() {
           ) : null,
         )}
         {!rows.length ? (
-          view.rows.length === 0 ? (
-            <EmptyStateCta
-              compact
-              title={h.upcomingTitle}
-              body={h.upcomingEmpty}
-              action={h.addReminder}
-              onAdd={() => setAdding(true)}
-            />
-          ) : (
-            <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-              <Text variant="caption" tone="muted" style={{ textAlign: 'center' }}>
-                No entries match these filters
-              </Text>
-              <Button label="Clear filters" variant="ghost" onPress={() => setTab('all')} />
+          <View
+            style={{ alignItems: 'center', gap: theme.spacing.sm, paddingTop: theme.spacing.xl }}
+          >
+            <View
+              style={{
+                width: 150,
+                height: 130,
+                borderRadius: 65,
+                backgroundColor: theme.color.brandSoft,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="calendar" size={84} color={theme.color.brand} />
+              <View
+                style={{
+                  position: 'absolute',
+                  right: 18,
+                  bottom: 18,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: theme.color.brand,
+                  borderWidth: 3,
+                  borderColor: theme.color.background,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="notifications" size={iconSize.lg} color={theme.color.onBrand} />
+              </View>
             </View>
-          )
+            <Text variant="heading" accessibilityRole="header" style={{ textAlign: 'center' }}>
+              {h[empty.title]}
+            </Text>
+            <Text variant="caption" tone="muted" style={{ textAlign: 'center' }}>
+              {h[empty.body]}
+            </Text>
+            <Row style={{ gap: theme.spacing.sm, marginTop: theme.spacing.sm }}>
+              {empty.canClear ? (
+                <Button label={h.clearFilters} variant="secondary" onPress={() => setTab('all')} />
+              ) : null}
+              <Button
+                label={h.addReminder}
+                icon={<Ionicons name="add" size={iconSize.md} color={theme.color.onBrand} />}
+                onPress={() => setAdding(true)}
+              />
+            </Row>
+          </View>
         ) : null}
       </ScrollView>
       <Sheet visible={acting !== null} onClose={() => setActing(null)} closeLabel={t.common.close}>
