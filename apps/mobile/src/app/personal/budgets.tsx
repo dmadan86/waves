@@ -153,20 +153,26 @@ function BudgetsScreenBody() {
       >
         <PlanningTabs value="budgets" />
         {overview ? (
-          <SummaryCard
-            title={monthLabel(month, locale)}
-            money={{ label: t.planned, value: fmt(overview.limit, summaryCurrency) }}
-            expense={{ label: t.personal.spent, value: fmt(overview.spent, summaryCurrency) }}
-            net={{
-              label: t.personal.leftLabel,
-              value: overview.over
-                ? `${t.personal.over} ${fmt(-overview.remaining, summaryCurrency)}`
-                : fmt(overview.remaining, summaryCurrency),
-            }}
-            negative={overview.over}
-            progress={{ ratio: overview.percent / 100, over: overview.over }}
-            footnote={summarySentence}
-          />
+          <Pressable
+            accessibilityRole={overview.overall ? 'button' : undefined}
+            disabled={!overview.overall}
+            onPress={() => overview.overall && setEditing(overview.overall)}
+          >
+            <SummaryCard
+              title={monthLabel(month, locale)}
+              money={{ label: t.planned, value: fmt(overview.limit, summaryCurrency) }}
+              expense={{ label: t.personal.spent, value: fmt(overview.spent, summaryCurrency) }}
+              net={{
+                label: t.personal.leftLabel,
+                value: overview.over
+                  ? `${t.personal.over} ${fmt(-overview.remaining, summaryCurrency)}`
+                  : fmt(overview.remaining, summaryCurrency),
+              }}
+              negative={overview.over}
+              progress={{ ratio: overview.percent / 100, over: overview.over }}
+              footnote={summarySentence}
+            />
+          </Pressable>
         ) : null}
         {budgets.length > 0 ? (
           <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
