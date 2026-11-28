@@ -15,10 +15,11 @@ import {
   personalBudgetProgress,
   type PersonalBudget,
 } from '@waves/core';
-import { iconSize, useTheme } from '@waves/ui';
+import { iconSize, Text, useTheme } from '@waves/ui';
 
 import { GroupRow as SpaceRow } from '@/components/home/GroupRow';
 import { CardTitle } from '@/components/personal/PersonalHomeParts';
+import { StandardCard } from '@/components/standard';
 import { BALANCE_MASK } from '@/components/home/ScenicBalanceCard';
 import type { PoolFigure } from '@/data/homeSpaces';
 import { useCaptures, type useHomeSummary } from '@/data/hooks';
@@ -27,6 +28,7 @@ import { groupLabel, type GroupRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { homeGroupRows, viewerLeft } from '@/lib/groupSections';
 import { plainAmount } from '@/lib/homeToday';
+import { familyTileHref } from '@/lib/homeTiles';
 import { measureAnchor } from '@/lib/measureAnchor';
 import { router, switchTab } from '@/lib/navigation';
 import { TourTarget } from '@/lib/tour';
@@ -214,28 +216,53 @@ export function SpacesGrid({
       </Pressable>
     </TourTarget>
   );
-  // Family first when there is one; with no family the list is just "Groups".
-  const sections = [
-    ...(family.length ? [{ title: h.family, rows: family }] : []),
-    ...(recent.length || !family.length ? [{ title: h.spaces, rows: recent }] : []),
-  ];
+  // Family has its own tile beside My money; its rows still lead the Groups list.
+  const sections = [{ title: h.spaces, rows: shown }];
+  // shortcut: several family spaces show the first one's figure; the tile opens the list.
+  const familyRow = family[0]
+    ? buildGroupRow({
+        group: family[0],
+        summary,
+        viewerId,
+        figure: pool.get(family[0].id),
+        drafts: draftsByGroup.get(family[0].id) ?? 0,
+        locale,
+        t,
+        env,
+      })
+    : null;
+  const familyHref = familyTileHref(family.map((g) => g.id));
 
   return (
     <View style={{ gap: theme.spacing.lg }}>
       {newUser ? null : (
-        <View style={card}>
-          <SpaceRow
-            title={h.myMoney}
-            memberLabel=""
+        <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+          <MoneyTile
             icon="wallet-outline"
-            amountText={personalNumber}
-            directionLabel={personalLabel}
-            locale={locale}
-            hidden={hidden || personalHidden}
-            tone={progress && progress.remaining < 0n ? 'negative' : undefined}
-            divider={false}
+            tint="brand"
+            title={h.myMoney}
+            amount={personalNumber}
+            label={personalLabel}
+            tone={progress && progress.remaining < 0n ? 'negative' : 'ink'}
             onPress={() => switchTab('/(tabs)/me')}
           />
+          {familyRow && familyHref ? (
+            <MoneyTile
+              icon="people-outline"
+              tint="positive"
+              title={h.family}
+              amount={hidden ? BALANCE_MASK : familyRow.amountText}
+              label={familyRow.directionLabel}
+              tone={
+                familyRow.tone === 'negative'
+                  ? 'negative'
+                  : familyRow.tone === 'positive'
+                    ? 'brand'
+                    : 'ink'
+              }
+              onPress={() => router.push(familyHref as never)}
+            />
+          ) : null}
         </View>
       )}
       {newUser ? (
@@ -272,6 +299,77 @@ export function SpacesGrid({
         ))
       )}
     </View>
+  );
+}
+
+/** One of Home's two side-by-side tiles (My money, Family): tinted card, icon chip, figure, ›. */
+function MoneyTile({
+  icon,
+  tint,
+  title,
+  amount,
+  label,
+  tone,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  tint: 'brand' | 'positive';
+  title: string;
+  amount: string;
+  label: string;
+  tone: 'negative' | 'brand' | 'ink';
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const ink = tint === 'brand' ? theme.color.brand : theme.color.positive;
+  const soft = tint === 'brand' ? theme.color.brandSoft : theme.color.positiveSoft;
+  const amountColor =
+    tone === 'negative'
+      ? theme.color.negative
+      : tone === 'brand'
+        ? theme.color.brand
+        : theme.color.text;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${amount} ${label}`}
+      onPress={onPress}
+      style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.7 : 1 })}
+    >
+      <StandardCard style={{ flex: 1, backgroundColor: soft, borderColor: soft }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 999,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.surface,
+            }}
+          >
+            <Ionicons name={icon} size={iconSize.md} color={ink} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text variant="bodyStrong" numberOfLines={1}>
+              {title}
+            </Text>
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+              style={{ color: amountColor, fontSize: 20, lineHeight: 25, fontWeight: '800' }}
+            >
+              {amount}
+            </Text>
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {label}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.textMuted} />
+        </View>
+      </StandardCard>
+    </Pressable>
   );
 }
 
