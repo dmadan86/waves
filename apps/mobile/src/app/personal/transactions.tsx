@@ -315,9 +315,10 @@ function PersonalTransactionsScreenBody() {
     format(money(amount < 0n ? -amount : amount, currency), { locale, trimZeros: true });
   const months = useMemo(() => {
     const now = localMonth();
-    const list = Array.from({ length: 12 }, (_, i) => shiftMonth(now, -i));
-    return list.includes(browseMonth) ? list : [browseMonth, ...list];
-  }, [browseMonth]);
+    const all = new Set([now, browseMonth, ...txns.map((x) => x.date.slice(0, 7))]);
+    for (let i = 1; i < 12; i++) all.add(shiftMonth(now, -i));
+    return [...all].sort().reverse();
+  }, [browseMonth, txns]);
 
   const roundButton = (
     label: string,
@@ -401,20 +402,24 @@ function PersonalTransactionsScreenBody() {
           title={monthEnabled ? monthLabel(browseMonth, locale) : t.group.allMonths}
           titleHint={`${t.personal.chooseMonth}: ${monthEnabled ? monthLabel(browseMonth, locale) : t.group.allMonths}`}
           onTitlePress={() => setMonthOpen(true)}
-          money={{
-            label: t.personal.income,
-            value: summary ? fmt(summary.income, summary.currency) : '',
-          }}
-          expense={{
-            label: t.personal.expenses,
-            value: summary ? fmt(summary.expense, summary.currency) : '',
-          }}
-          net={{
-            label: t.personal.net,
-            value: summary
-              ? `${summary.net < 0n ? '-' : ''}${fmt(summary.net, summary.currency)}`
-              : '',
-          }}
+          money={
+            summary
+              ? { label: t.personal.income, value: fmt(summary.income, summary.currency) }
+              : undefined
+          }
+          expense={
+            summary
+              ? { label: t.personal.expenses, value: fmt(summary.expense, summary.currency) }
+              : undefined
+          }
+          net={
+            summary
+              ? {
+                  label: t.personal.net,
+                  value: `${summary.net < 0n ? '-' : ''}${fmt(summary.net, summary.currency)}`,
+                }
+              : undefined
+          }
           negative={(summary?.net ?? 0n) < 0n}
           footnote={summary && summary.otherCurrencies > 0 ? t.personal.otherCurrencies : undefined}
         />

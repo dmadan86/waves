@@ -35,12 +35,12 @@ export function SummaryCard({
   titleHint?: string;
   onTitlePress?: () => void;
   /** Money in (green down-arrow disc). */
-  money: SummaryFigure;
+  money?: SummaryFigure;
   /** Money out (red up-arrow disc). */
-  expense: SummaryFigure;
+  expense?: SummaryFigure;
   /** What is left / the net, in the tinted pill. */
-  net: SummaryFigure;
-  negative: boolean;
+  net?: SummaryFigure;
+  negative?: boolean;
   footnote?: string;
 }) {
   const theme = useTheme();
@@ -69,66 +69,68 @@ export function SummaryCard({
       ) : (
         titleText
       )}
-      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-        {(
-          [
-            [money, 'arrow-down', GREEN],
-            [expense, 'arrow-up', RED],
-          ] as const
-        ).map(([figure, icon, color]) => (
-          <Row key={figure.label} style={{ flex: 1, minWidth: 0, alignItems: 'center', gap: 6 }}>
+      {money && expense && net ? (
+        <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          {(
+            [
+              [money, 'arrow-down', GREEN],
+              [expense, 'arrow-up', RED],
+            ] as const
+          ).map(([figure, icon, color]) => (
+            <Row key={figure.label} style={{ flex: 1, minWidth: 0, alignItems: 'center', gap: 6 }}>
+              <View
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: theme.radius.pill,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#FFFFFFE6',
+                }}
+              >
+                <Ionicons name={icon} size={15} color={color} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={{ fontSize: 11, color: SOFT }} numberOfLines={1}>
+                  {figure.label}
+                </Text>
+                <Text
+                  style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                >
+                  {figure.value}
+                </Text>
+              </View>
+            </Row>
+          ))}
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={{ fontSize: 11, color: SOFT }} numberOfLines={1}>
+              {net.label}
+            </Text>
             <View
               style={{
-                width: 26,
-                height: 26,
-                borderRadius: theme.radius.pill,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#FFFFFFE6',
+                alignSelf: 'flex-start',
+                maxWidth: '100%',
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                borderRadius: 8,
+                backgroundColor: negative ? '#FDE3E6' : '#DDF5E8',
               }}
             >
-              <Ionicons name={icon} size={15} color={color} />
-            </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ fontSize: 11, color: SOFT }} numberOfLines={1}>
-                {figure.label}
-              </Text>
               <Text
-                style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}
+                style={{ fontSize: 15, fontWeight: '700', color: negative ? '#A81E31' : '#0F7A48' }}
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.7}
               >
-                {figure.value}
+                {net.value}
               </Text>
             </View>
-          </Row>
-        ))}
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={{ fontSize: 11, color: SOFT }} numberOfLines={1}>
-            {net.label}
-          </Text>
-          <View
-            style={{
-              alignSelf: 'flex-start',
-              maxWidth: '100%',
-              paddingHorizontal: 8,
-              paddingVertical: 2,
-              borderRadius: 8,
-              backgroundColor: negative ? '#FDE3E6' : '#DDF5E8',
-            }}
-          >
-            <Text
-              style={{ fontSize: 15, fontWeight: '700', color: negative ? '#A81E31' : '#0F7A48' }}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.7}
-            >
-              {net.value}
-            </Text>
           </View>
-        </View>
-      </Row>
+        </Row>
+      ) : null}
       {footnote ? <Text style={{ fontSize: 12, color: SOFT }}>{footnote}</Text> : null}
     </LinearGradient>
   );
