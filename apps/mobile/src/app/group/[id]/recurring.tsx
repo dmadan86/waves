@@ -12,7 +12,7 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import {
   format,
@@ -23,7 +23,6 @@ import {
   type GroupRecurringRule,
 } from '@waves/core';
 import {
-  Card,
   directionalIcon,
   EmptyState,
   IconButton,
@@ -34,7 +33,9 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { OverflowMenu } from '@/components/OverflowMenu';
 import { withScenicGroup } from '@/components/ScenicScope';
+import { ListCard, ListItem, RowTile } from '@/components/standard';
 import { useGroupRecurring, useUpdateGroupRecurring } from '@/data/groupRecurring';
 import { useGroup } from '@/data/hooks';
 import { useCompanyGroupGuard } from '@/lib/useCompanyGroupGuard';
@@ -59,6 +60,10 @@ function GroupRecurringScreen() {
   const { rules } = useGroupRecurring(groupId);
   const update = useUpdateGroupRecurring(groupId);
   const [error, setError] = useState<string | null>(null);
+  const [menuRule, setMenuRule] = useState<{
+    rule: GroupRecurringRule;
+    status: ReturnType<typeof recurringDisplayStatus>;
+  } | null>(null);
 
   const patch = async (ruleId: string, body: Parameters<typeof update.mutateAsync>[0]['patch']) => {
     setError(null);
@@ -131,101 +136,103 @@ function GroupRecurringScreen() {
           </View>
         ) : null}
 
-        {[...live, ...ended].map((rule) => {
-          const status = recurringDisplayStatus(rule);
-          const over = status === 'ended';
-          return (
-            <Card key={rule.id} style={{ gap: theme.spacing.sm, opacity: over ? 0.6 : 1 }}>
-              <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                <View style={{ flex: 1 }}>
-                  <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
-                    {rule.description}
-                  </Text>
-                  <Text variant="micro" tone="muted">
-                    {frequencyLabel(t, frequencyOf(rule), rule.interval)}
-                    {' · '}
-                    {over
-                      ? t.groupRecurring.ended
-                      : status === 'paused'
-                        ? t.groupRecurring.paused
-                        : fill(t.groupRecurring.next, { date: showDate(rule.nextDate, locale) })}
-                  </Text>
-                  {rule.lastGeneratedOn ? (
-                    <Text variant="micro" tone="muted">
-                      {fill(t.groupRecurring.lastAdded, {
-                        date: showDate(rule.lastGeneratedOn, locale),
-                      })}
-                    </Text>
-                  ) : null}
-                </View>
-                <Text variant="body" style={{ fontWeight: '700' }}>
-                  {format(money(rule.amount, rule.currency as CurrencyCode), { locale })}
-                </Text>
-              </Row>
-              {over ? null : (
-                <Row style={{ gap: theme.spacing.sm }}>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() =>
-                      void patch(rule.id, { status: status === 'paused' ? 'active' : 'paused' })
-                    }
-                    style={actionStyle(theme)}
-                  >
-                    <Ionicons
-                      name={status === 'paused' ? 'play-outline' : 'pause-outline'}
-                      size={iconSize.sm}
-                      color={theme.color.brand}
-                    />
-                    <Text variant="caption" tone="brand">
-                      {status === 'paused' ? t.groupRecurring.resume : t.groupRecurring.pause}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() =>
-                      router.push(`/group/${groupId}/recurring-edit?ruleId=${rule.id}`)
-                    }
-                    style={actionStyle(theme)}
-                  >
-                    <Ionicons name="create-outline" size={iconSize.sm} color={theme.color.brand} />
-                    <Text variant="caption" tone="brand">
-                      {t.groupRecurring.edit}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => void stop(rule)}
-                    style={actionStyle(theme)}
-                  >
-                    <Ionicons
-                      name="stop-circle-outline"
-                      size={iconSize.sm}
-                      color={theme.color.negative}
-                    />
-                    <Text variant="caption" tone="negative">
-                      {t.groupRecurring.stop}
-                    </Text>
-                  </Pressable>
-                </Row>
-              )}
-            </Card>
-          );
-        })}
+        {rules.length ? (
+          <ListCard>
+            {[...live, ...ended].map((rule, index) => {
+              const status = recurringDisplayStatus(rule);
+              const over = status === 'ended';
+              return (
+                <ListItem
+                  key={rule.id}
+                  divider={index > 0}
+                  leading={
+                    <RowTile tint={theme.color.brandSoft}>
+                      <Ionicons
+                        name="repeat-outline"
+                        size={iconSize.lg}
+                        color={over ? theme.color.textMuted : theme.color.brand}
+                      />
+                    </RowTile>
+                  }
+                  title={rule.description}
+                  subtitle={
+                    <View>
+                      <Text variant="caption" tone="muted" numberOfLines={1}>
+                        {frequencyLabel(t, frequencyOf(rule), rule.interval)}
+                        {' · '}
+                        {over
+                          ? t.groupRecurring.ended
+                          : status === 'paused'
+                            ? t.groupRecurring.paused
+                            : fill(t.groupRecurring.next, {
+                                date: showDate(rule.nextDate, locale),
+                              })}
+                      </Text>
+                      {rule.lastGeneratedOn ? (
+                        <Text variant="caption" tone="muted" numberOfLines={1}>
+                          {fill(t.groupRecurring.lastAdded, {
+                            date: showDate(rule.lastGeneratedOn, locale),
+                          })}
+                        </Text>
+                      ) : null}
+                    </View>
+                  }
+                  amount={format(money(rule.amount, rule.currency as CurrencyCode), { locale })}
+                  amountTone={over ? 'muted' : undefined}
+                  trailing={
+                    over ? undefined : (
+                      <IconButton
+                        label={`${t.group.more}: ${rule.description}`}
+                        repeatable
+                        onPress={() => setMenuRule({ rule, status })}
+                      >
+                        <Ionicons
+                          name="ellipsis-vertical"
+                          size={iconSize.md}
+                          color={theme.color.textMuted}
+                        />
+                      </IconButton>
+                    )
+                  }
+                />
+              );
+            })}
+          </ListCard>
+        ) : null}
       </ScrollView>
+      <OverflowMenu
+        visible={menuRule !== null}
+        onClose={() => setMenuRule(null)}
+        items={
+          menuRule
+            ? [
+                {
+                  icon: menuRule.status === 'paused' ? 'play-outline' : 'pause-outline',
+                  label:
+                    menuRule.status === 'paused' ? t.groupRecurring.resume : t.groupRecurring.pause,
+                  onPress: () =>
+                    void patch(menuRule.rule.id, {
+                      status: menuRule.status === 'paused' ? 'active' : 'paused',
+                    }),
+                },
+                {
+                  icon: 'create-outline',
+                  label: t.groupRecurring.edit,
+                  onPress: () =>
+                    router.push(`/group/${groupId}/recurring-edit?ruleId=${menuRule.rule.id}`),
+                },
+                {
+                  icon: 'stop-circle-outline',
+                  label: t.groupRecurring.stop,
+                  tone: 'danger',
+                  onPress: () => void stop(menuRule.rule),
+                },
+              ]
+            : []
+        }
+      />
     </Screen>
   );
-}
-
-function actionStyle(theme: ReturnType<typeof useTheme>) {
-  return {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: theme.spacing.sm,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.color.surfaceMuted,
-  };
 }
 
 export default withScenicGroup(GroupRecurringScreen);

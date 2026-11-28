@@ -14,16 +14,17 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import { Image, ScrollView, View } from 'react-native';
 import {} from 'react-native-safe-area-context';
 
 import { MutationKind, rowsFor, SyncTable } from '@waves/core';
-import { Card, iconSize, Text, useTabBarClearance, useTheme } from '@waves/ui';
+import { iconSize, Text, useTabBarClearance, useTheme } from '@waves/ui';
 
 import { useArchivedGroups } from '@/data/hooks';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { groupLabel, type MemberRow } from '@/data/types';
 import { PlainHeader } from '@/components/standard/PlainHeader';
+import { LIST_TILE, ListCard, ListItem, ListPill } from '@/components/standard';
 import { fill, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { router } from '@/lib/navigation';
@@ -90,99 +91,61 @@ export default function ArchivedGroupsScreen() {
             </View>
           </View>
         ) : (
-          <View style={{ gap: theme.spacing.md }}>
-            {groups.map((group) => (
-              <Card
+          <ListCard>
+            {groups.map((group, index) => (
+              <ListItem
                 key={group.id}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: theme.spacing.md,
-                  borderRadius: theme.radius.xl,
-                }}
-              >
-                {/* The tile and the name open the group; the pill beside them
-                    brings it back onto the dashboard. */}
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={groupLabel(
-                    group,
-                    membersByGroup.get(group.id) ?? [],
-                    profile?.id,
-                  )}
-                  onPress={() => router.push(`/group/${group.id}`)}
-                  style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: theme.spacing.md,
-                    flex: 1,
-                    minWidth: 0,
-                    opacity: pressed ? 0.7 : 1,
-                  })}
-                >
+                divider={index > 0}
+                accessibilityLabel={groupLabel(
+                  group,
+                  membersByGroup.get(group.id) ?? [],
+                  profile?.id,
+                )}
+                onPress={() => router.push(`/group/${group.id}`)}
+                leading={
                   <GroupPhoto
                     photoPath={group.photo_path}
                     emoji={group.cover_emoji}
                     color={group.cover_color}
-                    size={52}
+                    size={LIST_TILE}
                   />
-                  <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                    <Text variant="subheading" numberOfLines={1}>
-                      {groupLabel(group, membersByGroup.get(group.id) ?? [], profile?.id)}
-                    </Text>
-                    {group.archived_at ? (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        <Ionicons
-                          name="archive-outline"
-                          size={iconSize.sm}
-                          color={theme.color.textMuted}
-                        />
-                        <Text
-                          variant="micro"
-                          tone="muted"
-                          numberOfLines={1}
-                          style={{ flexShrink: 1 }}
-                        >
-                          {fill(t.group.archivedOn, {
-                            date: new Intl.DateTimeFormat(locale, {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            }).format(new Date(group.archived_at)),
-                          })}
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t.group.unarchive}
-                  accessibilityHint={t.group.unarchiveHint}
-                  onPress={() => unarchive(group.id)}
-                  style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 6,
-                    paddingHorizontal: theme.spacing.md,
-                    height: 40,
-                    borderRadius: theme.radius.sm,
-                    backgroundColor: theme.color.brandSoft,
-                    opacity: pressed ? 0.7 : 1,
-                  })}
-                >
-                  <Ionicons
-                    name="arrow-undo-outline"
-                    size={iconSize.md}
-                    color={theme.color.brand}
+                }
+                title={groupLabel(group, membersByGroup.get(group.id) ?? [], profile?.id)}
+                subtitle={
+                  group.archived_at ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Ionicons
+                        name="archive-outline"
+                        size={iconSize.sm}
+                        color={theme.color.textMuted}
+                      />
+                      <Text
+                        variant="micro"
+                        tone="muted"
+                        numberOfLines={1}
+                        style={{ flexShrink: 1 }}
+                      >
+                        {fill(t.group.archivedOn, {
+                          date: new Intl.DateTimeFormat(locale, {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          }).format(new Date(group.archived_at)),
+                        })}
+                      </Text>
+                    </View>
+                  ) : undefined
+                }
+                trailing={
+                  <ListPill
+                    label={t.group.unarchive}
+                    accessibilityLabel={t.group.unarchive}
+                    onPress={() => unarchive(group.id)}
                   />
-                  <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '700' }}>
-                    {t.group.unarchive}
-                  </Text>
-                </Pressable>
-              </Card>
+                }
+              />
             ))}
-          </View>
+          </ListCard>
         )}
       </ScrollView>
     </View>

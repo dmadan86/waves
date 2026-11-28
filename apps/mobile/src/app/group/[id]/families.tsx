@@ -42,11 +42,13 @@ import { withScenicGroup } from '@/components/ScenicScope';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import {
-  ListRow,
+  LIST_TILE,
+  ListCard,
+  ListItem,
+  RowTile,
   ScenicBody,
   ScenicHeader,
   SectionHeader,
-  StandardCard,
 } from '@/components/standard';
 import { useBlockedUsers } from '@/data/blocked';
 import { toLedgerSnapshots, toSettlementSnapshots, useGroup, useUpdateGroup } from '@/data/hooks';
@@ -229,7 +231,12 @@ function FamiliesScreen() {
   };
 
   const avatar = (member: MemberRow) => (
-    <PersonAvatar member={member} name={displayName(member)} ghost={isGhost(member)} size={36} />
+    <PersonAvatar
+      member={member}
+      name={displayName(member)}
+      ghost={isGhost(member)}
+      size={LIST_TILE}
+    />
   );
 
   const emojiTile = (count: number, size: number) => (
@@ -237,7 +244,7 @@ function FamiliesScreen() {
       style={{
         width: size,
         height: size,
-        borderRadius: theme.radius.lg,
+        borderRadius: size / 2,
         backgroundColor: theme.color.brandSoft,
         alignItems: 'center',
         justifyContent: 'center',
@@ -357,47 +364,34 @@ function FamiliesScreen() {
             />
           ) : null}
           {families.map((family) => (
-            <StandardCard key={family.id}>
-              <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                {emojiTile(family.members.length, 48)}
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text variant="subheading" numberOfLines={1}>
-                    {family.unit.name}
-                  </Text>
-                  <Text variant="caption" tone="muted">
-                    {plural(locale, family.members.length, t.families.people)}
-                  </Text>
-                </View>
-                {isAdmin ? (
-                  <IconButton label={t.group.more} onPress={() => setMenuFamily(family.id)}>
-                    <Ionicons
-                      name="ellipsis-horizontal"
-                      size={iconSize.md}
-                      color={theme.color.text}
-                    />
-                  </IconButton>
-                ) : null}
-              </Row>
-              <View
-                style={{
-                  marginTop: theme.spacing.sm,
-                  paddingHorizontal: theme.spacing.md,
-                  borderRadius: theme.radius.lg,
-                  backgroundColor: theme.color.surfaceMuted,
-                }}
-              >
-                {family.members.map((member, index) => (
-                  <ListRow
-                    key={member.id}
-                    leading={avatar(member)}
-                    title={`${nameOf(member)}${family.unit.weights?.[member.id] === 0.5 ? ' ½' : ''}`}
-                    subtitle={headOf(family.unit) === member.id ? t.families.head : undefined}
-                    divider={index < family.members.length - 1}
-                    onPress={isAdmin ? () => void memberMenu(member, family.id) : undefined}
-                  />
-                ))}
-              </View>
-            </StandardCard>
+            <ListCard key={family.id}>
+              <ListItem
+                leading={emojiTile(family.members.length, LIST_TILE)}
+                title={family.unit.name}
+                subtitle={plural(locale, family.members.length, t.families.people)}
+                trailing={
+                  isAdmin ? (
+                    <IconButton label={t.group.more} onPress={() => setMenuFamily(family.id)}>
+                      <Ionicons
+                        name="ellipsis-horizontal"
+                        size={iconSize.md}
+                        color={theme.color.text}
+                      />
+                    </IconButton>
+                  ) : undefined
+                }
+              />
+              {family.members.map((member) => (
+                <ListItem
+                  key={member.id}
+                  divider
+                  leading={avatar(member)}
+                  title={`${nameOf(member)}${family.unit.weights?.[member.id] === 0.5 ? ' ½' : ''}`}
+                  subtitle={headOf(family.unit) === member.id ? t.families.head : undefined}
+                  onPress={isAdmin ? () => void memberMenu(member, family.id) : undefined}
+                />
+              ))}
+            </ListCard>
           ))}
 
           {onTheirOwn.length > 0 ? (
@@ -410,13 +404,13 @@ function FamiliesScreen() {
                   </Text>
                 }
               />
-              <StandardCard>
+              <ListCard>
                 {onTheirOwn.map((member, index) => (
-                  <ListRow
+                  <ListItem
                     key={member.id}
                     leading={avatar(member)}
                     title={nameOf(member)}
-                    divider={index < onTheirOwn.length - 1}
+                    divider={index > 0}
                     onPress={
                       isAdmin
                         ? () => setAdding({ member, pick: families[0]?.id ?? null })
@@ -424,7 +418,7 @@ function FamiliesScreen() {
                     }
                   />
                 ))}
-              </StandardCard>
+              </ListCard>
             </View>
           ) : null}
         </ScenicBody>
@@ -556,18 +550,9 @@ function FamiliesScreen() {
                 borderColor: theme.color.brand,
               }}
             >
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: theme.radius.lg,
-                  backgroundColor: theme.color.brandSoft,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
+              <RowTile tint={theme.color.brandSoft}>
                 <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
-              </View>
+              </RowTile>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={{ fontWeight: '700', color: theme.color.brand }}>
                   {t.families.newFamily}
@@ -641,29 +626,23 @@ function FamiliesScreen() {
             <Text variant="caption" tone="muted">
               {t.families.whoIsIn}
             </Text>
-            <View
-              style={{
-                paddingHorizontal: theme.spacing.md,
-                borderRadius: theme.radius.lg,
-                backgroundColor: theme.color.surfaceMuted,
-              }}
-            >
+            <ListCard>
               {people.map((member, index) => {
                 const on = picking.picked.has(member.id);
                 return (
-                  <ListRow
+                  <ListItem
                     key={member.id}
                     leading={avatar(member)}
                     title={nameOf(member)}
                     subtitle={familyOf(units, member.id)?.name ?? t.families.onTheirOwn}
-                    divider={index < people.length - 1}
+                    divider={index > 0}
                     onPress={() => {
                       const picked = new Set(picking.picked);
                       if (on) picked.delete(member.id);
                       else picked.add(member.id);
                       setPicking({ ...picking, picked });
                     }}
-                    trailing={
+                    amount={
                       <Ionicons
                         name={on ? 'checkmark-circle' : 'ellipse-outline'}
                         size={iconSize.xl}
@@ -673,7 +652,7 @@ function FamiliesScreen() {
                   />
                 );
               })}
-            </View>
+            </ListCard>
             <Button
               label={t.families.create}
               fullWidth

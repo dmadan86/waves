@@ -45,7 +45,7 @@ import {
 import { myStake } from '@/data/activity';
 import { expenseCaption } from '@/lib/expenseCaption';
 import { StakePill, stakeColorFor } from '@/components/standard/StakePill';
-import { PillButton, SectionHeader } from '@/components/standard';
+import { LIST_TILE, ListItem, PillButton, RowTile, SectionHeader } from '@/components/standard';
 import { CompanyHome } from '@/components/company/CompanyHome';
 import { useDialog } from '@/lib/dialog';
 import {
@@ -103,7 +103,7 @@ import { useViewerId } from '@/lib/auth';
 import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
 import { useGroupBaseline, useMarkGroupSeen } from '@/lib/useGroupUnread';
 import { newMarksSince, type NewKind } from '@/lib/groupNew';
-import { NewDot, NewPill, newTint } from '@/components/NewMark';
+import { NewDot, NewPill } from '@/components/NewMark';
 import { UNREAD_GREEN } from '@/components/UnreadDot';
 import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
 import { leftWithBalance } from '@/lib/settleRow';
@@ -566,111 +566,73 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
   // (the sign is also said in words under it, so colour is never the only cue).
   const stakeColor = stakeColorFor(stake, theme);
   return (
-    <CardRow isFirst={isFirst} isLast={isLast} theme={theme} tint={mark !== null}>
-      <Row style={{ alignItems: 'center' }}>
-        <Pressable
-          onPress={() =>
-            router.push(
-              `/group/${groupId}/expense/${expense.id}${mark ? `?${mark === 'new' ? 'new' : 'edited'}=1` : ''}`,
-            )
-          }
-          accessibilityRole="button"
-          accessibilityLabel={rowLabel}
-          style={({ pressed }) => ({
-            flex: 1,
-            minWidth: 0,
-            opacity: pressed ? 0.6 : expense.deleted_at ? 0.55 : 1,
-          })}
-        >
-          <Row
-            style={{
-              gap: theme.spacing.md,
-              alignItems: 'center',
-              paddingVertical: ROW_PAD,
-              paddingStart: theme.spacing.md,
-              paddingEnd: theme.spacing.md,
-            }}
-          >
-            <CategoryBadge
-              category={version?.category}
-              meta={version?.category_meta}
-              description={version?.description}
-              size={36}
-            />
-            {/* MIDDLE — the one zone that yields. `minWidth: 0` lets a long title
-                or payer name ellipsize here rather than shoving the amount and
-                date off the row. */}
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Row style={{ alignItems: 'center', gap: 6 }}>
-                {mark ? <NewDot /> : null}
-                <Text
+    <View style={expense.deleted_at ? { opacity: 0.55 } : undefined}>
+      <ListItem
+        position={isFirst && isLast ? 'only' : isFirst ? 'first' : isLast ? 'last' : 'middle'}
+        onPress={() =>
+          router.push(
+            `/group/${groupId}/expense/${expense.id}${mark ? `?${mark === 'new' ? 'new' : 'edited'}=1` : ''}`,
+          )
+        }
+        accessibilityLabel={rowLabel}
+        leading={
+          <CategoryBadge
+            category={version?.category}
+            meta={version?.category_meta}
+            description={version?.description}
+            size={LIST_TILE}
+          />
+        }
+        title={title}
+        titleAccessory={
+          mark ? (
+            <>
+              <NewDot />
+              <NewPill label={mark === 'new' ? t.expense.fresh.new : t.expense.fresh.edited} />
+            </>
+          ) : undefined
+        }
+        subtitle={[
+          paidLineWithRate,
+          // "Paid to", only when set: "You paid ₹1,000 · to Car rental".
+          version?.payee ? fill(t.expense.payee.to, { payee: version.payee }) : null,
+          // The work tag, only when set: "You paid ₹500 · Work".
+          version?.reimbursable ? t.expense.reimbursable.chip : null,
+          expense.deleted_at ? t.expense.deleted : null,
+          dateStamp,
+          (version?.version_no ?? 1) > 1
+            ? plural(locale, version!.version_no - 1, t.expense.editedTimes)
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+        amount={
+          version ? (
+            <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
+              {stake !== null && stake !== 0n ? (
+                <MoneyText
+                  amount={stakeHere ? (stake < 0n ? -stakeHere.minor : stakeHere.minor) : stake}
+                  currency={stakeHere ? stakeHere.currency : version.currency}
+                  locale={locale}
+                  mode="balance"
+                  fadeFraction={false}
                   numberOfLines={1}
-                  style={{ fontSize: 15, lineHeight: 20, fontWeight: '700', flexShrink: 1 }}
-                >
-                  {title}
-                </Text>
-                {mark ? (
-                  <NewPill label={mark === 'new' ? t.expense.fresh.new : t.expense.fresh.edited} />
-                ) : null}
-              </Row>
-              <Text variant="caption" tone="muted" numberOfLines={1} style={{ fontSize: 12 }}>
-                {[
-                  paidLineWithRate,
-                  // "Paid to", only when set: "You paid ₹1,000 · to Car rental".
-                  version?.payee ? fill(t.expense.payee.to, { payee: version.payee }) : null,
-                  // The work tag, only when set: "You paid ₹500 · Work".
-                  version?.reimbursable ? t.expense.reimbursable.chip : null,
-                  expense.deleted_at ? t.expense.deleted : null,
-                  dateStamp,
-                  (version?.version_no ?? 1) > 1
-                    ? plural(locale, version!.version_no - 1, t.expense.editedTimes)
-                    : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </Text>
-            </View>
-            {/* RIGHT — fixed and right-aligned, the money column: the amount is
-                the hero and never squeezed by a long name; only the middle gives.
-                `maxWidth` is a safety valve for a pathological amount. */}
-            {version ? (
-              <View style={{ flexShrink: 0, maxWidth: '50%', alignItems: 'flex-end' }}>
-                <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
-                  {stake !== null && stake !== 0n ? (
-                    <MoneyText
-                      amount={stakeHere ? (stake < 0n ? -stakeHere.minor : stakeHere.minor) : stake}
-                      currency={stakeHere ? stakeHere.currency : version.currency}
-                      locale={locale}
-                      mode="balance"
-                      fadeFraction={false}
-                      numberOfLines={1}
-                      variant="subheading"
-                      style={{ fontSize: 15, lineHeight: 20, fontWeight: '700', color: stakeColor }}
-                    />
-                  ) : null}
-                  {expense.pending ? <PendingMark /> : null}
-                </Row>
-                <Row style={{ gap: 6, alignItems: 'center', marginTop: 2, maxWidth: '100%' }}>
-                  <StakePill label={pillLabel} kind={pillKind} color={stakeColor} />
-                </Row>
-              </View>
-            ) : null}
-          </Row>
-        </Pressable>
-      </Row>
-    </CardRow>
+                  variant="subheading"
+                  style={{ fontSize: 15, lineHeight: 20, fontWeight: '700', color: stakeColor }}
+                />
+              ) : null}
+              {expense.pending ? <PendingMark /> : null}
+            </Row>
+          ) : undefined
+        }
+        caption={
+          version ? <StakePill label={pillLabel} kind={pillKind} color={stakeColor} /> : undefined
+        }
+      />
+    </View>
   );
 });
 
-/** Vertical padding of a ledger row; with the 36dp badge it makes a ~56dp row. */
-const ROW_PAD = 10;
-
-/**
- * One row of a "card" the flat feed draws: FlashList cannot wrap a run of rows
- * in a container, so each row paints its own slice of the card — side borders
- * throughout, the top edge and corners on the first, the bottom on the last, a
- * hairline between neighbours.
- */
 /** Joined card edges keep member rows virtualized within one balance section. */
 function BalanceCard({
   theme,
@@ -697,57 +659,6 @@ function BalanceCard({
         overflow: 'hidden',
       }}
     >
-      {children}
-    </View>
-  );
-}
-
-function CardRow({
-  isFirst,
-  isLast,
-  theme,
-  tint = false,
-  children,
-}: {
-  isFirst: boolean;
-  isLast: boolean;
-  theme: ReturnType<typeof useTheme>;
-  /** A faint green wash: the row is news to the reader. */
-  tint?: boolean;
-  children: React.ReactNode;
-}) {
-  const radius = theme.radius.lg;
-  return (
-    <View
-      style={{
-        backgroundColor: theme.color.surface,
-        borderColor: theme.color.border,
-        borderLeftWidth: 1,
-        borderRightWidth: 1,
-        borderTopWidth: isFirst ? 1 : 0,
-        borderBottomWidth: 1,
-        borderTopLeftRadius: isFirst ? radius : 0,
-        borderTopRightRadius: isFirst ? radius : 0,
-        borderBottomLeftRadius: isLast ? radius : 0,
-        borderBottomRightRadius: isLast ? radius : 0,
-        // The last row's bottom edge closes the card; the others' is the divider.
-        borderBottomColor: theme.color.border,
-        overflow: 'hidden',
-      }}
-    >
-      {tint ? (
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: newTint(theme.scheme),
-          }}
-        />
-      ) : null}
       {children}
     </View>
   );
@@ -1753,18 +1664,9 @@ function LedgerGroupScreen() {
               padding: theme.spacing.md,
             }}
           >
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: theme.radius.lg,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: theme.color.brandSoft,
-              }}
-            >
+            <RowTile tint={theme.color.brandSoft}>
               <Text style={{ fontSize: 22 }}>{familyEmoji(item.members.length)}</Text>
-            </View>
+            </RowTile>
             <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
               <Text variant="subheading" numberOfLines={1}>
                 {item.name}

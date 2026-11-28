@@ -1,8 +1,9 @@
 import { ScrollView } from 'react-native';
 
-import { Card, Row, Screen, Text, useTabBarClearance, useTheme } from '@waves/ui';
+import { Screen, Text, useTabBarClearance, useTheme } from '@waves/ui';
 
 import { PlainHeader } from '@/components/standard/PlainHeader';
+import { ListCard, ListItem } from '@/components/standard';
 import { useStrings } from '@/i18n';
 
 /**
@@ -117,53 +118,31 @@ export default function LicensesScreen() {
           {t.privacy.licensesIntro}
         </Text>
 
-        <Card style={{ paddingVertical: theme.spacing.xs }}>
+        <ListCard>
           {LICENSES.map((lib, index) => (
-            <Row
+            <ListItem
               key={lib.name}
-              style={{
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingVertical: theme.spacing.md,
-                borderTopWidth: index === 0 ? 0 : 1,
-                borderTopColor: theme.color.border,
-                gap: theme.spacing.md,
-              }}
-            >
-              <Text variant="body" numberOfLines={1} style={{ flex: 1 }}>
-                {lib.name}
-              </Text>
-              <Text variant="caption" tone="muted">
-                {lib.license}
-              </Text>
-            </Row>
+              divider={index > 0}
+              title={lib.name}
+              amount={lib.license}
+              amountTone="muted"
+            />
           ))}
-        </Card>
+        </ListCard>
 
         <Text variant="subheading">{t.privacy.artworkTitle}</Text>
 
-        <Card style={{ paddingVertical: theme.spacing.xs }}>
+        <ListCard>
           {ARTWORK.map((item, index) => (
-            <Row
+            <ListItem
               key={item.name}
-              style={{
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingVertical: theme.spacing.md,
-                borderTopWidth: index === 0 ? 0 : 1,
-                borderTopColor: theme.color.border,
-                gap: theme.spacing.md,
-              }}
-            >
-              <Text variant="body" numberOfLines={1} style={{ flex: 1 }}>
-                {item.name}
-              </Text>
-              <Text variant="caption" tone="muted">
-                {item.license}
-              </Text>
-            </Row>
+              divider={index > 0}
+              title={item.name}
+              amount={item.license}
+              amountTone="muted"
+            />
           ))}
-        </Card>
+        </ListCard>
 
         <Text variant="micro" tone="muted">
           {t.privacy.licenseNote}

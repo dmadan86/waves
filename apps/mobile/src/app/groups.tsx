@@ -24,7 +24,7 @@ import { fill, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { archiveSuggestion, splitFamily, viewerLeft } from '@/lib/groupSections';
 import { useKeptGroups } from '@/lib/archiveKept';
-import { EmptyCard } from '@/components/standard';
+import { EmptyCard, StandardCard } from '@/components/standard';
 import { SearchField } from '@/components/SearchToggle';
 import { useSync } from '@/sync/provider';
 import { MutationKind } from '@waves/core';
@@ -295,13 +295,8 @@ function AllGroupsScreen() {
                   />
                 ) : null}
                 {suggestion ? (
-                  <View
-                    style={{
-                      gap: theme.spacing.sm,
-                      padding: theme.spacing.md,
-                      borderRadius: theme.radius.lg,
-                      backgroundColor: theme.color.brandSoft,
-                    }}
+                  <StandardCard
+                    style={{ gap: theme.spacing.sm, backgroundColor: theme.color.brandSoft }}
                   >
                     <Text>{fill(t.homeToday.archiveSuggest, { name: suggestion.label })}</Text>
                     <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
@@ -312,7 +307,7 @@ function AllGroupsScreen() {
                         onPress={() => keep(suggestion.id)}
                       />
                     </View>
-                  </View>
+                  </StandardCard>
                 ) : null}
                 {loading ? (
                   <View style={{ paddingTop: theme.spacing.lg }}>{empty}</View>

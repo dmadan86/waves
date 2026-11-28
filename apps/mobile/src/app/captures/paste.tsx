@@ -338,7 +338,7 @@ function Step({
           style={{
             width: 26,
             height: 26,
-            borderRadius: 13,
+            borderRadius: theme.radius.pill,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: theme.color.brandSoft,
@@ -364,7 +364,7 @@ function Step({
         style={{
           width: 36,
           height: 36,
-          borderRadius: 18,
+          borderRadius: theme.radius.pill,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#EEF1FB',
@@ -449,7 +449,7 @@ function AddPill({
         <View
           style={{
             height: 58,
-            borderRadius: 29,
+            borderRadius: theme.radius.pill,
             flexDirection: 'row',
             alignItems: 'center',
             backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#B7BAC6',
@@ -914,7 +914,7 @@ function PasteMessages(): React.JSX.Element {
             style={{
               width: 40,
               height: 40,
-              borderRadius: 20,
+              borderRadius: theme.radius.pill,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: theme.color.brandSoft,

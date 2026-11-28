@@ -139,6 +139,7 @@ import {
 } from '@waves/ui';
 
 import { PlainHeader } from '@/components/standard/PlainHeader';
+import { ListCard } from '@/components/standard';
 import { coupleRecordCount } from '@/e2ee/runtime';
 import { plural, useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
@@ -1976,7 +1977,7 @@ function LinkDriveButton({
         style={{
           width: 36,
           height: 36,
-          borderRadius: 18,
+          borderRadius: theme.radius.pill,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: '#FFFFFF',
@@ -2008,6 +2009,7 @@ function CardHead({
   title: string;
   sub: string;
 }) {
+  const theme = useTheme();
   const { ink, muted } = useBackupInks();
   return (
     <Row style={{ alignItems: 'center', gap: 12 }}>
@@ -2015,7 +2017,7 @@ function CardHead({
         style={{
           width: 44,
           height: 44,
-          borderRadius: 22,
+          borderRadius: theme.radius.pill,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: bg,
@@ -2059,7 +2061,7 @@ function ChoiceList<T extends string>({
   const theme = useTheme();
   const { ink, muted, accent, lavender, line } = useBackupInks();
   return (
-    <View style={{ borderWidth: 1, borderColor: line, borderRadius: 12, padding: 4 }}>
+    <ListCard style={{ padding: 4 }}>
       {choices.map((choice, index) => {
         const chosen = choice.value === value;
         const nextChosen = choices[index + 1]?.value === value;
@@ -2087,7 +2089,7 @@ function ChoiceList<T extends string>({
                   style={{
                     width: 34,
                     height: 34,
-                    borderRadius: 17,
+                    borderRadius: theme.radius.pill,
                     alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor: chosen
@@ -2107,7 +2109,7 @@ function ChoiceList<T extends string>({
                     style={{
                       width: 22,
                       height: 22,
-                      borderRadius: 11,
+                      borderRadius: theme.radius.pill,
                       borderWidth: 1.5,
                       borderColor: line,
                     }}
@@ -2122,7 +2124,7 @@ function ChoiceList<T extends string>({
                 style={{
                   width: 22,
                   height: 22,
-                  borderRadius: 11,
+                  borderRadius: theme.radius.pill,
                   alignItems: 'center',
                   justifyContent: 'center',
                   borderWidth: chosen ? 2 : 1.5,
@@ -2132,7 +2134,12 @@ function ChoiceList<T extends string>({
               >
                 {chosen ? (
                   <View
-                    style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: accent }}
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: theme.radius.pill,
+                      backgroundColor: accent,
+                    }}
                   />
                 ) : null}
               </View>
@@ -2143,7 +2150,7 @@ function ChoiceList<T extends string>({
           </View>
         );
       })}
-    </View>
+    </ListCard>
   );
 }
 

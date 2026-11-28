@@ -30,7 +30,6 @@ import { type CurrencyCode } from '@waves/core';
 import {
   Button,
   Card,
-  Divider,
   EmptyState,
   iconSize,
   MODAL_ORIENTATIONS,
@@ -42,6 +41,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { ListCard } from '@/components/standard';
 import { withScenic } from '@/components/ScenicScope';
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { PeopleSkeleton } from '@/components/Skeletons';
@@ -266,16 +266,14 @@ function PersonDetailScreen() {
                   on the member page, reached from here because this is where a
                   person who is "not on Waves" is looked for. */}
               {person.unregistered && !blocked && ready && linkable.length > 0 ? (
-                <Card
-                  style={{ paddingVertical: theme.spacing.xs, paddingHorizontal: theme.spacing.md }}
-                >
+                <ListCard>
                   <NavRow
                     icon="link-outline"
                     title={t.link.row}
                     body={fill(t.link.rowHint, { name: realName })}
                     onPress={() => via('link')}
                   />
-                </Card>
+                </ListCard>
               ) : null}
 
               {profile && !profile.is_ghost && !blocked && ready ? (
@@ -307,7 +305,7 @@ function PersonDetailScreen() {
               )}
 
               {owingGroups.length > 0 ? (
-                <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.md }}>
+                <View style={{ gap: theme.spacing.sm }}>
                   <Row style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
                     <Text variant="subheading">
                       {owingGroups.length === 1
@@ -330,34 +328,35 @@ function PersonDetailScreen() {
                       </Row>
                     ) : null}
                   </Row>
-                  {owingGroups.map((group) => (
-                    <PairGroupCard
-                      key={group.groupId}
-                      group={group}
-                      onPress={() => router.push(`/group/${group.groupId}`)}
-                    />
-                  ))}
-                </Card>
+                  <ListCard>
+                    {owingGroups.map((group, index) => (
+                      <PairGroupCard
+                        key={group.groupId}
+                        group={group}
+                        divider={index > 0}
+                        onPress={() => router.push(`/group/${group.groupId}`)}
+                      />
+                    ))}
+                  </ListCard>
+                </View>
               ) : null}
 
               {groups.length > 0 ? (
-                <Card
-                  style={{ paddingVertical: theme.spacing.xs, paddingHorizontal: theme.spacing.md }}
-                >
+                <ListCard>
                   <NavRow
                     icon="stats-chart-outline"
                     title={t.person.paymentHistory}
                     body={fill(t.person.paymentHistoryBody, { name: realName })}
                     onPress={() => via('history')}
                   />
-                  <Divider />
                   <NavRow
+                    divider
                     icon="people-outline"
                     title={t.person.viewAllGroups}
                     body={t.person.viewAllGroupsBody}
                     onPress={() => via('group')}
                   />
-                </Card>
+                </ListCard>
               ) : null}
             </>
           )}

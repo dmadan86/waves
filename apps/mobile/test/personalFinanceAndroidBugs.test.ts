@@ -101,7 +101,7 @@ describe('Android personal finance regressions', () => {
   });
 
   it('loan card title renders the counterpart name', () => {
-    expect(src('app/personal/loans.tsx')).toContain('{name}</Text>');
+    expect(src('app/personal/loans.tsx')).toMatch(/\{name\}<\/Text>|title=\{name\}/);
   });
 
   it('Me settings keep the Personal tab bar', () => {

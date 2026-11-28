@@ -6,6 +6,7 @@ import { TextInput, View } from 'react-native';
 
 import { ChipRow, directionalIcon, IconButton, iconSize, Screen, Text, useTheme } from '@waves/ui';
 
+import { StandardCard } from '@/components/standard';
 import { SplitMoney } from '@/components/SplitMoney';
 import { SettleGroupList } from '@/components/home/SettleGroupList';
 import { useStrings } from '@/i18n';
@@ -84,7 +85,7 @@ export default function SettleUpScreen() {
               style={{
                 width: 40,
                 height: 40,
-                borderRadius: 20,
+                borderRadius: theme.radius.pill,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: theme.color.brandSoft,
@@ -133,15 +134,13 @@ export default function SettleUpScreen() {
         </View>
       ) : null}
 
-      <View
+      <StandardCard
         style={{
           flexDirection: 'row',
           alignItems: 'center',
           gap: theme.spacing.md,
           marginHorizontal: theme.spacing.lg,
           marginBottom: theme.spacing.sm,
-          padding: theme.spacing.md,
-          borderRadius: theme.radius.lg,
           backgroundColor: theme.color.brandSoft,
         }}
       >
@@ -149,7 +148,7 @@ export default function SettleUpScreen() {
           style={{
             width: 40,
             height: 40,
-            borderRadius: 20,
+            borderRadius: theme.radius.pill,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: square ? theme.color.positive : theme.color.surface,
@@ -200,7 +199,7 @@ export default function SettleUpScreen() {
             </Text>
           )}
         </View>
-      </View>
+      </StandardCard>
 
       <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
         <ChipRow

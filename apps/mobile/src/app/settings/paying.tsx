@@ -12,6 +12,7 @@
  */
 
 import { PlainHeader } from '@/components/standard/PlainHeader';
+import { StandardCard } from '@/components/standard';
 import { syncEngine } from '@/sync';
 import { ownRailHint } from '@/lib/ownRailHint';
 import { useTabBarStandDown } from '@/lib/useTabBarStandDown';
@@ -289,14 +290,7 @@ function PayingForm() {
           </View>
 
           {railInfo && railInfo.handle !== 'none' ? (
-            <View
-              style={{
-                gap: theme.spacing.sm,
-                padding: theme.spacing.md,
-                borderRadius: theme.radius.lg,
-                backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#F4F2FD',
-              }}
-            >
+            <StandardCard style={{ gap: theme.spacing.sm }}>
               <Text variant="body" style={{ fontWeight: '700' }}>
                 {t.account.yourRailDetails.replace('{rail}', railInfo.label)}
               </Text>
@@ -359,7 +353,7 @@ function PayingForm() {
                       : t.account.railManualNote}
                 </Text>
               </Row>
-            </View>
+            </StandardCard>
           ) : (
             <Text variant="caption" tone="muted">
               {t.account.nothingToAdd}
@@ -433,7 +427,7 @@ function WalletArt({ symbol }: { symbol: string }) {
           bottom: 6,
           width: 36,
           height: 36,
-          borderRadius: 18,
+          borderRadius: theme.radius.pill,
           backgroundColor: '#F6A23B',
           borderWidth: 3,
           borderColor: '#FFD48A',

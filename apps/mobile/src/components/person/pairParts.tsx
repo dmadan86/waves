@@ -8,13 +8,14 @@
  */
 import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { directionalIcon, iconSize, MoneyText, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { FriendsHeroBackground } from '@/components/home/FriendsHeroBackground';
 import { GroupPhoto } from '@/components/GroupPhoto';
+import { LIST_TILE, ListCard, ListItem, RowTile } from '@/components/standard';
 import { GROUP_TYPE_ICON } from '@/components/DestinationPicker';
 import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 import type { CurrencyCode } from '@waves/core';
@@ -159,46 +160,28 @@ export function useGroupSubline(group: PairGroupRow): string {
 export function PairGroupCard({
   group,
   onPress,
-  hint,
+  divider = false,
 }: {
   group: PairGroupRow;
   onPress: () => void;
-  hint?: string;
+  divider?: boolean;
 }) {
-  const theme = useTheme();
   const { t, locale } = useStrings();
   const subline = useGroupSubline(group);
   const [head, ...rest] = group.lines;
   const simplified = group.lines.some((line) => line.basis === 'simplified');
 
   return (
-    <Pressable
-      accessibilityRole="button"
+    <ListItem
+      divider={divider}
       accessibilityLabel={`${group.name}. ${subline}`}
-      accessibilityHint={hint}
       onPress={onPress}
-      style={({ pressed }) => ({
-        opacity: pressed ? 0.75 : 1,
-        backgroundColor: theme.color.surface,
-        borderRadius: theme.radius.md,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.color.border,
-        paddingVertical: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.md,
-      })}
-    >
-      <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-        <GroupPhoto photoPath={group.photoPath} emoji={group.coverEmoji} size={44} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text variant="subheading" numberOfLines={1}>
-            {group.name}
-          </Text>
-          <Text variant="caption" tone="muted" numberOfLines={1}>
-            {subline}
-          </Text>
-        </View>
-        {head ? (
-          <View style={{ alignItems: 'flex-end', maxWidth: '40%' }}>
+      leading={<GroupPhoto photoPath={group.photoPath} emoji={group.coverEmoji} size={LIST_TILE} />}
+      title={group.name}
+      subtitle={subline}
+      amount={
+        head ? (
+          <View style={{ alignItems: 'flex-end', maxWidth: '100%' }}>
             <MoneyText
               amount={head.net}
               currency={head.currency as CurrencyCode}
@@ -218,16 +201,12 @@ export function PairGroupCard({
                 numberOfLines={1}
               />
             ))}
-            {simplified ? (
-              <Text variant="micro" tone="muted" numberOfLines={1}>
-                {t.person.afterSimplifying}
-              </Text>
-            ) : null}
           </View>
-        ) : null}
-        <Chevron />
-      </Row>
-    </Pressable>
+        ) : undefined
+      }
+      caption={simplified ? t.person.afterSimplifying : undefined}
+      chevron
+    />
   );
 }
 
@@ -264,51 +243,29 @@ export function NavRow({
   title,
   body,
   onPress,
+  divider = false,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   body: string;
   onPress: () => void;
+  divider?: boolean;
 }) {
   const theme = useTheme();
   return (
-    <Pressable
-      accessibilityRole="button"
+    <ListItem
+      divider={divider}
       accessibilityLabel={`${title}. ${body}`}
       onPress={onPress}
-      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-    >
-      <Row
-        style={{
-          alignItems: 'center',
-          gap: theme.spacing.md,
-          minHeight: 56,
-          paddingVertical: theme.spacing.sm,
-        }}
-      >
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.brandSoft,
-          }}
-        >
+      leading={
+        <RowTile tint={theme.color.brandSoft}>
           <Ionicons name={icon} size={iconSize.lg} color={theme.color.brand} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text variant="subheading" numberOfLines={1}>
-            {title}
-          </Text>
-          <Text variant="caption" tone="muted" numberOfLines={2}>
-            {body}
-          </Text>
-        </View>
-        <Chevron />
-      </Row>
-    </Pressable>
+        </RowTile>
+      }
+      title={title}
+      subtitle={body}
+      chevron
+    />
   );
 }
 
@@ -345,9 +302,16 @@ export function PickGroupSheet({
         <Text variant="caption" tone="muted">
           {body ?? fill(t.person.pickGroupBody, { name })}
         </Text>
-        {groups.map((group) => (
-          <PairGroupCard key={group.groupId} group={group} onPress={() => onPick(group)} />
-        ))}
+        <ListCard>
+          {groups.map((group, index) => (
+            <PairGroupCard
+              key={group.groupId}
+              group={group}
+              divider={index > 0}
+              onPress={() => onPick(group)}
+            />
+          ))}
+        </ListCard>
       </View>
     </Sheet>
   );

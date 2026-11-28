@@ -32,7 +32,7 @@
  * money.
  */
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
@@ -49,14 +49,21 @@ import {
   spentInMonth,
   type PersonalMonthSplit,
 } from '@waves/core';
-import { directionalIcon, Row, Screen, Text, Toggle, useTheme } from '@waves/ui';
+import { iconSize, Row, Screen, Text, Toggle, useTheme } from '@waves/ui';
 
 import { todayIso, usePersonalLedger } from '@/data/personal';
 import { useDefaultCurrency } from '@/lib/currency';
 import { fill, useStrings } from '@/i18n';
 import { EmptyStateCta } from '@/components/EmptyStateCta';
 import { router } from '@/lib/navigation';
-import { MonthSwitcher, PlainHeader } from '@/components/standard';
+import {
+  ListCard,
+  ListItem,
+  MonthSwitcher,
+  PlainHeader,
+  RowTile,
+  StandardCard,
+} from '@/components/standard';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
@@ -155,7 +162,7 @@ function SpendingScreenBody() {
           </View>
         ) : (
           <>
-            <SoftCard style={{ gap: theme.spacing.sm }}>
+            <StandardCard style={{ gap: theme.spacing.sm }}>
               <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ fontSize: 16, fontWeight: '700', color: ink, flexShrink: 1 }}>
                   {t.personal.last6Months}
@@ -178,7 +185,7 @@ function SpendingScreenBody() {
                 scale={dcScale}
                 locale={locale}
               />
-            </SoftCard>
+            </StandardCard>
 
             <MonthSwitcher
               label={monthLabel(month, locale)}
@@ -190,8 +197,9 @@ function SpendingScreenBody() {
               onNext={() => setMonth(months[index + 1] ?? month)}
             />
 
-            <SoftCard style={{ gap: theme.spacing.md }}>
+            <ListCard>
               <SplitRow
+                divider={false}
                 icon="wallet"
                 tint={theme.tint.lilac}
                 label={t.personal.income}
@@ -216,8 +224,6 @@ function SpendingScreenBody() {
                 onPress={() => openMonth('expense')}
               />
 
-              <View style={{ height: 1, backgroundColor: theme.color.border }} />
-
               {/* Not "saved": the app cannot see a savings account, and the caption says so. */}
               <SplitRow
                 icon="pie-chart"
@@ -232,9 +238,9 @@ function SpendingScreenBody() {
                 )}`}
                 amountColor={split.leftOver < 0n ? theme.color.negative : LEFT_OVER_GREEN}
               />
+            </ListCard>
 
-              <View style={{ height: 1, backgroundColor: theme.color.border }} />
-
+            <StandardCard>
               {/* The switch that makes the six columns comparable: a month the rent lands in
                   looks nothing like one it does not. */}
               <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
@@ -252,7 +258,7 @@ function SpendingScreenBody() {
                   accessibilityLabel={t.personal.includeBills}
                 />
               </Row>
-            </SoftCard>
+            </StandardCard>
 
             {others.length > 0 ? (
               <Text variant="micro" tone="muted" align="center">
@@ -529,58 +535,9 @@ const BAR_WIDTH = 9;
 
 // ───────────────────────────────────────────────────────────────── rows ──
 
-/** A white card with the redesign's soft corners and lift. */
-function SoftCard({ children, style }: { children: ReactNode; style?: object }) {
-  const theme = useTheme();
-  return (
-    <View
-      style={[
-        {
-          backgroundColor: theme.color.surface,
-          borderRadius: theme.radius.lg,
-          padding: theme.spacing.md,
-          borderWidth: 1,
-          borderColor: theme.color.border,
-        },
-        style,
-      ]}
-    >
-      {children}
-    </View>
-  );
-}
-
-/** A glyph on its own soft disc. */
-function IconDisc({
-  icon,
-  color,
-  soft,
-}: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  color: string;
-  soft: string;
-}) {
-  return (
-    <View
-      style={{
-        width: 38,
-        height: 38,
-        borderRadius: 19,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: soft,
-      }}
-    >
-      <Ionicons name={icon} size={18} color={color} />
-    </View>
-  );
-}
-
 /**
  * One line of the split: its glyph on a tinted disc, the name over a line on
- * what it is, and the money.
- *
- * Tappable (with a chevron) when it has somewhere to go: the month's entries.
+ * what it is, and the money. Tappable (with a chevron) when it has somewhere to go.
  */
 function SplitRow({
   icon,
@@ -590,6 +547,7 @@ function SplitRow({
   amount,
   amountColor,
   onPress,
+  divider = true,
 }: {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   tint: { bg: string; ink: string };
@@ -598,51 +556,28 @@ function SplitRow({
   amount: string;
   amountColor?: string;
   onPress?: () => void;
+  divider?: boolean;
 }) {
-  const theme = useTheme();
-  const dark = theme.scheme === 'dark';
   return (
-    <Pressable
-      accessibilityRole={onPress ? 'button' : undefined}
+    <ListItem
+      divider={divider}
       accessibilityLabel={`${label}, ${amount}`}
-      disabled={!onPress}
       onPress={onPress}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}
-    >
-      <IconDisc icon={icon} color={tint.ink} soft={tint.bg} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          numberOfLines={1}
-          style={{ fontSize: 14, fontWeight: '700', color: dark ? theme.color.text : SPEC_INK }}
-        >
-          {label}
-        </Text>
-        <Text
-          numberOfLines={2}
-          style={{ fontSize: 12, color: dark ? theme.color.textMuted : SPEC_MUTED }}
-        >
+      leading={
+        <RowTile tint={tint.bg}>
+          <Ionicons name={icon} size={iconSize.md} color={tint.ink} />
+        </RowTile>
+      }
+      title={label}
+      subtitle={
+        <Text variant="caption" tone="muted" numberOfLines={2}>
           {sub}
         </Text>
-      </View>
-      <Text
-        numberOfLines={1}
-        style={{
-          fontSize: 15,
-          fontWeight: '800',
-          fontVariant: ['tabular-nums'],
-          color: amountColor ?? (dark ? theme.color.text : SPEC_INK),
-        }}
-      >
-        {amount}
-      </Text>
-      {onPress ? (
-        <Ionicons
-          name={directionalIcon('chevron-forward')}
-          size={16}
-          color={dark ? theme.color.textMuted : SPEC_MUTED}
-        />
-      ) : null}
-    </Pressable>
+      }
+      amount={amount}
+      amountColor={amountColor}
+      chevron={!!onPress}
+    />
   );
 }
 

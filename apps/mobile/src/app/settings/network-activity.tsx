@@ -13,19 +13,10 @@ import { useCallback, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlatList, ScrollView, View } from 'react-native';
 
-import {
-  Card,
-  Chip,
-  IconButton,
-  iconSize,
-  Screen,
-  Text,
-  useTabBarClearance,
-  useTheme,
-} from '@waves/ui';
+import { Chip, IconButton, iconSize, Screen, Text, useTabBarClearance, useTheme } from '@waves/ui';
 
 import { PlainHeader } from '@/components/standard/PlainHeader';
-import { ListRow } from '@/components/standard';
+import { ListCard, ListItem, ListRow } from '@/components/standard';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
 import { DEFAULT_TILE_URL } from '@/lib/mapTiles';
@@ -232,28 +223,34 @@ export default function NetworkActivityScreen() {
   const footer = (
     <View style={{ gap: theme.spacing.md, paddingTop: theme.spacing.xl }}>
       <Text variant="subheading">{t.netlog.servicesTitle}</Text>
-      {services().map((service) => (
-        <Card key={service.id} style={{ gap: theme.spacing.xs }}>
-          <Text variant="body" style={{ fontWeight: '700' }}>
-            {service.name}
-          </Text>
-          <Text variant="caption" tone="muted" style={MONO}>
-            {service.hosts.join('\n')}
-          </Text>
-          <Text variant="caption">
-            <Text variant="caption" tone="muted">
-              {t.netlog.usedFor}:{' '}
-            </Text>
-            {t.netlog.svc[service.id].purpose}
-          </Text>
-          <Text variant="caption">
-            <Text variant="caption" tone="muted">
-              {t.netlog.dataLabel}:{' '}
-            </Text>
-            {t.netlog.svc[service.id].data}
-          </Text>
-        </Card>
-      ))}
+      <ListCard>
+        {services().map((service, index) => (
+          <ListItem
+            key={service.id}
+            divider={index > 0}
+            title={service.name}
+            subtitle={
+              <>
+                <Text variant="caption" tone="muted" style={MONO}>
+                  {service.hosts.join('\n')}
+                </Text>
+                <Text variant="caption">
+                  <Text variant="caption" tone="muted">
+                    {t.netlog.usedFor}:{' '}
+                  </Text>
+                  {t.netlog.svc[service.id].purpose}
+                </Text>
+                <Text variant="caption">
+                  <Text variant="caption" tone="muted">
+                    {t.netlog.dataLabel}:{' '}
+                  </Text>
+                  {t.netlog.svc[service.id].data}
+                </Text>
+              </>
+            }
+          />
+        ))}
+      </ListCard>
       <Text variant="caption" tone="muted">
         {t.netlog.builtinNote}
       </Text>

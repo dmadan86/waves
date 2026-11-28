@@ -20,12 +20,12 @@ import { useGroup, useGroupLedger, useResplitDeparted } from '@/data/hooks';
 import { CategoryBadge, builtinCategoryLabel } from '@/components/Category';
 import { BalanceSide } from '@/components/home/BalanceSide';
 import { PersonAvatar } from '@/components/PersonAvatar';
+import { LIST_TILE, ListCard, ListItem, StandardCard } from '@/components/standard';
 import {
   PairHero,
   HeroCircleButton,
   HERO_OVERLAP,
   HERO_TEXT_SHADOW,
-  Chevron,
 } from '@/components/person/pairParts';
 import { expenseTitle } from '@/data/expenseTitle';
 import { displayName } from '@/data/types';
@@ -387,14 +387,7 @@ function DepartedExpensesScreen() {
               <Text variant="caption">{sortLabels[sort]}</Text>
             </Pressable>
           </Row>
-          <View
-            style={{
-              backgroundColor: theme.color.surface,
-              borderRadius: theme.radius.lg,
-              padding: theme.spacing.sm,
-              gap: 2,
-            }}
-          >
+          <StandardCard style={{ gap: 2 }}>
             <Text variant="subheading">{fill(s.modeTitle, { name })}</Text>
             {RESPLIT_MODES.map((option) => (
               <Pressable
@@ -423,16 +416,9 @@ function DepartedExpensesScreen() {
                 </View>
               </Pressable>
             ))}
-          </View>
+          </StandardCard>
           {[...sections].map(([date, rows]) => (
-            <View
-              key={date}
-              style={{
-                borderRadius: theme.radius.lg,
-                backgroundColor: theme.color.surfaceMuted,
-                overflow: 'hidden',
-              }}
-            >
+            <View key={date} style={{ gap: theme.spacing.xs }}>
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ expanded: !collapsed.has(date) }}
@@ -470,9 +456,7 @@ function DepartedExpensesScreen() {
                 />
               </Pressable>
               {!collapsed.has(date) && (
-                <View
-                  style={{ backgroundColor: theme.color.surface, borderRadius: theme.radius.lg }}
-                >
+                <ListCard>
                   {rows.map((expense, index) => {
                     const version = expense.currentVersion!;
                     const candidate = byId.get(expense.id);
@@ -484,46 +468,33 @@ function DepartedExpensesScreen() {
                       );
                     const title = expenseTitle(version.description, version.category, t);
                     return (
-                      <Row
+                      <ListItem
                         key={expense.id}
-                        style={{
-                          alignItems: 'center',
-                          paddingHorizontal: theme.spacing.sm,
-                          borderTopWidth: index ? 1 : 0,
-                          borderColor: theme.color.border,
-                        }}
-                      >
-                        {!isPaid ? (
-                          checkbox(
-                            selectedIds.has(expense.id) && !candidate.noneRemaining,
-                            () => toggleExpense(expense.id),
-                            title,
-                            mutation.isPending || candidate.noneRemaining,
-                          )
-                        ) : (
-                          <View style={{ width: 36 }} />
-                        )}
-                        <Pressable
-                          accessibilityRole="button"
-                          onPress={() => router.push(`/group/${id}/expense/${expense.id}`)}
-                          style={{
-                            flex: 1,
-                            minHeight: 68,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: theme.spacing.sm,
-                            paddingVertical: theme.spacing.sm,
-                          }}
-                        >
-                          <CategoryBadge
-                            category={version.category}
-                            description={version.description}
-                            size={36}
-                          />
-                          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                            <Text variant="subheading" numberOfLines={1}>
-                              {title}
-                            </Text>
+                        divider={index > 0}
+                        accessibilityLabel={title}
+                        onPress={() => router.push(`/group/${id}/expense/${expense.id}`)}
+                        leading={
+                          <Row style={{ alignItems: 'center' }}>
+                            {!isPaid ? (
+                              checkbox(
+                                selectedIds.has(expense.id) && !candidate.noneRemaining,
+                                () => toggleExpense(expense.id),
+                                title,
+                                mutation.isPending || candidate.noneRemaining,
+                              )
+                            ) : (
+                              <View style={{ width: 36 }} />
+                            )}
+                            <CategoryBadge
+                              category={version.category}
+                              description={version.description}
+                              size={LIST_TILE}
+                            />
+                          </Row>
+                        }
+                        title={title}
+                        subtitle={
+                          <View style={{ gap: 2 }}>
                             <Text variant="micro" tone="muted" numberOfLines={2}>
                               {fill(version.split_type === 'equal' ? s.equalShare : s.customShare, {
                                 amount: fmt(share, version.currency),
@@ -562,15 +533,14 @@ function DepartedExpensesScreen() {
                               </Text>
                             )}
                           </View>
-                          <Text variant="subheading" style={{ color: theme.color.brand }}>
-                            {fmt(BigInt(version.amount), version.currency)}
-                          </Text>
-                          <Chevron />
-                        </Pressable>
-                      </Row>
+                        }
+                        amount={fmt(BigInt(version.amount), version.currency)}
+                        amountColor={theme.color.brand}
+                        chevron
+                      />
                     );
                   })}
-                </View>
+                </ListCard>
               )}
             </View>
           ))}

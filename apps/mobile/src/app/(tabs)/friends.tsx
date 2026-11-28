@@ -36,7 +36,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   Button,
-  directionalIcon,
   EmptyState,
   iconSize,
   initialsOf,
@@ -70,6 +69,7 @@ import {
 } from '@/lib/friendsTotals';
 import { PressableScale } from '@/lib/anim';
 import { router } from '@/lib/navigation';
+import { LIST_TILE, ListItem, StandardCard } from '@/components/standard';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { FriendsHeroBackground } from '@/components/home/FriendsHeroBackground';
 import { HomeBalanceCard } from '@/components/home/ScenicBalanceCard';
@@ -615,34 +615,18 @@ function FriendsScreen() {
               const last = index === persons.length - 1;
               return (
                 <>
-                  <View
-                    style={{
-                      backgroundColor: theme.color.surface,
-                      borderColor: theme.color.border,
-                      borderLeftWidth: 1,
-                      borderRightWidth: 1,
-                      borderTopWidth: first ? 1 : 0,
-                      borderBottomWidth: last ? 1 : 0,
-                      borderTopLeftRadius: first ? theme.radius.lg : 0,
-                      borderTopRightRadius: first ? theme.radius.lg : 0,
-                      borderBottomLeftRadius: last ? theme.radius.lg : 0,
-                      borderBottomRightRadius: last ? theme.radius.lg : 0,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <PersonRow
-                      person={item}
-                      locale={locale}
-                      t={t}
-                      hidden={balanceHidden || !balanceReady}
-                      divider={!first}
-                      duplicate={duplicates.keys.has(item.person_key)}
-                      selectMode={selectMode}
-                      selected={selectedKeys.has(item.person_key)}
-                      onEnterSelect={enterSelect}
-                      onToggleSelect={toggleSelect}
-                    />
-                  </View>
+                  <PersonRow
+                    person={item}
+                    locale={locale}
+                    t={t}
+                    hidden={balanceHidden || !balanceReady}
+                    position={first ? (last ? 'only' : 'first') : last ? 'last' : 'middle'}
+                    duplicate={duplicates.keys.has(item.person_key)}
+                    selectMode={selectMode}
+                    selected={selectedKeys.has(item.person_key)}
+                    onEnterSelect={enterSelect}
+                    onToggleSelect={toggleSelect}
+                  />
                   {friendsAds.plan.slots.includes(index + 1) && !selectMode ? (
                     <AdSlot
                       handle={friendsAds}
@@ -1088,7 +1072,7 @@ const PersonRow = memo(function PersonRow({
   locale,
   t,
   hidden,
-  divider,
+  position,
   duplicate,
   selectMode,
   selected,
@@ -1101,9 +1085,8 @@ const PersonRow = memo(function PersonRow({
   /** The eye toggle's state, shared with the balance card above: masks this
       row's amounts (and their accessibility labels) the same way. */
   hidden: boolean;
-  /** A hairline above the row — every row but the first, so the card reads as one
-      divided list. */
-  divider: boolean;
+  /** Which slice of the one card the row draws. */
+  position: 'first' | 'middle' | 'last' | 'only';
   /** This guest shares a name with another — wears a quiet "seen twice" mark. */
   duplicate: boolean;
   selectMode: boolean;
@@ -1198,205 +1181,11 @@ const PersonRow = memo(function PersonRow({
     entries,
     MAX_STACKED_AMOUNTS,
   );
-  // Whether the right column is a single line. Asked of both halves of the
-  // answer rather than of `entries`, because it is the cap that turns four
-  // currencies into two figures and a count — a person can hold one currency
-  // and still draw two lines if that ever changes. This decides how the column
-  // sits against the name beside it; see the row's alignment below.
-  const oneFigure = shownEntries.length === 1 && hiddenCurrencies === 0;
 
-  const body = (
-    <Row
-      style={{
-        paddingVertical: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.sm,
-        // Top, not centre. Centring a one-line name against a stack of amounts
-        // floats the name to the middle of the stack — it sat level with a
-        // person's *second* currency, so the eye read the name against the wrong
-        // number. Aligned to the top, the name and the amount that leads the row
-        // are on the same line, whatever either side is carrying.
-        //
-        // Top is the rule for the two columns anybody *reads* — the name and the
-        // figures — and only those. Everything else here is furniture with no
-        // line to share: the avatar, the selection tick, the trailing control.
-        // Pinned to the top alongside them, that furniture was stranded against
-        // a tall stack of currencies, the gap beneath it growing with every
-        // extra line the amounts took. It centres itself instead, so each of
-        // those overrides its own alignment below rather than the row deciding
-        // for all four columns at once.
-        alignItems: 'flex-start',
-        gap: theme.spacing.md,
-        borderTopWidth: divider ? 1 : 0,
-        borderTopColor: theme.color.border,
-        // A non-selectable row reads as unavailable while a selection runs.
-        opacity: selectMode && !selectable ? 0.4 : 1,
-      }}
-    >
-      {selectMode ? (
-        <Ionicons
-          name={selected ? 'checkmark-circle' : 'ellipse-outline'}
-          size={iconSize.xl}
-          color={selected ? theme.color.brand : theme.color.textFaint}
-          // Furniture: a checkbox reads against the whole person, not against
-          // the first line of them.
-          style={{ alignSelf: 'center' }}
-        />
-      ) : null}
-      {/* The face centres against whatever the row turns out to be. Left at the
-          row's top alignment it sat proud of a person carrying three lines of
-          currencies, with a band of empty surface under it — the same stranding
-          the amounts column suffers when it is the shorter side. */}
-      <View style={{ alignSelf: 'center' }}>
-        <VividAvatar
-          name={shownName}
-          size={44}
-          ghost={person.is_ghost || blocked}
-          photoUrl={photoUrl}
-        />
-        {/* The "seen twice" mark — a small merge glyph on the avatar corner, so
-            a duplicate the strip counted can also be spotted in the list itself. */}
-        {duplicate && !selectMode ? (
-          <View
-            style={{
-              position: 'absolute',
-              right: -3,
-              bottom: -3,
-              width: 18,
-              height: 18,
-              borderRadius: 9,
-              backgroundColor: theme.color.brand,
-              borderWidth: 2,
-              borderColor: theme.color.surface,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Ionicons name="git-merge" size={10} color={theme.color.onBrand} />
-          </View>
-        ) : null}
-      </View>
-      {/* With a caption the name column keeps the row's top alignment, so the
-          name stays on the lead figure's line. Without one — a balance that
-          runs both ways, where no single word is true — a lone name pinned to
-          the top of a three-line stack of currencies left a band of empty row
-          under it. It centres there instead, a size up, so the person reads as
-          the row's subject rather than a label stranded in a corner. */}
-      <View style={{ flex: 1, alignSelf: caption ? 'flex-start' : 'center' }}>
-        {/* The invite / remind glyph rides beside the name it acts on, rather
-            than in a column of its own at the far edge — there it read as a
-            control for the amount, and the column cost every row its width. */}
-        <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-          <Text
-            variant={caption ? 'body' : 'subheading'}
-            numberOfLines={1}
-            style={{ fontWeight: '600', flexShrink: 1 }}
-          >
-            {shownName}
-          </Text>
-          {person.is_demo ? (
-            <View
-              style={{
-                paddingHorizontal: 6,
-                paddingVertical: 1,
-                borderRadius: 6,
-                backgroundColor: theme.color.surfaceMuted,
-              }}
-            >
-              <Text variant="micro" tone="muted" style={{ fontWeight: '700' }}>
-                {t.demo.badge}
-              </Text>
-            </View>
-          ) : null}
-          {action === 'invite' && soloGroup ? (
-            // A guest with no account yet: the useful action is the invite link
-            // that also lets them claim this balance (A25). One group, one link.
-            <RowAction
-              icon="paper-plane-outline"
-              label={t.people.invite}
-              onPress={() => router.push(`/group/${soloGroup}/invite`)}
-            />
-          ) : action === 'remind' && single ? (
-            // They owe you and one group explains it — a single pair to nudge,
-            // kept honest by the server at one a day (ADR-010).
-            <RemindButton row={single} />
-          ) : null}
-        </Row>
-        {caption ? (
-          <Text variant="caption" tone="muted" numberOfLines={1}>
-            {caption}
-          </Text>
-        ) : null}
-      </View>
-      {/* Right cluster: the coloured amount right-aligned, then a fixed-width
-          trailing slot for the action glyph. The slot is always present, even on
-          rows with no action, so every amount's right edge lines up and the
-          invite/remind discs sit in one clean column at the edge — rather than
-          floating at a different x on every row because the amount width differs.
-
-          The figures keep the row's top alignment while there is a stack of
-          them, so the lead figure lands on the name's line — but a person
-          holding one currency has no stack, and their single amount hanging at
-          the top of a two-line name-and-caption block left the row lopsided,
-          the figure floating above the middle of the person it belongs to.
-          With nothing underneath it to be mistaken for, it centres instead. */}
-      <View
-        style={{
-          alignItems: 'flex-end',
-          alignSelf: oneFigure ? 'center' : 'flex-start',
-          maxWidth: '46%',
-        }}
-      >
-        {/* The first amount is always the same size, whether the person holds one
-            currency or four — it used to drop to caption as soon as there were
-            two, so the column that should read as one row of figures carried
-            16px and 13px side by side. The lead figure is the row's answer; the
-            currencies under it are the detail. Never summed across them. */}
-        {hidden ? (
-          <Text variant="subheading" style={{ fontWeight: '600' }}>
-            {BALANCE_MASK}
-          </Text>
-        ) : (
-          shownEntries.map((entry, index) => (
-            <MoneyText
-              key={entry.currency}
-              amount={BigInt(entry.net)}
-              currency={entry.currency}
-              locale={locale}
-              variant={index === 0 ? 'subheading' : 'caption'}
-              mode="balance"
-              // Every line, not only the lead: the column is capped at 46% of
-              // the row, and a wrapped amount anywhere in the stack grows the
-              // row — the exact thing this list was fixed to stop doing.
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            />
-          ))
-        )}
-        {!hidden && hiddenCurrencies > 0 ? (
-          <Text variant="micro" tone="faint">
-            {plural(locale, hiddenCurrencies, t.tabs.moreCurrencies)}
-          </Text>
-        ) : null}
-      </View>
-      {/* The row opens onto the person (or their one group) — a trailing
-          chevron says so, the way every other navigable list card in the app
-          ends. Hidden in selection mode, where the row's "button" is the
-          checkbox at its lead edge instead. */}
-      {!selectMode ? (
-        <Ionicons
-          name={directionalIcon('chevron-forward')}
-          size={iconSize.sm}
-          color={theme.color.textFaint}
-          style={{ alignSelf: oneFigure ? 'center' : 'flex-start', marginTop: oneFigure ? 0 : 2 }}
-        />
-      ) : null}
-    </Row>
-  );
-
+  // The row is a ListItem; this outer Pressable owns what ListItem has no slot for: the
+  // long-press that starts a selection, the checkbox role and a picked row's accent bar.
+  // A flat opacity dip, deliberately: a per-row Reanimated spring made scrolling less buttery.
   return (
-    // A plain Pressable, deliberately — the row lives in a scroll list, and a
-    // per-row Reanimated press-spring is what made scrolling feel less than
-    // buttery. A flat opacity dip costs nothing and keeps the list smooth.
     <Pressable
       onPress={onPress}
       onLongPress={onLongPress}
@@ -1413,17 +1202,124 @@ const PersonRow = memo(function PersonRow({
       accessibilityLabel={selectMode ? shownName : rowA11yLabel}
       style={({ pressed }) => ({
         opacity: pressed ? 0.6 : 1,
-        // A tick alone can be missed; a picked row also wears a soft brand fill —
-        // brandSoft rather than a grey, so the selection reads as *chosen*, the
-        // same colour language the check and the header's Merge button speak.
-        backgroundColor: selected ? theme.color.brandSoft : 'transparent',
+        // A non-selectable row reads as unavailable while a selection runs.
+        ...(selectMode && !selectable ? { opacity: 0.4 } : null),
       })}
     >
-      {/* A slim brand bar down the leading edge of a picked row — the accent that
-          turns a tinted background into a deliberate selection, the way a mail
-          client marks the rows you have ticked. */}
+      <ListItem
+        position={position}
+        title={shownName}
+        subtitle={caption ?? undefined}
+        leading={
+          <>
+            {selectMode ? (
+              <Ionicons
+                name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+                size={iconSize.xl}
+                color={selected ? theme.color.brand : theme.color.textFaint}
+              />
+            ) : null}
+            <View>
+              <VividAvatar
+                name={shownName}
+                size={LIST_TILE}
+                ghost={person.is_ghost || blocked}
+                photoUrl={photoUrl}
+              />
+              {/* The "seen twice" mark — a small merge glyph on the avatar corner, so
+                  a duplicate the strip counted can also be spotted in the list itself. */}
+              {duplicate && !selectMode ? (
+                <View
+                  style={{
+                    position: 'absolute',
+                    right: -3,
+                    bottom: -3,
+                    width: 18,
+                    height: 18,
+                    borderRadius: theme.radius.pill,
+                    backgroundColor: theme.color.brand,
+                    borderWidth: 2,
+                    borderColor: theme.color.surface,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="git-merge" size={10} color={theme.color.onBrand} />
+                </View>
+              ) : null}
+            </View>
+          </>
+        }
+        titleAccessory={
+          <>
+            {person.is_demo ? (
+              <View
+                style={{
+                  paddingHorizontal: 6,
+                  paddingVertical: 1,
+                  borderRadius: 6,
+                  backgroundColor: theme.color.surfaceMuted,
+                }}
+              >
+                <Text variant="micro" tone="muted" style={{ fontWeight: '700' }}>
+                  {t.demo.badge}
+                </Text>
+              </View>
+            ) : null}
+            {action === 'invite' && soloGroup ? (
+              // A guest with no account yet: the useful action is the invite link
+              // that also lets them claim this balance (A25). One group, one link.
+              <RowAction
+                icon="paper-plane-outline"
+                label={t.people.invite}
+                onPress={() => router.push(`/group/${soloGroup}/invite`)}
+              />
+            ) : action === 'remind' && single ? (
+              // They owe you and one group explains it — a single pair to nudge,
+              // kept honest by the server at one a day (ADR-010).
+              <RemindButton row={single} />
+            ) : null}
+          </>
+        }
+        amount={
+          // The first amount is always the same size, whether the person holds one
+          // currency or four; the currencies under it are the detail. Never summed.
+          <View style={{ alignItems: 'flex-end', maxWidth: '100%' }}>
+            {hidden ? (
+              <Text variant="subheading" style={{ fontWeight: '600' }}>
+                {BALANCE_MASK}
+              </Text>
+            ) : (
+              shownEntries.map((entry, index) => (
+                <MoneyText
+                  key={entry.currency}
+                  amount={BigInt(entry.net)}
+                  currency={entry.currency}
+                  locale={locale}
+                  variant={index === 0 ? 'subheading' : 'caption'}
+                  mode="balance"
+                  // Every line, not only the lead: a wrapped amount anywhere in the
+                  // stack grows the row — the exact thing this list was fixed to stop doing.
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                />
+              ))
+            )}
+            {!hidden && hiddenCurrencies > 0 ? (
+              <Text variant="micro" tone="faint">
+                {plural(locale, hiddenCurrencies, t.tabs.moreCurrencies)}
+              </Text>
+            ) : null}
+          </View>
+        }
+        // The row opens onto the person (or their one group); in selection mode its
+        // "button" is the checkbox at the lead edge instead.
+        chevron={!selectMode}
+      />
+      {/* A slim brand bar down the leading edge of a picked row. */}
       {selected ? (
         <View
+          pointerEvents="none"
           style={{
             position: 'absolute',
             top: 0,
@@ -1434,7 +1330,6 @@ const PersonRow = memo(function PersonRow({
           }}
         />
       ) : null}
-      {body}
     </Pressable>
   );
 });
@@ -1548,7 +1443,7 @@ function RowAction({
       style={{
         width: 26,
         height: 26,
-        borderRadius: 13,
+        borderRadius: theme.radius.pill,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: theme.color.brandSoft,
@@ -1661,6 +1556,8 @@ function AddMenu({
   t: UiStrings;
 }): React.JSX.Element {
   const theme = useTheme();
+  // The shadow's shape, not a card: the card is the StandardCard inside.
+  const shadowRadius = theme.radius.lg;
   const insets = useSafeAreaInsets();
   const { width: windowW } = useWindowDimensions();
   // Dropped from the pill it belongs to, its leading edge under the pill's,
@@ -1736,20 +1633,11 @@ function AddMenu({
             position: 'absolute',
             ...place,
             minWidth: ADD_MENU_WIDTH,
-            borderRadius: theme.radius.lg,
+            borderRadius: shadowRadius,
             ...theme.shadow.lifted,
           }}
         >
-          <View
-            style={{
-              borderRadius: theme.radius.lg,
-              borderWidth: 1,
-              borderColor: theme.color.border,
-              backgroundColor: theme.color.surface,
-              paddingVertical: theme.spacing.xs,
-              overflow: 'hidden',
-            }}
-          >
+          <StandardCard flush style={{ paddingVertical: theme.spacing.xs }}>
             <Text
               variant="micro"
               tone="faint"
@@ -1778,7 +1666,7 @@ function AddMenu({
                 </Text>
               </Pressable>
             ))}
-          </View>
+          </StandardCard>
         </View>
       </Pressable>
     </Modal>

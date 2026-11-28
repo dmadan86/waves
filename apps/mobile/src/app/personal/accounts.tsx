@@ -5,13 +5,13 @@
 
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView } from 'react-native';
 
 import { investedSoFar, loanOutstanding, type CurrencyCode } from '@waves/core';
-import { directionalIcon, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
+import { iconSize, Screen, Text, useTheme } from '@waves/ui';
 
 import { PersonalGuard } from '@/components/PersonalGuard';
-import { PlainHeader, StandardCard } from '@/components/standard';
+import { ListCard, ListItem, PlainHeader, RowTile } from '@/components/standard';
 import { useWealthMoney } from '@/components/wealth/parts';
 import { todayIso, usePersonalLedger } from '@/data/personal';
 import { usePersonalWealth } from '@/data/personalWealth';
@@ -38,54 +38,41 @@ function AccountCard({
   line,
   note,
   onPress,
+  divider = true,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   line: string;
   note: string | null;
   onPress: () => void;
+  divider?: boolean;
 }) {
   const theme = useTheme();
   return (
-    <Pressable
-      accessibilityRole="button"
+    <ListItem
+      divider={divider}
       accessibilityLabel={`${title}, ${line}${note ? `, ${note}` : ''}`}
       onPress={onPress}
-      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-    >
-      <StandardCard>
-        <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-          <View
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.color.brandSoft,
-            }}
-          >
-            <Ionicons name={icon} size={iconSize.lg} color={theme.color.brand} />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={{ fontWeight: '700' }}>{title}</Text>
-            <Text variant="caption" tone="muted" numberOfLines={2}>
-              {line}
+      leading={
+        <RowTile tint={theme.color.brandSoft}>
+          <Ionicons name={icon} size={iconSize.lg} color={theme.color.brand} />
+        </RowTile>
+      }
+      title={title}
+      subtitle={
+        <>
+          <Text variant="caption" tone="muted" numberOfLines={2}>
+            {line}
+          </Text>
+          {note ? (
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {note}
             </Text>
-            {note ? (
-              <Text variant="caption" tone="muted" numberOfLines={1}>
-                {note}
-              </Text>
-            ) : null}
-          </View>
-          <Ionicons
-            name={directionalIcon('chevron-forward')}
-            size={iconSize.md}
-            color={theme.color.textMuted}
-          />
-        </Row>
-      </StandardCard>
-    </Pressable>
+          ) : null}
+        </>
+      }
+      chevron
+    />
   );
 }
 
@@ -198,41 +185,44 @@ function AccountsBody() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <AccountCard
-          icon="speedometer-outline"
-          title={h.accBudgets}
-          line={lines.budgets.line}
-          note={lines.budgets.note}
-          onPress={() => router.push('/personal/budgets')}
-        />
-        <AccountCard
-          icon="people-outline"
-          title={h.accLoans}
-          line={lines.loans.line}
-          note={lines.loans.note}
-          onPress={() => router.push('/personal/loans')}
-        />
-        <AccountCard
-          icon="trending-up-outline"
-          title={h.accInvestments}
-          line={lines.investments.line}
-          note={lines.investments.note}
-          onPress={() => router.push('/investments')}
-        />
-        <AccountCard
-          icon="car-outline"
-          title={t.vehicles.vehicles}
-          line={lines.vehicles.line}
-          note={null}
-          onPress={() => router.push('/vehicles')}
-        />
-        <AccountCard
-          icon="home-outline"
-          title={h.accRentals}
-          line={lines.rentals.line}
-          note={lines.rentals.note}
-          onPress={() => router.push('/rentals')}
-        />
+        <ListCard>
+          <AccountCard
+            divider={false}
+            icon="speedometer-outline"
+            title={h.accBudgets}
+            line={lines.budgets.line}
+            note={lines.budgets.note}
+            onPress={() => router.push('/personal/budgets')}
+          />
+          <AccountCard
+            icon="people-outline"
+            title={h.accLoans}
+            line={lines.loans.line}
+            note={lines.loans.note}
+            onPress={() => router.push('/personal/loans')}
+          />
+          <AccountCard
+            icon="trending-up-outline"
+            title={h.accInvestments}
+            line={lines.investments.line}
+            note={lines.investments.note}
+            onPress={() => router.push('/investments')}
+          />
+          <AccountCard
+            icon="car-outline"
+            title={t.vehicles.vehicles}
+            line={lines.vehicles.line}
+            note={null}
+            onPress={() => router.push('/vehicles')}
+          />
+          <AccountCard
+            icon="home-outline"
+            title={h.accRentals}
+            line={lines.rentals.line}
+            note={lines.rentals.note}
+            onPress={() => router.push('/rentals')}
+          />
+        </ListCard>
       </ScrollView>
     </Screen>
   );

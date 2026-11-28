@@ -6,12 +6,12 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect, useLocalSearchParams } from 'expo-router';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Image, Pressable, ScrollView, View } from 'react-native';
 
 import { Text, Screen, iconSize, useTheme } from '@waves/ui';
 
-import { CompanyCard } from '@/components/company/CompanyCard';
-import { ScenicBody, ScenicHeader } from '@/components/standard';
+import { BUILDING_ART } from '@/components/company/dashboard/art';
+import { LIST_TILE, ListCard, ListItem, ScenicBody, ScenicHeader } from '@/components/standard';
 import { useGroup, useGroups } from '@/data/hooks';
 import { useGroupPhotoUrl } from '@/components/GroupPhoto';
 import { fill, plural, useStrings } from '@/i18n';
@@ -23,7 +23,16 @@ import { useViewerCompanyIds } from '@/lib/useCompanyTab';
 import { useRememberSpace } from '@/lib/useSpaces';
 import type { GroupRow } from '@/data/types';
 
-function Card({ group, current }: { group: GroupRow; current: boolean }) {
+function CompanyRow({
+  group,
+  current,
+  divider,
+}: {
+  group: GroupRow;
+  current: boolean;
+  divider: boolean;
+}) {
+  const theme = useTheme();
   const { t, locale } = useStrings();
   const { members } = useGroup(group.id);
   const logo = useGroupPhotoUrl(group.photo_path);
@@ -31,19 +40,29 @@ function Card({ group, current }: { group: GroupRow; current: boolean }) {
   const toast = useToast();
   const live = (members.data ?? []).filter((m) => !m.left_at);
   const count = (role: string) => live.filter((m) => m.role === role).length;
+  const name = group.name?.trim() || t.company.tab;
   return (
-    <CompanyCard
-      name={group.name?.trim() || t.company.tab}
-      logo={logo}
-      employees={plural(locale, count('member'), t.company.employeeCount)}
-      managers={plural(locale, count('manager'), t.company.managerCount)}
-      owners={plural(locale, count('admin'), t.company.ownerCount)}
-      current={current}
-      currentLabel={t.company.currentCompany}
+    <ListItem
+      divider={divider}
+      title={name}
+      leading={
+        <Image
+          source={logo ? { uri: logo } : BUILDING_ART}
+          resizeMode={logo ? 'contain' : 'cover'}
+          style={{ width: LIST_TILE, height: LIST_TILE, borderRadius: theme.radius.md }}
+        />
+      }
+      subtitle={[
+        plural(locale, count('member'), t.company.employeeCount),
+        plural(locale, count('manager'), t.company.managerCount),
+        plural(locale, count('admin'), t.company.ownerCount),
+      ].join(' · ')}
+      caption={current ? t.company.currentCompany : undefined}
+      captionColor={theme.color.brand}
+      chevron
       onPress={() => {
         remember(group.id);
-        if (!current)
-          toast.show(fill(t.spaces.switchedTo, { name: group.name?.trim() || t.company.tab }));
+        if (!current) toast.show(fill(t.spaces.switchedTo, { name }));
         router.replace(`/group/${group.id}`);
       }}
     />
@@ -100,9 +119,18 @@ function CompaniesScreenBody() {
               {t.company.companiesEmpty}
             </Text>
           ) : null}
-          {companies.map((group) => (
-            <Card key={group.id} group={group} current={group.id === currentId} />
-          ))}
+          {companies.length > 0 ? (
+            <ListCard>
+              {companies.map((group, index) => (
+                <CompanyRow
+                  key={group.id}
+                  group={group}
+                  current={group.id === currentId}
+                  divider={index > 0}
+                />
+              ))}
+            </ListCard>
+          ) : null}
         </ScenicBody>
       </ScrollView>
     </Screen>

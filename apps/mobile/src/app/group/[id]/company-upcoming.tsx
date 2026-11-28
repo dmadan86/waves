@@ -9,7 +9,7 @@ import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { type MenuAnchor } from '@/components/SortMenu';
 import { SuspendedGate } from '@/components/company/SuspendedBanner';
 import { withAlpha } from '@/components/company/dashboard/overviewKit';
-import { ListRow, PlainHeader, StandardCard } from '@/components/standard';
+import { ListCard, ListItem, PlainHeader, RowTile } from '@/components/standard';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { useMoneyDates } from '@/data/companyMoneyDates';
 import { plural, useStrings } from '@/i18n';
@@ -238,18 +238,9 @@ function UpcomingBody({ groupId }: { groupId: string }) {
               backgroundColor: withAlpha(red, 0.08),
             }}
           >
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 14,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: withAlpha(red, 0.12),
-              }}
-            >
+            <RowTile tint={withAlpha(red, 0.12)}>
               <Ionicons name="calendar-outline" size={iconSize.lg} color={red} />
-            </View>
+            </RowTile>
             <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: '700', color: red }}>
                 {plural(locale, counts.overdue, t.calendar.overdueItems)}
@@ -261,65 +252,41 @@ function UpcomingBody({ groupId }: { groupId: string }) {
           </Row>
         ) : null}
         {items.length ? (
-          <StandardCard>
+          <ListCard>
             {items.map((item, index) => (
-              <ListRow
+              <ListItem
                 key={item.id}
                 leading={
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 14,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: theme.color.brandSoft,
-                    }}
-                  >
+                  <RowTile tint={theme.color.brandSoft}>
                     <Ionicons
                       name={ICONS[item.kind]}
                       size={iconSize.lg}
                       color={theme.color.brand}
                     />
-                  </View>
+                  </RowTile>
                 }
                 title={item.title}
                 subtitle={kindLabel[item.kind]}
                 onPress={() => open(item)}
-                divider={index < items.length - 1}
-                // No amount (wages) means a chevron; ListRow draws it when there is no trailing.
+                divider={index > 0}
+                amount={
+                  item.amountMinor == null ? undefined : money(item.amountMinor, item.currency)
+                }
+                caption={item.amountMinor != null && item.overdue ? t.calendar.overdue : undefined}
+                captionColor={red}
+                // No amount (wages) means a chevron.
+                chevron={item.amountMinor == null}
                 trailing={
                   item.amountMinor == null ? undefined : (
-                    <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-                      <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                        <Text tabular style={{ fontWeight: '700' }}>
-                          {money(item.amountMinor, item.currency)}
-                        </Text>
-                        {item.overdue ? (
-                          <View
-                            style={{
-                              paddingHorizontal: theme.spacing.sm,
-                              paddingVertical: 2,
-                              borderRadius: 10,
-                              backgroundColor: withAlpha(red, 0.12),
-                            }}
-                          >
-                            <Text variant="micro" style={{ fontWeight: '600', color: red }}>
-                              {t.calendar.overdue}
-                            </Text>
-                          </View>
-                        ) : null}
-                      </View>
-                      <MoreButton
-                        label={t.group.more}
-                        onOpen={(anchor) => setMenu({ item, anchor })}
-                      />
-                    </Row>
+                    <MoreButton
+                      label={t.group.more}
+                      onOpen={(anchor) => setMenu({ item, anchor })}
+                    />
                   )
                 }
               />
             ))}
-          </StandardCard>
+          </ListCard>
         ) : (
           <Text tone="muted" style={{ textAlign: 'center', paddingTop: theme.spacing.xl }}>
             {empty}

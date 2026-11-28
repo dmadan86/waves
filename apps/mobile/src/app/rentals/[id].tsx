@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 // The OS share sheet, opened only when the owner taps "Share receipt".
-import { Pressable, ScrollView, Share, View } from 'react-native';
+import { ScrollView, Share, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import Animated, {
   FadeInDown,
@@ -18,7 +18,6 @@ import { leaseEndsIn, linkedPersonalTxnIds, settleDeposit, type PersonalTxn } fr
 import {
   AmountField,
   Button,
-  directionalIcon,
   IconButton,
   iconSize,
   Row,
@@ -32,7 +31,14 @@ import { isFormer } from '@/e2ee/space';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
-import { PlainHeader, SectionHeader, StandardCard } from '@/components/standard';
+import {
+  ListCard,
+  ListItem,
+  PlainHeader,
+  RowTile,
+  SectionHeader,
+  StandardCard,
+} from '@/components/standard';
 import { PropertyArt } from '@/components/wealth/PropertyArt';
 import { DetailsCard, DocumentsCard } from '@/components/wealth/RentalExtras';
 import { RaiseCard, useRaisePrompts } from '@/components/wealth/RaiseCard';
@@ -581,43 +587,29 @@ function DetailBody() {
 
           {tn ? (
             <Animated.View layout={glide}>
-              <StandardCard style={{ gap: theme.spacing.md }}>
-                {facts.map(([icon, label, value, onPress], i) => (
-                  <Pressable
-                    key={label}
-                    disabled={!onPress}
-                    accessibilityRole={onPress ? 'button' : undefined}
-                    accessibilityLabel={`${label} ${value}`}
-                    onPress={onPress}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: theme.spacing.md,
-                      paddingBottom: i < facts.length - 1 ? theme.spacing.md : 0,
-                      borderBottomWidth: i < facts.length - 1 ? 1 : 0,
-                      borderBottomColor: theme.color.border,
-                    }}
-                  >
-                    <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
-                    <Text variant="caption" tone="muted" style={{ flex: 1 }}>
-                      {label}
-                    </Text>
-                    <Text variant="body" style={{ fontWeight: '700' }}>
-                      {value}
-                    </Text>
-                    {onPress ? (
-                      <Ionicons
-                        name={directionalIcon('chevron-forward')}
-                        size={iconSize.sm}
-                        color={theme.color.textMuted}
-                      />
-                    ) : null}
-                  </Pressable>
-                ))}
+              <View style={{ gap: theme.spacing.sm }}>
+                <ListCard>
+                  {facts.map(([icon, label, value, onPress], i) => (
+                    <ListItem
+                      key={label}
+                      divider={i > 0}
+                      accessibilityLabel={`${label} ${value}`}
+                      onPress={onPress}
+                      leading={
+                        <RowTile tint={theme.color.surfaceMuted}>
+                          <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
+                        </RowTile>
+                      }
+                      title={label}
+                      amount={value}
+                      chevron={!!onPress}
+                    />
+                  ))}
+                </ListCard>
                 {lease !== null ? (
                   <StatusPill label={fill(w.leaseEndsIn, { n: lease })} tone="warning" />
                 ) : null}
-              </StandardCard>
+              </View>
             </Animated.View>
           ) : null}
 

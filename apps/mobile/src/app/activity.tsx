@@ -42,6 +42,7 @@ import { resplitBatchId } from '@/data/recentActivity';
 import { actorName } from '@/data/types';
 import { GroupMark } from '@/components/GroupMark';
 import { SplitMoney } from '@/components/SplitMoney';
+import { ListItem, RowTile } from '@/components/standard';
 import { useGroupTypeTagLabels } from '@/components/GroupTypeTag';
 import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 import { HERO_TEXT_SHADOW } from '@/components/person/pairParts';
@@ -271,53 +272,19 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
   const ink = view.amountTone === 'negative' ? theme.color.negative : theme.color.positive;
   const tagInk = view.tag?.tint ? theme.tint[view.tag.tint].ink : theme.color.textMuted;
   return (
-    <Pressable
-      accessibilityRole="button"
+    <ListItem
+      position={first && last ? 'only' : first ? 'first' : last ? 'last' : 'middle'}
       accessibilityLabel={view.label}
       onPress={() => router.push(view.href)}
-      // One card per day, rows divided by hairlines — Home's GroupRow sizes.
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.sm,
-        backgroundColor: theme.color.surface,
-        borderColor: theme.color.border,
-        borderStartWidth: 1,
-        borderEndWidth: 1,
-        borderTopWidth: 1,
-        borderBottomWidth: last ? 1 : 0,
-        borderTopStartRadius: first ? theme.radius.lg : 0,
-        borderTopEndRadius: first ? theme.radius.lg : 0,
-        borderBottomStartRadius: last ? theme.radius.lg : 0,
-        borderBottomEndRadius: last ? theme.radius.lg : 0,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <View
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: tint.bg,
-        }}
-      >
-        <GlyphIcon family={view.glyph.family} name={view.glyph.name} size={22} color={tint.ink} />
-      </View>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
-          {view.headline}
-        </Text>
-        {/* Who · what · when. What is the expense's category, else the kind of
-            group, each with its small icon. An archived group, or one no longer
-            on this device, gets a badge. */}
-        {/* Where first, then who: which group it landed in matters more than who
-            added it. The group name keeps its room (up to most of the line) and
-            the person's name gives way first; the category shows only when the
-            headline doesn't already say it. */}
+      leading={
+        <RowTile tint={tint.bg}>
+          <GlyphIcon family={view.glyph.family} name={view.glyph.name} size={22} color={tint.ink} />
+        </RowTile>
+      }
+      title={view.headline}
+      subtitle={
+        /* Where first, then who: the group name keeps its room and the person's name gives way
+           first; the category shows only when the headline doesn't already say it. */
         <Row style={{ gap: 4, alignItems: 'center', overflow: 'hidden' }}>
           {view.groupName ? (
             <View style={{ flexShrink: 0, maxWidth: '70%' }}>
@@ -349,25 +316,11 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
             <Badge label={t.misc.unavailableGroup} tone="neutral" />
           ) : null}
         </Row>
-      </View>
-      {view.undoBatchId && view.groupId ? (
-        <Button
-          label={t.departedExpenses.undo}
-          variant="secondary"
-          disabled={undo.isPending}
-          onPress={() => undo.mutate({ batchId: view.undoBatchId! })}
-        />
-      ) : null}
-      {undo.error ? <MetaText>{undo.error.message}</MetaText> : null}
-      {/* An expense the reader is on shows THEIR side of it; anything else the
-          total. `payload` is untyped JSON, so a bad amount renders as no
-          amount, not a crashed tab. */}
-      {/* The time sits on the title line's right, never wrapping, above the money. */}
-      <View style={{ alignItems: 'flex-end', gap: 2 }}>
-        <Text variant="micro" tone="muted" numberOfLines={1}>
-          {view.timestamp}
-        </Text>
-        {amount ? (
+      }
+      // An expense the reader is on shows THEIR side of it; anything else the total. `payload` is
+      // untyped JSON, so a bad amount renders as no amount, not a crashed tab.
+      amount={
+        amount ? (
           <SplitMoney
             amount={amount.amount}
             currency={amount.currency}
@@ -376,9 +329,25 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
             fontSize={15}
             strike={view.amountStrike}
           />
-        ) : null}
-      </View>
-    </Pressable>
+        ) : undefined
+      }
+      caption={view.timestamp}
+      trailing={
+        (view.undoBatchId && view.groupId) || undo.error ? (
+          <>
+            {view.undoBatchId && view.groupId ? (
+              <Button
+                label={t.departedExpenses.undo}
+                variant="secondary"
+                disabled={undo.isPending}
+                onPress={() => undo.mutate({ batchId: view.undoBatchId! })}
+              />
+            ) : null}
+            {undo.error ? <MetaText>{undo.error.message}</MetaText> : null}
+          </>
+        ) : undefined
+      }
+    />
   );
 });
 

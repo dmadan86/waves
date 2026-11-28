@@ -191,7 +191,7 @@ export default function PendingChangesScreen() {
                 bottom: 14,
                 width: 28,
                 height: 28,
-                borderRadius: 14,
+                borderRadius: theme.radius.pill,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: view.length === 0 ? theme.color.positive : red,
@@ -230,7 +230,7 @@ export default function PendingChangesScreen() {
                 style={{
                   paddingHorizontal: 10,
                   paddingVertical: 4,
-                  borderRadius: 12,
+                  borderRadius: theme.radius.pill,
                   backgroundColor: blocker ? theme.color.surfaceMuted : `${red}1A`,
                 }}
               >

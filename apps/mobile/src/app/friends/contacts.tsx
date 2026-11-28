@@ -34,10 +34,8 @@ import {
   Callout,
   Card,
   directionalIcon,
-  Divider,
   IconButton,
   iconSize,
-  ListRow,
   Row,
   Screen,
   SectionHeader,
@@ -59,6 +57,7 @@ import { type MemberRow } from '@/data/types';
 import { useAuth } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { PersonAvatar } from '@/components/PersonAvatar';
+import { LIST_TILE, ListCard, ListItem } from '@/components/standard';
 
 export default function ContactsScreen(): React.JSX.Element {
   const theme = useTheme();
@@ -273,6 +272,7 @@ function ChooseGroup({
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const only = contacts.length === 1 ? contacts[0] : undefined;
+  const names = contacts.map((contact) => contact.name);
 
   return (
     <ScrollView
@@ -284,16 +284,14 @@ function ChooseGroup({
           {only ? (
             <PersonAvatar name={only.name} size={44} />
           ) : (
-            <AvatarStack names={contacts.map((contact) => contact.name)} size={36} />
+            <AvatarStack names={names} size={36} />
           )}
           <View style={{ flex: 1 }}>
             <Text variant="subheading" numberOfLines={1}>
               {only ? only.name : plural(locale, contacts.length, t.misc.peopleCount)}
             </Text>
             <Text variant="micro" tone="muted" numberOfLines={2}>
-              {only
-                ? (only.email ?? only.phone ?? t.misc.noAddress)
-                : contacts.map((contact) => contact.name).join(', ')}
+              {only ? (only.email ?? only.phone ?? t.misc.noAddress) : names.join(', ')}
             </Text>
           </View>
         </Row>
@@ -313,7 +311,7 @@ function ChooseGroup({
           />
         </Card>
       ) : (
-        <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+        <ListCard>
           {groups.map((group, index) => {
             const here = alreadyIn.get(group.id) ?? 0;
             // Every person picked is already in here, so there is nothing this
@@ -322,7 +320,8 @@ function ChooseGroup({
             const full = here >= contacts.length;
             return (
               <View key={group.id} style={full ? { opacity: 0.5 } : undefined}>
-                <ListRow
+                <ListItem
+                  divider={index > 0}
                   title={labelOf(group)}
                   subtitle={
                     full
@@ -335,25 +334,16 @@ function ChooseGroup({
                     <Avatar
                       name={labelOf(group)}
                       emoji={group.cover_emoji ?? undefined}
-                      size={40}
+                      size={LIST_TILE}
                     />
                   }
                   onPress={busy || full ? undefined : () => onChoose(group.id)}
-                  trailing={
-                    full ? undefined : (
-                      <Ionicons
-                        name={directionalIcon('chevron-forward')}
-                        size={iconSize.md}
-                        color={theme.color.textFaint}
-                      />
-                    )
-                  }
+                  chevron={!full}
                 />
-                {index < groups.length - 1 ? <Divider /> : null}
               </View>
             );
           })}
-        </Card>
+        </ListCard>
       )}
 
       {busy ? <ActivityIndicator color={theme.color.brand} /> : null}

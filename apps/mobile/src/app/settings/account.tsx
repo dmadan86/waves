@@ -915,12 +915,13 @@ function SoftCard({ children, style }: { children: ReactNode; style?: object }) 
 
 /** A glyph on its own pastel disc. */
 function Disc({ icon, tint }: { icon: IconName; tint: { bg: string; ink: string } }) {
+  const theme = useTheme();
   return (
     <View
       style={{
         width: 36,
         height: 36,
-        borderRadius: 18,
+        borderRadius: theme.radius.pill,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: tint.bg,

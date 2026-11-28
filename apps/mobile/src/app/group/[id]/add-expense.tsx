@@ -1,4 +1,5 @@
 import { withScenicGroup } from '@/components/ScenicScope';
+import { RowTile } from '@/components/standard';
 import { withScanCredits } from '@/lib/scanCredits';
 import { quietAdsFor } from '@/lib/adSensitiveMoment';
 import { afterGroupExpense, startAdSession, prewarmExpenseAd } from '@/lib/adGates';
@@ -2424,22 +2425,13 @@ function AddExpenseScreen() {
                                   opacity: payerFamily === id ? 1 : 0.45,
                                 }}
                               >
-                                <View
-                                  style={{
-                                    width: 44,
-                                    height: 44,
-                                    borderRadius: 22,
-                                    backgroundColor: theme.color.brandSoft,
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                  }}
-                                >
+                                <RowTile tint={theme.color.brandSoft}>
                                   <Ionicons
                                     name="people-outline"
                                     size={iconSize.lg}
                                     color={theme.color.brand}
                                   />
-                                </View>
+                                </RowTile>
                                 <Text variant="micro" numberOfLines={1}>
                                   {unit.name}
                                 </Text>
