@@ -8672,6 +8672,8 @@ export interface UiStrings {
   };
   personalHome: {
     hi: string;
+    completeProfile: string;
+    profilePercent: string;
     space: string;
     sharedSpace: string;
     onlyYou: string;
@@ -17186,6 +17188,8 @@ const en: UiStrings = {
   },
   personalHome: {
     hi: 'Hi, {name} 👋',
+    completeProfile: 'Complete your profile',
+    profilePercent: 'Profile {percent}% complete',
     space: 'Personal Finance',
     sharedSpace: 'Groups & friends',
     onlyYou: 'Only you',
@@ -25786,6 +25790,8 @@ const ta: UiStrings = {
   },
   personalHome: {
     hi: 'வணக்கம், {name} 👋',
+    completeProfile: 'உங்கள் சுயவிவரத்தை நிரப்புங்கள்',
+    profilePercent: 'சுயவிவரம் {percent}% நிறைவு',
     space: 'தனிநபர் நிதி',
     sharedSpace: 'குழுக்கள் & நண்பர்கள்',
     onlyYou: 'நீங்கள் மட்டும்',
@@ -34200,6 +34206,8 @@ const hi: UiStrings = {
   },
   personalHome: {
     hi: 'नमस्ते, {name} 👋',
+    completeProfile: 'अपनी प्रोफ़ाइल पूरी करें',
+    profilePercent: 'प्रोफ़ाइल {percent}% पूरी',
     space: 'व्यक्तिगत वित्त',
     sharedSpace: 'ग्रुप और दोस्त',
     onlyYou: 'सिर्फ़ आप',
@@ -43532,6 +43540,8 @@ const ar: UiStrings = {
   },
   personalHome: {
     hi: 'مرحبًا، {name} 👋',
+    completeProfile: 'أكمل ملفك الشخصي',
+    profilePercent: 'الملف الشخصي مكتمل بنسبة {percent}%',
     space: 'المالية الشخصية',
     sharedSpace: 'المجموعات والأصدقاء',
     onlyYou: 'أنت فقط',
