@@ -33,3 +33,16 @@ export function useDefaultCurrency(): CurrencyCode {
   }
   return deviceDefaultCurrency();
 }
+
+/**
+ * The currency a summary card totals in. The default (device region before the profile loads, e.g.
+ * after an offline start) can match none of the records, which would total a wrong "$0";
+ * then use the first record's own currency.
+ */
+export function summaryCurrency(
+  fallback: CurrencyCode,
+  recordCurrencies: readonly (CurrencyCode | '' | null | undefined)[],
+): CurrencyCode {
+  const own = recordCurrencies.map((c) => c || fallback);
+  return own.includes(fallback) ? fallback : (own[0] ?? fallback);
+}

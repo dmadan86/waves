@@ -6,7 +6,9 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useDefaultCurrency } from '../src/lib/currency';
+import type { CurrencyCode } from '@waves/core';
+
+import { summaryCurrency, useDefaultCurrency } from '../src/lib/currency';
 
 const state = vi.hoisted(() => ({ profile: null as unknown }));
 
@@ -35,5 +37,16 @@ describe('useDefaultCurrency', () => {
   it('falls back to the phone region when neither names a currency', () => {
     state.profile = { default_currency: '', country_code: null };
     expect(useDefaultCurrency()).toBe('GBP');
+  });
+});
+
+describe('summaryCurrency', () => {
+  it('never totals in a default that matches no record', () => {
+    expect(summaryCurrency('USD' as CurrencyCode, ['INR' as CurrencyCode])).toBe('INR');
+    expect(
+      summaryCurrency('INR' as CurrencyCode, ['INR' as CurrencyCode, 'USD' as CurrencyCode]),
+    ).toBe('INR');
+    expect(summaryCurrency('INR' as CurrencyCode, [''])).toBe('INR');
+    expect(summaryCurrency('INR' as CurrencyCode, [])).toBe('INR');
   });
 });

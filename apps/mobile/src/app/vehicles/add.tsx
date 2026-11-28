@@ -1,7 +1,7 @@
 /** Add a vehicle: one form, saved together. */
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { randomUUID } from 'expo-crypto';
 
@@ -122,89 +122,94 @@ function AddBody() {
   return (
     <Screen edges={[]}>
       <PlainHeader title={v.addVehicle} subtitle={subtitle} />
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{
-          paddingHorizontal: theme.spacing.lg,
-          paddingBottom: theme.spacing.lg,
-          gap: theme.spacing.md,
-        }}
-      >
-        <FieldLabel>{v.typeLabel}</FieldLabel>
-        <SelectField
-          label={v.typeLabel}
-          icon={VEHICLE_ICON[type]}
-          text={v.types[type]}
-          onPress={() => setSheet('type')}
-        />
-        <FieldLabel>{v.nameLabel}</FieldLabel>
-        <TextAnswer
-          value={name}
-          onChange={setName}
-          placeholder={v.namePlaceholder}
-          label={v.nameLabel}
-          bordered
-        />
-        <FieldLabel>{v.registrationLabel}</FieldLabel>
-        <TextAnswer
-          value={reg}
-          onChange={setReg}
-          placeholder={v.registrationLabel}
-          label={v.registrationLabel}
-          bordered
-        />
-        <FieldLabel>{v.makeModelLabel}</FieldLabel>
-        <TextAnswer
-          value={makeModel}
-          onChange={setMakeModel}
-          placeholder={v.makeModelLabel}
-          label={v.makeModelLabel}
-          bordered
-        />
-        <FieldLabel>{v.yearLabel}</FieldLabel>
-        <TextAnswer
-          value={year}
-          onChange={(x) => setYear(x.replace(/\D/g, '').slice(0, 4))}
-          placeholder={v.yearLabel}
-          label={v.yearLabel}
-          keyboardType="numeric"
-          bordered
-        />
-        <FieldLabel>{v.fuelLabel}</FieldLabel>
-        <SelectField
-          label={v.fuelLabel}
-          icon="flame-outline"
-          text={v.fuels[fuel]}
-          onPress={() => setSheet('fuel')}
-        />
-        <DateAnswer
-          label={v.insuranceExpiry}
-          value={insurance}
-          onChange={setInsurance}
-          clearLabel={v.notSet}
-        />
-        <DateAnswer
-          label={v.emissionExpiry}
-          value={emission}
-          onChange={setEmission}
-          clearLabel={v.notSet}
-        />
-      </ScrollView>
-      <View
-        style={{
-          paddingHorizontal: theme.spacing.lg,
-          paddingBottom: clearance + theme.spacing.md,
-          gap: theme.spacing.sm,
-        }}
-      >
-        {error ? <Callout tone="negative">{error}</Callout> : null}
-        <Button
-          label={loaded ? v.saveVehicle : t.common.loading}
-          disabled={!loaded}
-          fullWidth
-          onPress={() => void save()}
-        />
-      </View>
+      {/* The keyboard lifts the pinned Save bar; dragging the form dismisses it (also on Android: edge-to-edge). */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+        <ScrollView
+          style={{ flex: 1 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentContainerStyle={{
+            paddingHorizontal: theme.spacing.lg,
+            paddingBottom: theme.spacing.lg,
+            gap: theme.spacing.md,
+          }}
+        >
+          <FieldLabel>{v.typeLabel}</FieldLabel>
+          <SelectField
+            label={v.typeLabel}
+            icon={VEHICLE_ICON[type]}
+            text={v.types[type]}
+            onPress={() => setSheet('type')}
+          />
+          <FieldLabel>{v.nameLabel}</FieldLabel>
+          <TextAnswer
+            value={name}
+            onChange={setName}
+            placeholder={v.namePlaceholder}
+            label={v.nameLabel}
+            bordered
+          />
+          <FieldLabel>{v.registrationLabel}</FieldLabel>
+          <TextAnswer
+            value={reg}
+            onChange={setReg}
+            placeholder={v.registrationLabel}
+            label={v.registrationLabel}
+            bordered
+          />
+          <FieldLabel>{v.makeModelLabel}</FieldLabel>
+          <TextAnswer
+            value={makeModel}
+            onChange={setMakeModel}
+            placeholder={v.makeModelLabel}
+            label={v.makeModelLabel}
+            bordered
+          />
+          <FieldLabel>{v.yearLabel}</FieldLabel>
+          <TextAnswer
+            value={year}
+            onChange={(x) => setYear(x.replace(/\D/g, '').slice(0, 4))}
+            placeholder={v.yearLabel}
+            label={v.yearLabel}
+            keyboardType="numeric"
+            bordered
+          />
+          <FieldLabel>{v.fuelLabel}</FieldLabel>
+          <SelectField
+            label={v.fuelLabel}
+            icon="flame-outline"
+            text={v.fuels[fuel]}
+            onPress={() => setSheet('fuel')}
+          />
+          <DateAnswer
+            label={v.insuranceExpiry}
+            value={insurance}
+            onChange={setInsurance}
+            clearLabel={v.notSet}
+          />
+          <DateAnswer
+            label={v.emissionExpiry}
+            value={emission}
+            onChange={setEmission}
+            clearLabel={v.notSet}
+          />
+        </ScrollView>
+        <View
+          style={{
+            paddingHorizontal: theme.spacing.lg,
+            paddingBottom: clearance + theme.spacing.md,
+            gap: theme.spacing.sm,
+          }}
+        >
+          {error ? <Callout tone="negative">{error}</Callout> : null}
+          <Button
+            label={loaded ? v.saveVehicle : t.common.loading}
+            disabled={!loaded}
+            fullWidth
+            onPress={() => void save()}
+          />
+        </View>
+      </KeyboardAvoidingView>
       <Sheet
         visible={sheet === 'type'}
         onClose={() => setSheet(null)}

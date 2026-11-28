@@ -515,6 +515,11 @@ export async function personalSetupAnswers(ownerId: string): Promise<SetupState>
   }
 }
 
+/** Should a blank ledger open setup by itself? Only for an account that has never opened it; opening persists `started`. */
+export async function shouldAutoOfferSetup(ownerId: string): Promise<boolean> {
+  return !!ownerId && !(await personalSetupAnswers(ownerId)).started;
+}
+
 /** Merge a change into the stored state. Never rejects. */
 export async function rememberSetup(
   ownerId: string,

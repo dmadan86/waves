@@ -60,7 +60,9 @@ function Box({
         borderRadius: theme.radius.md,
         backgroundColor: theme.color.surfaceMuted,
         textAlignVertical: 'top',
-        ...(multiline ? { minHeight: 64 } : {}),
+        // iOS squeezed an empty single-line box until its placeholder spilled over the next one.
+        flexShrink: 0,
+        ...(multiline ? { minHeight: 64 } : { minHeight: 44 }),
       }}
     />
   );
