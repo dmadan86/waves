@@ -1,22 +1,18 @@
 /**
- * The Home hero's two tiles: what to collect and what to pay, by people (the
- * same netting as "Needs you"). Each opens that list; a zero side reads "All
- * settled" and does nothing. Other currencies get one muted line, never a sum.
+ * The Home hero's two sides: what to collect and what to pay, by people (the
+ * same netting as "Needs you"). Drawn like the earlier hero — round ↑/↓ icons,
+ * two halves split by a divider — and each half opens its list. Other
+ * currencies show as small chips under the figure, never summed in.
  */
 
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
-import { format, money } from '@waves/core';
-import { iconSize, Row, Skeleton, Text, useTheme } from '@waves/ui';
+import { useTheme } from '@waves/ui';
 
-import { BALANCE_MASK } from '@/components/home/ScenicBalanceCard';
-import { fill, plural, useStrings } from '@/i18n';
+import { BalanceSide } from '@/components/home/BalanceSide';
+import { plural, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import type { CollectPay } from '@/lib/homeCollectPay';
-
-const whole = (amount: bigint, currency: string, locale: string): string =>
-  format(money(amount, currency as never), { locale, whole: true, trimZeros: true });
 
 export function CollectPayTiles({
   data,
@@ -34,76 +30,52 @@ export function CollectPayTiles({
   const theme = useTheme();
   const { t } = useStrings();
   const d = t.homeDash;
-  const also = data.others.flatMap((o) => [
-    ...(o.owed > 0n ? [fill(d.alsoOwed, { amount: whole(o.owed, o.currency, locale) })] : []),
-    ...(o.owing > 0n ? [fill(d.alsoOwe, { amount: whole(o.owing, o.currency, locale) })] : []),
-  ]);
 
-  const tile = (kind: 'owed' | 'owe') => {
+  const half = (kind: 'owed' | 'owe') => {
     const side = kind === 'owed' ? data.collect : data.pay;
-    const tint = kind === 'owed' ? theme.color.positive : theme.color.negative;
-    const soft = kind === 'owed' ? theme.color.positiveSoft : theme.color.negativeSoft;
     const label = kind === 'owed' ? d.toCollect : d.toPay;
     const open = side.people > 0 && !loading;
-    const caption = plural(locale, side.people, kind === 'owed' ? d.acrossPeople : d.toPeople);
+    const detail =
+      side.people === 0
+        ? d.allSettled
+        : plural(locale, side.people, kind === 'owed' ? d.acrossPeople : d.toPeople);
+    const chips = data.others
+      .map((o) => ({ currency: o.currency, amount: kind === 'owed' ? o.owed : o.owing }))
+      .filter((c) => c.amount > 0n);
     return (
       <Pressable
         accessibilityRole={open ? 'button' : undefined}
-        accessibilityLabel={`${label} ${hidden ? '' : whole(side.amount, currency, locale)} ${caption}`}
+        accessibilityLabel={`${label}, ${detail}`}
         disabled={!open}
         onPress={() => router.push(`/needs?only=${kind}&currency=${currency}`)}
-        style={({ pressed }) => ({
-          flex: 1,
-          borderRadius: theme.radius.md,
-          backgroundColor: soft,
-          paddingHorizontal: theme.spacing.md,
-          paddingVertical: theme.spacing.sm,
-          gap: 2,
-          opacity: pressed ? 0.7 : 1,
-        })}
+        style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.7 : 1 })}
       >
-        <Text variant="caption" tone="muted">
-          {label}
-        </Text>
-        {loading ? (
-          <Skeleton width={80} height={18} radius={6} />
-        ) : side.people === 0 ? (
-          <Text variant="caption" tone="muted">
-            {d.allSettled}
-          </Text>
-        ) : (
-          <>
-            <Text
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.6}
-              style={{ color: tint, fontSize: 20, lineHeight: 25, fontWeight: '800' }}
-            >
-              {hidden ? BALANCE_MASK : whole(side.amount, currency, locale)}
-            </Text>
-            <Row style={{ alignItems: 'center' }}>
-              <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-                {caption}
-              </Text>
-              <Ionicons name="chevron-forward" size={iconSize.xs} color={theme.color.textMuted} />
-            </Row>
-          </>
-        )}
+        <BalanceSide
+          iconDisc
+          uniformDecimals
+          icon={kind === 'owed' ? 'arrow-up' : 'arrow-down'}
+          color={kind === 'owed' ? theme.color.positive : theme.color.negative}
+          amount={side.amount}
+          label={label}
+          detail={detail}
+          chips={chips}
+          currency={currency}
+          locale={locale}
+          hidden={hidden}
+          loading={loading}
+          trailing={kind === 'owe'}
+        />
       </Pressable>
     );
   };
 
   return (
-    <View style={{ gap: theme.spacing.xs, paddingHorizontal: theme.spacing.lg }}>
-      <Row style={{ gap: theme.spacing.sm }}>
-        {tile('owed')}
-        {tile('owe')}
-      </Row>
-      {also.length > 0 && !loading && !hidden ? (
-        <Text variant="caption" tone="muted" numberOfLines={1}>
-          {also.join(' · ')}
-        </Text>
-      ) : null}
+    <View
+      style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: theme.spacing.lg }}
+    >
+      {half('owed')}
+      <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
+      {half('owe')}
     </View>
   );
 }
