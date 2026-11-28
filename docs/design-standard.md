@@ -52,6 +52,7 @@ Before building or changing a screen, answer: what must the user understand at a
 
 ## Rules
 
+- Compact, always. The header sits directly under the status bar: apply the safe-area top inset once (a screen inside `SafeAreaView edges={['top']}` must not also pad `insets.top` in its header). No empty band above the title. Title 20–24sp with a one-line 13sp subtitle; segmented controls, chips and month switchers about 32–36dp tall; cards 12dp padding; rows about 52dp. Chip rows fit a 360dp-wide screen without scrolling (shorter labels or icon-only extras before a scroll). Aim for the most content above the fold: when matching a mockup, match its layout and look but make it denser, never taller. Check on a phone screenshot (`adb exec-out screencap -p`) before calling a screen done.
 - An action is drawn only when it does something. Pass `undefined` for `SectionHeader.action` when there is nothing to open; no inert "See all", no empty chevron.
 - Rows get `onPress` only when they go somewhere.
 - Dark mode comes from the theme.
