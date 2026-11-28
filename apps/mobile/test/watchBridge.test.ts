@@ -26,6 +26,11 @@ const h = vi.hoisted(() => ({
   sendResult: true,
   sent: [] as Record<string, unknown>[],
   messageHandler: null as ((raw: unknown) => void) | null,
+  fileHandler: null as ((event: { uri: string; metadata: unknown }) => void) | null,
+  appState: 'active' as string,
+  stateListener: null as ((state: string) => void) | null,
+  deleted: [] as string[],
+  transcribe: vi.fn(async (_uri: string): Promise<string | null> => null),
   failureHandler: null as ((kind: string | null) => void) | null,
   unsubscribed: vi.fn(),
   unsubscribedFailure: vi.fn(),
@@ -46,7 +51,10 @@ vi.mock('@/lib/watch/nativeModule', () => ({
     h.sent.push(message);
     return h.sendResult;
   },
-  onWatchFile: () => () => undefined,
+  onWatchFile: (handler: (event: { uri: string; metadata: unknown }) => void) => {
+    h.fileHandler = handler;
+    return () => undefined;
+  },
   onWatchMessage: (handler: (raw: unknown) => void) => {
     h.messageHandler = handler;
     return h.unsubscribed;
@@ -63,10 +71,23 @@ vi.mock('@/data/hooks', () => ({
 }));
 vi.mock('@/lib/watch/voiceClip', () => ({
   agentCall: () => async () => ({ kind: 'error' }),
-  deleteClip: () => undefined,
+  deleteClip: (uri: string) => {
+    h.deleted.push(uri);
+  },
   readClipBase64: async () => '',
   sweepStaleClips: () => undefined,
-  transcribeFile: async () => null,
+  transcribeFile: (uri: string) => h.transcribe(uri),
+}));
+vi.mock('react-native', () => ({
+  AppState: {
+    get currentState() {
+      return h.appState;
+    },
+    addEventListener: (_event: string, handler: (state: string) => void) => {
+      h.stateListener = handler;
+      return { remove: () => undefined };
+    },
+  },
 }));
 vi.mock('@/data/recentActivity', () => ({
   recentActivity: (_mirror: unknown, _profile: unknown, limit: number) => h.rows.slice(0, limit),
@@ -112,6 +133,12 @@ beforeEach(() => {
   h.sendResult = true;
   h.sent = [];
   h.messageHandler = null;
+  h.fileHandler = null;
+  h.appState = 'active';
+  h.stateListener = null;
+  h.deleted = [];
+  h.transcribe.mockReset();
+  h.transcribe.mockResolvedValue(null);
   h.failureHandler = null;
   h.groups = [{ id: 'g1', name: 'Goa trip' }];
   h.mirror = { tables: {} };
@@ -263,6 +290,7 @@ describe('WatchBridgeProvider', () => {
       ['JPY', '500', 500n],
       ['KWD', '5', 5000n],
     ])('books a dialled whole-unit amount in %s minor units', async (currency, amount, minor) => {
+      h.currency = currency;
       renderHook(() => WatchBridgeProvider({}));
       h.messageHandler!({ t: 'quickAdd', id: 'i1', amount, currency, note: '' });
       await settle();
@@ -274,10 +302,57 @@ describe('WatchBridgeProvider', () => {
       ['JPY', 500n],
       ['KWD', 500000n],
     ])('rescales an already-installed watch (units x 100) for %s', async (currency, minor) => {
+      h.currency = currency;
       renderHook(() => WatchBridgeProvider({}));
       h.messageHandler!({ t: 'quickAdd', id: 'i1', amountMinor: '50000', currency, note: '' });
       await settle();
       expect(h.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ amount: minor }));
+    });
+
+    it('books a stale USD watch add in the phone default, rescaled (X2)', async () => {
+      renderHook(() => WatchBridgeProvider({}));
+      h.messageHandler!({ t: 'quickAdd', id: 'x2', amount: '45', currency: 'USD', note: '' });
+      await settle();
+      expect(h.mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ currency: 'INR', amount: 4500n }),
+      );
+    });
+
+    it('rescales to the phone currency exponent when overriding (KWD phone, USD watch)', async () => {
+      h.currency = 'KWD';
+      renderHook(() => WatchBridgeProvider({}));
+      h.messageHandler!({ t: 'quickAdd', id: 'x2k', amount: '5', currency: 'USD', note: '' });
+      await settle();
+      expect(h.mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ currency: 'KWD', amount: 5000n }),
+      );
+    });
+
+    it('trusts the watch currency once it confirms the phone settings', async () => {
+      renderHook(() => WatchBridgeProvider({}));
+      h.messageHandler!({
+        t: 'quickAdd',
+        id: 'c1',
+        amount: '45',
+        currency: 'USD',
+        confirmedCurrency: 'INR',
+        note: '',
+      });
+      await settle();
+      expect(h.mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ currency: 'USD', amount: 4500n }),
+      );
+    });
+
+    it('resends settings whenever the watch sends anything', async () => {
+      renderHook(() => WatchBridgeProvider({}));
+      h.sent = [];
+      h.messageHandler!({ t: 'requestRecent', count: 5 });
+      await settle();
+      expect(sentOf('settings')).toEqual([{ t: 'settings', recentCount: 5, currency: 'INR' }]);
+      h.messageHandler!({ t: 'quickAdd', id: 's2', amount: '1', currency: 'USD', note: '' });
+      await settle();
+      expect(sentOf('settings')).toHaveLength(2);
     });
 
     it('sends no raw text for a quick-add with no note', async () => {
@@ -373,5 +448,95 @@ describe('WatchBridgeProvider', () => {
       await settle();
       expect(sentOf('ack')).toEqual([{ t: 'ack', ok: false, error: 'failed' }]);
     });
+  });
+});
+
+describe('voice clips from the watch', () => {
+  const clip = (id: string) => ({
+    uri: `file:///c/${id}.m4a`,
+    metadata: { t: 'voiceClip', id, durationMs: 3000 },
+  });
+  const results = () => sentOf('voiceResult');
+
+  it('answers added when the transcript has an amount', async () => {
+    h.transcribe.mockResolvedValue('500 rupees tea');
+    renderHook(() => WatchBridgeProvider({}));
+    h.fileHandler!(clip('v1'));
+    await settle();
+    expect(h.mutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ captureId: 'v1', amount: 50000n }),
+    );
+    expect(results()).toEqual([expect.objectContaining({ id: 'v1', status: 'added' })]);
+    expect(h.deleted).toContain('file:///c/v1.m4a');
+  });
+
+  it.each([
+    ['silent transcript', ''],
+    ['recogniser could not run', null],
+    ['no amount spoken', 'hello there'],
+  ])('answers error (not silence) for %s', async (_name, transcript) => {
+    h.transcribe.mockResolvedValue(transcript as string | null);
+    renderHook(() => WatchBridgeProvider({}));
+    h.fileHandler!(clip('v2'));
+    await settle();
+    expect(h.mutateAsync).not.toHaveBeenCalled();
+    expect(results()).toEqual([expect.objectContaining({ id: 'v2', status: 'error' })]);
+  });
+
+  it('answers error when the transcription throws', async () => {
+    h.transcribe.mockRejectedValue(new Error('boom'));
+    renderHook(() => WatchBridgeProvider({}));
+    h.fileHandler!(clip('v3'));
+    await settle();
+    expect(results()).toEqual([expect.objectContaining({ id: 'v3', status: 'error' })]);
+  });
+
+  it('answers error when saving fails (no session)', async () => {
+    h.transcribe.mockResolvedValue('500 rupees tea');
+    h.mutateAsync.mockRejectedValueOnce(new Error('no session'));
+    renderHook(() => WatchBridgeProvider({}));
+    h.fileHandler!(clip('v4'));
+    await settle();
+    expect(results()).toEqual([
+      expect.objectContaining({ id: 'v4', status: 'error', error: 'failed' }),
+    ]);
+  });
+
+  it('answers error when recognition never finishes', async () => {
+    vi.useFakeTimers();
+    try {
+      h.transcribe.mockImplementation(() => new Promise(() => undefined));
+      renderHook(() => WatchBridgeProvider({}));
+      h.fileHandler!(clip('v5'));
+      await vi.advanceTimersByTimeAsync(95_000);
+      expect(results()).toEqual([expect.objectContaining({ id: 'v5', status: 'error' })]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('holds a clip received in the background and processes it on foreground', async () => {
+    h.appState = 'background';
+    h.transcribe.mockResolvedValue('500 rupees tea');
+    renderHook(() => WatchBridgeProvider({}));
+    h.fileHandler!(clip('v6'));
+    await settle();
+    expect(h.transcribe).not.toHaveBeenCalled();
+    expect(results()).toEqual([]);
+    h.appState = 'active';
+    h.stateListener!('active');
+    await settle();
+    expect(results()).toEqual([expect.objectContaining({ id: 'v6', status: 'added' })]);
+  });
+
+  it('re-sends the answer for a redelivered clip without saving twice', async () => {
+    h.transcribe.mockResolvedValue('500 rupees tea');
+    renderHook(() => WatchBridgeProvider({}));
+    h.fileHandler!(clip('v7'));
+    await settle();
+    h.fileHandler!(clip('v7'));
+    await settle();
+    expect(h.mutateAsync).toHaveBeenCalledTimes(1);
+    expect(results()).toHaveLength(2);
   });
 });

@@ -8,7 +8,7 @@ import WatchConnectivity
 //   watch → phone: {t:"quickAdd"|"voiceAdd"|"requestRecent", ...}
 //                  and a recorded clip as a file (transferFile) with metadata
 //                  {t:"voiceClip", id, durationMs}
-//   phone → watch: {t:"recent", items:[...]} | {t:"settings", recentCount} | {t:"ack", ok}
+//   phone → watch: {t:"recent", items:[...]} | {t:"settings", recentCount, currency} | {t:"ack", ok}
 //                  | {t:"voiceResult", id, status:"added"|"review"|"error", text, error?}
 //
 // UNVERIFIED: authored on Windows without Xcode. Build on a Mac/EAS before trust.
@@ -37,7 +37,10 @@ enum VoiceOutcome: Equatable {
 final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
   @Published var recent: [RecentItem] = []
   @Published var recentCount: Int = 5
-  @Published var currency: String = "USD"
+  /// The phone's default currency from the last `settings` message, kept across
+  /// launches. nil until the phone has told us: the watch never guesses one, and
+  /// an add sent without a currency is booked in the phone's own default.
+  @Published var currency: String? = UserDefaults.standard.string(forKey: "phoneCurrency")
   @Published var lastAckOk: Bool? = nil
   @Published var reachable: Bool = false
   /// An expense this watch sent that WatchConnectivity could not deliver.
@@ -66,21 +69,26 @@ final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
   /// `amount` is what was dialled, in whole units. No minor-unit scaling here: the
   /// watch knows nothing of a currency's decimals (JPY has none, KWD three), so the
   /// phone scales it for the currency it books in.
-  func quickAdd(amount: Int, currency: String, note: String) {
+  func quickAdd(amount: Int, currency: String?, note: String) {
     lastAckOk = nil
-    // Clear the warning only if the payload was actually accepted for delivery.
-    // Clearing up front and then hitting the guard in `send` — session not yet
-    // activated right after launch — dropped the expense and left no warning,
-    // the silent loss this whole change exists to stop.
-    lastSendFailed = !send([
+    var payload: [String: Any] = [
       "t": "quickAdd",
       // A stable id per intent so a transport retry of the same tap is
       // idempotent on the phone rather than creating a duplicate expense.
       "id": UUID().uuidString,
       "amount": String(amount),
-      "currency": currency,
       "note": note,
-    ])
+    ]
+    // Echoed so the phone can tell a watch holding its current settings from a stale one.
+    if let currency {
+      payload["currency"] = currency
+      payload["confirmedCurrency"] = currency
+    }
+    // Clear the warning only if the payload was actually accepted for delivery.
+    // Clearing up front and then hitting the guard in `send` — session not yet
+    // activated right after launch — dropped the expense and left no warning,
+    // the silent loss this whole change exists to stop.
+    lastSendFailed = !send(payload)
   }
 
   func voiceAdd(_ transcript: String) {
@@ -240,7 +248,10 @@ final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
         }
       case "settings":
         if let n = message["recentCount"] as? Int { self.recentCount = n }
-        if let c = message["currency"] as? String, !c.isEmpty { self.currency = c }
+        if let c = message["currency"] as? String, !c.isEmpty {
+          self.currency = c
+          UserDefaults.standard.set(c, forKey: "phoneCurrency")
+        }
       case "voiceResult":
         // Ignore an answer for a clip that is not the current one.
         guard (message["id"] as? String) == self.currentClipId else { break }

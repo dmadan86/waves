@@ -13,12 +13,14 @@
  */
 
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { AppState } from 'react-native';
 
 import {
   coerceRecentCount,
   format as formatMoney,
   money as toMoney,
   parseWatchToPhone,
+  resolveWatchQuickAdd,
   type WatchRecentItem,
 } from '@waves/core';
 
@@ -44,7 +46,15 @@ import {
   transcribeFile,
 } from './voiceClip';
 import { captureLocationIfGranted } from '@/lib/location';
-import { parseWatchClip, placeForCapture, processClip } from './voiceClipPure';
+import {
+  CLIP_TIMEOUT_MS,
+  clipFailure,
+  parseWatchClip,
+  placeForCapture,
+  processClip,
+  withTimeout,
+  type WatchClip,
+} from './voiceClipPure';
 import {
   onWatchFile,
   onWatchMessage,
@@ -148,6 +158,21 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
   });
 
   /**
+   * Tell the watch the phone's settings (list size and the currency a quick-add is
+   * booked in). Sent on mount, on a change, and again whenever the watch speaks,
+   * so a watch that missed the one-shot message (a queued transfer, a fresh
+   * launch, an old build) is brought up to date by its very next message.
+   */
+  const sendSettings = useCallback(() => {
+    const s = stateRef.current;
+    sendToWatch({
+      t: 'settings',
+      recentCount: coerceRecentCount(s.count),
+      currency: s.defaultCurrency,
+    });
+  }, []);
+
+  /**
    * Send the watch the current recent list.
    *
    * `force` is for a watch that asked (`requestRecent`): it must always get an
@@ -241,17 +266,21 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
     const unsubscribe = onWatchMessage((raw) => {
       const msg = parseWatchToPhone(raw);
       if (!msg) return;
+      sendSettings();
       void (async () => {
         const s = stateRef.current;
         try {
           switch (msg.t) {
             case 'quickAdd': {
+              // The phone decides the currency: a watch that has not confirmed
+              // this phone's settings may be sending a stale default.
+              const booked = resolveWatchQuickAdd(msg, s.defaultCurrency);
               await createRef.current.mutateAsync({
                 // The watch's per-intent id becomes the capture id, so a
                 // transport retry of the same tap is a no-op upsert, not a dup.
                 captureId: msg.id,
-                amount: BigInt(msg.amountMinor),
-                currency: msg.currency,
+                amount: booked.amountMinor,
+                currency: booked.currency,
                 description: msg.note,
                 expenseDate: localDate(Date.now()),
                 rawText: msg.note || null,
@@ -319,41 +348,39 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
     });
 
     return unsubscribe;
-    // `relayRecent` is stable, so this still subscribes exactly once.
-  }, [relayRecent]);
+    // `relayRecent` and `sendSettings` are stable: this subscribes exactly once.
+  }, [relayRecent, sendSettings]);
 
   // A voice clip recorded on the watch arrives as a file. Transcribe it (Pro:
   // the voice-agent; otherwise on this phone), save what it says the way a
   // voiceAdd does — unassigned captures, nothing auto-filed — and tell the watch
   // what happened.
-  const handledClips = useRef(new Set<string>());
+  const handledClips = useRef(new Map<string, unknown>());
+  /** Clips that arrived while the app was not in the foreground (free path only). */
+  const deferredClips = useRef<WatchClip[]>([]);
+  const runClip = useRef<(clip: WatchClip) => void>(() => undefined);
   useEffect(() => {
-    if (!watchAvailable()) return;
-    sweepStaleClips();
-    return onWatchFile((event) => {
-      const clip = parseWatchClip(event);
-      if (!clip) return;
-      // A queued transfer can be redelivered; one clip is one outcome.
-      if (handledClips.current.has(clip.id)) {
-        deleteClip(clip.uri);
-        return;
-      }
-      handledClips.current.add(clip.id);
+    runClip.current = (clip) => {
       void (async () => {
         const s = stateRef.current;
         const today = localDate(Date.now());
         try {
-          const outcome = await processClip(clip, {
-            agentEnabled: s.agentEnabled,
-            ctx: {
-              groups: s.groups.map((g) => ({ id: g.id, name: g.name })),
-              defaultCurrency: s.defaultCurrency,
-              locale: s.locale,
-            },
-            readBase64: readClipBase64,
-            callAgent: agentCall({ locale: s.locale, today }),
-            transcribe: (uri) => transcribeFile(uri, s.locale),
-          });
+          // Bounded, so a recogniser that never answers still ends in an answer.
+          const outcome = await withTimeout(
+            processClip(clip, {
+              agentEnabled: s.agentEnabled,
+              ctx: {
+                groups: s.groups.map((g) => ({ id: g.id, name: g.name })),
+                defaultCurrency: s.defaultCurrency,
+                locale: s.locale,
+              },
+              readBase64: readClipBase64,
+              callAgent: agentCall({ locale: s.locale, today }),
+              transcribe: (uri) => transcribeFile(uri, s.locale),
+            }),
+            CLIP_TIMEOUT_MS,
+            clipFailure('failed'),
+          );
           const single = outcome.captures.length === 1;
           const location = await placeForCapture(captureLocationIfGranted);
           for (const item of outcome.captures) {
@@ -367,8 +394,11 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
               location,
             });
           }
-          sendToWatch({ t: 'voiceResult', id: clip.id, ...outcome.result });
+          const reply = { t: 'voiceResult', id: clip.id, ...outcome.result } as const;
+          handledClips.current.set(clip.id, reply);
+          sendToWatch(reply);
         } catch {
+          // No session, a refused write: the watch must still leave "Queued".
           // Allow a redelivery of this clip to try again.
           handledClips.current.delete(clip.id);
           sendToWatch({
@@ -382,19 +412,60 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
           deleteClip(clip.uri);
         }
       })();
+    };
+  });
+
+  // A voice clip recorded on the watch arrives as a file. Transcribe it (Pro:
+  // the voice-agent; otherwise on this phone), save what it says the way a
+  // voiceAdd does — unassigned captures, nothing auto-filed — and tell the watch
+  // what happened, whatever happened.
+  useEffect(() => {
+    if (!watchAvailable()) return;
+    sweepStaleClips();
+    const unsubscribeFile = onWatchFile((event) => {
+      const clip = parseWatchClip(event);
+      if (!clip) {
+        // Not decodable, so there is no clip id to answer; just drop the file.
+        const uri = (event as { uri?: unknown } | null)?.uri;
+        if (typeof uri === 'string') deleteClip(uri);
+        return;
+      }
+      sendSettings();
+      // A queued transfer can be redelivered; one clip is one outcome, but the
+      // watch may have missed it, so a finished clip's answer is sent again.
+      if (handledClips.current.has(clip.id)) {
+        const earlier = handledClips.current.get(clip.id);
+        if (earlier) sendToWatch(earlier as Parameters<typeof sendToWatch>[0]);
+        deleteClip(clip.uri);
+        return;
+      }
+      handledClips.current.set(clip.id, null);
+      // On-device recognition does not run for a suspended app (it would fail
+      // and wrongly tell the watch so): hold the clip until the app is in front.
+      if (!stateRef.current.agentEnabled && AppState.currentState !== 'active') {
+        deferredClips.current.push(clip);
+        return;
+      }
+      runClip.current(clip);
     });
-  }, []);
+    const unsubscribeState = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      const waiting = deferredClips.current;
+      deferredClips.current = [];
+      for (const clip of waiting) runClip.current(clip);
+    });
+    return () => {
+      unsubscribeFile();
+      unsubscribeState.remove();
+    };
+  }, [sendSettings]);
 
   // Keep the watch's copy of the settings (list size + the currency a quick-add
   // is booked in) in step with the phone.
   useEffect(() => {
     if (!watchAvailable()) return;
-    sendToWatch({
-      t: 'settings',
-      recentCount: coerceRecentCount(count),
-      currency: defaultCurrency,
-    });
-  }, [count, defaultCurrency]);
+    sendSettings();
+  }, [count, defaultCurrency, sendSettings]);
 
   return <>{children ?? null}</>;
 }

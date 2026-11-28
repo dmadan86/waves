@@ -89,24 +89,61 @@ struct QuickAddView: View {
   @Environment(\.dismiss) private var dismiss
   @State private var amount: Double = 0
 
+  private let maxAmount: Double = 1_000_000
+
+  private func bump(_ delta: Double) {
+    amount = min(max(amount + delta, 0), maxAmount)
+  }
+
   var body: some View {
-    VStack(spacing: 10) {
-      Text(String(format: "%.0f", amount))
-        .font(.system(size: 44, weight: .bold))
+    ScrollView {
+      VStack(spacing: 6) {
+        VStack(spacing: 0) {
+          Text(String(format: "%.0f", amount))
+            .font(.system(size: 40, weight: .bold))
+            .minimumScaleFactor(0.5)
+            .lineLimit(1)
+          // The currency the phone will book this in; blank until the phone has said.
+          if let code = relay.currency {
+            Text(code).font(.caption2).foregroundStyle(.secondary)
+          }
+        }
         .focusable(true)
-        .digitalCrownRotation($amount, from: 0, through: 1_000_000, by: 1, sensitivity: .medium)
-      Button {
-        // Whole units as dialled; the phone converts to the currency's minor units.
-        relay.quickAdd(amount: Int(amount), currency: relay.currency, note: "")
-        dismiss()
-      } label: {
-        Text("Add").frame(maxWidth: .infinity)
+        .digitalCrownRotation($amount, from: 0, through: maxAmount, by: 1, sensitivity: .medium)
+        // VoiceOver: swipe up/down to change by 1, as the crown would.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Amount")
+        .accessibilityValue("\(Int(amount)) \(relay.currency ?? "")")
+        .accessibilityAdjustableAction { direction in
+          switch direction {
+          case .increment: bump(1)
+          case .decrement: bump(-1)
+          @unknown default: break
+          }
+        }
+        HStack(spacing: 6) {
+          Button { bump(-1) } label: { Image(systemName: "minus").frame(maxWidth: .infinity) }
+            .accessibilityLabel("Minus 1")
+          Button { bump(1) } label: { Image(systemName: "plus").frame(maxWidth: .infinity) }
+            .accessibilityLabel("Plus 1")
+        }
+        HStack(spacing: 6) {
+          Button { bump(10) } label: { Text("+10").frame(maxWidth: .infinity) }
+          Button { bump(100) } label: { Text("+100").frame(maxWidth: .infinity) }
+        }
+        Button {
+          // Whole units as dialled; the phone converts to the currency's minor units.
+          relay.quickAdd(amount: Int(amount), currency: relay.currency, note: "")
+          dismiss()
+        } label: {
+          Text("Add").frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(accent)
+        .disabled(amount <= 0)
       }
-      .buttonStyle(.borderedProminent)
-      .tint(accent)
-      .disabled(amount <= 0)
+      .padding(.horizontal)
     }
-    .padding()
     .navigationTitle("Quick add")
   }
 }

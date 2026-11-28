@@ -52,7 +52,18 @@ export type WatchToPhone =
   // The decoded form always carries `amountMinor` in the CURRENCY's minor units
   // (see `parseWatchToPhone`); the wire carries either `amount` (whole units, sent
   // by current watches) or legacy `amountMinor` (whole units x 100).
-  | { t: 'quickAdd'; id: string; amountMinor: string; currency: string; note: string }
+  // `confirmedCurrency` is the currency of the last `settings` message the watch
+  // received (absent on a watch that never got one, or an older build).
+  | {
+      t: 'quickAdd';
+      id: string;
+      /** In `currency`'s minor units; when `currency` is absent, whole units. */
+      amountMinor: string;
+      /** Absent when the watch never received the phone's settings. */
+      currency?: string;
+      note: string;
+      confirmedCurrency?: string;
+    }
   | { t: 'voiceAdd'; id: string; transcript: string }
   // The metadata of a recorded clip sent as a file (`transferFile`); the audio
   // itself travels as the file, not in this message.
@@ -64,7 +75,9 @@ export type WatchToPhone =
 export type PhoneToWatch =
   | { t: 'recent'; items: WatchRecentItem[] }
   // `currency` is the phone's default (ISO code); the watch has no currency
-  // knowledge of its own, so it books a quick-add in whatever the phone relays.
+  // knowledge of its own, so it books a quick-add in whatever the phone relays,
+  // and echoes it back as `confirmedCurrency` so the phone can tell a current watch
+  // from a stale one.
   | { t: 'settings'; recentCount: RecentCount; currency: string }
   | { t: 'ack'; ok: boolean; error?: string }
   // The outcome of a voice clip, keyed by the clip's id. `text` is preformatted
@@ -99,7 +112,13 @@ function isPositiveMinor(value: unknown): value is string {
  * is right only for two-decimal currencies; for JPY (0) or KWD (3) it is rescaled
  * here, where the exponent is known. Null when it cannot be read safely.
  */
-function quickAddMinor(raw: Record<string, unknown>, currency: string): string | null {
+function quickAddMinor(raw: Record<string, unknown>, currency: string | undefined): string | null {
+  // No currency: whole units as dialled, scaled later by the phone's own default.
+  if (currency === undefined) {
+    return typeof raw.amount === 'string' && raw.amount.length <= 9 && isPositiveMinor(raw.amount)
+      ? raw.amount
+      : null;
+  }
   const scale = minorUnitScale(currency.toUpperCase());
   let minor: bigint;
   if (raw.amount !== undefined) {
@@ -121,6 +140,34 @@ function quickAddMinor(raw: Record<string, unknown>, currency: string): string |
 /** ISO 4217-style currency: exactly 3 ASCII letters. */
 function isValidCurrency(value: unknown): value is string {
   return typeof value === 'string' && /^[A-Za-z]{3}$/.test(value);
+}
+
+/**
+ * The currency and minor-unit amount a watch quick-add is booked in.
+ *
+ * The phone is the source of truth for currency. The watch's own `currency` is
+ * honoured only when the watch confirms it holds the phone's current settings
+ * (`confirmedCurrency` equals the phone default); otherwise a differing code is a
+ * stale or never-set default (an old build starts on "USD") and the phone's
+ * default wins. The dialled whole units are then rescaled to that currency.
+ */
+export function resolveWatchQuickAdd(
+  msg: Extract<WatchToPhone, { t: 'quickAdd' }>,
+  phoneDefault: string,
+): { currency: string; amountMinor: bigint } {
+  const home = phoneDefault.toUpperCase();
+  const minor = BigInt(msg.amountMinor);
+  if (msg.currency === undefined) {
+    return { currency: phoneDefault, amountMinor: minor * minorUnitScale(home) };
+  }
+  const sent = msg.currency.toUpperCase();
+  if (sent === home || msg.confirmedCurrency === home) {
+    return { currency: msg.currency, amountMinor: minor };
+  }
+  return {
+    currency: phoneDefault,
+    amountMinor: (minor / minorUnitScale(sent)) * minorUnitScale(home),
+  };
 }
 
 /**
@@ -148,12 +195,21 @@ export function parseWatchToPhone(raw: unknown): WatchToPhone | null {
   const id = typeof raw.id === 'string' && raw.id.length > 0 && raw.id.length <= 64 ? raw.id : null;
   switch (raw.t) {
     case 'quickAdd': {
-      if (!id || !isValidCurrency(raw.currency) || typeof raw.note !== 'string') return null;
+      if (!id || typeof raw.note !== 'string') return null;
+      if (raw.currency !== undefined && !isValidCurrency(raw.currency)) return null;
       if (raw.note.length > 500) return null;
       const amountMinor = quickAddMinor(raw, raw.currency);
-      return amountMinor
-        ? { t: 'quickAdd', id, amountMinor, currency: raw.currency, note: raw.note }
-        : null;
+      if (!amountMinor) return null;
+      return {
+        t: 'quickAdd',
+        id,
+        amountMinor,
+        ...(raw.currency !== undefined ? { currency: raw.currency } : {}),
+        note: raw.note,
+        ...(isValidCurrency(raw.confirmedCurrency)
+          ? { confirmedCurrency: raw.confirmedCurrency.toUpperCase() }
+          : {}),
+      };
     }
     case 'voiceAdd':
       return id &&

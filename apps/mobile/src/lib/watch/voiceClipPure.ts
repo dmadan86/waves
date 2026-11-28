@@ -237,3 +237,21 @@ export async function placeForCapture<T>(
     clearTimeout(timer);
   }
 }
+
+/** The most a clip may take to process before the watch is told it failed. */
+export const CLIP_TIMEOUT_MS = 90_000;
+
+/** `work`, or `fallback` if it has not settled within `ms` (a throw still throws). */
+export async function withTimeout<T>(work: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<T>((resolve) => {
+        timer = setTimeout(() => resolve(fallback), ms);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
