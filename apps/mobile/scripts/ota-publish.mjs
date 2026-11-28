@@ -132,7 +132,7 @@ if (!args.prepare && existsSync(inputsPath)) {
     const out = execFileSync(
       'npx',
       ['expo-updates', 'fingerprint:generate', '--platform', platform, '--debug'],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], maxBuffer: 64 * 1024 * 1024 }, // --debug output is >1 MB
     );
     return JSON.parse(out.slice(out.indexOf('{')));
   };
