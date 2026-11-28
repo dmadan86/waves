@@ -237,6 +237,40 @@ describe('mailbox send', () => {
     expect(a.reports.map((r) => r.where)).not.toContain('e2ee.send.membership:group-lost');
   });
 
+  it('a re-added member gets the group back live: sends work and the partner resyncs', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1, undefined, [G]);
+    const b = phone(server, 'pB', 'mB', 2, a.clock, [G]);
+    await Promise.all([a.deviceId(), b.deviceId()]);
+    await a.set(G, 'p1', 'property', prop);
+    await a.sync();
+    await b.sync();
+    expect(Object.keys(b.data(G))).toEqual(['p1']);
+    // A is removed on the server; its next send is refused and the space becomes a former copy.
+    server.groups.set(G, [{ memberId: 'mB', profileId: 'pB' }]);
+    await a.set(G, 'p2', 'property', prop);
+    await a.mailbox.flushOutbox();
+    expect(a.space.hasFormer(G)).toBe(true);
+    // A is added back under the same group id; B writes meanwhile.
+    server.groups.set(G, [
+      { memberId: 'mA', profileId: 'pA' },
+      { memberId: 'mB', profileId: 'pB' },
+    ]);
+    await b.set(G, 'p3', 'property', prop);
+    for (let i = 0; i < 4; i++) {
+      a.clock.t += 120_000;
+      await a.sync().catch(() => undefined);
+      await b.sync().catch(() => undefined);
+    }
+    expect(a.space.hasFormer(G)).toBe(false);
+    expect(a.space.liveGroupIds()).toContain(G);
+    await a.set(G, 'p4', 'property', prop);
+    await a.sync();
+    await b.sync();
+    expect(Object.keys(b.data(G)).sort()).toContain('p4');
+    expect(Object.keys(a.data(G)).sort()).toEqual(expect.arrayContaining(['p1', 'p3', 'p4']));
+  });
+
   it('drops queued messages of a refused group even when it holds no records', async () => {
     const server = world();
     server.groups.set('group-lost', [{ memberId: 'mC', profileId: 'pC' }]);

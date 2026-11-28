@@ -189,7 +189,6 @@ export function createMailbox(deps: MailboxDeps) {
   };
   const answered = new Map<string, number>();
   const parts = new Map<string, Set<number>>();
-  const probedAt = new Map<string, number>();
   const directoryFresh = new Set<string>();
   let housekeepingStreak = 0;
   const devicesCache = new Map<string, { at: number; list: GroupDevice[] }>();
@@ -260,17 +259,6 @@ export function createMailbox(deps: MailboxDeps) {
     }
     if (!current()) return [];
     const oldDevices = previous ?? (oldRaw ? (JSON.parse(oldRaw) as KnownDevice[]) : null);
-    let ownDeviceId: string;
-    try {
-      ownDeviceId = await keys.deviceId();
-    } catch (cause) {
-      throw new TransientMailboxError(cause);
-    }
-    if (list.some((d) => d.deviceId === ownDeviceId)) {
-      const failure = await metaRead(meta, `outbox-failed:${groupId}`);
-      if (failure?.includes('membership-lost'))
-        await metaWrite(meta, `outbox-failed:${groupId}`, '');
-    }
     if (oldDevices) {
       const present = new Set(list.map((d) => d.deviceId));
       for (const old of oldDevices) {
@@ -530,27 +518,13 @@ export function createMailbox(deps: MailboxDeps) {
           JSON.stringify({ at: deps.now(), reason: 'expired' }),
         );
         await outbox.deleteE2eeOutbox([row.id]);
-        const failure = await meta.get(`outbox-failed:${row.groupId}`);
-        if (failure?.includes('membership-lost'))
-          await meta.set(`outbox-failed:${row.groupId}`, '');
         continue;
       }
       let failureRaw = await meta.get(`outbox-failed:${row.groupId}`);
       if (failureRaw?.includes('membership-lost')) {
-        // Quarantined: no send attempts. Only the (cached, ~1/min) directory can lift it:
-        // it clears the marker when this device is listed again.
-        if (deps.now() - (probedAt.get(row.groupId) ?? -Infinity) < DEVICES_TTL_MS) {
-          blockedGroups.add(row.groupId);
-          continue;
-        }
-        probedAt.set(row.groupId, deps.now());
-        try {
-          await groupDevices(row.groupId, false, isCurrent);
-        } catch {
-          /* still not a member */
-        }
-        if (!isCurrent()) return;
-        failureRaw = await meta.get(`outbox-failed:${row.groupId}`);
+        // A marker an older build left: a refusal now retires the group instead, so drop it.
+        await meta.set(`outbox-failed:${row.groupId}`, '');
+        failureRaw = null;
       }
       if (failureRaw) {
         let reason = 'unknown';
@@ -579,9 +553,6 @@ export function createMailbox(deps: MailboxDeps) {
         }
         if (!isCurrent()) return;
         await outbox.deleteE2eeOutbox([row.id]);
-        const failure = await meta.get(`outbox-failed:${row.groupId}`);
-        if (failure?.includes('membership-lost'))
-          await meta.set(`outbox-failed:${row.groupId}`, '');
         attempts.delete(row.id);
       } catch (error) {
         if (isNotMember(error)) {
@@ -952,6 +923,17 @@ export function createMailbox(deps: MailboxDeps) {
     const fetchedAt = Number((await meta.get('fetchedAt')) ?? NaN);
     if (!current()) return;
     const now = deps.now();
+    // Listed again but still a former copy: if the server lets this phone in, bring it back live.
+    for (const g of deps.groups?.() ?? []) {
+      if (!space.hasFormer(g)) continue;
+      try {
+        await groupDevices(g, true, current);
+        if (!current()) return;
+        await space.revive(g, current);
+      } catch {
+        /* still refused (or offline): stays a former copy, retried next round */
+      }
+    }
     for (const groupId of liveGroups()) {
       try {
         step = 'resync';
