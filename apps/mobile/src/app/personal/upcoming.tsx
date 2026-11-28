@@ -191,7 +191,7 @@ export default function PersonalUpcomingScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t.dates.title}
-              onPress={() => router.push('/personal/calendar')}
+              onPress={() => router.push('/dates')}
               style={roundBtn(theme.color.brandSoft)}
             >
               <Ionicons name="calendar-outline" size={iconSize.lg} color={theme.color.brand} />
