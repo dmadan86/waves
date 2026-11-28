@@ -278,6 +278,7 @@ function MeLedger() {
         visible={gearOpen}
         onClose={() => setGearOpen(false)}
         items={[
+          { icon: 'grid-outline', label: t.allActions.open, route: '/actions', section: 'all' },
           ...switchItems,
           {
             icon: 'calendar-outline',

@@ -981,6 +981,7 @@ function AuthGate() {
               not the bar, so it pushes and slides like `profile` and `groups`
               rather than cutting instantly the way a tab switch does. */}
           <Stack.Screen name="activity" options={slide} />
+          <Stack.Screen name="actions" options={slide} />
           <Stack.Screen name="groups" options={slide} />
           <Stack.Screen
             name="group/[id]/index"
