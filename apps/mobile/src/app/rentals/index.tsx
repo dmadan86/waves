@@ -6,16 +6,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import {
-  Button,
-  directionalIcon,
-  iconSize,
-  initialsOf,
-  Row,
-  Screen,
-  Text,
-  useTheme,
-} from '@waves/ui';
+import { Button, iconSize, initialsOf, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { FormerCouples, NewPhoneNotice } from '@/components/couple/CoupleRentalsExtras';
 import { PersonalGuard } from '@/components/PersonalGuard';
