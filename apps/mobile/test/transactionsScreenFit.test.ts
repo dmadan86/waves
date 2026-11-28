@@ -14,8 +14,8 @@ describe('personal transactions screen', () => {
     expect(src).toMatch(/hideBack=\{!drillIn\}/);
     expect(src).toMatch(/const actions/);
   });
-  it('keeps the type chip labels whole: icon discs only where there is room, icon-only filter', () => {
-    expect(src).toMatch(/tabsWidth \/ tabs\.length >= 96/);
+  it('keeps the type chip labels whole: the chips scroll sideways, the filter is icon-only', () => {
+    expect(src).toMatch(/<ScrollView\s+horizontal/);
     expect(src).not.toMatch(/\{t\.personal\.filterLabel\}\s*<\/Text>/);
   });
   it('opens the category picker from a row in the Uncategorized view', () => {

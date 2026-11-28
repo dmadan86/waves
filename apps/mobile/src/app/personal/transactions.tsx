@@ -26,11 +26,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { LIST_TILE, ListItem } from '@/components/standard/ListItem';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { HEADER_BUTTON } from '@/components/standard/HeaderBar';
 import { PlainHeader } from '@/components/standard/PlainHeader';
+import { SummaryCard } from '@/components/standard/SummaryCard';
 
 import {
   format,
@@ -41,29 +43,18 @@ import {
   type PersonalTxn,
 } from '@waves/core';
 import { localMonth } from '@/lib/expenseForm';
-import {
-  Button,
-  directionalIcon,
-  IconButton,
-  iconSize,
-  Row,
-  Screen,
-  Sheet,
-  Text,
-  useTheme,
-} from '@waves/ui';
+import { Button, iconSize, Row, Screen, Sheet, Text, useTheme } from '@waves/ui';
 
 import { EmptyStateCta } from '@/components/EmptyStateCta';
 import { personalTxnCategoryLabel } from '@/lib/personalTxnCategoryLabel';
-import { filterTxns, groupByDay, type TxnTab } from '@/lib/txnLedger';
+import { filterTxns, groupByDay, monthSummary, type TxnTab } from '@/lib/txnLedger';
 import { CategoryBadge, CategoryPicker } from '@/components/Category';
 import { usePersonalLedger, useUpsertPersonalRecord } from '@/data/personal';
 import { entryRecord } from '@/lib/personalEntry';
 import { monthlySpendEntries } from '@/lib/monthlySpend';
-import { deviceCountry, plural, useStrings } from '@/i18n';
+import { deviceCountry, useStrings } from '@/i18n';
 import { paymentMethodLabel } from '@/lib/paymentMethodLabel';
 import { PersonalGuard } from '@/components/PersonalGuard';
-import { SlidingHighlight } from '@/lib/SlidingHighlight';
 import { useBottomClearance } from '@/lib/clearance';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { loanScope } from '@/lib/personalLoanScope';
@@ -100,7 +91,6 @@ function PersonalTransactionsScreenBody() {
   const ink = dark ? theme.color.text : SPEC_INK;
   const muted = dark ? theme.color.textMuted : SPEC_MUTED;
   const accent = dark ? theme.color.brand : SPEC_ACCENT;
-  const lavender = dark ? theme.color.surfaceMuted : '#EFEDFA';
   const params = useLocalSearchParams<{
     category?: string;
     categoryMode?: string;
@@ -143,7 +133,7 @@ function PersonalTransactionsScreenBody() {
   const uncategorizedOnly = params.uncategorized === '1' && !dropUncategorized;
 
   const [tab, setTab] = useState<Tab>(kindParam ?? 'all');
-  const [tabsWidth, setTabsWidth] = useState(0);
+  const [monthOpen, setMonthOpen] = useState(false);
   const [browseMonth, setBrowseMonth] = useState(month ?? localMonth());
   const [monthEnabled, setMonthEnabled] = useState(true);
   const [search, setSearch] = useState(HEADER_SEARCH_CLOSED);
@@ -311,49 +301,58 @@ function PersonalTransactionsScreenBody() {
   const tabs: {
     value: Tab;
     label: string;
-    icon: keyof typeof Ionicons.glyphMap;
+    icon?: keyof typeof Ionicons.glyphMap;
     color: string;
-    rotation?: `${number}deg`;
   }[] = [
-    { value: 'all', label: t.personal.all, icon: 'list', color: accent },
-    {
-      value: 'expense',
-      label: t.personal.expenses,
-      icon: 'arrow-down',
-      color: EXPENSE_INK,
-      rotation: '-45deg',
-    },
-    {
-      value: 'income',
-      label: t.personal.income,
-      icon: 'arrow-up',
-      color: INCOME_INK,
-      rotation: '45deg',
-    },
-    { value: 'transfer', label: t.personal.transfers, icon: 'swap-horizontal', color: '#2875CE' },
+    { value: 'all', label: t.personal.all, color: accent },
+    { value: 'expense', label: t.personal.expenses, icon: 'arrow-up', color: EXPENSE_INK },
+    { value: 'income', label: t.personal.income, icon: 'arrow-down', color: INCOME_INK },
+    { value: 'transfer', label: t.personal.transfers, icon: 'swap-horizontal', color: accent },
   ];
 
+  const summary = monthEnabled ? monthSummary(txns, browseMonth) : null;
+  const fmt = (amount: bigint, currency: string) =>
+    format(money(amount < 0n ? -amount : amount, currency), { locale, trimZeros: true });
+  const months = useMemo(() => {
+    const now = localMonth();
+    const list = Array.from({ length: 12 }, (_, i) => shiftMonth(now, -i));
+    return list.includes(browseMonth) ? list : [browseMonth, ...list];
+  }, [browseMonth]);
+
+  const roundButton = (
+    label: string,
+    icon: keyof typeof Ionicons.glyphMap,
+    onPress: () => void,
+    filled = false,
+  ) => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={4}
+      style={({ pressed }) => ({
+        width: HEADER_BUTTON,
+        height: HEADER_BUTTON,
+        borderRadius: HEADER_BUTTON / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: filled ? accent : theme.color.surfaceMuted,
+        opacity: pressed ? 0.8 : 1,
+      })}
+    >
+      <Ionicons name={icon} size={iconSize.lg} color={filled ? '#FFFFFF' : ink} />
+    </Pressable>
+  );
+  // Three round actions: HeaderBar's `action` slot takes any node, so no change there.
   const actions = (
     <>
-      <IconButton label={t.personal.searchTransactions} onPress={() => setSearch(openHeaderSearch)}>
-        <Ionicons name="search" size={iconSize.xl} color={accent} />
-      </IconButton>
+      {roundButton(t.personal.searchTransactions, 'search', () => setSearch(openHeaderSearch))}
       {/* The assistant, already pointed at the private ledger: what is said or
                 typed there stays personal. */}
-      <IconButton
-        label={t.personal.askByVoice}
-        onPress={() =>
-          router.push({
-            pathname: '/voice',
-            params: { scope: 'personal', source: 'personal' },
-          })
-        }
-      >
-        <Ionicons name="mic-outline" size={iconSize.xl} color={accent} />
-      </IconButton>
-      <IconButton label={t.personal.addTransaction} onPress={addExpense}>
-        <Ionicons name="add" size={iconSize.xl} color={accent} />
-      </IconButton>
+      {roundButton(t.personal.askByVoice, 'mic-outline', () =>
+        router.push({ pathname: '/voice', params: { scope: 'personal', source: 'personal' } }),
+      )}
+      {roundButton(t.personal.addTransaction, 'add', addExpense, true)}
     </>
   );
 
@@ -394,73 +393,42 @@ function PersonalTransactionsScreenBody() {
               ? router.replace(params.returnTo as never)
               : router.back()
           }
-          trailing={<Row style={{ alignItems: 'center' }}>{actions}</Row>}
+          trailing={<Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>{actions}</Row>}
         />
       )}
       <View style={{ paddingHorizontal: theme.spacing.lg, gap: 10 }}>
-        <Row style={{ alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <IconButton
-            label={t.personal.prevMonth}
-            onPress={() => {
-              setMonthEnabled(true);
-              setBrowseMonth(shiftMonth(browseMonth, -1));
-            }}
-          >
-            <Ionicons name={directionalIcon('chevron-back')} size={18} color={muted} />
-          </IconButton>
-          <Text style={{ fontSize: 14, fontWeight: '600', color: ink }}>
-            {monthEnabled ? monthLabel(browseMonth, locale) : t.group.allMonths}
-          </Text>
-          <IconButton
-            label={t.personal.nextMonth}
-            onPress={() => {
-              setMonthEnabled(true);
-              setBrowseMonth(shiftMonth(browseMonth, 1));
-            }}
-          >
-            <Ionicons name={directionalIcon('chevron-forward')} size={18} color={muted} />
-          </IconButton>
-        </Row>
+        <SummaryCard
+          title={monthEnabled ? monthLabel(browseMonth, locale) : t.group.allMonths}
+          titleHint={`${t.personal.chooseMonth}: ${monthEnabled ? monthLabel(browseMonth, locale) : t.group.allMonths}`}
+          onTitlePress={() => setMonthOpen(true)}
+          money={{
+            label: t.personal.income,
+            value: summary ? fmt(summary.income, summary.currency) : '',
+          }}
+          expense={{
+            label: t.personal.expenses,
+            value: summary ? fmt(summary.expense, summary.currency) : '',
+          }}
+          net={{
+            label: t.personal.net,
+            value: summary
+              ? `${summary.net < 0n ? '-' : ''}${fmt(summary.net, summary.currency)}`
+              : '',
+          }}
+          negative={(summary?.net ?? 0n) < 0n}
+          footnote={summary && summary.otherCurrencies > 0 ? t.personal.otherCurrencies : undefined}
+        />
 
         <Row style={{ alignItems: 'center', gap: 8 }}>
-          <Row
+          <ScrollView
+            horizontal
             accessibilityRole="tablist"
-            style={{ gap: 5, flex: 1 }}
-            onLayout={(e) => setTabsWidth(e.nativeEvent.layout.width)}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 6, alignItems: 'center' }}
+            style={{ flex: 1 }}
           >
-            {/* Resting segment backgrounds sit under the sliding highlight. */}
-            <Row
-              pointerEvents="none"
-              style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, gap: 5 }}
-            >
-              {tabs.map((item) => (
-                <View
-                  key={item.value}
-                  style={{
-                    flex: 1,
-                    height: 36,
-                    borderRadius: 18,
-                    backgroundColor: theme.color.surface,
-                  }}
-                />
-              ))}
-            </Row>
-            <SlidingHighlight
-              index={Math.max(
-                0,
-                tabs.findIndex((x) => x.value === tab),
-              )}
-              count={tabs.length}
-              width={tabsWidth}
-              color={accent}
-              radius={18}
-              gap={5}
-              height={36}
-            />
             {tabs.map((item) => {
               const on = item.value === tab;
-              // On a narrow phone the icon disc is dropped so the label keeps its full width.
-              const showIcon = !tabsWidth || tabsWidth / tabs.length >= 96;
               return (
                 <Pressable
                   key={item.value}
@@ -468,54 +436,34 @@ function PersonalTransactionsScreenBody() {
                   accessibilityState={{ selected: on }}
                   onPress={() => setTab(item.value)}
                   style={{
-                    flex: 1,
-                    minWidth: 0,
                     flexDirection: 'row',
-                    gap: 3,
-                    height: 36,
-                    borderRadius: 18,
                     alignItems: 'center',
-                    justifyContent: 'center',
+                    gap: 4,
+                    height: 34,
+                    paddingHorizontal: 12,
+                    borderRadius: 17,
+                    backgroundColor: on ? accent : theme.color.surface,
+                    borderWidth: on ? 0 : 1,
+                    borderColor: theme.color.border,
                   }}
                 >
-                  {showIcon ? (
-                    <View
-                      style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: 11,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: on ? '#FFFFFF26' : `${item.color}18`,
-                      }}
-                    >
-                      <Ionicons
-                        name={item.icon}
-                        size={14}
-                        color={on ? '#FFFFFF' : item.color}
-                        style={
-                          item.rotation ? { transform: [{ rotate: item.rotation }] } : undefined
-                        }
-                      />
-                    </View>
+                  {item.icon ? (
+                    <Ionicons name={item.icon} size={14} color={on ? '#FFFFFF' : item.color} />
                   ) : null}
                   <Text
                     style={{
-                      flexShrink: 1,
-                      fontSize: 11,
+                      fontSize: 13,
                       fontWeight: on ? '700' : '500',
-                      color: on ? '#FFFFFF' : muted,
+                      color: on ? '#FFFFFF' : ink,
                     }}
                     numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.75}
                   >
                     {item.label}
                   </Text>
                 </Pressable>
               );
             })}
-          </Row>
+          </ScrollView>
           {filterChip}
         </Row>
 
@@ -592,59 +540,47 @@ function PersonalTransactionsScreenBody() {
         renderItem={({ item }) => {
           if (item.kind === 'day') {
             const income = item.net > 0n;
+            const collapsed = collapsedDays.has(item.day);
             return (
-              <Row
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${collapsed ? t.personal.expandDay : t.personal.collapseDay}: ${dayLabel(item.day, locale)}`}
+                accessibilityState={{ expanded: !collapsed }}
+                onPress={() =>
+                  setCollapsedDays((previous) => {
+                    const next = new Set(previous);
+                    if (next.has(item.day)) next.delete(item.day);
+                    else next.add(item.day);
+                    return next;
+                  })
+                }
                 style={{
+                  flexDirection: 'row',
                   alignItems: 'center',
                   gap: theme.spacing.sm,
-                  paddingTop: theme.spacing.md,
-                  paddingBottom: theme.spacing.xs,
-                  paddingHorizontal: theme.spacing.sm,
+                  marginTop: theme.spacing.md,
+                  paddingVertical: theme.spacing.sm,
+                  paddingHorizontal: theme.spacing.md,
+                  backgroundColor: dark ? theme.color.surfaceMuted : `${accent}14`,
+                  borderWidth: 1,
+                  borderBottomWidth: collapsed ? 1 : 0,
+                  borderColor: theme.color.border,
+                  borderTopStartRadius: theme.radius.lg,
+                  borderTopEndRadius: theme.radius.lg,
+                  borderBottomStartRadius: collapsed ? theme.radius.lg : 0,
+                  borderBottomEndRadius: collapsed ? theme.radius.lg : 0,
                 }}
               >
                 <Text
-                  style={{ flex: 1, fontSize: 15, fontWeight: '600', color: ink }}
+                  style={{ flex: 1, fontSize: 14, fontWeight: '700', color: ink }}
                   numberOfLines={1}
                 >
                   {dayLabel(item.day, locale)}
                 </Text>
-                <View
-                  style={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 3,
-                    borderRadius: 11,
-                    backgroundColor: lavender,
-                  }}
-                >
-                  <Text style={{ fontSize: 12, color: muted }}>
-                    {plural(locale, item.count, t.personal.txnCount)}
-                  </Text>
-                </View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${collapsedDays.has(item.day) ? t.personal.expandDay : t.personal.collapseDay}: ${dayLabel(item.day, locale)}`}
-                  accessibilityState={{ expanded: !collapsedDays.has(item.day) }}
-                  hitSlop={8}
-                  onPress={() =>
-                    setCollapsedDays((previous) => {
-                      const next = new Set(previous);
-                      if (next.has(item.day)) next.delete(item.day);
-                      else next.add(item.day);
-                      return next;
-                    })
-                  }
-                  style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Ionicons
-                    name={collapsedDays.has(item.day) ? 'chevron-down' : 'chevron-up'}
-                    size={18}
-                    color={muted}
-                  />
-                </Pressable>
                 {item.currency ? (
                   <Text
                     style={{
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: '700',
                       color: item.net === 0n ? muted : income ? INCOME_INK : EXPENSE_INK,
                     }}
@@ -654,10 +590,15 @@ function PersonalTransactionsScreenBody() {
                       : signed(item.net, item.currency, income)}
                   </Text>
                 ) : null}
-              </Row>
+                <Ionicons
+                  name={collapsed ? 'chevron-down' : 'chevron-up'}
+                  size={18}
+                  color={muted}
+                />
+              </Pressable>
             );
           }
-          const { txn, first, last } = item;
+          const { txn, last } = item;
           const income = txn.kind === 'income';
           const categoryLabel = labelFor(txn.category) ?? t.categories.other;
           const title = txn.note?.trim() || categoryLabel;
@@ -675,7 +616,7 @@ function PersonalTransactionsScreenBody() {
                   ? setCategorizing(txn)
                   : router.push({ pathname: '/personal/entry', params: { id: txn.id } })
               }
-              position={first && last ? 'only' : first ? 'first' : last ? 'last' : 'middle'}
+              position={last ? 'last' : 'middle'}
               leading={
                 <CategoryBadge
                   category={txn.category ?? 'other'}
@@ -705,6 +646,39 @@ function PersonalTransactionsScreenBody() {
         }}
       />
 
+      <Sheet visible={monthOpen} onClose={() => setMonthOpen(false)} closeLabel={t.common.close}>
+        <Text style={{ fontSize: 20, fontWeight: '800', color: ink }}>
+          {t.personal.chooseMonth}
+        </Text>
+        {[...months, null].map((m) => {
+          const on = m === null ? !monthEnabled : monthEnabled && m === browseMonth;
+          return (
+            <Pressable
+              key={m ?? 'all'}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
+              onPress={() => {
+                setMonthEnabled(m !== null);
+                if (m) setBrowseMonth(m);
+                setMonthOpen(false);
+              }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                height: 44,
+              }}
+            >
+              <Text
+                style={{ fontSize: 16, fontWeight: on ? '700' : '500', color: on ? accent : ink }}
+              >
+                {m ? monthLabel(m, locale) : t.group.allMonths}
+              </Text>
+              {on ? <Ionicons name="checkmark" size={20} color={accent} /> : null}
+            </Pressable>
+          );
+        })}
+      </Sheet>
       <Sheet
         visible={filterOpen}
         onClose={() => setFilterOpen(false)}

@@ -163,8 +163,9 @@ describe('Android personal finance regressions', () => {
 
   it('Transactions can browse months and explain filtered empty results', () => {
     const txns = src('app/personal/transactions.tsx');
-    expect(txns).toContain('setBrowseMonth(shiftMonth(browseMonth, -1))');
-    expect(txns).toContain('setBrowseMonth(shiftMonth(browseMonth, 1))');
+    // The month is a tappable card title that opens a picker (no stepper).
+    expect(txns).toContain('setMonthOpen(true)');
+    expect(txns).toContain('setBrowseMonth(m)');
     expect(txns).toContain('t.personal.noEntriesMatch');
     expect(txns).toContain('t.personal.clearFilters');
     const i18n = src('i18n/index.ts');
