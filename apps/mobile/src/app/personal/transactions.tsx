@@ -28,6 +28,8 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
+import { LIST_TILE, ListItem } from '@/components/standard/ListItem';
+
 import {
   format,
   isInvestmentCategory,
@@ -615,10 +617,10 @@ function PersonalTransactionsScreenBody() {
               <Row
                 style={{
                   alignItems: 'center',
-                  gap: 8,
-                  paddingTop: 16,
-                  paddingBottom: 8,
-                  paddingHorizontal: 4,
+                  gap: theme.spacing.sm,
+                  paddingTop: theme.spacing.lg,
+                  paddingBottom: theme.spacing.sm,
+                  paddingHorizontal: theme.spacing.sm,
                 }}
               >
                 <Text
@@ -683,73 +685,43 @@ function PersonalTransactionsScreenBody() {
           const method = txn.paymentMethod
             ? paymentMethodLabel(t.personal.entryScreen.methods, txn.paymentMethod, deviceCountry())
             : null;
+          const caption = [method, txn.reimbursable ? t.followUps.reimbursableTag : null]
+            .filter(Boolean)
+            .join(' · ');
           return (
-            <Pressable
-              accessibilityRole="button"
+            <ListItem
               accessibilityLabel={`${title}, ${categoryLabel}, ${signed(txn.amount, txn.currency, income)}`}
               onPress={() =>
                 uncategorizedOnly
                   ? setCategorizing(txn)
                   : router.push({ pathname: '/personal/entry', params: { id: txn.id } })
               }
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 14,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                backgroundColor: pressed ? theme.color.surfaceMuted : theme.color.surface,
-                borderTopLeftRadius: first ? 18 : 0,
-                borderTopRightRadius: first ? 18 : 0,
-                borderBottomLeftRadius: last ? 18 : 0,
-                borderBottomRightRadius: last ? 18 : 0,
-                borderTopWidth: first ? 0 : 1,
-                borderTopColor: dark ? theme.color.border : '#EFEEF5',
-              })}
-            >
-              <CategoryBadge
-                category={txn.category ?? 'other'}
-                description={txn.note ?? undefined}
-                meta={null}
-                size={42}
-              />
-              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                <Text style={{ fontSize: 16, fontWeight: '600', color: ink }} numberOfLines={1}>
-                  {title}
-                </Text>
-                <Text style={{ fontSize: 13, color: muted }} numberOfLines={1}>
-                  {categoryLabel}
-                </Text>
-              </View>
-              <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: '700',
-                    color: income ? INCOME_INK : EXPENSE_INK,
-                  }}
-                >
-                  {signed(txn.amount, txn.currency, income)}
-                </Text>
-                {method ? <Text style={{ fontSize: 12, color: muted }}>{method}</Text> : null}
-                {txn.reimbursable ? (
-                  <Text style={{ fontSize: 12, color: muted }}>{t.followUps.reimbursableTag}</Text>
-                ) : null}
-                {txn.receiptKey ? (
+              position={first && last ? 'only' : first ? 'first' : last ? 'last' : 'middle'}
+              leading={
+                <CategoryBadge
+                  category={txn.category ?? 'other'}
+                  description={txn.note ?? undefined}
+                  meta={null}
+                  size={LIST_TILE}
+                />
+              }
+              title={title}
+              titleAccessory={
+                txn.receiptKey ? (
                   <Ionicons
                     name="receipt-outline"
                     size={14}
                     color={muted}
                     accessibilityLabel={t.personalReceipt.attached}
                   />
-                ) : null}
-              </View>
-              <Ionicons
-                name={directionalIcon('chevron-forward')}
-                size={18}
-                color={theme.color.textFaint}
-              />
-            </Pressable>
+                ) : undefined
+              }
+              subtitle={categoryLabel}
+              amount={signed(txn.amount, txn.currency, income)}
+              amountColor={income ? INCOME_INK : EXPENSE_INK}
+              caption={caption || undefined}
+              chevron
+            />
           );
         }}
       />
