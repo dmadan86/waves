@@ -364,6 +364,12 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
       onPress: go(pick(buttons, 'search')),
     },
     {
+      icon: 'calendar-outline',
+      label: t.comingUp.seeCalendar,
+      section: 'find',
+      route: `/group/${groupId}/calendar` as never,
+    },
+    {
       icon: 'mic-outline',
       label: t.personalHome.moreVoice,
       section: 'find',
