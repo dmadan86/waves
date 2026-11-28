@@ -9,6 +9,7 @@ export { PlainHeader } from './PlainHeader';
 export { EmptyCard } from './EmptyCard';
 export { MonthSwitcher } from './MonthSwitcher';
 export { RowTile } from './RowTile';
+export { SummaryCard } from './SummaryCard';
 export { LIST_TILE, ListCard, ListItem, ListPill } from './ListItem';
 export {
   ListRow,

@@ -1,4 +1,4 @@
-import { format, money, type PersonalTxn } from '@waves/core';
+import { format, money, monthlySummary, type PersonalTxn } from '@waves/core';
 
 import { isCreditCard } from '@/lib/personalMonthBreakdown';
 
@@ -66,4 +66,22 @@ export function groupByDay(txns: readonly PersonalTxn[]) {
     days.set(txn.date, rows);
   }
   return Array.from(days, ([day, rows]) => ({ day, count: rows.length, ...dayNet(rows), rows }));
+}
+
+/**
+ * The summary card's figures: the month's income, expenses and net in ONE currency (the one
+ * with the most entries; unlike currencies are never summed) plus how many other currencies
+ * had entries. Filter-independent, and the same totals as Home (`monthlySummary`).
+ */
+export function monthSummary(txns: readonly PersonalTxn[], month: string) {
+  const counts = new Map<string, number>();
+  for (const txn of txns) {
+    if (txn.date.slice(0, 7) === month)
+      counts.set(txn.currency, (counts.get(txn.currency) ?? 0) + 1);
+  }
+  const ranked = [...counts].sort((a, b) => b[1] - a[1]);
+  const main = ranked[0]?.[0];
+  if (!main) return null;
+  const { income, expense, net } = monthlySummary(txns, month, main);
+  return { currency: main, income, expense, net, otherCurrencies: ranked.length - 1 };
 }

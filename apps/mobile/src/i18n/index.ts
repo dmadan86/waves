@@ -8861,6 +8861,8 @@ export interface UiStrings {
     all: string;
     transfers: string;
     transactionsSubtitle: string;
+    otherCurrencies: string;
+    chooseMonth: string;
     collapseDay: string;
     expandDay: string;
     searchTransactions: string;
@@ -17341,7 +17343,9 @@ const en: UiStrings = {
     pickName: 'Pick someone from earlier loans',
     all: 'All',
     transfers: 'Transfers',
-    transactionsSubtitle: 'Expenses, income and transfers',
+    transactionsSubtitle: 'All your income, expenses and transfers',
+    otherCurrencies: '+ other currencies',
+    chooseMonth: 'Choose month',
     collapseDay: 'Collapse day',
     expandDay: 'Expand day',
     searchTransactions: 'Search transactions…',
@@ -25878,7 +25882,9 @@ const ta: UiStrings = {
     pickName: 'முந்தைய கடன்களில் இருந்து ஒருவரைத் தேர்ந்தெடுக்கவும்',
     all: 'அனைத்தும்',
     transfers: 'பரிமாற்றங்கள்',
-    transactionsSubtitle: 'செலவு, வருமானம், பரிமாற்றங்கள்',
+    transactionsSubtitle: 'உங்கள் வருமானம், செலவு, பரிமாற்றங்கள் அனைத்தும்',
+    otherCurrencies: '+ பிற நாணயங்கள்',
+    chooseMonth: 'மாதத்தைத் தேர்வுசெய்',
     collapseDay: 'நாளைச் சுருக்கு',
     expandDay: 'நாளை விரி',
     searchTransactions: 'பரிவர்த்தனைகளைத் தேடுங்கள்…',
@@ -34223,7 +34229,9 @@ const hi: UiStrings = {
     pickName: 'पिछले लोन से किसी को चुनें',
     all: 'सभी',
     transfers: 'ट्रांसफ़र',
-    transactionsSubtitle: 'खर्च, आय और ट्रांसफ़र',
+    transactionsSubtitle: 'आपकी सारी आय, खर्च और ट्रांसफ़र',
+    otherCurrencies: '+ अन्य मुद्राएँ',
+    chooseMonth: 'महीना चुनें',
     collapseDay: 'दिन का विवरण समेटें',
     expandDay: 'दिन का विवरण खोलें',
     searchTransactions: 'लेन-देन खोजें…',
@@ -43539,7 +43547,9 @@ const ar: UiStrings = {
     pickName: 'اختر شخصًا من قروض سابقة',
     all: 'الكل',
     transfers: 'التحويلات',
-    transactionsSubtitle: 'النفقات والدخل والتحويلات',
+    transactionsSubtitle: 'كل دخلك ونفقاتك وتحويلاتك',
+    otherCurrencies: '+ عملات أخرى',
+    chooseMonth: 'اختر الشهر',
     collapseDay: 'طي تفاصيل اليوم',
     expandDay: 'عرض تفاصيل اليوم',
     searchTransactions: 'ابحث في المعاملات…',

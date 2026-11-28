@@ -3,7 +3,7 @@ import { useIsFocused } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 // Native confirmation Alert explicitly required for recurring deletion.
 // eslint-disable-next-line no-restricted-imports
-import { Alert, ScrollView, View } from 'react-native';
+import { Alert, ScrollView } from 'react-native';
 
 import {
   encodeRecurring,
@@ -14,11 +14,11 @@ import {
   type PersonalRecurring,
   skipOverdueOccurrences,
 } from '@waves/core';
-import { IconButton, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
+import { IconButton, iconSize, Screen, useTheme } from '@waves/ui';
 
 import { KindPills } from '@/components/KindPills';
 import { PlanningHeader, PlanningTabs } from '@/components/PlanningTabs';
-import { LIST_TILE, ListCard, ListItem, StandardCard } from '@/components/standard';
+import { LIST_TILE, ListCard, ListItem, SummaryCard } from '@/components/standard';
 import { CategoryBadge } from '@/components/Category';
 import { SourceGlyph, useSourceLabel } from '@/components/IncomeSource';
 import { EmptyStateCta } from '@/components/EmptyStateCta';
@@ -82,25 +82,6 @@ function RecurringScreenBody() {
       pathname: '/personal/entry',
       params: { repeats: '1', addRecurring: '1', kind: tab },
     });
-  const stat = (label: string, value: bigint, first = false): React.JSX.Element => (
-    <View
-      style={{
-        flex: 1,
-        gap: 2,
-        paddingStart: theme.spacing.sm,
-        borderStartWidth: first ? 0 : 1,
-        borderStartColor: theme.color.border,
-      }}
-    >
-      <Text variant="caption" tone="muted">
-        {label}
-      </Text>
-      <Text variant="body" numberOfLines={1} adjustsFontSizeToFit style={{ fontWeight: '700' }}>
-        {moneyText(value)}
-      </Text>
-    </View>
-  );
-
   return (
     <Screen edges={[]}>
       <PlanningHeader
@@ -119,16 +100,16 @@ function RecurringScreenBody() {
       >
         <PlanningTabs value="recurring" />
         {recurrings.length > 0 ? (
-          <StandardCard style={{ gap: theme.spacing.md }}>
-            <Text variant="body" style={{ fontWeight: '700' }}>
-              {t.personal.monthTitle}
-            </Text>
-            <Row>
-              {stat(t.personal.moneyIn, totals.incomeTotal, true)}
-              {stat(t.personal.moneyOut, totals.expenseTotal)}
-              {stat(t.personal.leftLabel, totals.incomeTotal - totals.expenseTotal)}
-            </Row>
-          </StandardCard>
+          <SummaryCard
+            title={t.personal.monthTitle}
+            money={{ label: t.personal.moneyIn, value: moneyText(totals.incomeTotal) }}
+            expense={{ label: t.personal.moneyOut, value: moneyText(totals.expenseTotal) }}
+            net={{
+              label: t.personal.leftLabel,
+              value: moneyText(totals.incomeTotal - totals.expenseTotal),
+            }}
+            negative={totals.incomeTotal < totals.expenseTotal}
+          />
         ) : null}
         <KindPills
           value={tab}

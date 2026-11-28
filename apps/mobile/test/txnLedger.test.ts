@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { format, money, type PersonalTxn } from '@waves/core';
-import { dayNet, filterTxns, groupByDay } from '../src/lib/txnLedger';
+import { dayNet, filterTxns, groupByDay, monthSummary } from '../src/lib/txnLedger';
 
 function txn(id: string, overrides: Partial<PersonalTxn> = {}): PersonalTxn {
   return {
@@ -77,5 +77,31 @@ describe('transaction ledger', () => {
         to: '2026-10-25',
       }),
     ).toEqual([expense]);
+  });
+});
+
+describe('month summary card', () => {
+  const salary = txn('salary', { kind: 'income', amount: 500000n, date: '2026-11-01' });
+  const rent = txn('rent', { amount: 120000n, date: '2026-11-05' });
+  it('totals the month in its main currency, ignoring other months', () => {
+    const old = txn('old', { kind: 'income', amount: 999n, date: '2026-10-31' });
+    expect(monthSummary([salary, rent, old], '2026-11')).toEqual({
+      currency: 'INR',
+      income: 500000n,
+      expense: 120000n,
+      net: 380000n,
+      otherCurrencies: 0,
+    });
+  });
+  it('goes negative when spending passes income', () => {
+    expect(monthSummary([rent], '2026-11')?.net).toBe(-120000n);
+  });
+  it('never sums currencies: the busiest one wins, the rest are counted', () => {
+    const usd = txn('usd', { currency: 'USD', date: '2026-11-02' });
+    const s = monthSummary([usd, salary, rent], '2026-11');
+    expect(s).toMatchObject({ currency: 'INR', net: 380000n, otherCurrencies: 1 });
+  });
+  it('is null when the month has no entries', () => {
+    expect(monthSummary([salary], '2026-12')).toBeNull();
   });
 });
