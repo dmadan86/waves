@@ -7,12 +7,18 @@
 
 import { Pressable, View } from 'react-native';
 
+import { format, money } from '@waves/core';
 import { useTheme } from '@waves/ui';
+
+import { BALANCE_MASK } from '@/components/home/ScenicBalanceCard';
 
 import { BalanceSide } from '@/components/home/BalanceSide';
 import { plural, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import type { CollectPay } from '@/lib/homeCollectPay';
+
+const whole = (amount: bigint, currency: string, locale: string): string =>
+  format(money(amount, currency as never), { locale, whole: true, trimZeros: true });
 
 export function CollectPayTiles({
   data,
@@ -45,7 +51,7 @@ export function CollectPayTiles({
     return (
       <Pressable
         accessibilityRole={open ? 'button' : undefined}
-        accessibilityLabel={`${label}, ${detail}`}
+        accessibilityLabel={`${label} ${hidden ? BALANCE_MASK : whole(side.amount, currency, locale)}, ${detail}`}
         disabled={!open}
         onPress={() => router.push(`/needs?only=${kind}&currency=${currency}`)}
         style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.7 : 1 })}
