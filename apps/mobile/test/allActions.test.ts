@@ -14,6 +14,13 @@ const keys = (ctx: ActionsContext, id: string) =>
     ?.tiles.map((t) => t.key);
 
 describe('buildActionSections', () => {
+  it('Remind opens the Groups list, like the Home hero', () => {
+    const remind = buildActionSections(base)
+      .find((s) => s.id === 'groups')
+      ?.tiles.find((t) => t.key === 'remind');
+    expect(remind?.target).toEqual({ kind: 'route', href: '/groups' });
+  });
+
   it('has no Family or Company without a couple/family space or a company', () => {
     const ids = buildActionSections(base).map((s) => s.id);
     expect(ids).toEqual(['quick', 'personal', 'groups']);
