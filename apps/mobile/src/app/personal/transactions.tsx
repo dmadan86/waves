@@ -53,7 +53,8 @@ import { EmptyStateCta } from '@/components/EmptyStateCta';
 import { personalTxnCategoryLabel } from '@/lib/personalTxnCategoryLabel';
 import { filterTxns, groupByDay, type TxnTab } from '@/lib/txnLedger';
 import { CategoryBadge, CategoryPicker } from '@/components/Category';
-import { usePersonalLedger } from '@/data/personal';
+import { usePersonalLedger, useUpsertPersonalRecord } from '@/data/personal';
+import { entryRecord } from '@/lib/personalEntry';
 import { monthlySpendEntries } from '@/lib/monthlySpend';
 import { deviceCountry, plural, useStrings } from '@/i18n';
 import { paymentMethodLabel } from '@/lib/paymentMethodLabel';
@@ -172,6 +173,9 @@ function PersonalTransactionsScreenBody() {
   // The filter sheet's pick replaces the one the screen was opened with.
   const [picked, setPicked] = useState<string | null | undefined>(undefined);
   const [filterOpen, setFilterOpen] = useState(false);
+  // Uncategorized view: the row being given a category, in the same picker sheet.
+  const [categorizing, setCategorizing] = useState<PersonalTxn | null>(null);
+  const upsert = useUpsertPersonalRecord();
   const filter = picked === undefined ? paramCategory : picked;
 
   const filterButton = (
@@ -194,27 +198,23 @@ function PersonalTransactionsScreenBody() {
     </Pressable>
   );
 
+  // Icon-only, so the four type chips beside it keep their full labels.
   const filterChip = (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={t.personal.filterCategory}
+      accessibilityLabel={t.personal.filterLabel}
       accessibilityState={{ selected: filter !== null }}
       onPress={() => setFilterOpen(true)}
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
+        width: 36,
         height: 36,
-        paddingHorizontal: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
         borderRadius: 18,
         backgroundColor: filter ? accent : theme.color.surface,
       }}
     >
-      <Ionicons name="funnel-outline" size={14} color={filter ? '#FFFFFF' : ink} />
-      <Text style={{ fontSize: 11, color: filter ? '#FFFFFF' : muted }} numberOfLines={1}>
-        {t.personal.filterLabel}
-      </Text>
-      {filter ? <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFFFFF' }}>1</Text> : null}
+      <Ionicons name="funnel-outline" size={16} color={filter ? '#FFFFFF' : ink} />
     </Pressable>
   );
 
@@ -328,6 +328,54 @@ function PersonalTransactionsScreenBody() {
     { value: 'transfer', label: t.personal.transfers, icon: 'swap-horizontal', color: '#2875CE' },
   ];
 
+  const actions = (
+    <>
+      <IconButton label={t.personal.searchTransactions} onPress={() => setSearch(openHeaderSearch)}>
+        <Ionicons name="search" size={iconSize.xl} color={accent} />
+      </IconButton>
+      {/* The assistant, already pointed at the private ledger: what is said or
+                typed there stays personal. */}
+      <IconButton
+        label={t.personal.askByVoice}
+        onPress={() =>
+          router.push({
+            pathname: '/voice',
+            params: { scope: 'personal', source: 'personal' },
+          })
+        }
+      >
+        <Ionicons name="mic-outline" size={iconSize.xl} color={accent} />
+      </IconButton>
+      <IconButton label={t.personal.addTransaction} onPress={addExpense}>
+        <Ionicons name="add" size={iconSize.xl} color={accent} />
+      </IconButton>
+    </>
+  );
+
+  const titleBlock = (
+    <View style={{ flexGrow: 1, flexShrink: 1, minWidth: 0, gap: 2 }}>
+      <Text
+        style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: ink }}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.6}
+      >
+        {t.personal.transactions}
+      </Text>
+      <Text style={{ fontSize: 13, lineHeight: 18, color: muted }} numberOfLines={3}>
+        {t.personal.transactionsSubtitle}
+      </Text>
+      {filter ? (
+        <Text style={{ fontSize: 12, color: muted }}>{labelFor(filter) ?? filter}</Text>
+      ) : null}
+      {fromDate && toDate ? (
+        <Text style={{ fontSize: 12, color: muted }} numberOfLines={1}>
+          {fromDate === toDate ? fromDate : `${fromDate} – ${toDate}`}
+        </Text>
+      ) : null}
+    </View>
+  );
+
   return (
     <Screen>
       <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm, gap: 10 }}>
@@ -342,9 +390,11 @@ function PersonalTransactionsScreenBody() {
             placeholder={t.personal.searchTransactions}
             trailing={filterButton}
           />
-        ) : (
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            {drillIn ? (
+        ) : drillIn ? (
+          // Pushed with a back arrow: the title gets its own full-width line, so it
+          // never shares a row with four buttons and truncates.
+          <>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
               <IconButton
                 label={t.common.back}
                 onPress={() =>
@@ -355,50 +405,15 @@ function PersonalTransactionsScreenBody() {
               >
                 <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
               </IconButton>
-            ) : null}
-            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-              <Text
-                style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: ink }}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.6}
-              >
-                {t.personal.transactions}
-              </Text>
-              <Text style={{ fontSize: 13, lineHeight: 18, color: muted }} numberOfLines={3}>
-                {t.personal.transactionsSubtitle}
-              </Text>
-              {filter ? (
-                <Text style={{ fontSize: 12, color: muted }}>{labelFor(filter) ?? filter}</Text>
-              ) : null}
-              {fromDate && toDate ? (
-                <Text style={{ fontSize: 12, color: muted }} numberOfLines={1}>
-                  {fromDate === toDate ? fromDate : `${fromDate} – ${toDate}`}
-                </Text>
-              ) : null}
-            </View>
-            <IconButton
-              label={t.personal.searchTransactions}
-              onPress={() => setSearch(openHeaderSearch)}
-            >
-              <Ionicons name="search" size={iconSize.xl} color={accent} />
-            </IconButton>
-            {/* The assistant, already pointed at the private ledger: what is said or
-                typed there stays personal. */}
-            <IconButton
-              label={t.personal.askByVoice}
-              onPress={() =>
-                router.push({
-                  pathname: '/voice',
-                  params: { scope: 'personal', source: 'personal' },
-                })
-              }
-            >
-              <Ionicons name="mic-outline" size={iconSize.xl} color={accent} />
-            </IconButton>
-            <IconButton label={t.personal.addTransaction} onPress={addExpense}>
-              <Ionicons name="add" size={iconSize.xl} color={accent} />
-            </IconButton>
+              <View style={{ flex: 1 }} />
+              {actions}
+            </Row>
+            {titleBlock}
+          </>
+        ) : (
+          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+            {titleBlock}
+            {actions}
           </Row>
         )}
 
@@ -464,7 +479,7 @@ function PersonalTransactionsScreenBody() {
             {tabs.map((item) => {
               const on = item.value === tab;
               // On a narrow phone the icon disc is dropped so the label keeps its full width.
-              const showIcon = !tabsWidth || tabsWidth / tabs.length >= 80;
+              const showIcon = !tabsWidth || tabsWidth / tabs.length >= 96;
               return (
                 <Pressable
                   key={item.value}
@@ -572,12 +587,20 @@ function PersonalTransactionsScreenBody() {
                   ? t.personal.noEntriesMatch
                   : t.personal.noEntriesIn.replace('{month}', monthLabel(browseMonth, locale))
               }
-              body={t.personal.transactionsSubtitle}
+              body={
+                filter || query || tab !== 'all' || drillIn
+                  ? t.personal.noEntriesForFilter.replace(
+                      '{month}',
+                      monthEnabled ? monthLabel(browseMonth, locale) : t.group.allMonths,
+                    )
+                  : t.personal.transactionsSubtitle
+              }
               action={
                 filter || query || tab !== 'all' || drillIn
                   ? t.personal.clearFilters
                   : t.personal.add
               }
+              actionIcon={filter || query || tab !== 'all' || drillIn ? null : 'add'}
               onAdd={filter || query || tab !== 'all' || drillIn ? clearFilters : addExpense}
             />
           </View>
@@ -664,7 +687,11 @@ function PersonalTransactionsScreenBody() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`${title}, ${categoryLabel}, ${signed(txn.amount, txn.currency, income)}`}
-              onPress={() => router.push({ pathname: '/personal/entry', params: { id: txn.id } })}
+              onPress={() =>
+                uncategorizedOnly
+                  ? setCategorizing(txn)
+                  : router.push({ pathname: '/personal/entry', params: { id: txn.id } })
+              }
               style={({ pressed }) => ({
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -756,6 +783,31 @@ function PersonalTransactionsScreenBody() {
             }}
           />
         ) : null}
+      </Sheet>
+      <Sheet
+        visible={categorizing !== null}
+        onClose={() => setCategorizing(null)}
+        padded={false}
+        closeLabel={t.common.close}
+        style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.lg, gap: 14 }}
+      >
+        <Text style={{ fontSize: 20, fontWeight: '800', color: ink }}>
+          {t.personalHome.categorize}
+        </Text>
+        <CategoryPicker
+          wrap
+          value={null}
+          onChange={(key) => {
+            const txn = categorizing;
+            setCategorizing(null);
+            if (!txn) return;
+            // Same record the entry form writes, only the category changed; the row
+            // then no longer matches Uncategorized and leaves the list.
+            upsert.mutate(
+              entryRecord({ ...txn, category: key, note: txn.note ?? null }, null, { txn }),
+            );
+          }}
+        />
       </Sheet>
     </Screen>
   );
