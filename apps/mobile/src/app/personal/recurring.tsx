@@ -3,7 +3,7 @@ import { useIsFocused } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 // Native confirmation Alert explicitly required for recurring deletion.
 // eslint-disable-next-line no-restricted-imports
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { Alert, ScrollView, View } from 'react-native';
 
 import {
   encodeRecurring,

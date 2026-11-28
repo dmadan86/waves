@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
-import { Card, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { iconSize, Text, useTheme } from '@waves/ui';
 import {
   pickUpcoming,
   type PersonalRecurring,
