@@ -332,7 +332,8 @@ async function startE2eeLocked(profileId: string, generation: number): Promise<v
   mailbox.forgetDevices();
   await ensureDeviceId(profileId).catch(() => undefined);
   if (!isCurrent()) return;
-  await mailbox.sync();
+  // Starting without a network is normal; the foreground poll and the sync cycle retry quietly.
+  await mailbox.sync().catch(() => undefined);
 }
 
 /** Sign-out: drop what is in memory (the engine wipes the tables). */

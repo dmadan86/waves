@@ -69,6 +69,7 @@ import { useProfileForDisplay } from '@/lib/profileCache';
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { useAuth, useViewerId } from '@/lib/auth';
+import { shouldAutoOfferSetup } from '@/lib/personalSetup';
 import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
 import { useStrings } from '@/i18n';
@@ -228,7 +229,7 @@ function MeLedger() {
     return (
       <>
         <PersonalFirstRun t={t} />
-        <OpenSetupOnce />
+        <OpenSetupOnce ownerId={ownerId} />
       </>
     );
   }
@@ -418,14 +419,14 @@ function AddActions({ t }: { t: ReturnType<typeof useStrings>['t'] }) {
  * The privacy line stays, and stays early: the one question anybody has about
  * a personal ledger inside a bill-splitting app is who else can see it.
  */
-/** A blank ledger opens the setup flow once per launch; backing out leaves the first-run screen. */
+/** A blank ledger opens the setup flow once per account (setup records `started`); backing out leaves the first-run screen. */
 let setupOffered = false;
-function OpenSetupOnce() {
+function OpenSetupOnce({ ownerId }: { ownerId: string | null | undefined }) {
   useEffect(() => {
-    if (setupOffered) return;
+    if (setupOffered || !ownerId) return;
     setupOffered = true;
-    router.push('/personal/setup');
-  }, []);
+    void shouldAutoOfferSetup(ownerId).then((offer) => offer && router.push('/personal/setup'));
+  }, [ownerId]);
   return null;
 }
 

@@ -30,7 +30,7 @@ import {
 import { fill, useStrings } from '@/i18n';
 import { houseEntering, EASE_OUT, popEntering, PressableScale, Stagger } from '@/lib/anim';
 import { useBottomClearance } from '@/lib/clearance';
-import { useDefaultCurrency } from '@/lib/currency';
+import { summaryCurrency, useDefaultCurrency } from '@/lib/currency';
 import { router } from '@/lib/navigation';
 import { e2eeNoteFor, spaceParams } from '@/lib/rentalScope';
 import { useReducedMotion } from '@/lib/reducedMotion';
@@ -74,7 +74,7 @@ function RentalsBody() {
   const { t } = useStrings();
   const w = t.wealth;
   const fmt = useWealthMoney();
-  const dc = useDefaultCurrency();
+  const defaultCurrency = useDefaultCurrency();
   const { space } = useLocalSearchParams<{ space?: string }>();
   const subtitle = useSpaceName(space);
   const spaceType = useSpaceType(space);
@@ -85,6 +85,11 @@ function RentalsBody() {
   const today = todayIso();
 
   const active = properties.filter((p) => p.status === 'active');
+  // Not the device-region guess ($) while the profile has not loaded: that totalled a wrong $0.
+  const dc = summaryCurrency(
+    defaultCurrency,
+    active.map((p) => p.currency),
+  );
   const views = active.map((p) => ({
     p,
     v: propertyView(p, tenancies, ledger.recurrings, ledger.txns, today),

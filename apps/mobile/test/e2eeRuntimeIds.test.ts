@@ -12,3 +12,11 @@ describe('couple space ids on a phone', () => {
     expect(src('runtime.ts')).toMatch(/new E2eeSpace\([\s\S]*?Crypto\.randomUUID/s);
   });
 });
+
+// A launch with no network is normal: the first mailbox round must not raise the "e2ee.start" alert.
+describe('e2ee start without a network', () => {
+  it('swallows the first mailbox sync failure (retried by poll and sync cycle)', () => {
+    const src = readFileSync(join(__dirname, '../src/e2ee/runtime.ts'), 'utf8');
+    expect(src).toMatch(/await mailbox\.sync\(\)\.catch\(\(\) => undefined\);\n\}/);
+  });
+});

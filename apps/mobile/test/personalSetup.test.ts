@@ -17,6 +17,7 @@ import {
   monthlyEquivalent,
   nextDayOfMonth,
   personalSetupAnswers,
+  shouldAutoOfferSetup,
   regionHint,
   rememberSetup,
   setupSummary,
@@ -263,6 +264,14 @@ describe('setup progress', () => {
       savings: '3to6',
     });
     expect((await personalSetupAnswers('u2')).done).toEqual([]);
+  });
+
+  it('auto-offers setup only until an account has opened it (not every cold launch)', async () => {
+    expect(await shouldAutoOfferSetup('u1')).toBe(true);
+    expect(await shouldAutoOfferSetup('')).toBe(false);
+    await rememberSetup('u1', {});
+    expect(await shouldAutoOfferSetup('u1')).toBe(false);
+    expect(await shouldAutoOfferSetup('u2')).toBe(true);
   });
 });
 
