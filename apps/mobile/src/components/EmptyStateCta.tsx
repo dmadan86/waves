@@ -17,8 +17,11 @@ export function EmptyStateCta({
   onAdd,
   secondary,
   compact = false,
+  actionIcon = 'add',
 }: {
   compact?: boolean;
+  /** The button's leading icon; null for none. */
+  actionIcon?: 'add' | null;
   title: string;
   body: string;
   action: string;
@@ -79,8 +82,8 @@ export function EmptyStateCta({
           opacity: pressed ? 0.85 : 1,
         })}
       >
-        {action.startsWith('+') ? null : (
-          <Ionicons name="add" size={20} color={compact ? theme.color.onBrand : '#FFFFFF'} />
+        {action.startsWith('+') || !actionIcon ? null : (
+          <Ionicons name={actionIcon} size={20} color={compact ? theme.color.onBrand : '#FFFFFF'} />
         )}
         <Text
           style={{

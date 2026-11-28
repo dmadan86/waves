@@ -8797,6 +8797,7 @@ export interface UiStrings {
     filterLabel: string;
     noEntriesMatch: string;
     noEntriesIn: string;
+    noEntriesForFilter: string;
     clearFilters: string;
     addTransaction: string;
     filterCategory: string;
@@ -17199,6 +17200,7 @@ const en: UiStrings = {
     filterLabel: 'Filter',
     noEntriesMatch: 'No entries match these filters',
     noEntriesIn: 'No entries in {month}',
+    noEntriesForFilter: 'Nothing for this filter in {month}.',
     clearFilters: 'Clear filters',
     addTransaction: 'Add transaction',
     filterCategory: 'Filter by category',
@@ -25657,6 +25659,7 @@ const ta: UiStrings = {
     filterLabel: 'வடிகட்டு',
     noEntriesMatch: 'இந்த வடிகட்டிகளுக்குப் பொருந்தும் பதிவுகள் இல்லை',
     noEntriesIn: '{month} மாதத்தில் பதிவுகள் இல்லை',
+    noEntriesForFilter: 'இந்த வடிகட்டிக்கு {month} மாதத்தில் எதுவும் இல்லை.',
     clearFilters: 'வடிகட்டிகளை அழி',
     addTransaction: 'பரிவர்த்தனையைச் சேர்',
     filterCategory: 'வகைப்படி வடிகட்டு',
@@ -33924,6 +33927,7 @@ const hi: UiStrings = {
     filterLabel: 'फ़िल्टर',
     noEntriesMatch: 'इन फ़िल्टरों से मेल खाती कोई प्रविष्टि नहीं',
     noEntriesIn: '{month} में कोई प्रविष्टि नहीं',
+    noEntriesForFilter: 'इस फ़िल्टर के लिए {month} में कुछ नहीं है।',
     clearFilters: 'फ़िल्टर हटाएँ',
     addTransaction: 'लेन-देन जोड़ें',
     filterCategory: 'श्रेणी से छाँटें',
@@ -43112,6 +43116,7 @@ const ar: UiStrings = {
     filterLabel: 'تصفية',
     noEntriesMatch: 'لا توجد إدخالات تطابق هذه المرشحات',
     noEntriesIn: 'لا توجد إدخالات في {month}',
+    noEntriesForFilter: 'لا يوجد شيء لهذا المرشح في {month}.',
     clearFilters: 'مسح المرشحات',
     addTransaction: 'إضافة معاملة',
     filterCategory: 'التصفية حسب الفئة',
