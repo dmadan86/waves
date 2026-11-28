@@ -6,6 +6,8 @@ import { Pressable, View } from 'react-native';
 
 import { iconSize, Row, Text, useTheme } from '@waves/ui';
 
+import { LIST_TILE } from '@/components/standard';
+
 export function CalmButton({
   label,
   onPress,
@@ -79,9 +81,9 @@ export function NeedRow({
       <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
         <View
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: 10,
+            width: LIST_TILE,
+            height: LIST_TILE,
+            borderRadius: theme.radius.md,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: theme.color.brandSoft,

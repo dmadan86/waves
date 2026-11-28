@@ -11,6 +11,7 @@ import { View } from 'react-native';
 import { iconSize, Sheet, Text, useTheme } from '@waves/ui';
 import type { PersonalTxn } from '@waves/core';
 
+import { ListCard, ListItem, LIST_TILE } from '@/components/standard';
 import { CategoryPicker } from '@/components/Category';
 import { DoneLine } from '@/components/calm/DoneLine';
 import { NeedRow, NeedsYouCard } from '@/components/calm/NeedsYouCard';
@@ -262,59 +263,43 @@ export function PersonalToday({ today, currency }: { today: string; currency: st
           <Text accessibilityRole="header" variant="subheading">
             {c.later}
           </Text>
-          <View
-            style={{
-              backgroundColor: theme.color.surface,
-              borderRadius: 12,
-              paddingHorizontal: theme.spacing.lg,
-            }}
-          >
+          <ListCard>
             {later.map((row, i) => (
-              <View
+              <ListItem
                 key={row.key}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: theme.spacing.md,
-                  paddingVertical: theme.spacing.sm,
-                  borderTopWidth: i === 0 ? 0 : 1,
-                  borderTopColor: theme.color.border,
-                }}
-              >
-                <View
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 10,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: theme.color.brandSoft,
-                  }}
-                >
-                  <Ionicons
-                    name={row.income ? 'arrow-down-outline' : 'calendar-outline'}
-                    size={iconSize.md}
-                    color={theme.color.brand}
-                  />
-                </View>
-                <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                  <Text variant="subheading">
-                    {row.item
-                      ? titleOf(row.item, t.dates)
-                      : row.title || sourceLabel(row.category ?? null) || t.personal.expense}
-                  </Text>
-                  {row.amount !== undefined && row.currency ? (
-                    <Text variant="caption" tone="muted">
-                      {fmt(row.amount, row.currency)}
-                    </Text>
-                  ) : null}
-                </View>
-                <Text variant="caption" tone="muted">
-                  {rowDate(row.date ?? today)}
-                </Text>
-              </View>
+                divider={i > 0}
+                leading={
+                  <View
+                    style={{
+                      width: LIST_TILE,
+                      height: LIST_TILE,
+                      borderRadius: theme.radius.md,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: theme.color.brandSoft,
+                    }}
+                  >
+                    <Ionicons
+                      name={row.income ? 'arrow-down-outline' : 'calendar-outline'}
+                      size={iconSize.md}
+                      color={theme.color.brand}
+                    />
+                  </View>
+                }
+                title={
+                  row.item
+                    ? titleOf(row.item, t.dates)
+                    : row.title || sourceLabel(row.category ?? null) || t.personal.expense
+                }
+                subtitle={
+                  row.amount !== undefined && row.currency
+                    ? fmt(row.amount, row.currency)
+                    : undefined
+                }
+                caption={rowDate(row.date ?? today)}
+              />
             ))}
-          </View>
+          </ListCard>
         </View>
       ) : null}
 
