@@ -103,7 +103,7 @@ export function resolveTabBar(segments: readonly string[], signedOut = false): T
   let activeKey = '';
   if (root === '(tabs)') activeKey = segments[1] ?? 'index';
   // Groups and Activity belong to Home; settings and other routes select nothing.
-  if (root === 'group' || root === 'activity') activeKey = 'index';
+  if (root === 'group' || root === 'activity' || root === 'actions') activeKey = 'index';
 
   return { hidden: false, activeKey };
 }

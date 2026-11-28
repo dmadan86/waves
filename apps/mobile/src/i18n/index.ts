@@ -7046,6 +7046,67 @@ export interface UiStrings {
     unlock: string;
     back: string;
   };
+  allActions: {
+    title: string;
+    subtitle: string;
+    open: string;
+    search: string;
+    noMatch: string;
+    chipAll: string;
+    chipPersonal: string;
+    chipFamily: string;
+    chipGroups: string;
+    chipCompany: string;
+    quick: string;
+    quickSub: string;
+    personal: string;
+    personalSub: string;
+    family: string;
+    groups: string;
+    groupsSub: string;
+    company: string;
+    voiceTitle: string;
+    voiceSub: string;
+    tiles: {
+      addExpense: string;
+      scanBill: string;
+      voice: string;
+      askAi: string;
+      transactions: string;
+      budgets: string;
+      recurring: string;
+      loans: string;
+      calendar: string;
+      bigBills: string;
+      spending: string;
+      recap: string;
+      rentals: string;
+      vehicles: string;
+      investments: string;
+      accounts: string;
+      coupleSpace: string;
+      sharedRentals: string;
+      familyGroup: string;
+      dates: string;
+      newGroup: string;
+      addFriend: string;
+      settleUp: string;
+      remind: string;
+      review: string;
+      entries: string;
+      attendance: string;
+      wages: string;
+      work: string;
+      clients: string;
+      vendors: string;
+      bills: string;
+      payments: string;
+      tickets: string;
+      files: string;
+      team: string;
+      statements: string;
+    };
+  };
   statementImport: {
     title: string;
     tileSub: string;
@@ -15562,6 +15623,67 @@ const en: UiStrings = {
     unlock: 'Unlock with Pro',
     back: 'Back',
   },
+  allActions: {
+    title: 'Hi, {name}',
+    subtitle: 'What do you want to do today?',
+    open: 'All actions',
+    search: 'Search actions',
+    noMatch: 'No action matches that.',
+    chipAll: 'All',
+    chipPersonal: 'Personal',
+    chipFamily: 'Family',
+    chipGroups: 'Groups',
+    chipCompany: 'Company',
+    quick: 'Quick',
+    quickSub: 'Most used',
+    personal: 'Personal',
+    personalSub: 'Only you',
+    family: 'Family',
+    groups: 'Groups & friends',
+    groupsSub: 'Split and settle',
+    company: 'Company',
+    voiceTitle: 'Not sure where it is?',
+    voiceSub: 'Just say it: “add 200 for lunch with Renny”',
+    tiles: {
+      addExpense: 'Add expense',
+      scanBill: 'Scan bill',
+      voice: 'Add by voice',
+      askAi: 'Ask AI',
+      transactions: 'Transactions',
+      budgets: 'Budgets',
+      recurring: 'Recurring',
+      loans: 'Loans',
+      calendar: 'Calendar',
+      bigBills: 'Big bills',
+      spending: 'Spending',
+      recap: 'Recap',
+      rentals: 'Rentals',
+      vehicles: 'Vehicles',
+      investments: 'Investments',
+      accounts: 'Accounts',
+      coupleSpace: 'Couple space',
+      sharedRentals: 'Shared rentals',
+      familyGroup: 'Family group',
+      dates: 'Dates',
+      newGroup: 'New group',
+      addFriend: 'Add friend',
+      settleUp: 'Settle up',
+      remind: 'Remind',
+      review: 'Review',
+      entries: 'Entries',
+      attendance: 'Attendance',
+      wages: 'Wages',
+      work: 'Work',
+      clients: 'Clients',
+      vendors: 'Vendors',
+      bills: 'Bills',
+      payments: 'Payments',
+      tickets: 'Tickets',
+      files: 'Files',
+      team: 'Team',
+      statements: 'Statements',
+    },
+  },
   statementImport: {
     title: 'Import a statement',
     tileSub: 'From your bank, as a file',
@@ -24067,6 +24189,67 @@ const ta: UiStrings = {
     unlock: 'Pro மூலம் திறக்கவும்',
     back: 'பின்செல்',
   },
+  allActions: {
+    title: 'வணக்கம், {name}',
+    subtitle: 'இன்று என்ன செய்ய வேண்டும்?',
+    open: 'எல்லா செயல்களும்',
+    search: 'செயல்களைத் தேடுங்கள்',
+    noMatch: 'பொருந்தும் செயல் இல்லை.',
+    chipAll: 'அனைத்தும்',
+    chipPersonal: 'தனிப்பட்ட',
+    chipFamily: 'குடும்பம்',
+    chipGroups: 'குழுக்கள்',
+    chipCompany: 'நிறுவனம்',
+    quick: 'விரைவு',
+    quickSub: 'அதிகம் பயன்படுத்தியவை',
+    personal: 'தனிப்பட்ட',
+    personalSub: 'உங்களுக்கு மட்டும்',
+    family: 'குடும்பம்',
+    groups: 'குழுக்களும் நண்பர்களும்',
+    groupsSub: 'பிரித்துத் தீர்க்க',
+    company: 'நிறுவனம்',
+    voiceTitle: 'எங்கே இருக்கிறது என்று தெரியவில்லையா?',
+    voiceSub: 'சொல்லுங்கள்: “ரென்னியுடன் மதிய உணவுக்கு 200 சேர்”',
+    tiles: {
+      addExpense: 'செலவு சேர்',
+      scanBill: 'பில் ஸ்கேன்',
+      voice: 'குரலால் சேர்',
+      askAi: 'AI-யிடம் கேள்',
+      transactions: 'பரிவர்த்தனைகள்',
+      budgets: 'பட்ஜெட்கள்',
+      recurring: 'தொடர்ச்சியானவை',
+      loans: 'கடன்கள்',
+      calendar: 'நாட்காட்டி',
+      bigBills: 'பெரிய பில்கள்',
+      spending: 'செலவு',
+      recap: 'சுருக்கம்',
+      rentals: 'வாடகைகள்',
+      vehicles: 'வாகனங்கள்',
+      investments: 'முதலீடுகள்',
+      accounts: 'கணக்குகள்',
+      coupleSpace: 'ஜோடி இடம்',
+      sharedRentals: 'பகிர்ந்த வாடகைகள்',
+      familyGroup: 'குடும்பக் குழு',
+      dates: 'தேதிகள்',
+      newGroup: 'புதிய குழு',
+      addFriend: 'நண்பரைச் சேர்',
+      settleUp: 'கணக்கைத் தீர்',
+      remind: 'நினைவூட்டு',
+      review: 'சரிபார்',
+      entries: 'பதிவுகள்',
+      attendance: 'வருகை',
+      wages: 'ஊதியம்',
+      work: 'வேலை',
+      clients: 'வாடிக்கையாளர்கள்',
+      vendors: 'விற்பனையாளர்கள்',
+      bills: 'பில்கள்',
+      payments: 'பணம் செலுத்தல்',
+      tickets: 'புகார்கள்',
+      files: 'கோப்புகள்',
+      team: 'குழு உறுப்பினர்கள்',
+      statements: 'அறிக்கைகள்',
+    },
+  },
   statementImport: {
     title: 'கணக்கு விவரத்தை இறக்குமதி செய்',
     tileSub: 'உங்கள் வங்கியிலிருந்து, கோப்பாக',
@@ -32479,6 +32662,67 @@ const hi: UiStrings = {
     paywallBody: 'Waves Pro बताता है कि पैसा कहाँ गया और आप किन सब्सक्रिप्शन का भुगतान करते हैं।',
     unlock: 'Pro से खोलें',
     back: 'वापस',
+  },
+  allActions: {
+    title: 'नमस्ते, {name}',
+    subtitle: 'आज आप क्या करना चाहते हैं?',
+    open: 'सभी कार्य',
+    search: 'कार्य खोजें',
+    noMatch: 'कोई कार्य नहीं मिला।',
+    chipAll: 'सभी',
+    chipPersonal: 'निजी',
+    chipFamily: 'परिवार',
+    chipGroups: 'ग्रुप',
+    chipCompany: 'कंपनी',
+    quick: 'तेज़',
+    quickSub: 'सबसे ज़्यादा इस्तेमाल',
+    personal: 'निजी',
+    personalSub: 'सिर्फ़ आप',
+    family: 'परिवार',
+    groups: 'ग्रुप और दोस्त',
+    groupsSub: 'बाँटें और चुकाएँ',
+    company: 'कंपनी',
+    voiceTitle: 'पता नहीं कहाँ है?',
+    voiceSub: 'बस बोलिए: “रेनी के साथ लंच के 200 जोड़ो”',
+    tiles: {
+      addExpense: 'खर्च जोड़ें',
+      scanBill: 'बिल स्कैन',
+      voice: 'बोलकर जोड़ें',
+      askAi: 'AI से पूछें',
+      transactions: 'लेन-देन',
+      budgets: 'बजट',
+      recurring: 'आवर्ती',
+      loans: 'कर्ज़',
+      calendar: 'कैलेंडर',
+      bigBills: 'बड़े बिल',
+      spending: 'खर्च',
+      recap: 'सारांश',
+      rentals: 'किराये',
+      vehicles: 'वाहन',
+      investments: 'निवेश',
+      accounts: 'खाते',
+      coupleSpace: 'जोड़ी की जगह',
+      sharedRentals: 'साझा किराये',
+      familyGroup: 'परिवार ग्रुप',
+      dates: 'तारीख़ें',
+      newGroup: 'नया ग्रुप',
+      addFriend: 'दोस्त जोड़ें',
+      settleUp: 'हिसाब चुकाएँ',
+      remind: 'याद दिलाएँ',
+      review: 'समीक्षा',
+      entries: 'एंट्री',
+      attendance: 'उपस्थिति',
+      wages: 'मज़दूरी',
+      work: 'काम',
+      clients: 'ग्राहक',
+      vendors: 'विक्रेता',
+      bills: 'बिल',
+      payments: 'भुगतान',
+      tickets: 'शिकायतें',
+      files: 'फ़ाइलें',
+      team: 'टीम',
+      statements: 'स्टेटमेंट',
+    },
   },
   statementImport: {
     title: 'स्टेटमेंट इम्पोर्ट करें',
@@ -41372,6 +41616,67 @@ const ar: UiStrings = {
     paywallBody: 'يجيب Waves Pro عن أسئلة مثل أين ذهبت أموالك وما الاشتراكات التي تدفعها.',
     unlock: 'افتح مع Pro',
     back: 'رجوع',
+  },
+  allActions: {
+    title: 'مرحبًا، {name}',
+    subtitle: 'ماذا تريد أن تفعل اليوم؟',
+    open: 'كل الإجراءات',
+    search: 'ابحث في الإجراءات',
+    noMatch: 'لا يوجد إجراء مطابق.',
+    chipAll: 'الكل',
+    chipPersonal: 'شخصي',
+    chipFamily: 'العائلة',
+    chipGroups: 'المجموعات',
+    chipCompany: 'الشركة',
+    quick: 'سريع',
+    quickSub: 'الأكثر استخدامًا',
+    personal: 'شخصي',
+    personalSub: 'أنت فقط',
+    family: 'العائلة',
+    groups: 'المجموعات والأصدقاء',
+    groupsSub: 'قسّم وسدّد',
+    company: 'الشركة',
+    voiceTitle: 'لا تعرف أين هو؟',
+    voiceSub: 'قلها فقط: «أضف 200 للغداء مع ريني»',
+    tiles: {
+      addExpense: 'إضافة مصروف',
+      scanBill: 'مسح فاتورة',
+      voice: 'إضافة بالصوت',
+      askAi: 'اسأل الذكاء',
+      transactions: 'المعاملات',
+      budgets: 'الميزانيات',
+      recurring: 'المتكررة',
+      loans: 'القروض',
+      calendar: 'التقويم',
+      bigBills: 'الفواتير الكبيرة',
+      spending: 'الإنفاق',
+      recap: 'الملخص',
+      rentals: 'الإيجارات',
+      vehicles: 'المركبات',
+      investments: 'الاستثمارات',
+      accounts: 'الحسابات',
+      coupleSpace: 'مساحة الزوجين',
+      sharedRentals: 'إيجارات مشتركة',
+      familyGroup: 'مجموعة العائلة',
+      dates: 'التواريخ',
+      newGroup: 'مجموعة جديدة',
+      addFriend: 'إضافة صديق',
+      settleUp: 'تسوية',
+      remind: 'تذكير',
+      review: 'مراجعة',
+      entries: 'القيود',
+      attendance: 'الحضور',
+      wages: 'الأجور',
+      work: 'العمل',
+      clients: 'العملاء',
+      vendors: 'الموردون',
+      bills: 'الفواتير',
+      payments: 'المدفوعات',
+      tickets: 'الشكاوى',
+      files: 'الملفات',
+      team: 'الفريق',
+      statements: 'الكشوف',
+    },
   },
   statementImport: {
     title: 'استيراد كشف حساب',

@@ -612,6 +612,11 @@ function HomeScreen() {
               </Text>
             </View>
             <TabIconButton
+              icon="grid-outline"
+              label={t.allActions.open}
+              onPress={() => router.push('/actions')}
+            />
+            <TabIconButton
               icon="notifications-outline"
               label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
               onPress={() => router.navigate('/activity')}
