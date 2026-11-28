@@ -8995,6 +8995,12 @@ export interface UiStrings {
     noLoans: string;
     budgets: string;
     budgetsSub: string;
+    budgetsPlanSub: string;
+    categoryBudgets: string;
+    manageCategories: string;
+    ofBudget: string;
+    overBudgetAmount: string;
+    leftAmount: string;
     addBudget: string;
     editBudget: string;
     overall: string;
@@ -17400,6 +17406,12 @@ const en: UiStrings = {
     noLoans: 'No loans yet.',
     budgets: 'Budgets',
     budgetsSub: 'Monthly caps by category.',
+    budgetsPlanSub: 'Plan and control your spending',
+    categoryBudgets: 'Category budgets',
+    manageCategories: 'Manage categories',
+    ofBudget: 'of budget',
+    overBudgetAmount: '{amount} over budget',
+    leftAmount: '{amount} left',
     addBudget: 'Add budget',
     editBudget: 'Edit budget',
     overall: 'Overall',
@@ -25861,6 +25873,12 @@ const ta: UiStrings = {
     noLoans: 'கடன்கள் இல்லை.',
     budgets: 'பட்ஜெட்டுகள்',
     budgetsSub: 'வகை வாரியான மாதவரம்பு.',
+    budgetsPlanSub: 'உங்கள் செலவைத் திட்டமிட்டுக் கட்டுப்படுத்துங்கள்',
+    categoryBudgets: 'வகை பட்ஜெட்டுகள்',
+    manageCategories: 'வகைகளை நிர்வகி',
+    ofBudget: 'பட்ஜெட்டில்',
+    overBudgetAmount: 'பட்ஜெட்டை விட {amount} அதிகம்',
+    leftAmount: '{amount} மீதம்',
     addBudget: 'பட்ஜெட்டைச் சேர்',
     editBudget: 'பட்ஜெட்டைத் திருத்து',
     overall: 'மொத்தம்',
@@ -34128,6 +34146,12 @@ const hi: UiStrings = {
     noLoans: 'अभी कोई ऋण नहीं।',
     budgets: 'बजट',
     budgetsSub: 'श्रेणी के अनुसार मासिक सीमाएँ।',
+    budgetsPlanSub: 'अपने खर्च की योजना बनाएँ और उसे नियंत्रित करें',
+    categoryBudgets: 'श्रेणी बजट',
+    manageCategories: 'श्रेणियाँ प्रबंधित करें',
+    ofBudget: 'बजट का',
+    overBudgetAmount: 'बजट से {amount} ज़्यादा',
+    leftAmount: '{amount} बाकी',
     addBudget: 'बजट जोड़ें',
     editBudget: 'बजट संपादित करें',
     overall: 'कुल',
@@ -43333,6 +43357,12 @@ const ar: UiStrings = {
     noLoans: 'لا قروض بعد.',
     budgets: 'الميزانيات',
     budgetsSub: 'حدود شهرية حسب الفئة.',
+    budgetsPlanSub: 'خطّط لإنفاقك وتحكّم فيه',
+    categoryBudgets: 'ميزانيات الفئات',
+    manageCategories: 'إدارة الفئات',
+    ofBudget: 'من الميزانية',
+    overBudgetAmount: '{amount} فوق الميزانية',
+    leftAmount: '{amount} متبقٍ',
     addBudget: 'إضافة ميزانية',
     editBudget: 'تعديل الميزانية',
     overall: 'الإجمالي',

@@ -27,7 +27,8 @@ import {
 } from '@waves/ui';
 
 import { KindPills } from '@/components/KindPills';
-import { PlainHeader, StandardCard } from '@/components/standard';
+import { PlanningHeader, PlanningTabs } from '@/components/PlanningTabs';
+import { StandardCard } from '@/components/standard';
 import { CategoryBadge } from '@/components/Category';
 import { SourceGlyph, useSourceLabel } from '@/components/IncomeSource';
 import { EmptyStateCta } from '@/components/EmptyStateCta';
@@ -112,24 +113,12 @@ function RecurringScreenBody() {
 
   return (
     <Screen edges={[]}>
-      <PlainHeader
+      <PlanningHeader
         hideBack
         title={t.personal.recurring}
         subtitle={t.personal.recurringSub}
-        trailing={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.personal.addRecurringItem.replace(/^\+\s*/, '')}
-            hitSlop={10}
-            onPress={addRule}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
-          >
-            <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
-            <Text variant="body" style={{ color: theme.color.brand, fontWeight: '700' }}>
-              {t.personal.add}
-            </Text>
-          </Pressable>
-        }
+        addLabel={t.personal.addRecurringItem.replace(/^\+\s*/, '')}
+        onAdd={addRule}
       />
       <ScrollView
         contentContainerStyle={{
@@ -139,6 +128,7 @@ function RecurringScreenBody() {
         }}
         showsVerticalScrollIndicator={false}
       >
+        <PlanningTabs value="recurring" />
         {recurrings.length > 0 ? (
           <StandardCard style={{ gap: theme.spacing.md }}>
             <Text variant="body" style={{ fontWeight: '700' }}>
