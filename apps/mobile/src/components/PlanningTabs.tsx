@@ -5,6 +5,7 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useLocalSearchParams } from 'expo-router';
 import { Pressable } from 'react-native';
 
 import { iconSize, Row, Text, useTheme } from '@waves/ui';
@@ -20,20 +21,29 @@ const HREF = {
   loans: '/personal/loans',
 } as const;
 
+/**
+ * Recurring is the Planning bar's root and the switch (which replaces with `from=plan`) never
+ * shows a back button, so the three siblings match. Budgets and Loans pushed from elsewhere
+ * (Today, Me, Accounts) have no `from` and keep the round back button.
+ */
 export function PlanningHeader({
+  tab,
   title,
   subtitle,
   addLabel,
   onAdd,
 }: {
+  tab: Tab;
   title: string;
   subtitle: string;
   addLabel?: string;
   onAdd?: () => void;
 }) {
   const theme = useTheme();
+  const { from } = useLocalSearchParams<{ from?: string }>();
   return (
     <HeaderBar
+      hideBack={tab === 'recurring' || from === 'plan'}
       title={title}
       subtitle={subtitle}
       action={
@@ -85,7 +95,7 @@ export function PlanningTabs({ value }: { value: Tab }) {
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
             onPress={() => {
-              if (!on) router.replace(HREF[key]);
+              if (!on) router.replace({ pathname: HREF[key], params: { from: 'plan' } });
             }}
             style={{
               flex: 1,

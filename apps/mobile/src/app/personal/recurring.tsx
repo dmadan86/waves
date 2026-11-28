@@ -104,6 +104,7 @@ function RecurringScreenBody() {
   return (
     <Screen edges={[]}>
       <PlanningHeader
+        tab="recurring"
         title={t.personal.recurring}
         subtitle={t.personal.recurringSub}
         addLabel={t.personal.addRecurringItem.replace(/^\+\s*/, '')}

@@ -56,9 +56,13 @@ describe('headers', () => {
     expect(planning).toMatch(/<HeaderBar/);
     for (const f of ['recurring', 'budgets', 'loans']) {
       const src = read(`src/app/personal/${f}.tsx`);
-      expect(src).toMatch(/<PlanningHeader/);
+      expect(src).toMatch(new RegExp(`<PlanningHeader\\s+tab="${f}"`));
       expect(src).not.toMatch(/hideBack/);
     }
+    // Tab roots have no back button; Budgets/Loans reached via the switch match Recurring.
+    expect(planning).toMatch(/hideBack=\{tab === 'recurring' \|\| from === 'plan'\}/);
+    expect(planning).toMatch(/params: \{ from: 'plan' \}/);
+    expect(read('src/app/personal/transactions.tsx')).toMatch(/hideBack=\{!drillIn\}/);
     const tx = read('src/app/personal/transactions.tsx');
     expect(tx).toMatch(/<PlainHeader/);
     expect(tx).not.toMatch(/fontSize: 28/);
