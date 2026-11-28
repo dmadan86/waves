@@ -5,9 +5,10 @@
  */
 
 import { useState } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { View } from 'react-native';
 
-import { Sheet, Text, useTheme } from '@waves/ui';
+import { iconSize, Sheet, Text, useTheme } from '@waves/ui';
 import type { PersonalTxn } from '@waves/core';
 
 import { CategoryPicker } from '@/components/Category';
@@ -280,8 +281,24 @@ export function PersonalToday({ today, currency }: { today: string; currency: st
                   borderTopColor: theme.color.border,
                 }}
               >
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: theme.color.brandSoft,
+                  }}
+                >
+                  <Ionicons
+                    name={row.income ? 'arrow-down-outline' : 'calendar-outline'}
+                    size={iconSize.md}
+                    color={theme.color.brand}
+                  />
+                </View>
                 <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                  <Text variant="body" style={{ fontWeight: '600' }}>
+                  <Text variant="subheading">
                     {row.item
                       ? titleOf(row.item, t.dates)
                       : row.title || sourceLabel(row.category ?? null) || t.personal.expense}

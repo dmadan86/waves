@@ -79,8 +79,8 @@ export function NeedRow({
       <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
         <View
           style={{
-            width: 32,
-            height: 32,
+            width: 40,
+            height: 40,
             borderRadius: 10,
             alignItems: 'center',
             justifyContent: 'center',
@@ -90,9 +90,7 @@ export function NeedRow({
           <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
         </View>
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-          <Text variant="body" style={{ fontWeight: '600' }}>
-            {title}
-          </Text>
+          <Text variant="subheading">{title}</Text>
           {subtitle ? (
             <Text
               variant="caption"
