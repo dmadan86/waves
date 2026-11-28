@@ -8491,6 +8491,39 @@ export interface UiStrings {
   /** The private personal-finance ledger (A48): the "Me" tab and its screens —
    *  solo expenses/income, recurring rules, loans and monthly budgets. */
   /** Personal home: the daily ring, save tip and weekly / monthly recaps. */
+  calm: {
+    needsTitle: PluralForms;
+    showMore: string;
+    showLess: string;
+    allSet: string;
+    allSetHelp: string;
+    remind: string;
+    markReceived: string;
+    markPaid: string;
+    pickCategory: string;
+    review: string;
+    weekSpent: string;
+    onTrack: string;
+    overPace: string;
+    paidOne: string;
+    paidMany: PluralForms;
+    whenToday: string;
+    whenYesterday: string;
+    rentTitle: string;
+    rentOverdue: PluralForms;
+    rentDueToday: string;
+    uncatTitle: PluralForms;
+    billDueToday: string;
+    billOverdue: PluralForms;
+    budgetUsed: string;
+    budgetLeftDays: PluralForms;
+    budgetLeft: string;
+    budgetOver: string;
+    later: string;
+    remindMessage: string;
+    menuRentals: string;
+    menuTransactions: string;
+  };
   comingUp: {
     dueTitle: string;
     days30: string;
@@ -16873,6 +16906,40 @@ const en: UiStrings = {
     todaysRate: 'Today’s rate',
     removeConfirm: 'Bills already saved keep the rate they were saved with.',
     appliesNote: 'Changing a rate never moves a bill already saved.',
+  },
+
+  calm: {
+    needsTitle: { one: 'Needs you · {n} thing', other: 'Needs you · {n} things' },
+    showMore: 'Show {n} more',
+    showLess: 'Show less',
+    allSet: 'You\'re all set',
+    allSetHelp: 'Nothing needs you right now.',
+    remind: 'Remind',
+    markReceived: 'Mark received',
+    markPaid: 'Mark paid',
+    pickCategory: 'Pick category',
+    review: 'Review',
+    weekSpent: '{amount} spent this week',
+    onTrack: 'on track',
+    overPace: 'over pace',
+    paidOne: '{title} {amount} paid {when}',
+    paidMany: { one: '{n} bill paid recently', other: '{n} bills paid recently' },
+    whenToday: 'today',
+    whenYesterday: 'yesterday',
+    rentTitle: 'Rent {unit} · {amount}',
+    rentOverdue: { one: '{tenant} · {n} day overdue', other: '{tenant} · {n} days overdue' },
+    rentDueToday: '{tenant} · due today',
+    uncatTitle: { one: '{n} uncategorized', other: '{n} uncategorized' },
+    billDueToday: 'Due today · {amount}',
+    billOverdue: { one: '{amount} · {n} day overdue', other: '{amount} · {n} days overdue' },
+    budgetUsed: '{name} budget {pct}% used',
+    budgetLeftDays: { one: '{amount} left for {n} day', other: '{amount} left for {n} days' },
+    budgetLeft: '{amount} left this month',
+    budgetOver: '{amount} over this month',
+    later: 'Later this week',
+    remindMessage: 'Hi {tenant}, a gentle reminder: rent of {amount} for {unit} was due on {date}. Thank you!',
+    menuRentals: 'Rentals',
+    menuTransactions: 'All transactions',
   },
 
   comingUp: {
@@ -25345,6 +25412,40 @@ const ta: UiStrings = {
     appliesNote: 'விகிதத்தை மாற்றினாலும் ஏற்கெனவே சேமித்த பில் மாறாது.',
   },
 
+  calm: {
+    needsTitle: { one: 'உங்களுக்கு · {n} விஷயம்', other: 'உங்களுக்கு · {n} விஷயங்கள்' },
+    showMore: 'மேலும் {n} காட்டு',
+    showLess: 'குறைவாகக் காட்டு',
+    allSet: 'எல்லாம் தயார்',
+    allSetHelp: 'இப்போது உங்களுக்கு எதுவும் தேவையில்லை.',
+    remind: 'நினைவூட்டு',
+    markReceived: 'பெற்றதாகக் குறி',
+    markPaid: 'செலுத்தியதாகக் குறி',
+    pickCategory: 'வகையைத் தேர்',
+    review: 'பார்',
+    weekSpent: 'இந்த வாரம் {amount} செலவு',
+    onTrack: 'சரியான பாதையில்',
+    overPace: 'வேகம் அதிகம்',
+    paidOne: '{title} {amount} {when} செலுத்தப்பட்டது',
+    paidMany: { one: '{n} பில் சமீபத்தில் செலுத்தப்பட்டது', other: '{n} பில்கள் சமீபத்தில் செலுத்தப்பட்டன' },
+    whenToday: 'இன்று',
+    whenYesterday: 'நேற்று',
+    rentTitle: 'வாடகை {unit} · {amount}',
+    rentOverdue: { one: '{tenant} · {n} நாள் தாமதம்', other: '{tenant} · {n} நாட்கள் தாமதம்' },
+    rentDueToday: '{tenant} · இன்று செலுத்த வேண்டும்',
+    uncatTitle: { one: '{n} வகைப்படுத்தப்படாதது', other: '{n} வகைப்படுத்தப்படாதவை' },
+    billDueToday: 'இன்று செலுத்த வேண்டும் · {amount}',
+    billOverdue: { one: '{amount} · {n} நாள் தாமதம்', other: '{amount} · {n} நாட்கள் தாமதம்' },
+    budgetUsed: '{name} பட்ஜெட் {pct}% பயன்படுத்தப்பட்டது',
+    budgetLeftDays: { one: '{n} நாளுக்கு {amount} மீதம்', other: '{n} நாட்களுக்கு {amount} மீதம்' },
+    budgetLeft: 'இந்த மாதம் {amount} மீதம்',
+    budgetOver: 'இந்த மாதம் {amount} அதிகம்',
+    later: 'இந்த வாரத்தின் பிறகு',
+    remindMessage: 'வணக்கம் {tenant}, அன்பான நினைவூட்டல்: {unit}க்கான {amount} வாடகை {date} அன்று செலுத்த வேண்டியிருந்தது. நன்றி!',
+    menuRentals: 'வாடகைகள்',
+    menuTransactions: 'எல்லா பரிவர்த்தனைகள்',
+  },
+
   comingUp: {
     dueTitle: 'அடுத்த {days} நாட்களில் செலுத்த வேண்டியவை',
     days30: '30 நாட்கள்',
@@ -33628,6 +33729,40 @@ const hi: UiStrings = {
     todaysRate: 'आज की दर',
     removeConfirm: 'पहले सहेजे गए बिल उसी दर पर रहेंगे जिस पर सहेजे गए थे।',
     appliesNote: 'दर बदलने से पहले सहेजा गया बिल कभी नहीं बदलता।',
+  },
+
+  calm: {
+    needsTitle: { one: 'आपके लिए · {n} बात', other: 'आपके लिए · {n} बातें' },
+    showMore: '{n} और दिखाएँ',
+    showLess: 'कम दिखाएँ',
+    allSet: 'सब ठीक है',
+    allSetHelp: 'अभी आपको कुछ नहीं करना है।',
+    remind: 'याद दिलाएँ',
+    markReceived: 'मिला चिह्नित करें',
+    markPaid: 'चुकाया चिह्नित करें',
+    pickCategory: 'श्रेणी चुनें',
+    review: 'देखें',
+    weekSpent: 'इस हफ़्ते {amount} खर्च',
+    onTrack: 'सही रफ़्तार पर',
+    overPace: 'रफ़्तार से ज़्यादा',
+    paidOne: '{title} {amount} {when} चुकाया',
+    paidMany: { one: '{n} बिल हाल ही में चुकाया', other: '{n} बिल हाल ही में चुकाए' },
+    whenToday: 'आज',
+    whenYesterday: 'कल',
+    rentTitle: 'किराया {unit} · {amount}',
+    rentOverdue: { one: '{tenant} · {n} दिन देर', other: '{tenant} · {n} दिन देर' },
+    rentDueToday: '{tenant} · आज देय',
+    uncatTitle: { one: '{n} बिना श्रेणी', other: '{n} बिना श्रेणी' },
+    billDueToday: 'आज देय · {amount}',
+    billOverdue: { one: '{amount} · {n} दिन देर', other: '{amount} · {n} दिन देर' },
+    budgetUsed: '{name} बजट {pct}% इस्तेमाल',
+    budgetLeftDays: { one: '{n} दिन के लिए {amount} बाकी', other: '{n} दिन के लिए {amount} बाकी' },
+    budgetLeft: 'इस महीने {amount} बाकी',
+    budgetOver: 'इस महीने {amount} ज़्यादा',
+    later: 'इस हफ़्ते आगे',
+    remindMessage: 'नमस्ते {tenant}, एक छोटी याद: {unit} का {amount} किराया {date} को देय था। धन्यवाद!',
+    menuRentals: 'किराये',
+    menuTransactions: 'सभी लेन-देन',
   },
 
   comingUp: {
@@ -42781,6 +42916,40 @@ const ar: UiStrings = {
     todaysRate: 'سعر اليوم',
     removeConfirm: 'الفواتير المحفوظة تبقى على السعر الذي حُفظت به.',
     appliesNote: 'تغيير السعر لا يحرّك فاتورة محفوظة أبداً.',
+  },
+
+  calm: {
+    needsTitle: { one: 'يحتاجك · {n} أمر', other: 'يحتاجك · {n} أمور' },
+    showMore: 'عرض {n} أخرى',
+    showLess: 'عرض أقل',
+    allSet: 'كل شيء جاهز',
+    allSetHelp: 'لا شيء يحتاجك الآن.',
+    remind: 'ذكّر',
+    markReceived: 'تم الاستلام',
+    markPaid: 'تم الدفع',
+    pickCategory: 'اختر الفئة',
+    review: 'مراجعة',
+    weekSpent: 'أُنفق {amount} هذا الأسبوع',
+    onTrack: 'على المسار',
+    overPace: 'أعلى من الوتيرة',
+    paidOne: '{title} {amount} تم دفعه {when}',
+    paidMany: { one: 'فاتورة {n} دُفعت مؤخرًا', other: '{n} فواتير دُفعت مؤخرًا' },
+    whenToday: 'اليوم',
+    whenYesterday: 'أمس',
+    rentTitle: 'إيجار {unit} · {amount}',
+    rentOverdue: { one: '{tenant} · متأخر {n} يوم', other: '{tenant} · متأخر {n} أيام' },
+    rentDueToday: '{tenant} · مستحق اليوم',
+    uncatTitle: { one: '{n} بلا فئة', other: '{n} بلا فئة' },
+    billDueToday: 'مستحق اليوم · {amount}',
+    billOverdue: { one: '{amount} · متأخر {n} يوم', other: '{amount} · متأخر {n} أيام' },
+    budgetUsed: 'ميزانية {name} استُخدم منها {pct}%',
+    budgetLeftDays: { one: 'المتبقي {amount} ليوم {n}', other: 'المتبقي {amount} لـ {n} أيام' },
+    budgetLeft: 'المتبقي {amount} هذا الشهر',
+    budgetOver: 'تجاوز {amount} هذا الشهر',
+    later: 'لاحقًا هذا الأسبوع',
+    remindMessage: 'مرحبًا {tenant}، تذكير لطيف: إيجار {amount} لـ {unit} كان مستحقًا في {date}. شكرًا!',
+    menuRentals: 'الإيجارات',
+    menuTransactions: 'كل المعاملات',
   },
 
   comingUp: {

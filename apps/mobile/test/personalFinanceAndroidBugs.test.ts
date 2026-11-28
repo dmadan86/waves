@@ -94,10 +94,8 @@ describe('Android personal finance regressions', () => {
     );
   });
 
-  it('Personal avatar initials use the cached display name', () => {
-    expect(src('app/(tabs)/me.tsx')).toContain(
-      'name={displayProfile?.display_name ?? t.account.you}',
-    );
+  it('Personal Today keeps the profile one tap away in the menu', () => {
+    expect(src('app/(tabs)/me.tsx')).toContain("route: '/profile?space=personal'");
   });
 
   it('loan card title renders the counterpart name', () => {

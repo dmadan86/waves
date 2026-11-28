@@ -162,8 +162,8 @@ describe('calendar', () => {
 
 describe('Home v2 wiring', () => {
   const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
-  it('Personal and family homes both draw ComingUpHome, scoped by space', () => {
-    expect(read('src/app/(tabs)/me.tsx')).toContain('<ComingUpHome');
+  it('the family home draws ComingUpHome, scoped by space; Personal Today keeps the calendar one tap away', () => {
+    expect(read('src/app/(tabs)/me.tsx')).toContain("route: '/personal/calendar'");
     const hh = read('src/components/household/HouseholdScreen.tsx');
     expect(hh).toContain('<ComingUpHome');
     expect(hh).toContain('groupId={groupId}');

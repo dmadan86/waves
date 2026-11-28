@@ -94,3 +94,20 @@ Words that read as advice, a promise or a legal claim. They are banned in copy, 
 - Format money, dates and numbers through Intl / CLDR, never by hand.
 - Week start and fiscal year follow the region (`weekStartForRegion`).
 - Never infer religion or family shape.
+
+## Calm screens (Before → After)
+
+Personal Today, Budgets and Rentals follow ten rules. Shared pieces live in
+`apps/mobile/src/components/calm/` (week strip, Needs-you card, done line, nudge
+row, summary line, header): reuse them rather than drawing new ones.
+
+1. One verb per screen: name the single thing the person came to do and make it the only filled button.
+2. Group what needs action into ONE card ("Needs you"), never scatter it across the list.
+3. Status is position, not a badge: needs action on top, done collapses to one quiet line, later sits below.
+4. Done is one line: a tick and a sentence ("Netflix paid yesterday"), not N green rows.
+5. Inline actions beat drill-in: put Mark paid / Remind / Settle on the row; open a detail screen only for editing.
+6. One accent colour (brand blue): red and amber only for real money states (over budget, overdue amount), never as chrome.
+7. Replace banners and alerts with a quiet nudge row: one plain sentence plus one text action, no yellow bars.
+8. Lead with a one-line summary (a number plus a verdict: "on track") instead of a hero card or gradient.
+9. Big title with the date above it, actions top right (a + and a bell), no FAB, no subtitle, no tab strip unless there are real siblings.
+10. Whitespace and hairlines, not boxes: 16dp gutters, flat white 12dp cards on the grey canvas, collapse everything past the top 3 rows into "Show N more".

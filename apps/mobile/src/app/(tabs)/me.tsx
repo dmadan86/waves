@@ -28,19 +28,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  personalHomeSpent,
-  format,
-  formatParts,
-  incomeSource,
-  money,
-  monthOutlook,
-  type PersonalTxn,
-} from '@waves/core';
+import {} from '@waves/core';
 import {
   Button,
-  Card,
-  Divider,
   EmptyState,
   Gradient,
   iconSize,
@@ -51,32 +41,21 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { CategoryBadge } from '@/components/Category';
+import { CalmHeader, CalmIconButton } from '@/components/calm/CalmHeader';
+import { PersonalToday } from '@/components/personal/PersonalToday';
 import { ResumeVehicleMoves } from '@/components/wealth/ResumeVehicleMoves';
 import { useVehicleReminders } from '@/lib/vehicleReminders';
 import { useWealthReminders } from '@/lib/wealthReminders';
-import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
-import { TabHeader, TabIconButton } from '@/components/home/TabHeader';
-import { PersonAvatar } from '@/components/PersonAvatar';
-import { EmptyCard } from '@/components/standard';
-import { ComingUpHome } from '@/components/home/ComingUpHome';
 import { PersonalIntro } from '@/components/PersonalIntro';
-import {
-  CardTitle,
-  PrivacyPill,
-  usePersonalUpcoming,
-} from '@/components/personal/PersonalHomeParts';
-import { monthLabel } from '@/lib/monthNav';
+import { PrivacyPill, usePersonalUpcoming } from '@/components/personal/PersonalHomeParts';
 import { hasDue } from '@/lib/personalUpcoming';
 import {
   onPersonalIntroDismissed,
   personalIntroSeen,
   rememberPersonalIntroSeen,
 } from '@/lib/onboardingSeen';
-import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { useSpaceSwitchItems } from '@/lib/useSpaceSwitchItems';
-import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { SignInWall } from '@/components/SignInWall';
 import {
   postDueRecurring,
@@ -87,14 +66,12 @@ import {
 import { usePersonalWealth } from '@/data/personalWealth';
 import { personalHomeIdentity } from '@/data/personalHomeIdentity';
 import { useProfileForDisplay } from '@/lib/profileCache';
-import { recentTxns as selectRecentTxns } from '@/lib/txnLedger';
-import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
-import { fill, useStrings } from '@/i18n';
+import { useStrings } from '@/i18n';
 
 // The first run's saturated wash, deep enough to hold white ink on every corner.
 const SAVED_WASH = ['#1E5A8C', '#0C2E4A'] as const;
@@ -123,8 +100,6 @@ function MeLedger() {
   const { hydrated } = useSync();
   // Name and currency survive an offline cold start (display only).
   const displayProfile = useProfileForDisplay();
-  const viewerFace = useViewerIdentity();
-  const avatarUrl = useAvatarUrl(viewerFace.avatarUrl);
   const ledger = usePersonalLedger();
   const identity = personalHomeIdentity(
     displayProfile,
@@ -137,13 +112,9 @@ function MeLedger() {
   const upsert = useUpsertPersonalRecord();
   // The eye on the summary card: masks every figure on it (and the three
   // tiles beneath it), the same privacy the dashboard's own eye gives Home.
-  const { hidden: amountsHidden } = usePersonalAmountsHidden();
 
   // Read the clock once, off render (the React Compiler forbids it inline).
   const [today] = useState(() => todayIso());
-  const currentMonth = today.slice(0, 7);
-
-  const month = currentMonth;
 
   const [gearOpen, setGearOpen] = useState(false);
 
@@ -173,30 +144,11 @@ function MeLedger() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
-  // What actually moved this month. The recurring rules' still-expected money
-  // stays out of these figures — a total that quietly included money nobody has
-  // received would be the one lie a ledger cannot tell — and is listed below as
-  // what the month is still waiting for.
-  const summary = monthOutlook(ledger.txns, ledger.recurrings, month, dc, today);
-  // Whole-rupee totals drop a bare ".00"; real paise still show.
-  const fmt = (amount: bigint): string => {
-    const p = formatParts(money(amount, dc), { locale, trimZeros: true });
-    return /[1-9]/.test(p.fraction) ? p.text : p.lead + p.trail;
-  };
-  const catLabel = labelForCategory(t);
-
-  // Every figure below honours the eye on the hero.
-
-  // The latest three entries, newest first (the ledger comes newest-first).
-  const recentTxns = selectRecentTxns(ledger.txns, today);
-
   const h = t.personalHome;
-  const homeSpent = personalHomeSpent(ledger.txns, month, dc);
   const upcomingRows = usePersonalUpcoming(
     { txns: ledger.txns, recurrings: ledger.recurrings, currency: dc, today },
     3,
   );
-  const [switchOpen, setSwitchOpen] = useState(false);
   const switchItems = useSpaceSwitchItems('personal', {
     shared: h.sharedSpace,
     personal: h.space,
@@ -205,10 +157,8 @@ function MeLedger() {
     couple: h.groupCouple,
     family: h.groupFamily,
   });
-  const [moreOpen, setMoreOpen] = useState(false);
   useWealthReminders();
   useVehicleReminders();
-  const firstName = identity.name.trim().split(/\s+/)[0];
 
   // One set of quick actions on this screen; the less-used ones live here.
   const moreItems: OverflowMenuItem[] = [
@@ -286,164 +236,84 @@ function MeLedger() {
   return (
     <Screen edges={[]}>
       <ResumeVehicleMoves />
-      {/* The scene runs up under the status bar, so the clock goes white — but
-          only here, where the scene is drawn: the lock shield and the first run
-          are plain pages, and keep the theme's own dark icons. */}
-      <TabHeader
-        left={
-          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-            <PersonAvatar
-              name={displayProfile?.display_name ?? t.account.you}
-              avatarUrl={avatarUrl}
-              size={44}
-              accessibilityLabel={t.profile}
-              onPress={() => router.navigate('/profile')}
-            />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text
-                accessibilityRole="header"
-                numberOfLines={1}
-                style={{ fontSize: 18, lineHeight: 23, fontWeight: '700' }}
-              >
-                {fill(h.hi, { name: firstName ?? '' })}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${h.switchSpace}. ${h.space}`}
-                onPress={() => setSwitchOpen(true)}
-                hitSlop={6}
-                style={({ pressed }) => ({
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 2,
-                  opacity: pressed ? 0.6 : 1,
-                })}
-              >
-                <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-                  {h.space}
-                </Text>
-                <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
-              </Pressable>
-            </View>
-          </Row>
-        }
+      <CalmHeader
+        dateLine={dateTimeFormat(locale, {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          timeZone: 'UTC',
+        }).format(new Date(`${today}T00:00:00Z`))}
+        title={t.personal.today}
       >
-        <TabIconButton
-          icon="search-outline"
-          label={h.search}
-          onPress={() => router.push('/personal/transactions')}
+        <CalmIconButton
+          icon="add"
+          label={t.personal.addExpense}
+          onPress={() => router.push({ pathname: '/personal/entry', params: { kind: 'expense' } })}
         />
-        <TabIconButton
+        <CalmIconButton
           icon="notifications-outline"
           label={h.reminders}
           dot={hasDue(upcomingRows)}
           onPress={() => router.push('/personal/upcoming')}
         />
-        <TabIconButton
-          icon="add"
-          label={t.personal.addExpense}
-          onPress={() => router.push({ pathname: '/personal/entry', params: { kind: 'expense' } })}
-        />
-        <TabIconButton
+        <CalmIconButton
           icon="ellipsis-vertical"
           label={h.settings}
           onPress={() => setGearOpen(true)}
         />
-      </TabHeader>
+      </CalmHeader>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: clearance + 96 }}
+        contentContainerStyle={{ paddingBottom: clearance + 96, gap: theme.spacing.md }}
         showsVerticalScrollIndicator={false}
       >
-        <View
-          style={{
-            paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.xs,
-            gap: theme.spacing.md,
-          }}
-        >
-          <ComingUpHome
-            tiles={[
-              {
-                key: 'rentals',
-                icon: 'home-outline',
-                label: t.comingUp.tileRentals,
-                onPress: () => router.push('/rentals'),
-              },
-              {
-                key: 'vehicles',
-                icon: 'car-outline',
-                label: t.vehicles.vehicles,
-                onPress: () => router.push('/vehicles'),
-              },
-              {
-                key: 'budgets',
-                icon: 'speedometer-outline',
-                label: t.comingUp.tileBudgets,
-                onPress: () => router.push('/personal/budgets'),
-              },
-              {
-                key: 'more',
-                icon: 'ellipsis-horizontal',
-                label: t.personalHome.toolMore,
-                onPress: () => setMoreOpen(true),
-              },
-            ]}
-            month={{
-              label: monthLabel(month, locale),
-              income: amountsHidden ? BALANCE_MASK : fmt(summary.income),
-              spent: amountsHidden ? BALANCE_MASK : fmt(homeSpent),
-              left: amountsHidden
-                ? BALANCE_MASK
-                : fmt(
-                    summary.income > homeSpent
-                      ? summary.income - homeSpent
-                      : homeSpent - summary.income,
-                  ),
-              leftNegative: homeSpent > summary.income,
-            }}
-          />
-
-          <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
-            <CardTitle
-              title={h.recentTitle}
-              action={t.personal.dash.viewAll}
-              onAction={() => router.push('/personal/transactions')}
-            />
-            {recentTxns.length === 0 ? (
-              <EmptyCard
-                icon="receipt-outline"
-                title={t.personalHome.emptyRecentTitle}
-                helper={t.personalHome.emptyRecentHelp}
-              />
-            ) : (
-              <View>
-                {recentTxns.map((txn, index) => (
-                  <View key={txn.id}>
-                    {index > 0 ? <Divider /> : null}
-                    <ExpenseRow
-                      txn={txn}
-                      title={txn.note?.trim() || catLabel(txn.category) || '—'}
-                      categoryLabel={catLabel(txn.category) ?? t.categories.other}
-                      date={txn.date === today ? t.personal.today : dayMonthYear(txn.date, locale)}
-                      locale={locale}
-                      hidden={amountsHidden}
-                    />
-                  </View>
-                ))}
-              </View>
-            )}
-          </Card>
-
+        <PersonalToday today={today} currency={dc} />
+        <View style={{ paddingHorizontal: theme.spacing.lg }}>
           <PrivacyFooterPill />
         </View>
       </ScrollView>
-      <OverflowMenu visible={switchOpen} onClose={() => setSwitchOpen(false)} items={switchItems} />
-      <OverflowMenu visible={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} />
       <OverflowMenu
         visible={gearOpen}
         onClose={() => setGearOpen(false)}
         items={[
+          ...switchItems,
+          {
+            icon: 'calendar-outline',
+            label: t.comingUp.seeCalendar,
+            route: '/personal/calendar',
+            section: 'views',
+          },
+          {
+            icon: 'cash-outline',
+            label: t.comingUp.bigTitle,
+            route: '/personal/bigbills',
+            section: 'views',
+          },
+          {
+            icon: 'home-outline',
+            label: t.calm.menuRentals,
+            route: '/rentals',
+            section: 'views',
+          },
+          {
+            icon: 'car-outline',
+            label: t.vehicles.vehicles,
+            route: '/vehicles',
+            section: 'views',
+          },
+          {
+            icon: 'speedometer-outline',
+            label: t.comingUp.tileBudgets,
+            route: '/personal/budgets',
+            section: 'views',
+          },
+          {
+            icon: 'receipt-outline',
+            label: t.calm.menuTransactions,
+            route: '/personal/transactions',
+            section: 'views',
+          },
+          ...moreItems,
           { icon: 'sparkles-outline', label: t.personalSetup.title, route: '/personal/setup' },
           {
             icon: 'image-outline',
@@ -474,80 +344,6 @@ function MeLedger() {
 }
 
 // ──────────────────────────────────────────────────────────────── body ──
-
-/** One recent entry: its badge, what it was and when, and the amount. Opens the entry. */
-function ExpenseRow({
-  txn,
-  title,
-  categoryLabel,
-  date,
-  locale,
-  hidden = false,
-}: {
-  txn: PersonalTxn;
-  title: string;
-  categoryLabel: string;
-  date: string;
-  locale: string;
-  hidden?: boolean;
-}) {
-  const theme = useTheme();
-  const expense = txn.kind === 'expense';
-  const amount = hidden
-    ? BALANCE_MASK
-    : `${expense ? '−' : '+'}${format(money(txn.amount, txn.currency), { locale, trimZeros: true })}`;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${title}, ${categoryLabel}, ${date}, ${amount}`}
-      onPress={() => router.push({ pathname: '/personal/entry', params: { id: txn.id } })}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        minHeight: 52,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <CategoryBadge
-        category={txn.category ?? 'other'}
-        meta={null}
-        description={txn.note}
-        size={40}
-      />
-      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
-          {title}
-        </Text>
-        <Text variant="caption" tone="muted" numberOfLines={1}>
-          {date}
-        </Text>
-      </View>
-      <Text
-        variant="body"
-        numberOfLines={1}
-        style={{ fontWeight: '700', color: expense ? theme.color.negative : theme.color.positive }}
-      >
-        {amount}
-      </Text>
-    </Pressable>
-  );
-}
-
-// A day as "2 Sep 2026", for the recent expenses.
-function dayMonthYear(date: string, locale: string): string {
-  try {
-    return dateTimeFormat(locale, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      timeZone: 'UTC',
-    }).format(new Date(`${date}T00:00:00Z`));
-  } catch {
-    return date;
-  }
-}
 
 /**
  * The edge-to-edge ground every version of the hero stands on: the saturated
@@ -751,18 +547,4 @@ function PrivacyFooterPill() {
       onPress={() => router.push('/settings/backup?space=personal')}
     />
   );
-}
-
-// The translated label for a category id (built-in key or custom tag id). Custom
-// tags fall back to their own stored label via the badge; here we only need the
-// built-in names, so an unknown id returns null and the row shows its note.
-function labelForCategory(t: ReturnType<typeof useStrings>['t']) {
-  return (id: string | null): string | null => {
-    if (!id) return null;
-    const translated = t.categories[id as keyof typeof t.categories];
-    if (translated) return translated;
-    if (id.startsWith('inc.')) return incomeSource(id)?.label ?? null;
-    if (id.startsWith('inv.')) return id === 'inv.deposit' ? 'Investment deposit' : 'Investment';
-    return null;
-  };
 }
