@@ -148,6 +148,12 @@ describe('calendar', () => {
     expect(grid.find((c) => c?.day === 22)?.kinds).toEqual(['loan']);
     expect(grid.filter((c) => c !== null)).toHaveLength(31);
   });
+  it('starts the week on the given weekday (Sunday-first for US)', () => {
+    // 1 Dec 2026 is a Tuesday: two blanks when the week starts on Sunday.
+    const grid = monthGrid('2026-12', items, 0);
+    expect(grid.slice(0, 3).map((c) => c?.day ?? null)).toEqual([null, null, 1]);
+    expect(gridRows(grid)[0]!.findIndex((c) => c?.day === 1)).toBe(2);
+  });
   it('filters by kind', () => {
     expect(filterItems(items, 'loans')).toHaveLength(1);
     expect(filterItems(items, 'all')).toHaveLength(2);

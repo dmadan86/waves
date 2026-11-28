@@ -240,10 +240,14 @@ export interface DayCell {
   readonly kinds: readonly DueKind[];
 }
 
-/** A Monday-first month grid: null for the leading blanks, a cell per day. */
-export function monthGrid(month: string, items: readonly DueItem[]): (DayCell | null)[] {
+/** A month grid starting on `weekStart` (0 = Sunday, default Monday): null for the leading blanks, a cell per day. */
+export function monthGrid(
+  month: string,
+  items: readonly DueItem[],
+  weekStart = 1,
+): (DayCell | null)[] {
   const first = `${month}-01`;
-  const lead = (new Date(`${first}T00:00:00Z`).getUTCDay() + 6) % 7;
+  const lead = (new Date(`${first}T00:00:00Z`).getUTCDay() - weekStart + 7) % 7;
   const days = new Date(
     Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0),
   ).getUTCDate();
