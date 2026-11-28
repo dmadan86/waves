@@ -322,7 +322,14 @@ export default function PersonalUpcomingScreen() {
             <Text variant="caption" tone="muted" style={{ textAlign: 'center' }}>
               {h[empty.body]}
             </Text>
-            <Row style={{ gap: theme.spacing.sm, marginTop: theme.spacing.sm }}>
+            <Row
+              style={{
+                gap: theme.spacing.sm,
+                marginTop: theme.spacing.sm,
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+              }}
+            >
               {empty.canClear ? (
                 <Button label={h.clearFilters} variant="secondary" onPress={() => setTab('all')} />
               ) : null}
