@@ -116,6 +116,43 @@ describe('stale e2ee devices', () => {
     expect(other.rows[0].stale).toBe(false);
   });
 
+  it('skips a device idle 14 days only when the same account has another device seen these two weeks', async () => {
+    const [a, b] = couple.profileIds as [string, string];
+    const da = await register(a);
+    const old = await register(b);
+    const live = await register(b);
+    // Idle 8 days, but it is B's only device in use? No: `live` is fresh, so `old` is skipped.
+    await age(old, 15);
+    const dir = await directory(a);
+    expect(dir).toContain(live);
+    expect(dir).not.toContain(old);
+    await send(a, da, old);
+    expect(await queued(old)).toBe(0);
+    // It comes back: counted as stale once (so it asks for a snapshot), then live again.
+    const seen = () =>
+      as(b, () => client.query(`SELECT waves_device_seen($1) AS stale`, [old])).then(
+        (r) => r.rows[0].stale,
+      );
+    expect(await seen()).toBe(true);
+    expect(await seen()).toBe(false);
+    expect(await directory(a)).toContain(old);
+  });
+
+  it('never skips a merely offline device when nothing newer exists for its account', async () => {
+    const [a, b] = couple.profileIds as [string, string];
+    await register(a);
+    const only = await register(b);
+    await age(only, 20);
+    expect(await directory(a)).toContain(only);
+    // Two devices both idle: neither is "replaced by a newer one".
+    const other = await register(b);
+    await age(other, 11);
+    await age(only, 12);
+    const dir = await directory(a);
+    expect(dir).toContain(only);
+    expect(dir).toContain(other);
+  });
+
   it('keeps functions closed to anon', async () => {
     for (const sig of [
       'waves_device_seen(uuid)',

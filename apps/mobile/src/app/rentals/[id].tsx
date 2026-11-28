@@ -27,6 +27,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { useFormerCouples } from '@/e2ee/runtime';
 import { isFormer } from '@/e2ee/space';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonalGuard } from '@/components/PersonalGuard';
@@ -224,6 +225,7 @@ function DetailBody() {
   const viewerId = useViewerId();
   const { blockedIds } = useBlockedUsers();
   const members = useMemo(() => memberLookup(everyone.data), [everyone.data]);
+  const formerMembers = useFormerCouples().find((f) => f.groupId === space)?.members;
   const { isPro } = useEntitlement();
   const [open, setOpen] = useState<Open>(null);
   const [menu, setMenu] = useState(false);
@@ -292,14 +294,20 @@ function DetailBody() {
   const lastBy = lastPayment
     ? store.records.find((r) => r.id === lastPayment.id)?.created_by
     : null;
-  const recordedBy = lastBy
-    ? memberNameById(members, lastBy, {
-        viewerId,
-        blocked: blockedIds,
-        someone: t.misc.someone,
-        leftLabel: t.misc.memberLeft,
-      })
-    : null;
+  // A former copy has no member list: it names people from the list kept when it was retired.
+  const keptName = lastBy && !members.has(lastBy) ? formerMembers?.[lastBy] : undefined;
+  const recordedBy = keptName
+    ? keptName[1]
+      ? `${keptName[0]} ${t.misc.memberLeft}`
+      : keptName[0]
+    : lastBy
+      ? memberNameById(members, lastBy, {
+          viewerId,
+          blocked: blockedIds,
+          someone: t.misc.someone,
+          leftLabel: t.misc.memberLeft,
+        })
+      : null;
   const share = async (): Promise<void> => {
     if (!isPro) {
       router.push('/paywall');

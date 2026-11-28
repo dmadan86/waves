@@ -271,6 +271,46 @@ describe('mailbox send', () => {
     expect(Object.keys(a.data(G)).sort()).toEqual(expect.arrayContaining(['p1', 'p3', 'p4']));
   });
 
+  it('an edit made while the member was removed reaches them after re-join and is not overwritten', async () => {
+    const server = world();
+    const a = phone(server, 'pA', 'mA', 1, undefined, [G]);
+    const b = phone(server, 'pB', 'mB', 2, a.clock, [G]);
+    const aOld = phone(server, 'pA', 'mA', 3, a.clock, [G]); // A's other phone: the edit goes there
+    await Promise.all([a.deviceId(), b.deviceId(), aOld.deviceId()]);
+    await a.set(G, 'p1', 'property', { ...prop, occupants: 22 });
+    await a.sync();
+    await b.sync();
+    expect(b.data(G)['p1']).toMatchObject({ occupants: 22 });
+    // B is removed; B's refused send retires its copy. A edits meanwhile (sent to nobody).
+    server.groups.set(G, [{ memberId: 'mA', profileId: 'pA' }]);
+    b.clock.t += 1000;
+    await b.set(G, 'p9', 'property', prop);
+    await b.mailbox.flushOutbox();
+    expect(b.space.hasFormer(G)).toBe(true);
+    a.clock.t += 5000;
+    await a.set(G, 'p1', 'property', { ...prop, occupants: 40 });
+    await a.sync();
+    // B is added back under the same group id.
+    server.groups.set(G, [
+      { memberId: 'mA', profileId: 'pA' },
+      { memberId: 'mB', profileId: 'pB' },
+    ]);
+    for (let i = 0; i < 5; i++) {
+      a.clock.t += 120_000;
+      await b.sync().catch(() => undefined);
+      await a.sync().catch(() => undefined);
+    }
+    await b.sync();
+    expect(b.space.hasFormer(G)).toBe(false);
+    expect(b.data(G)['p1']).toMatchObject({ occupants: 40 }); // the edit B missed
+    // B's later edit of another field never brings back the stale 22.
+    await b.set(G, 'p1', 'property', { ...prop, occupants: 40, name: 'Flat 5' });
+    await b.sync();
+    await a.sync();
+    expect(a.data(G)['p1']).toMatchObject({ occupants: 40, name: 'Flat 5' });
+    expect(b.data(G)['p1']).toMatchObject({ occupants: 40, name: 'Flat 5' });
+  });
+
   it('drops queued messages of a refused group even when it holds no records', async () => {
     const server = world();
     server.groups.set('group-lost', [{ memberId: 'mC', profileId: 'pC' }]);

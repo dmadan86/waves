@@ -17,4 +17,10 @@ describe('invite screen wiring', () => {
     expect(source).toContain('offerNewInviteLink(everyone.data');
     expect(source).not.toContain('offerNewInviteLink(members.data');
   });
+
+  it('says up front, when someone was removed, that the old link is refused and a new one is needed', async () => {
+    const { readFileSync } = await import('node:fs');
+    const source = readFileSync('src/app/group/[id]/invite.tsx', 'utf8');
+    expect(source).toContain('t.people.removedHint');
+  });
 });

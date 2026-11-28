@@ -63,6 +63,8 @@ export interface OutboxMsg {
 
 /** A group this phone has left (or was removed from, or that was deleted): a read-only copy. */
 export const FORMER = 'former:';
+/** Member id -> [name, 1 when they had left]: kept on a former copy, which has no member list. */
+export type FormerMembers = Record<string, [string, 0 | 1]>;
 const META = '__former';
 export const isFormer = (groupId: string): boolean => groupId.startsWith(FORMER);
 
@@ -244,13 +246,20 @@ export class E2eeSpace {
   }
 
   /** Former couples, for the read-only section under Personal -> Rentals. */
-  formerGroups(): { groupId: string; name: string }[] {
+  formerGroups(): { groupId: string; name: string; members?: FormerMembers }[] {
     return this.groupIds()
       .filter(isFormer)
-      .map((groupId) => ({
-        groupId,
-        name: String(this.stores.get(groupId)?.[META]?.fields.name?.[0] ?? ''),
-      }));
+      .map((groupId) => {
+        const fields = this.stores.get(groupId)?.[META]?.fields;
+        let members: FormerMembers | undefined;
+        try {
+          const raw = fields?.members?.[0];
+          if (typeof raw === 'string') members = JSON.parse(raw) as FormerMembers;
+        } catch {
+          /* an unreadable list is the same as none */
+        }
+        return { groupId, name: String(fields?.name?.[0] ?? ''), ...(members ? { members } : {}) };
+      });
   }
 
   /** Queue a message that carries no record change (a resync request or answer). */
@@ -347,7 +356,12 @@ export class E2eeSpace {
    * The phone is no longer in this group: keep what it holds as a read-only copy, on this
    * phone only. Rows are re-tagged `former:<id>`; unsent messages for the group are dropped.
    */
-  retire(groupId: string, name: string, isCurrent: () => boolean = () => true): Promise<void> {
+  retire(
+    groupId: string,
+    name: string,
+    isCurrent: () => boolean = () => true,
+    members?: FormerMembers,
+  ): Promise<void> {
     return this.run(async () => {
       if (!isCurrent()) return;
       const store = this.stores.get(groupId);
@@ -357,7 +371,11 @@ export class E2eeSpace {
         id: META,
         kind: '_former',
         createdBy: '_',
-        fields: { name: [name, '0'] },
+        fields: {
+          name: [name, '0'],
+          // Who was in the group, so the copy names people as the live side did.
+          ...(members ? { members: [JSON.stringify(members), '0'] } : {}),
+        },
       };
       const next: Store = { ...store, [META]: meta };
       const rows = Object.values(next).map((r) => ({

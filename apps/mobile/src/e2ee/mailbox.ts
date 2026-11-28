@@ -24,7 +24,13 @@ import {
   isDeviceRevoked,
   markDeviceRevoked,
 } from './deviceNotice';
-import { snapshotOps, type E2eeSpace, type Incoming, type OutboxMsg } from './space';
+import {
+  snapshotOps,
+  type E2eeSpace,
+  type FormerMembers,
+  type Incoming,
+  type OutboxMsg,
+} from './space';
 
 /** The slice of the Supabase client this uses, so tests can stand in a fake server. */
 export interface MailClient {
@@ -45,6 +51,8 @@ export interface MailboxDeps {
   groups?(): readonly string[];
   /** Display name of a group, kept on its read-only copy once the phone leaves it. */
   groupName?(groupId: string): string;
+  /** Who is in a group (names and left flags), kept on its read-only copy. */
+  groupMembers?(groupId: string): FormerMembers | undefined;
   /** Small durable key-value (last fetch, last ask, known devices, notices). In memory when absent. */
   meta?: Meta;
   randomBytes(length: number): Uint8Array;
@@ -181,7 +189,9 @@ export function createMailbox(deps: MailboxDeps) {
   const notices = new NoticeStore(meta);
   /** The server says this phone is not in the group: keep a read-only former copy and stop polling it. */
   const leaveGroup = (groupId: string, isCurrent: () => boolean): Promise<void> =>
-    space.retire(groupId, deps.groupName?.(groupId) ?? '', isCurrent).catch(() => undefined);
+    space
+      .retire(groupId, deps.groupName?.(groupId) ?? '', isCurrent, deps.groupMembers?.(groupId))
+      .catch(() => undefined);
   /** Groups to keep up: a group retired to a read-only former copy is no longer polled. */
   const liveGroups = (): string[] => {
     const live = new Set(space.liveGroupIds());
@@ -286,7 +296,13 @@ export function createMailbox(deps: MailboxDeps) {
     for (const device of list) {
       if (!current()) return [];
       const removedAtKey = `sender:${groupId}:${device.deviceId}:removedAt`;
-      if ((await metaRead(meta, removedAtKey)) !== null) await metaWrite(meta, removedAtKey, '');
+      const wasRemoved = await metaRead(meta, removedAtKey);
+      if (wasRemoved !== null) await metaWrite(meta, removedAtKey, '');
+      if (wasRemoved) {
+        // Back in the group after a removal: its next snapshot request must be answered.
+        answered.delete(`${device.deviceId}|${groupId}`);
+        await metaWrite(meta, `answer:${device.deviceId}|${groupId}`, '');
+      }
       if (!current()) return [];
       await rememberSender(groupId, device, current);
     }
@@ -930,6 +946,9 @@ export function createMailbox(deps: MailboxDeps) {
         await groupDevices(g, true, current);
         if (!current()) return;
         await space.revive(g, current);
+        if (!current()) return;
+        // The folded copy is not "empty", so nothing would ask: edits made while away need a snapshot.
+        await requestResync(g);
       } catch {
         /* still refused (or offline): stays a former copy, retried next round */
       }

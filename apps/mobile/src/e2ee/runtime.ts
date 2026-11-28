@@ -8,7 +8,9 @@ import * as Crypto from 'expo-crypto';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { SyncTable } from '@waves/core';
+import { materialiseMembers, SyncTable } from '@waves/core';
+
+import { displayName, type MemberRow } from '@/data/types';
 
 import { reportHandled } from '@/lib/observability';
 import { backend } from '@/lib/backend';
@@ -27,7 +29,7 @@ import type { BackupCouple } from '@/lib/backup/payload';
 
 import type { Meta } from './deviceNotice';
 import { createMailbox } from './mailbox';
-import { E2eeSpace, type GroupRecord } from './space';
+import { E2eeSpace, type FormerMembers, type GroupRecord } from './space';
 import { canAdoptLegacyOwner, ownerMismatch, SessionGeneration } from './session';
 
 export const e2eeSpace = new E2eeSpace(
@@ -196,12 +198,24 @@ const coupleGroupIds = (): string[] =>
 const groupName = (id: string): string => String(myGroups()[id]?.name ?? '');
 
 // A group that leaves the mirror (left, removed, deleted): keep a read-only copy on this phone only.
-syncEngine.beforeGroupDropped = (groupId, name) => e2eeSpace.retire(groupId, name);
+const groupMembers = (groupId: string): FormerMembers => {
+  const { mirror, queue } = syncEngine.getState();
+  const out: FormerMembers = {};
+  for (const m of materialiseMembers(mirror, queue, {
+    groupId,
+    includeLeft: true,
+  }) as unknown as MemberRow[])
+    out[m.id] = [displayName(m, activeProfileId, null, ''), m.left_at ? 1 : 0];
+  return out;
+};
+syncEngine.beforeGroupDropped = (groupId, name) =>
+  e2eeSpace.retire(groupId, name, () => true, groupMembers(groupId));
 
 const mailbox = createMailbox({
   client: backend as never,
   groups: coupleGroupIds,
   groupName,
+  groupMembers,
   meta,
   space: e2eeSpace,
   outbox: syncEngine.localStore,
@@ -469,7 +483,7 @@ function useSpaceVersion(): number {
 }
 
 /** Couples this phone has left: read-only copies, never sent anywhere. */
-export function useFormerCouples(): { groupId: string; name: string }[] {
+export function useFormerCouples(): ReturnType<E2eeSpace['formerGroups']> {
   const version = useSpaceVersion();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => e2eeSpace.formerGroups(), [version]);
