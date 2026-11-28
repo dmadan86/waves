@@ -8516,6 +8516,8 @@ export interface UiStrings {
     tileRentals: string;
     tileBudgets: string;
     calendarTitle: string;
+    calendarSub: string;
+    dayItems: PluralForms;
     filterAll: string;
     filterBills: string;
     filterLoans: string;
@@ -16889,6 +16891,8 @@ const en: UiStrings = {
     tileRentals: 'Rentals',
     tileBudgets: 'Budgets',
     calendarTitle: 'Money calendar',
+    calendarSub: 'Your upcoming and recurring payments',
+    dayItems: { one: '{n} item', other: '{n} items' },
     filterAll: 'All',
     filterBills: 'Bills',
     filterLoans: 'Loans',
@@ -25348,6 +25352,8 @@ const ta: UiStrings = {
     tileRentals: 'வாடகைகள்',
     tileBudgets: 'பட்ஜெட்டுகள்',
     calendarTitle: 'பண நாட்காட்டி',
+    calendarSub: 'உங்கள் வரவிருக்கும் மற்றும் தொடர் பணம் செலுத்தல்கள்',
+    dayItems: { one: '{n} உருப்படி', other: '{n} உருப்படிகள்' },
     filterAll: 'அனைத்தும்',
     filterBills: 'பில்கள்',
     filterLoans: 'கடன்கள்',
@@ -33622,6 +33628,8 @@ const hi: UiStrings = {
     tileRentals: 'किराये',
     tileBudgets: 'बजट',
     calendarTitle: 'पैसे का कैलेंडर',
+    calendarSub: 'आपके आने वाले और आवर्ती भुगतान',
+    dayItems: { one: '{n} आइटम', other: '{n} आइटम' },
     filterAll: 'सभी',
     filterBills: 'बिल',
     filterLoans: 'ऋण',
@@ -42764,6 +42772,8 @@ const ar: UiStrings = {
     tileRentals: 'الإيجارات',
     tileBudgets: 'الميزانيات',
     calendarTitle: 'تقويم المال',
+    calendarSub: 'مدفوعاتك القادمة والمتكررة',
+    dayItems: { one: '{n} عنصر', other: '{n} عناصر' },
     filterAll: 'الكل',
     filterBills: 'الفواتير',
     filterLoans: 'القروض',

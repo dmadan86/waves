@@ -51,6 +51,7 @@ export function MonthSwitcher({
   onNext,
   prevDisabled = false,
   nextDisabled = false,
+  pill = false,
 }: {
   label: string;
   prevLabel: string;
@@ -59,14 +60,28 @@ export function MonthSwitcher({
   onNext: () => void;
   prevDisabled?: boolean;
   nextDisabled?: boolean;
+  /** A soft brand-tinted pill with the arrows at its ends. */
+  pill?: boolean;
 }) {
+  const theme = useTheme();
   return (
-    <Row style={{ alignItems: 'center', justifyContent: 'center' }}>
+    <Row
+      style={{
+        alignItems: 'center',
+        justifyContent: pill ? 'space-between' : 'center',
+        ...(pill ? { backgroundColor: theme.color.brandSoft, borderRadius: 22 } : null),
+      }}
+    >
       <Step icon="chevron-back" label={prevLabel} disabled={prevDisabled} onPress={onPrev} />
       <Text
         accessibilityLiveRegion="polite"
         numberOfLines={1}
-        style={{ minWidth: 150, textAlign: 'center', fontSize: 16, fontWeight: '700' }}
+        style={{
+          minWidth: 150,
+          textAlign: 'center',
+          fontSize: pill ? 18 : 16,
+          fontWeight: pill ? '800' : '700',
+        }}
       >
         {label}
       </Text>
