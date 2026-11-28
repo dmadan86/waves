@@ -128,14 +128,15 @@ if (!args.prepare && existsSync(inputsPath)) {
   );
 
   /** The same runtime version the installed app computes from app.json. */
-  const fingerprint = (platform) => {
+  const fingerprintFull = (platform) => {
     const out = execFileSync(
       'npx',
-      ['expo-updates', 'fingerprint:generate', '--platform', platform],
+      ['expo-updates', 'fingerprint:generate', '--platform', platform, '--debug'],
       { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
     );
-    return JSON.parse(out.slice(out.indexOf('{'))).hash;
+    return JSON.parse(out.slice(out.indexOf('{')));
   };
+  const fingerprint = (platform) => fingerprintFull(platform).hash;
   // A fixed runtime string ("native-1") is guarded by native-fingerprint.json:
   // the native fingerprint recorded on CI for that runtime. If this commit's
   // native side differs, its JS may call native code the installed binary lacks,
@@ -147,7 +148,12 @@ if (!args.prepare && existsSync(inputsPath)) {
     const rv = config.runtimeVersion;
     if (typeof rv === 'string') {
       if (guard) {
-        const now = fingerprint(platform);
+        // Always logged, so a failing run can be diffed against a passing one
+        // (the guard once failed intermittently, on platform=all runs only).
+        const full = fingerprintFull(platform);
+        const now = full.hash;
+        for (const s of full.sources)
+          console.log(`fingerprint source ${s.type} ${s.filePath ?? s.id ?? ''} ${s.hash}`);
         if (guard.runtime !== rv || guard[platform] !== now)
           fail(
             `native code changed since runtime ${rv} (fingerprint ${platform} ${now}, recorded ` +
