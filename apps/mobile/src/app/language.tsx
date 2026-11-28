@@ -15,13 +15,13 @@
  * primary ink, and a safe-area inset in place of the tab-bar clearance.
  */
 
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { directionalIcon, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
+import { Screen, useTheme } from '@waves/ui';
 
 import { LanguageChoiceList } from '@/components/LanguageChoiceList';
+import { PlainHeader } from '@/components/standard';
 import { useStrings } from '@/i18n';
 import { useGoBack } from '@/lib/navigation';
 
@@ -32,33 +32,8 @@ export default function LanguageScreen() {
   const goBack = useGoBack('/welcome');
 
   return (
-    <Screen>
-      {/* Back to the gateway, the chevron in the primary ink. */}
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.common.back}
-          hitSlop={12}
-          onPress={goBack}
-          style={({ pressed }) => ({
-            width: 44,
-            height: 44,
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </Pressable>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.language}</Text>
-        </View>
-        <View style={{ width: 44 }} />
-      </Row>
+    <Screen edges={[]}>
+      <PlainHeader title={t.language} onBack={goBack} />
 
       <ScrollView
         style={{ flex: 1 }}

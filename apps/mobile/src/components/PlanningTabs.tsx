@@ -5,11 +5,11 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable } from 'react-native';
 
-import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { iconSize, Row, Text, useTheme } from '@waves/ui';
 
+import { HEADER_BUTTON, HeaderBar } from '@/components/standard/HeaderBar';
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 
@@ -34,71 +34,31 @@ export function PlanningHeader({
   hideBack?: boolean;
 }) {
   const theme = useTheme();
-  const { t } = useStrings();
-  const insets = useSafeAreaInsets();
   return (
-    <Row
-      style={{
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-        paddingTop: insets.top + theme.spacing.xs,
-        paddingBottom: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.lg,
-      }}
-    >
-      {hideBack ? null : (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.common.back}
-          onPress={() => router.back()}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.surface,
-            borderWidth: 1,
-            borderColor: theme.color.border,
-          }}
-        >
-          <Ionicons
-            name={directionalIcon('arrow-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </Pressable>
-      )}
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          variant="heading"
-          numberOfLines={1}
-          style={{ fontWeight: '800', fontSize: 21, lineHeight: 26 }}
-        >
-          {title}
-        </Text>
-        <Text variant="caption" tone="muted" numberOfLines={1} style={{ fontSize: 13 }}>
-          {subtitle}
-        </Text>
-      </View>
-      {onAdd ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={addLabel}
-          onPress={onAdd}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.brandSoft,
-          }}
-        >
-          <Ionicons name="add" size={iconSize.xl} color={theme.color.brand} />
-        </Pressable>
-      ) : null}
-    </Row>
+    <HeaderBar
+      title={title}
+      subtitle={subtitle}
+      hideBack={hideBack}
+      action={
+        onAdd ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={addLabel}
+            onPress={onAdd}
+            style={{
+              width: HEADER_BUTTON,
+              height: HEADER_BUTTON,
+              borderRadius: HEADER_BUTTON / 2,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.brandSoft,
+            }}
+          >
+            <Ionicons name="add" size={iconSize.xl} color={theme.color.brand} />
+          </Pressable>
+        ) : undefined
+      }
+    />
   );
 }
 
