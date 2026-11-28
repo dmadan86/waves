@@ -53,6 +53,8 @@ import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
 import { HomeBalanceCard } from '@/components/home/ScenicBalanceCard';
 import { SpaceSwitchSheet } from '@/components/SpaceSwitcher';
 import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
+import { ProfileRing } from '@/components/home/ProfileRing';
+import { profileCompletion } from '@/lib/profileCompletion';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { TabIconButton } from '@/components/home/TabHeader';
 import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
@@ -83,6 +85,12 @@ import { fill } from '@/i18n';
 /** Dashboard route with duplicate-safe jumps to stable primary destinations. */
 // Read the eye preference at launch, in parallel with the mirror, not on first mount.
 preloadBalanceHidden();
+
+const shadow = {
+  textShadowColor: 'rgba(0,0,0,0.35)',
+  textShadowOffset: { width: 0, height: 1 },
+  textShadowRadius: 4,
+};
 
 function HomeScreen() {
   const theme = useTheme();
@@ -147,6 +155,8 @@ function HomeScreen() {
   ).name;
   const firstName = displayName.trim().split(/\s+/)[0];
   const h = t.personalHome;
+  const completion = profileCompletion(profile, session?.user);
+  const incomplete = !isGuest && !!profile && completion.percent < 100;
   // First word only, so a long name never truncates to "Hi, Madan Dei…".
   const companyIds = useViewerCompanyIds();
 
@@ -583,13 +593,26 @@ function HomeScreen() {
         }
         header={(ink, solid) => (
           <Row style={{ flex: 1, alignItems: 'center', gap: theme.spacing.sm }}>
-            <PersonAvatar
-              name={displayName}
-              avatarUrl={profile?.avatar_url}
-              size={44}
-              accessibilityLabel={t.profile}
-              onPress={() => router.navigate('/profile')}
-            />
+            {(() => {
+              const avatar = (size: number) => (
+                <PersonAvatar
+                  name={displayName}
+                  avatarUrl={profile?.avatar_url}
+                  size={size}
+                  accessibilityLabel={
+                    incomplete ? fill(h.profilePercent, { percent: completion.percent }) : t.profile
+                  }
+                  onPress={() => router.navigate('/profile')}
+                />
+              );
+              return incomplete ? (
+                <ProfileRing percent={completion.percent} solid={solid}>
+                  {avatar(40)}
+                </ProfileRing>
+              ) : (
+                avatar(44)
+              );
+            })()}
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text
                 accessibilityRole="header"
@@ -599,17 +622,27 @@ function HomeScreen() {
                   fontSize: 18,
                   lineHeight: 23,
                   fontWeight: '700',
-                  ...(solid
-                    ? null
-                    : {
-                        textShadowColor: 'rgba(0,0,0,0.35)',
-                        textShadowOffset: { width: 0, height: 1 },
-                        textShadowRadius: 4,
-                      }),
+                  ...(solid ? null : shadow),
                 }}
               >
                 {fill(h.hi, { name: firstName ?? '' })}
               </Text>
+              {incomplete ? (
+                <Text
+                  numberOfLines={1}
+                  accessibilityRole="button"
+                  onPress={() => router.navigate('/profile')}
+                  style={{
+                    color: ink,
+                    fontSize: 12,
+                    lineHeight: 16,
+                    opacity: 0.85,
+                    ...(solid ? null : shadow),
+                  }}
+                >
+                  {h.completeProfile}
+                </Text>
+              ) : null}
             </View>
             <TabIconButton
               icon="grid-outline"
