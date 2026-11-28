@@ -5,6 +5,7 @@ import {
   DEFAULT_RECENT_COUNT,
   encodePhoneToWatch,
   parseWatchToPhone,
+  resolveWatchQuickAdd,
   WATCH_RELAY_VERSION,
 } from '../src/watch/relay';
 
@@ -371,5 +372,61 @@ describe('parseWatchToPhone voiceClip', () => {
     expect(parseWatchToPhone({ t: 'voiceClip', id: 'c1' })).toBeNull();
     expect(parseWatchToPhone({ t: 'voiceClip', id: 'c1', durationMs: 0 })).toBeNull();
     expect(parseWatchToPhone({ t: 'voiceClip', id: 'c1', durationMs: -5 })).toBeNull();
+  });
+});
+
+describe('resolveWatchQuickAdd', () => {
+  const add = (extra: Record<string, unknown>) =>
+    parseWatchToPhone({ t: 'quickAdd', id: 'w', amount: '45', note: '', ...extra }) as Extract<
+      NonNullable<ReturnType<typeof parseWatchToPhone>>,
+      { t: 'quickAdd' }
+    >;
+
+  it('books a stale/unconfirmed watch currency in the phone default, rescaled', () => {
+    expect(resolveWatchQuickAdd(add({ currency: 'USD' }), 'INR')).toEqual({
+      currency: 'INR',
+      amountMinor: 4500n,
+    });
+    expect(resolveWatchQuickAdd(add({ currency: 'USD' }), 'JPY')).toEqual({
+      currency: 'JPY',
+      amountMinor: 45n,
+    });
+    expect(resolveWatchQuickAdd(add({ currency: 'USD' }), 'KWD')).toEqual({
+      currency: 'KWD',
+      amountMinor: 45000n,
+    });
+  });
+
+  it('keeps the watch currency when it matches the phone or the watch confirmed the settings', () => {
+    expect(resolveWatchQuickAdd(add({ currency: 'inr' }), 'INR')).toEqual({
+      currency: 'inr',
+      amountMinor: 4500n,
+    });
+    expect(resolveWatchQuickAdd(add({ currency: 'USD', confirmedCurrency: 'inr' }), 'INR')).toEqual(
+      { currency: 'USD', amountMinor: 4500n },
+    );
+  });
+
+  it('treats a confirmation of an older default as stale', () => {
+    expect(
+      resolveWatchQuickAdd(add({ currency: 'USD', confirmedCurrency: 'USD' }), 'INR').currency,
+    ).toBe('INR');
+  });
+
+  it('books a watch add that sent no currency in the phone default', () => {
+    const msg = add({});
+    expect(msg.currency).toBeUndefined();
+    expect(resolveWatchQuickAdd(msg, 'INR')).toEqual({ currency: 'INR', amountMinor: 4500n });
+    expect(resolveWatchQuickAdd(msg, 'JPY')).toEqual({ currency: 'JPY', amountMinor: 45n });
+    // Legacy whole-unit x100 amounts always came with a currency; without one it is unreadable.
+    expect(parseWatchToPhone({ t: 'quickAdd', id: 'w', amountMinor: '4500', note: '' })).toBeNull();
+    expect(
+      parseWatchToPhone({ t: 'quickAdd', id: 'w', amount: '4', currency: 'IN', note: '' }),
+    ).toBeNull();
+  });
+
+  it('decodes confirmedCurrency only when it is a valid code', () => {
+    expect(add({ currency: 'INR', confirmedCurrency: 'inr' }).confirmedCurrency).toBe('INR');
+    expect(add({ currency: 'INR', confirmedCurrency: 'x' }).confirmedCurrency).toBeUndefined();
   });
 });
