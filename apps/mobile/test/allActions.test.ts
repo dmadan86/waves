@@ -14,10 +14,10 @@ const keys = (ctx: ActionsContext, id: string) =>
     ?.tiles.map((t) => t.key);
 
 describe('buildActionSections', () => {
-  it('Remind opens the Groups list, like the Home hero', () => {
+  it('has a Groups tile (was Remind) that opens the Groups list', () => {
     const remind = buildActionSections(base)
       .find((s) => s.id === 'groups')
-      ?.tiles.find((t) => t.key === 'remind');
+      ?.tiles.find((t) => t.key === 'groups');
     expect(remind?.target).toEqual({ kind: 'route', href: '/groups' });
   });
 

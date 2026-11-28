@@ -7091,7 +7091,7 @@ export interface UiStrings {
       newGroup: string;
       addFriend: string;
       settleUp: string;
-      remind: string;
+      groups: string;
       review: string;
       entries: string;
       attendance: string;
@@ -15678,7 +15678,7 @@ const en: UiStrings = {
       newGroup: 'New group',
       addFriend: 'Add friend',
       settleUp: 'Settle up',
-      remind: 'Remind',
+      groups: 'Groups',
       review: 'Review',
       entries: 'Entries',
       attendance: 'Attendance',
@@ -24254,7 +24254,7 @@ const ta: UiStrings = {
       newGroup: 'புதிய குழு',
       addFriend: 'நண்பரைச் சேர்',
       settleUp: 'கணக்கைத் தீர்',
-      remind: 'நினைவூட்டு',
+      groups: 'குழுக்கள்',
       review: 'சரிபார்',
       entries: 'பதிவுகள்',
       attendance: 'வருகை',
@@ -32738,7 +32738,7 @@ const hi: UiStrings = {
       newGroup: 'नया ग्रुप',
       addFriend: 'दोस्त जोड़ें',
       settleUp: 'हिसाब चुकाएँ',
-      remind: 'याद दिलाएँ',
+      groups: 'समूह',
       review: 'समीक्षा',
       entries: 'एंट्री',
       attendance: 'उपस्थिति',
@@ -41702,7 +41702,7 @@ const ar: UiStrings = {
       newGroup: 'مجموعة جديدة',
       addFriend: 'إضافة صديق',
       settleUp: 'تسوية',
-      remind: 'تذكير',
+      groups: 'المجموعات',
       review: 'مراجعة',
       entries: 'القيود',
       attendance: 'الحضور',

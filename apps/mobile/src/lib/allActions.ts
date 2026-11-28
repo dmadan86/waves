@@ -41,7 +41,7 @@ export type ActionKey =
   | 'newGroup'
   | 'addFriend'
   | 'settleUp'
-  | 'remind'
+  | 'groups'
   | 'review'
   | 'entries'
   | 'attendance'
@@ -129,7 +129,7 @@ const GROUPS: ActionTile[] = [
   tile('newGroup', 'people-outline', 'blue', '/new-group'),
   tile('addFriend', 'person-add-outline', 'teal', '/friends/add-person'),
   tile('settleUp', 'checkmark-circle-outline', 'green', '/settle-up'),
-  tile('remind', 'notifications-outline', 'orange', '/groups'),
+  tile('groups', 'people-circle-outline', 'orange', '/groups'),
   {
     key: 'review',
     icon: 'file-tray-outline',
