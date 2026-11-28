@@ -8528,6 +8528,7 @@ export interface UiStrings {
     actRenew: string;
     actRemind: string;
     nothingThisMonth: string;
+    nothingThisDay: string;
     nothingThisMonthHelp: string;
     bigScreenSub: string;
     bigNext12: string;
@@ -9009,6 +9010,8 @@ export interface UiStrings {
     left: string;
     over: string;
     noBudgets: string;
+    noCategoryLimits: string;
+    addLimit: string;
     /**
      * The line under the amount in the budget sheet: what this category has
      * actually cost over the last six months, so the cap being typed is a
@@ -16909,6 +16912,7 @@ const en: UiStrings = {
     actRenew: 'Renew',
     actRemind: 'Remind',
     nothingThisMonth: 'Nothing due this month',
+    nothingThisDay: 'Nothing due on this day',
     nothingThisMonthHelp: 'Bills, loan payments, renewals and rent for this month show up here.',
     bigScreenSub: "The costs that don't come every month",
     bigNext12: 'Coming in the next 12 months',
@@ -17420,6 +17424,8 @@ const en: UiStrings = {
     left: 'left',
     over: 'over',
     noBudgets: 'No budgets yet.',
+    noCategoryLimits: 'No category limits yet',
+    addLimit: 'Add limit',
     budgetContextNone: "You haven't spent anything in this category in the last six months.",
     budgetContextNoneOverall: "You haven't spent anything in the last six months.",
     budgetContextTotal: '{total} spent in the last six months.',
@@ -25376,6 +25382,7 @@ const ta: UiStrings = {
     actRenew: 'புதுப்பி',
     actRemind: 'நினைவூட்டு',
     nothingThisMonth: 'இந்த மாதம் செலுத்த எதுவும் இல்லை',
+    nothingThisDay: 'இந்த நாள் செலுத்த எதுவும் இல்லை',
     nothingThisMonthHelp: 'இந்த மாதத்தின் பில்கள், கடன் தவணைகள், புதுப்பிப்புகள், வாடகை இங்கே தோன்றும்.',
     bigScreenSub: 'ஒவ்வொரு மாதமும் வராத செலவுகள்',
     bigNext12: 'அடுத்த 12 மாதங்களில் வருபவை',
@@ -25887,6 +25894,8 @@ const ta: UiStrings = {
     left: 'மீதம்',
     over: 'அதிகம்',
     noBudgets: 'பட்ஜெட்டுகள் இல்லை.',
+    noCategoryLimits: 'வகை வரம்புகள் இன்னும் இல்லை',
+    addLimit: 'வரம்பைச் சேர்',
     budgetContextNone: 'கடந்த ஆறு மாதங்களில் இந்த வகையில் நீங்கள் எதுவும் செலவழிக்கவில்லை.',
     budgetContextNoneOverall: 'கடந்த ஆறு மாதங்களில் நீங்கள் எதுவும் செலவழிக்கவில்லை.',
     budgetContextTotal: 'கடந்த ஆறு மாதங்களில் {total} செலவானது.',
@@ -33658,6 +33667,7 @@ const hi: UiStrings = {
     actRenew: 'नवीनीकरण',
     actRemind: 'याद दिलाएँ',
     nothingThisMonth: 'इस महीने कुछ देय नहीं',
+    nothingThisDay: 'इस दिन कुछ देय नहीं',
     nothingThisMonthHelp: 'इस महीने के बिल, ऋण किस्तें, नवीनीकरण और किराया यहाँ दिखेंगे।',
     bigScreenSub: 'जो खर्च हर महीने नहीं आते',
     bigNext12: 'अगले 12 महीनों में आने वाले',
@@ -34160,6 +34170,8 @@ const hi: UiStrings = {
     left: 'बचा',
     over: 'अधिक',
     noBudgets: 'अभी कोई बजट नहीं।',
+    noCategoryLimits: 'अभी कोई श्रेणी सीमा नहीं',
+    addLimit: 'सीमा जोड़ें',
     budgetContextNone: 'पिछले छह महीनों में आपने इस श्रेणी में कुछ खर्च नहीं किया।',
     budgetContextNoneOverall: 'पिछले छह महीनों में आपने कुछ खर्च नहीं किया।',
     budgetContextTotal: 'पिछले छह महीनों में {total} खर्च हुआ।',
@@ -42808,6 +42820,7 @@ const ar: UiStrings = {
     actRenew: 'جدّد',
     actRemind: 'ذكّر',
     nothingThisMonth: 'لا شيء مستحق هذا الشهر',
+    nothingThisDay: 'لا شيء مستحق في هذا اليوم',
     nothingThisMonthHelp: 'تظهر هنا فواتير هذا الشهر وأقساط القروض والتجديدات والإيجار.',
     bigScreenSub: 'التكاليف التي لا تأتي كل شهر',
     bigNext12: 'قادم خلال 12 شهرًا',
@@ -43371,6 +43384,8 @@ const ar: UiStrings = {
     left: 'متبقٍ',
     over: 'تجاوز',
     noBudgets: 'لا ميزانيات بعد.',
+    noCategoryLimits: 'لا حدود للفئات بعد',
+    addLimit: 'إضافة حد',
     budgetContextNone: 'لم تنفق شيئًا في هذه الفئة خلال الأشهر الستة الماضية.',
     budgetContextNoneOverall: 'لم تنفق شيئًا خلال الأشهر الستة الماضية.',
     budgetContextTotal: 'أُنفق {total} خلال الأشهر الستة الماضية.',

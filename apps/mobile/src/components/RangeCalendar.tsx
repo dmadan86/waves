@@ -31,7 +31,7 @@ import {
   addMonths,
   dayAt,
   firstOfMonth,
-  firstWeekday,
+  WEEK_START,
   gregorianFormatter,
   monthGrid,
   sameDay,
@@ -121,7 +121,7 @@ export function RangeCalendar({
   // Where the week begins for this reader, and the seven initials in that
   // order. 2023-01-01 was a Sunday, so walking from it plus the offset gives
   // each column's day without any date arithmetic worth checking twice.
-  const weekStart = useMemo(() => firstWeekday(locale), [locale]);
+  const weekStart = WEEK_START;
   const weekdays = Array.from({ length: 7 }, (_, i) =>
     format.weekday(dayAt(2023, 0, 1 + ((weekStart + i) % 7))),
   );

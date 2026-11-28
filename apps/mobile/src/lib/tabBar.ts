@@ -135,10 +135,10 @@ export function personalActiveKey(segments: readonly string[], space?: string): 
   if (segments[0] !== 'personal') return '';
   const leaf = segments[1] ?? '';
   if (leaf === 'entry' || leaf === 'transactions') return 'transactions';
-  // A recurring bill's page is opened from Planning (and Home), never the ledger.
-  if (leaf === 'recurring' || leaf === 'upcoming' || leaf === 'source') return 'planning';
-  // Budgets and Loans are things you hold: the Accounts hub owns them.
-  if (leaf === 'accounts' || leaf === 'budgets' || leaf === 'loans') return 'accounts';
+  // Planning owns Recurring, Budgets, Loans and the Money calendar; a bill's page opens from there.
+  if (['recurring', 'upcoming', 'source', 'budgets', 'loans', 'calendar'].includes(leaf))
+    return 'planning';
+  if (leaf === 'accounts') return 'accounts';
   return leaf === 'spending' ? 'reports' : '';
 }
 

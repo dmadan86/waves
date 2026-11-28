@@ -170,8 +170,11 @@ interface WeekInfoCarrier {
   weekInfo?: { firstDay?: number };
 }
 
+/** The first column of every month grid and date picker, in every region. */
+export const WEEK_START = 1; // owner decision 2026-11-28: Monday everywhere
+
 /**
- * Which weekday this reader's week starts on, as `Date.getDay` counts them
+ * Which weekday this reader's week starts on (unused by the screens now; see WEEK_START), as `Date.getDay` counts them
  * (0 = Sunday).
  *
  * The engine is asked first: where `Intl.Locale` carries week info it holds the

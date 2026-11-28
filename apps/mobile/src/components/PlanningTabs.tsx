@@ -40,9 +40,9 @@ export function PlanningHeader({
     <Row
       style={{
         alignItems: 'center',
-        gap: theme.spacing.md,
-        paddingTop: insets.top + theme.spacing.sm,
-        paddingBottom: theme.spacing.md,
+        gap: theme.spacing.sm,
+        paddingTop: insets.top + theme.spacing.xs,
+        paddingBottom: theme.spacing.sm,
         paddingHorizontal: theme.spacing.lg,
       }}
     >
@@ -52,9 +52,9 @@ export function PlanningHeader({
           accessibilityLabel={t.common.back}
           onPress={() => router.back()}
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: theme.color.surface,
@@ -70,10 +70,14 @@ export function PlanningHeader({
         </Pressable>
       )}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text variant="heading" numberOfLines={1} style={{ fontWeight: '800' }}>
+        <Text
+          variant="heading"
+          numberOfLines={1}
+          style={{ fontWeight: '800', fontSize: 21, lineHeight: 26 }}
+        >
           {title}
         </Text>
-        <Text variant="caption" tone="muted" numberOfLines={1}>
+        <Text variant="caption" tone="muted" numberOfLines={1} style={{ fontSize: 13 }}>
           {subtitle}
         </Text>
       </View>
@@ -83,9 +87,9 @@ export function PlanningHeader({
           accessibilityLabel={addLabel}
           onPress={onAdd}
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: theme.color.brandSoft,
@@ -110,7 +114,7 @@ export function PlanningTabs({ value }: { value: Tab }) {
     <Row
       accessibilityRole="tablist"
       style={{
-        padding: 4,
+        padding: 3,
         borderRadius: theme.radius.pill,
         backgroundColor: theme.color.brandSoft,
         gap: 2,
@@ -129,7 +133,7 @@ export function PlanningTabs({ value }: { value: Tab }) {
             style={{
               flex: 1,
               minWidth: 0,
-              minHeight: 40,
+              minHeight: 36,
               alignItems: 'center',
               justifyContent: 'center',
               borderRadius: theme.radius.pill,
@@ -137,9 +141,10 @@ export function PlanningTabs({ value }: { value: Tab }) {
             }}
           >
             <Text
-              variant="body"
+              variant="caption"
               numberOfLines={1}
               style={{
+                fontSize: 14,
                 fontWeight: on ? '700' : '500',
                 color: on ? theme.color.onBrand : theme.color.text,
               }}

@@ -15,7 +15,7 @@ import { usePostRecurring } from '@/data/postRecurring';
 import { plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
-import { firstWeekday } from '@/lib/calendarGrid';
+import { WEEK_START } from '@/lib/calendarGrid';
 import { shiftMonth } from '@/lib/monthNav';
 import {
   expandDue,
@@ -86,7 +86,7 @@ export function MoneyCalendar({
       ),
     [sources, today, month, current],
   );
-  const weekStart = useMemo(() => firstWeekday(locale), [locale]);
+  const weekStart = WEEK_START;
   const grid = useMemo(
     () => monthGrid(month, monthItems, weekStart),
     [month, monthItems, weekStart],
@@ -124,12 +124,12 @@ export function MoneyCalendar({
     renew: c.actRenew,
     remind: c.actRemind,
   };
-  const chips: { value: DueFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  const chips: { value: DueFilter; label: string; icon?: keyof typeof Ionicons.glyphMap }[] = [
     { value: 'all', label: `${c.filterAll} (${monthItems.length})`, icon: 'layers-outline' },
-    { value: 'bills', label: c.filterBills, icon: 'document-text-outline' },
-    { value: 'loans', label: c.filterLoans, icon: 'cash-outline' },
-    { value: 'renewals', label: c.filterRenewals, icon: 'refresh-outline' },
-    { value: 'income', label: c.filterIncome, icon: 'download-outline' },
+    { value: 'bills', label: c.filterBills },
+    { value: 'loans', label: c.filterLoans },
+    { value: 'renewals', label: c.filterRenewals },
+    { value: 'income', label: c.filterIncome },
   ];
   const kindIcon: Record<DueKind, keyof typeof Ionicons.glyphMap> = {
     bill: 'document-text-outline',
@@ -257,7 +257,7 @@ export function MoneyCalendar({
                           accessibilityLabel={`${cell.day}, ${cell.kinds.length} ${c.calendarTitle}`}
                           onPress={() => setPicked(cell.date)}
                           style={{
-                            height: 46,
+                            height: 40,
                             borderRadius: 12,
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -302,7 +302,7 @@ export function MoneyCalendar({
         </StandardCard>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <Row style={{ gap: theme.spacing.sm }}>
+          <Row style={{ gap: theme.spacing.xs }}>
             {chips.map((ch) => {
               const on = filter === ch.value;
               const fg = on ? theme.color.onBrand : theme.color.text;
@@ -315,21 +315,19 @@ export function MoneyCalendar({
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: 6,
-                    paddingHorizontal: 14,
-                    height: 40,
-                    borderRadius: 20,
+                    gap: 4,
+                    paddingHorizontal: 10,
+                    height: 32,
+                    borderRadius: 16,
                     backgroundColor: on ? theme.color.brand : theme.color.surface,
                     borderWidth: 1,
                     borderColor: on ? theme.color.brand : theme.color.border,
                   }}
                 >
-                  <Ionicons
-                    name={ch.icon}
-                    size={iconSize.md}
-                    color={on ? fg : ch.value === 'income' ? theme.color.positive : fg}
-                  />
-                  <Text style={{ fontWeight: '600', color: fg }}>{ch.label}</Text>
+                  {ch.icon ? <Ionicons name={ch.icon} size={iconSize.sm} color={fg} /> : null}
+                  <Text variant="caption" style={{ fontWeight: '600', color: fg }}>
+                    {ch.label}
+                  </Text>
                 </Pressable>
               );
             })}
@@ -356,7 +354,9 @@ export function MoneyCalendar({
             </Text>
           </Row>
           {shown.length === 0 ? (
-            <Text tone="muted">{c.nothingThisMonth}</Text>
+            <Text tone="muted">
+              {monthItems.length === 0 ? c.nothingThisMonth : c.nothingThisDay}
+            </Text>
           ) : (
             shown.map((item) => {
               const action = item.amount > 0n || item.kind === 'renewal' ? actionFor(item) : null;
@@ -371,17 +371,17 @@ export function MoneyCalendar({
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: theme.spacing.sm,
-                    padding: theme.spacing.sm,
-                    borderRadius: 16,
+                    padding: theme.spacing.xs + 2,
+                    borderRadius: 14,
                     borderWidth: 1,
                     borderColor: theme.color.border,
                   }}
                 >
                   <View
                     style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 12,
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
                       alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: kindSoft(item.kind),

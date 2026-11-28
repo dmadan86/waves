@@ -20,7 +20,9 @@ import {
   monthGrid,
   sameDay,
   startOfDay,
+  WEEK_START,
 } from '@/lib/calendarGrid';
+import { readFileSync } from 'node:fs';
 
 describe('firstWeekday', () => {
   it('opens the week on Saturday where the Arab world still does', () => {
@@ -213,5 +215,26 @@ describe('firstWeekday without engine week data', () => {
     } finally {
       engine.Locale = real;
     }
+  });
+});
+
+describe('Monday-first weeks', () => {
+  it('opens every grid on Monday regardless of locale', () => {
+    expect(WEEK_START).toBe(1);
+    for (const locale of ['en-US', 'ta-IN']) {
+      const fmt = new Intl.DateTimeFormat(locale, { weekday: 'short' });
+      expect(fmt.format(dayAt(2023, 0, 1 + WEEK_START))).toBe(
+        new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(dayAt(2023, 0, 2)),
+      );
+    }
+    // 2026-11-01 is a Sunday: it sits in the 7th column of the first Monday-first row.
+    const first = monthGrid(dayAt(2026, 10, 1), WEEK_START)[0]!;
+    expect(first.slice(0, 6).every((d) => d === null)).toBe(true);
+    expect(first[6]?.getDate()).toBe(1);
+  });
+  it.each(['home/MoneyCalendar', 'DatesSheetBody', 'RangeCalendar'])('%s uses WEEK_START', (f) => {
+    const src = readFileSync(`src/components/${f}.tsx`, 'utf8');
+    expect(src).toContain('weekStart = WEEK_START');
+    expect(src).not.toMatch(/firstWeekday\(/);
   });
 });

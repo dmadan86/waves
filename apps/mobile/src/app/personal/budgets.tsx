@@ -110,7 +110,7 @@ function BudgetsScreenBody() {
   } as const;
 
   return (
-    <Screen>
+    <Screen edges={[]}>
       <PlanningHeader
         title={t.personal.budgets}
         subtitle={t.personal.budgetsPlanSub}
@@ -122,7 +122,7 @@ function BudgetsScreenBody() {
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
           paddingBottom: clearance,
-          gap: theme.spacing.md,
+          gap: theme.spacing.sm,
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -189,7 +189,7 @@ function BudgetsScreenBody() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: theme.spacing.md,
-                padding: theme.spacing.lg,
+                padding: theme.spacing.md,
               }}
             >
               <BudgetRing
@@ -275,7 +275,7 @@ function BudgetsScreenBody() {
                 marginHorizontal: theme.spacing.md,
                 marginBottom: theme.spacing.md,
                 paddingHorizontal: theme.spacing.md,
-                minHeight: 48,
+                minHeight: 40,
                 borderRadius: theme.radius.sm,
                 backgroundColor: theme.color.brandSoft,
               }}
@@ -342,6 +342,30 @@ function BudgetsScreenBody() {
                 </Text>
               </Pressable>
             </Row>
+            {categoryBudgets.length === 0 ? (
+              <Row
+                style={{
+                  ...card,
+                  alignItems: 'center',
+                  gap: theme.spacing.sm,
+                  padding: theme.spacing.md,
+                }}
+              >
+                <Text variant="body" tone="muted" numberOfLines={1} style={{ flex: 1 }}>
+                  {t.personal.noCategoryLimits}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setCreating(true)}
+                  hitSlop={8}
+                  style={{ minHeight: 32, justifyContent: 'center' }}
+                >
+                  <Text variant="body" style={{ color: theme.color.brand, fontWeight: '700' }}>
+                    {t.personal.addLimit}
+                  </Text>
+                </Pressable>
+              </Row>
+            ) : null}
             {categoryBudgets.map((budget) => {
               const progress = personalBudgetProgress(budget, txns, month);
               const over = progress.remaining < 0n;
@@ -1012,8 +1036,8 @@ function BudgetBar({ ratio, over, height }: { ratio: number; over: boolean; heig
 /** The overall ring: arc of the cap used, the whole-number percent inside. */
 function BudgetRing({ percent, over, label }: { percent: number; over: boolean; label: string }) {
   const theme = useTheme();
-  const size = 96;
-  const stroke = 10;
+  const size = 72;
+  const stroke = 8;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const color = over ? theme.color.negative : theme.color.brand;
@@ -1045,7 +1069,7 @@ function BudgetRing({ percent, over, label }: { percent: number; over: boolean; 
         <Text
           numberOfLines={1}
           adjustsFontSizeToFit
-          style={{ fontSize: 22, lineHeight: 26, fontWeight: '800', color }}
+          style={{ fontSize: 18, lineHeight: 22, fontWeight: '800', color }}
         >
           {percent}%
         </Text>
