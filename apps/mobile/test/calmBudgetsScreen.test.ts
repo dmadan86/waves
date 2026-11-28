@@ -11,7 +11,7 @@ describe('calm Budgets screen', () => {
     expect(src).toMatch(/<PlanningTabs value="budgets"/);
   });
   it('shows one summary card, one sentence, a Spending nudge and sorted flat rows', () => {
-    expect(src).toMatch(/c\.budgetsPlanned/);
+    expect(src).toMatch(/<SummaryCard/);
     expect(src).toMatch(/summarySentence/);
     expect(src).toMatch(/<NudgeRow/);
     expect(src).toMatch(/sortCategories\(/);
