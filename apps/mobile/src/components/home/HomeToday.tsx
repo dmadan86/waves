@@ -20,6 +20,7 @@ import { PersonAvatar } from '@/components/PersonAvatar';
 import { CardTitle, ICON_FOR } from '@/components/personal/PersonalHomeParts';
 import { GroupRow } from '@/components/home/GroupRow';
 import type { SnapRow } from '@/lib/homeSnapshot';
+import { LIST_TILE, ListCard, ListPill, ListItem, RowTile } from '@/components/standard';
 import { BALANCE_MASK } from '@/components/home/ScenicBalanceCard';
 import { useCaptures, usePeopleBalances } from '@/data/hooks';
 import { useHomeSpaceFigures } from '@/data/homeSpaces';
@@ -224,7 +225,7 @@ export function NeedsYouCard({
           count={total}
         />
       )}
-      <Card style={{ padding: 0, overflow: 'hidden' }}>
+      <ListCard>
         {settled ? (
           <View
             accessible
@@ -257,7 +258,7 @@ export function NeedsYouCard({
             />
           ))
         )}
-      </Card>
+      </ListCard>
     </View>
   );
 }
@@ -381,86 +382,35 @@ function NeedRow({
   }
 
   return (
-    <Row
-      style={{
-        alignItems: 'center',
-        gap: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.md,
-        borderTopWidth: first ? 0 : 1,
-        borderTopColor: theme.color.border,
-      }}
-    >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={title}
-        onPress={open}
-        style={({ pressed }) => ({
-          flex: 1,
-          minWidth: 0,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.spacing.md,
-          opacity: pressed ? 0.7 : 1,
-        })}
-      >
-        {person ? (
-          <PersonAvatar name={person.name} avatarUrl={person.avatarUrl} size={36} />
+    <ListItem
+      accessibilityLabel={title}
+      onPress={open}
+      divider={!first}
+      leading={
+        person ? (
+          <PersonAvatar name={person.name} avatarUrl={person.avatarUrl} size={LIST_TILE} />
         ) : (
-          <View
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: theme.radius.md,
-              backgroundColor: tint.bg,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+          <RowTile tint={tint.bg}>
             <Ionicons name={icon} size={iconSize.md} color={tint.ink} />
-          </View>
-        )}
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ fontWeight: '700' }}>
-            {title}
-          </Text>
-          {sub ? (
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {sub}
-            </Text>
-          ) : null}
-        </View>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${label}, ${title}`}
-        disabled={
-          paying ||
-          nudge.pending ||
-          (need.kind === 'owed' && nudge.outcome?.ok === true && !remindPending)
-        }
-        onPress={onPress}
-        hitSlop={6}
-        style={({ pressed }) => ({
-          paddingHorizontal: theme.spacing.md,
-          height: 32,
-          borderRadius: theme.radius.pill,
-          justifyContent: 'center',
-          backgroundColor: need.action === 'pay' ? theme.color.brand : theme.color.brandSoft,
-          opacity: pressed || paying ? 0.6 : 1,
-        })}
-      >
-        <Text
-          variant="caption"
-          style={{
-            fontWeight: '700',
-            color: need.action === 'pay' ? theme.color.onBrand : theme.color.brand,
-          }}
-        >
-          {label}
-        </Text>
-      </Pressable>
-    </Row>
+          </RowTile>
+        )
+      }
+      title={title}
+      subtitle={sub || undefined}
+      trailing={
+        <ListPill
+          label={label}
+          accessibilityLabel={`${label}, ${title}`}
+          disabled={
+            paying ||
+            nudge.pending ||
+            (need.kind === 'owed' && nudge.outcome?.ok === true && !remindPending)
+          }
+          onPress={onPress}
+          filled={need.action === 'pay'}
+        />
+      }
+    />
   );
 }
 
@@ -608,15 +558,7 @@ export function ComingUpChips({
       </CardTitle>
       {shown.length ? (
         // The same card and rows as Groups below, so the two read as one design.
-        <View
-          style={{
-            borderRadius: theme.radius.lg,
-            borderWidth: 1,
-            borderColor: theme.color.border,
-            backgroundColor: theme.color.surface,
-            overflow: 'hidden',
-          }}
-        >
+        <ListCard>
           {shown.map((chip, index) => (
             <GroupRow
               key={chip.key}
@@ -633,7 +575,7 @@ export function ComingUpChips({
               onPress={chip.onPress}
             />
           ))}
-        </View>
+        </ListCard>
       ) : (
         <Text variant="caption" tone="muted">
           {t.dates.empty}

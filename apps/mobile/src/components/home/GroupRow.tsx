@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Animated, Pressable, View } from 'react-native';
-import { directionalIcon, iconSize, Row, Skeleton, Text, useTheme } from '@waves/ui';
+import { Animated, View } from 'react-native';
+import { iconSize, Row, Skeleton, Text, useTheme } from '@waves/ui';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { GroupMark } from '@/components/GroupMark';
 import { GroupTypeTag, useGroupTypeTag, useGroupTypeTagSpoken } from '@/components/GroupTypeTag';
+import { LIST_TILE, ListItem } from '@/components/standard/ListItem';
 import { UnreadDot } from '@/components/UnreadDot';
 import { BALANCE_MASK } from '@/components/home/ScenicBalanceCard';
 import { useCoverTile } from '@/lib/groupCoverColor';
@@ -102,60 +103,46 @@ export function GroupRow({
         transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
       }}
     >
-      <Pressable
-        accessibilityRole="button"
+      <ListItem
         accessibilityLabel={`${title}${unread ? `, ${t.groupNewActivity}` : ''}. ${spoken || directionLabel}`}
         onPress={onPress}
-        style={({ pressed }) => ({
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.spacing.md,
-          paddingVertical: theme.spacing.sm,
-          paddingHorizontal: theme.spacing.sm,
-          borderTopWidth: divider ? 1 : 0,
-          borderTopColor: theme.color.border,
-          opacity: pressed ? 0.6 : 1,
-        })}
-      >
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: icon ? theme.color.brandSoft : tile.backgroundColor,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {icon ? (
-            <Ionicons name={icon} size={iconSize.md} color={iconColor ?? theme.color.brand} />
-          ) : (
-            <GroupMark emoji={coverEmoji} size={22} color={tile.ink} />
-          )}
-          {unread ? <UnreadDot /> : null}
-        </View>
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+        divider={divider}
+        strong={unread}
+        leading={
+          <View
+            style={{
+              width: LIST_TILE,
+              height: LIST_TILE,
+              borderRadius: LIST_TILE / 2,
+              backgroundColor: icon ? theme.color.brandSoft : tile.backgroundColor,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {icon ? (
+              <Ionicons name={icon} size={iconSize.md} color={iconColor ?? theme.color.brand} />
+            ) : (
+              <GroupMark emoji={coverEmoji} size={22} color={tile.ink} />
+            )}
+            {unread ? <UnreadDot /> : null}
+          </View>
+        }
+        title={title}
+        titleAccessory={
+          tag ? (
             <Text
-              variant="body"
-              numberOfLines={1}
-              style={{ flexShrink: 1, fontWeight: unread ? '800' : '600' }}
+              variant="micro"
+              tone={tagTone === 'positive' ? 'positive' : 'brand'}
+              style={{
+                fontWeight: '700',
+                color: tagTone === 'warning' ? theme.color.warning : undefined,
+              }}
             >
-              {title}
+              {tag}
             </Text>
-            {tag ? (
-              <Text
-                variant="micro"
-                tone={tagTone === 'positive' ? 'positive' : 'brand'}
-                style={{
-                  fontWeight: '700',
-                  color: tagTone === 'warning' ? theme.color.warning : undefined,
-                }}
-              >
-                {tag}
-              </Text>
-            ) : null}
-          </Row>
+          ) : null
+        }
+        subtitle={
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
             {typeTag ? <GroupTypeTag tag={typeTag} /> : null}
             <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
@@ -163,44 +150,31 @@ export function GroupRow({
               {!pendingLabel && draftLabel ? ` · ${draftLabel}` : ''}
             </Text>
           </Row>
-        </View>
-        {pendingBalance ? (
-          <View style={{ alignItems: 'flex-end', gap: 2 }}>
+        }
+        amount={
+          pendingBalance ? (
             <Skeleton width={64} height={16} radius={6} animated={!reduceMotion} />
-            <Text variant="micro" tone={directionTone} numberOfLines={1}>
-              {directionLabel}
-            </Text>
-          </View>
-        ) : (
-          <View style={{ alignItems: 'flex-end', gap: 2 }}>
-            <Text
-              numberOfLines={1}
-              tone={
-                tone === 'positive'
-                  ? 'positive'
-                  : tone === 'negative'
-                    ? 'negative'
-                    : hidden
-                      ? 'muted'
-                      : undefined
-              }
-              style={{ fontWeight: '700' }}
-            >
-              {hidden ? BALANCE_MASK : (amountText ?? (balance === 0n ? '0' : String(balance)))}
-            </Text>
-            <Text variant="micro" tone={directionTone} numberOfLines={1}>
-              {directionLabel}
-            </Text>
-          </View>
-        )}
-        {chevron ? (
-          <Ionicons
-            name={directionalIcon('chevron-forward')}
-            size={iconSize.sm}
-            color={theme.color.textMuted}
-          />
-        ) : null}
-      </Pressable>
+          ) : hidden ? (
+            BALANCE_MASK
+          ) : (
+            (amountText ?? (balance === 0n ? '0' : String(balance)))
+          )
+        }
+        amountTone={
+          pendingBalance
+            ? undefined
+            : tone === 'positive'
+              ? 'positive'
+              : tone === 'negative'
+                ? 'negative'
+                : hidden
+                  ? 'muted'
+                  : undefined
+        }
+        caption={directionLabel}
+        captionTone={directionTone}
+        chevron={chevron}
+      />
     </Animated.View>
   );
 }

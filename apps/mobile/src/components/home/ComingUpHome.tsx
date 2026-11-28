@@ -11,7 +11,14 @@ import { Pressable, View } from 'react-native';
 import { addPlanDays, format, money, type CurrencyCode } from '@waves/core';
 import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
 
-import { EmptyCard, SectionHeader, StandardCard } from '@/components/standard';
+import {
+  EmptyCard,
+  LIST_TILE,
+  ListCard,
+  ListItem,
+  SectionHeader,
+  StandardCard,
+} from '@/components/standard';
 import { useComingUp } from '@/data/useComingUp';
 import { plural, fill, useStrings } from '@/i18n';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
@@ -82,12 +89,12 @@ export function tagColor(theme: ReturnType<typeof useTheme>, tag: DueTag): strin
 export function DueRow({
   item,
   fmt,
-  last,
+  first,
   onPress,
 }: {
   item: DueItem;
   fmt: (minor: bigint) => string;
-  last: boolean;
+  first: boolean;
   onPress?: () => void;
 }) {
   const theme = useTheme();
@@ -99,51 +106,28 @@ export function DueRow({
   const day = at.getUTCDate();
   const amount = fmt(item.amount);
   return (
-    <Pressable
-      accessibilityRole="button"
+    <ListItem
       accessibilityLabel={`${item.title}, ${mon} ${day}, ${amount}, ${tagText(item, tag)}`}
       onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        borderBottomWidth: last ? 0 : 1,
-        borderBottomColor: theme.color.border,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <View style={{ width: 44, alignItems: 'center' }}>
-        <Text
-          variant="micro"
-          tone="muted"
-          style={{ fontWeight: '600', textTransform: 'uppercase' }}
-        >
-          {mon}
-        </Text>
-        <Text style={{ fontSize: 20, lineHeight: 24, fontWeight: '800' }}>{day}</Text>
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontWeight: '700' }}>
-          {item.title}
-        </Text>
-        <Text variant="caption" tone="muted" numberOfLines={1}>
-          {item.sub}
-        </Text>
-      </View>
-      <View style={{ alignItems: 'flex-end' }}>
-        <Text numberOfLines={1} style={{ fontWeight: '700' }}>
-          {item.amount <= 0n ? '' : `${item.income ? '+' : ''}${amount}`}
-        </Text>
-        <Text
-          variant="caption"
-          numberOfLines={1}
-          style={{ fontWeight: '600', color: tagColor(theme, tag) }}
-        >
-          {tagText(item, tag)}
-        </Text>
-      </View>
-    </Pressable>
+      divider={!first}
+      leading={
+        <View style={{ width: LIST_TILE, alignItems: 'center' }}>
+          <Text
+            variant="micro"
+            tone="muted"
+            style={{ fontWeight: '600', textTransform: 'uppercase' }}
+          >
+            {mon}
+          </Text>
+          <Text style={{ fontSize: 20, lineHeight: 24, fontWeight: '800' }}>{day}</Text>
+        </View>
+      }
+      title={item.title}
+      subtitle={item.sub}
+      amount={item.amount <= 0n ? '' : `${item.income ? '+' : ''}${amount}`}
+      caption={tagText(item, tag)}
+      captionColor={tagColor(theme, tag)}
+    />
   );
 }
 
@@ -281,7 +265,7 @@ export function ComingUpHome({
         ) : null}
       </View>
 
-      <StandardCard style={{ paddingVertical: theme.spacing.xs }}>
+      <ListCard>
         {next.length === 0 ? (
           <EmptyCard
             icon="calendar-outline"
@@ -298,7 +282,7 @@ export function ComingUpHome({
               key={item.key}
               item={item}
               fmt={fmt}
-              last={false}
+              first={i === 0}
               onPress={() => router.push(item.href as never)}
             />
           ))
@@ -307,7 +291,12 @@ export function ComingUpHome({
           accessibilityRole="button"
           accessibilityLabel={c.seeCalendar}
           onPress={() => router.push(calendarRoute(groupId) as never)}
-          style={{ alignItems: 'center', paddingVertical: theme.spacing.md }}
+          style={{
+            alignItems: 'center',
+            paddingVertical: theme.spacing.md,
+            borderTopWidth: next.length ? 1 : 0,
+            borderTopColor: theme.color.border,
+          }}
         >
           <Row style={{ alignItems: 'center', gap: 2 }}>
             <Text tone="brand" style={{ fontWeight: '600' }}>
@@ -320,7 +309,7 @@ export function ComingUpHome({
             />
           </Row>
         </Pressable>
-      </StandardCard>
+      </ListCard>
 
       <Row style={{ gap: theme.spacing.sm }}>
         {tiles.map((tile) => (
