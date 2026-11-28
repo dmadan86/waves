@@ -31,6 +31,12 @@ export interface RentItem {
   readonly full: { date: string; ruleId: string } | null;
 }
 
+/** Days to look ahead so everything still unsettled this month is seen; at least a week. */
+export function monthHorizon(today: string, min = 7): number {
+  const last = new Date(Date.UTC(Number(today.slice(0, 4)), Number(today.slice(5, 7)), 0));
+  return Math.max(min, last.getUTCDate() - Number(today.slice(8, 10)));
+}
+
 /**
  * Every active tenancy with rent owing now (overdue or due today) or falling due
  * within `horizonDays`. Settled and vacant ones are not listed. Soonest first.
@@ -77,7 +83,8 @@ export function rentItems(input: {
       continue;
     }
     const due = nextDueOnOrAfter(v.rule, input.today);
-    if (due && due <= limit) {
+    // A paid due-today line means that occurrence is settled; `nextDate` may still point at it.
+    if (due && due <= limit && !v.balance.lines.some((l) => l.date === due)) {
       out.push({
         ...base,
         key: `rent:${tn.id}:${due}`,

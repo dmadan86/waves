@@ -18,7 +18,7 @@ import { NeedRow, NeedsYouCard } from '@/components/calm/NeedsYouCard';
 import { NudgeRow } from '@/components/calm/NudgeRow';
 import { SummaryLine } from '@/components/calm/SummaryLine';
 import { useRentActions } from '@/components/calm/useRentActions';
-import { rentItems } from '@/lib/calm/rentDue';
+import { monthHorizon, rentItems } from '@/lib/calm/rentDue';
 import { dueNow, leaseNudge, nameList, paidTenancies } from '@/lib/calm/rentSummary';
 import { monthLabel } from '@/lib/monthNav';
 import { StatusPill, useWealthMoney, type PillTone } from '@/components/wealth/parts';
@@ -177,7 +177,17 @@ function RentalsBody() {
   });
   const activeTenancies = views.flatMap(({ v }) => (v.tenancy ? [v.tenancy] : []));
   const due = dueNow(items, dc);
-  const paid = paidTenancies(activeTenancies, items);
+  // Paid means this month's rent is settled, not merely "outside the week's horizon".
+  const unsettled = rentItems({
+    properties: active,
+    tenancies,
+    recurrings: ledger.recurrings,
+    txns: ledger.txns,
+    today,
+    horizonDays: monthHorizon(today),
+    fallbackCurrency: dc,
+  });
+  const paid = paidTenancies(activeTenancies, unsettled);
   const lease = readOnly ? null : leaseNudge(activeTenancies, today);
   const c = t.calm;
   const shortDate = (iso: string): string =>

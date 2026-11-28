@@ -27,3 +27,18 @@ describe('calm Rentals list', () => {
     expect(i18n.match(/^ {4}leaseEnds: /gm)).toHaveLength(5);
   });
 });
+
+describe('Arabic day plurals', () => {
+  it('has dual and many forms for the lease-away line', () => {
+    const line = i18n.slice(i18n.lastIndexOf('    leaseAway:')).slice(0, 400);
+    expect(line).toMatch(/two: /);
+    expect(line).toMatch(/many: /);
+  });
+});
+
+describe('paid status', () => {
+  it('uses the month-wide horizon, not the due-now one', () => {
+    expect(src).toMatch(/horizonDays: monthHorizon\(today\)/);
+    expect(src).toMatch(/paidTenancies\(activeTenancies, unsettled\)/);
+  });
+});
