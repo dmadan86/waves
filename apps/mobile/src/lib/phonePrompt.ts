@@ -60,7 +60,11 @@ export function phonePromptMode(
   facts: PhonePromptFacts,
   state: PhonePromptState,
   today: string,
+  /** The day the ask was last put on screen, however it was closed (see `writePhonePromptShown`). */
+  shownOn: string | null = null,
 ): PhonePromptMode {
+  // Shown today already: a cold launch, a swipe-away or a kill is not a reason to ask again today.
+  if (shownOn === today) return PhonePromptMode.Hidden;
   if (!facts.enabled || !facts.canVerify || facts.hasPhone || facts.isGuest) {
     return PhonePromptMode.Hidden;
   }
@@ -134,5 +138,26 @@ export async function writePhonePromptState(
     await AsyncStorage.setItem(slot(ownerId), JSON.stringify(state));
   } catch {
     // A write that fails costs one repeat of the soft ask.
+  }
+}
+
+const shownSlot = (ownerId: string): string => `waves.phone_prompt_shown.${ownerId}`;
+
+/** The local day this account was last shown the ask, or null. Never rejects. */
+export async function readPhonePromptShown(ownerId: string): Promise<string | null> {
+  try {
+    const raw = await AsyncStorage.getItem(shownSlot(ownerId));
+    return raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Record that the ask was shown today, so only "Later" being missed cannot bring it back this day. Never rejects. */
+export async function writePhonePromptShown(ownerId: string, today: string): Promise<void> {
+  try {
+    await AsyncStorage.setItem(shownSlot(ownerId), today);
+  } catch {
+    // Costs one repeat of the ask.
   }
 }
