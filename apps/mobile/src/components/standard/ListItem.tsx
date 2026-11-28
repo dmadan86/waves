@@ -152,6 +152,13 @@ export function ListItem({
         }
       : null),
   };
+  const chevronNode = chevron ? (
+    <Ionicons
+      name={directionalIcon('chevron-forward')}
+      size={iconSize.sm}
+      color={theme.color.textMuted}
+    />
+  ) : null;
   const body = (
     <>
       {leading}
@@ -201,13 +208,6 @@ export function ListItem({
           )}
         </View>
       ) : null}
-      {chevron ? (
-        <Ionicons
-          name={directionalIcon('chevron-forward')}
-          size={iconSize.sm}
-          color={theme.color.textMuted}
-        />
-      ) : null}
     </>
   );
   if (trailing) {
@@ -230,6 +230,17 @@ export function ListItem({
           {body}
         </Pressable>
         {trailing}
+        {chevronNode ? (
+          <Pressable
+            accessible={false}
+            importantForAccessibility="no"
+            disabled={!onPress}
+            onPress={onPress}
+            hitSlop={8}
+          >
+            {chevronNode}
+          </Pressable>
+        ) : null}
       </View>
     );
   }
@@ -243,6 +254,7 @@ export function ListItem({
       style={({ pressed }) => ({ ...frame, opacity: pressed ? 0.6 : 1 })}
     >
       {body}
+      {chevronNode}
     </Pressable>
   );
 }

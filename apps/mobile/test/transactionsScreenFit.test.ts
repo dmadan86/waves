@@ -10,9 +10,8 @@ const src = read('../src/app/personal/transactions.tsx');
 const i18n = read('../src/i18n/index.ts');
 
 describe('personal transactions screen', () => {
-  it('gives the title its own full-width line when pushed with a back arrow', () => {
-    expect(src).toMatch(/drillIn \? \(/);
-    expect(src).toMatch(/const titleBlock/);
+  it('shows the standard back button only when pushed, with the actions at the far end', () => {
+    expect(src).toMatch(/hideBack=\{!drillIn\}/);
     expect(src).toMatch(/const actions/);
   });
   it('keeps the type chip labels whole: icon discs only where there is room, icon-only filter', () => {

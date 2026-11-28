@@ -11,7 +11,7 @@ import { View } from 'react-native';
 import { iconSize, Sheet, Text, useTheme } from '@waves/ui';
 import type { PersonalTxn } from '@waves/core';
 
-import { ListCard, ListItem, LIST_TILE } from '@/components/standard';
+import { ListCard, ListItem, LIST_TILE, SectionHeader } from '@/components/standard';
 import { CategoryPicker } from '@/components/Category';
 import { DoneLine } from '@/components/calm/DoneLine';
 import { NeedRow, NeedsYouCard } from '@/components/calm/NeedsYouCard';
@@ -29,7 +29,7 @@ import { recentlyPaid } from '@/lib/calm/doneLine';
 import { needsYou, uncategorizedTxns, visibleNeeds } from '@/lib/calm/needsYou';
 import { rentItems } from '@/lib/calm/rentDue';
 import { dailyPace, spendByDate, weekDays, weekSummary, weekStartDate } from '@/lib/calm/weekPace';
-import { firstWeekday } from '@/lib/calendarGrid';
+import { WEEK_START } from '@/lib/calendarGrid';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { router } from '@/lib/navigation';
 import { budgetsOverview } from '@/lib/budgetsOverview';
@@ -59,7 +59,7 @@ export function PersonalToday({ today, currency }: { today: string; currency: st
   // The week strip.
   const overview = budgetsOverview(ledger.budgets, ledger.txns, month, currency);
   const pace = dailyPace(overview?.limit ?? null, month);
-  const start = weekStartDate(today, firstWeekday(locale));
+  const start = weekStartDate(today, WEEK_START);
   const end = new Date(Date.parse(`${start}T00:00:00Z`) + 6 * 864e5).toISOString().slice(0, 10);
   const upcoming = usePersonalUpcoming(
     { txns: ledger.txns, recurrings: ledger.recurrings, currency, today },
@@ -70,7 +70,7 @@ export function PersonalToday({ today, currency }: { today: string; currency: st
   );
   const days = weekDays({
     today,
-    weekStart: firstWeekday(locale),
+    weekStart: WEEK_START,
     spent: spendByDate(ledger.txns, currency, start, end),
     pace,
     dueDates,
@@ -260,9 +260,13 @@ export function PersonalToday({ today, currency }: { today: string; currency: st
 
       {later.length > 0 ? (
         <View style={{ gap: theme.spacing.sm }}>
-          <Text accessibilityRole="header" variant="subheading">
-            {c.later}
-          </Text>
+          <SectionHeader
+            title={t.calendar.comingUp}
+            action={{
+              label: t.calendar.seeAll,
+              onPress: () => router.push('/personal/calendar'),
+            }}
+          />
           <ListCard>
             {later.map((row, i) => (
               <ListItem

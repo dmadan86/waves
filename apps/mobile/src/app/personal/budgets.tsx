@@ -137,6 +137,7 @@ function BudgetsScreenBody() {
   return (
     <Screen edges={[]}>
       <PlanningHeader
+        tab="budgets"
         title={t.personal.budgets}
         subtitle={t.personal.budgetsPlanSub}
         addLabel={t.personal.addBudget}
@@ -281,53 +282,55 @@ function BudgetsScreenBody() {
                 </Pressable>
               </Row>
             ) : null}
-            <ListCard>
-              {sortedBudgets.map((row, i) => {
-                const budget = row.budget;
-                const over = row.spent > row.limit;
-                const pct = percentUsed(row);
-                return (
-                  <ListItem
-                    key={budget.id}
-                    divider={i > 0}
-                    onPress={() => setEditing(budget)}
-                    leading={
-                      <CategoryBadge
-                        category={budget.category ?? 'other'}
-                        meta={null}
-                        size={LIST_TILE}
-                      />
-                    }
-                    title={labelFor(budget.category)}
-                    subtitle={
-                      <View style={{ gap: 4 }}>
-                        <CalmBar
-                          ratio={row.limit > 0n ? Number(row.spent) / Number(row.limit) : 0}
-                          over={over}
+            {sortedBudgets.length > 0 ? (
+              <ListCard>
+                {sortedBudgets.map((row, i) => {
+                  const budget = row.budget;
+                  const over = row.spent > row.limit;
+                  const pct = percentUsed(row);
+                  return (
+                    <ListItem
+                      key={budget.id}
+                      divider={i > 0}
+                      onPress={() => setEditing(budget)}
+                      leading={
+                        <CategoryBadge
+                          category={budget.category ?? 'other'}
+                          meta={null}
+                          size={LIST_TILE}
                         />
-                        <Text
-                          variant="caption"
-                          style={{
-                            color: over ? theme.color.negativeText : theme.color.textMuted,
-                          }}
-                        >
-                          {fill(over ? c.rowOver : c.rowLeft, {
-                            amount: fmt(
-                              over ? row.spent - row.limit : row.limit - row.spent,
-                              budget.currency,
-                            ),
-                            pct: String(pct),
-                          })}
-                        </Text>
-                      </View>
-                    }
-                    amount={fmt(row.spent, budget.currency)}
-                    amountColor={over ? theme.color.negativeText : undefined}
-                    caption={fill(c.spentOfCap, { cap: fmt(row.limit, budget.currency) })}
-                  />
-                );
-              })}
-            </ListCard>
+                      }
+                      title={labelFor(budget.category)}
+                      subtitle={
+                        <View style={{ gap: 4 }}>
+                          <CalmBar
+                            ratio={row.limit > 0n ? Number(row.spent) / Number(row.limit) : 0}
+                            over={over}
+                          />
+                          <Text
+                            variant="caption"
+                            style={{
+                              color: over ? theme.color.negativeText : theme.color.textMuted,
+                            }}
+                          >
+                            {fill(over ? c.rowOver : c.rowLeft, {
+                              amount: fmt(
+                                over ? row.spent - row.limit : row.limit - row.spent,
+                                budget.currency,
+                              ),
+                              pct: String(pct),
+                            })}
+                          </Text>
+                        </View>
+                      }
+                      amount={fmt(row.spent, budget.currency)}
+                      amountColor={over ? theme.color.negativeText : undefined}
+                      caption={fill(c.spentOfCap, { cap: fmt(row.limit, budget.currency) })}
+                    />
+                  );
+                })}
+              </ListCard>
+            ) : null}
           </>
         )}
       </ScrollView>
