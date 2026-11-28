@@ -602,7 +602,7 @@ export function CompanyStatementView({
       )}
 
       {statement.rows.length > 0 ? (
-        <Button label={t.company.shareWhatsApp} variant="secondary" onPress={share} />
+        <Button fullWidth label={t.company.shareWhatsApp} variant="secondary" onPress={share} />
       ) : null}
       <Text variant="micro" tone="muted" align="center">
         {view.isAdmin ? t.company.privacyAdmin : t.company.privacyEmployee}

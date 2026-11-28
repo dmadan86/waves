@@ -621,7 +621,7 @@ export function CompanyExport({ groupId }: { groupId: string }) {
               }}
             />
             {Platform.OS === 'ios' ? (
-              <Button label={t.common.done} onPress={() => setPicking(null)} />
+              <Button fullWidth label={t.common.done} onPress={() => setPicking(null)} />
             ) : null}
           </View>
         ) : null}

@@ -193,6 +193,7 @@ export function ReportCompanySheet({
           }}
         />
         <Button
+          fullWidth
           label={t.company.reportSend}
           disabled={busy || text.trim() === ''}
           onPress={() => void send()}

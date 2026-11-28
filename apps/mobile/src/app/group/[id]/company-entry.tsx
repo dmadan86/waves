@@ -877,7 +877,7 @@ function CompanyEntryScreenInner() {
                       accessibilityRole="button"
                       accessibilityLabel={t.company.removePhoto}
                       onPress={() => setPhotos((current) => current.filter((_, i) => i !== index))}
-                      style={{ marginRight: theme.spacing.sm }}
+                      style={{ marginEnd: theme.spacing.sm }}
                     >
                       <Image
                         source={{ uri: photo.uri }}

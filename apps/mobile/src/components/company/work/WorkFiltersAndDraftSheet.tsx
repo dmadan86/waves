@@ -76,7 +76,7 @@ export function WorkFiltersAndDraftSheet({
   const rowIcon = (name: React.ComponentProps<typeof Ionicons>['name']) => (
     <Ionicons name={name} size={iconSize.md} color={theme.color.text} />
   );
-  const done = <Button label={t.common.done} onPress={() => setPanel('form')} />;
+  const done = <Button fullWidth label={t.common.done} onPress={() => setPanel('form')} />;
   const person = draft ? people.find((p) => p.id === draft.memberId) : undefined;
   const site = draft ? sites.find((s) => s.id === draft.projectId) : undefined;
   const dayLabel = draft

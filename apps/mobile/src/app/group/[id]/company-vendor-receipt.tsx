@@ -110,16 +110,25 @@ export default function CompanyVendorReceiptScreen() {
             </Text>
           </StandardCard>
           <Button
+            fullWidth
             label={fill(s.openInVendor, { name: vendor.name })}
             onPress={() => router.replace(`/group/${id}/company-vendor?vendorId=${vendor.id}`)}
           />
           <Button
+            fullWidth
             label={s.entryDetails}
             onPress={() => router.push(`/group/${id}/company-vendor-line?entryId=${line.id}`)}
           />
           <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-            <Button label={s.downloadPdf} variant="brand" onPress={() => void share()} />
-            {vendor.phone ? <Button label={s.shareWhatsapp} onPress={whatsapp} /> : null}
+            <Button
+              label={s.downloadPdf}
+              variant="brand"
+              style={{ flex: 1 }}
+              onPress={() => void share()}
+            />
+            {vendor.phone ? (
+              <Button label={s.shareWhatsapp} style={{ flex: 1 }} onPress={whatsapp} />
+            ) : null}
           </View>
           {error ? (
             <Text variant="caption" tone="negative">

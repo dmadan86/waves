@@ -113,6 +113,15 @@ export default function CompanyVendorLineScreen() {
           {canManage && line.kind === 'bill' && pending ? (
             <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
               <Button
+                style={{ flex: 1 }}
+                label={s.reject}
+                disabled={review.isPending}
+                onPress={() =>
+                  review.mutate({ line, to: 'rejected' }, { onSuccess: () => router.back() })
+                }
+              />
+              <Button
+                style={{ flex: 1 }}
                 label={s.confirm}
                 variant="brand"
                 disabled={review.isPending}
@@ -120,17 +129,11 @@ export default function CompanyVendorLineScreen() {
                   review.mutate({ line, to: 'approved' }, { onSuccess: () => router.back() })
                 }
               />
-              <Button
-                label={s.reject}
-                disabled={review.isPending}
-                onPress={() =>
-                  review.mutate({ line, to: 'rejected' }, { onSuccess: () => router.back() })
-                }
-              />
             </View>
           ) : null}
           {!line.receivedAt && vendorView && line.kind !== 'bill' && line.status === 'approved' ? (
             <Button
+              fullWidth
               label={s.markReceived}
               disabled={received.isPending}
               onPress={() => received.mutate({ entryId: line.id, received: true })}
@@ -138,6 +141,7 @@ export default function CompanyVendorLineScreen() {
           ) : null}
           {canRemove ? (
             <Button
+              fullWidth
               label={withdraw ? s.withdraw : s.removeEntry}
               onPress={() =>
                 void confirm({

@@ -216,6 +216,7 @@ export function ManagerHome({ groupId }: { groupId: string }) {
             size="compact"
           />
           <Button
+            fullWidth
             label={t.company.askTitle}
             disabled={amount <= 0n || ask.isPending || !me}
             onPress={() => {

@@ -129,6 +129,7 @@ export function DepartmentSheet({
                 />
               ))}
               <Button
+                fullWidth
                 label={`+ ${t.company.departmentAdd}`}
                 disabled={departments.length >= 30}
                 onPress={() => setEditing({ value: '' })}
